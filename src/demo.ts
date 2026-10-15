@@ -7,10 +7,11 @@
 // week of assigned, overdue and completed learning. Fixed ids with INSERT OR IGNORE keep it
 // idempotent; every date follows `now`. It never fetches.
 import type { Bindings } from './auth.server'
+import { payloadDigest } from './beam/agent-work'
 import { sha256Hex } from './beam/core'
 import { DAY, localDate, zonedInstant } from './beam/time'
 
-const BUSINESS = 'Harbour Physio', ZONE = 'Australia/Sydney'
+const BUSINESS = 'Harbour Physio', ZONE = 'Australia/Sydney', OWNER_NAME = 'Olivia Hart'
 // UUID-shaped ids; the first segment varies, so certificate numbers do too.
 const id = (kind: string, n: number) => `${kind}${String(n).padStart(6, '0')}-5eed-4b3a-8d3e-0000000000de`
 
@@ -165,7 +166,7 @@ const ASSIGNMENTS: AssignmentData[] = [
   { n: 25, learner: 'jordan', course: 'payments', due: 13, assigned: -3, lessonsDone: 1 },
 ]
 const SESSIONS = {
-  1: { course: 'records', held: -45, instructor: 'Karen Doyle, privacy consultant', location: 'Harbour Physio meeting room', attestation: 'Ana and the owner attended the full two-hour privacy refresher and completed the case exercises.' },
+  1: { course: 'records', held: -45, instructor: 'Karen Doyle, privacy consultant', location: 'Harbour Physio meeting room', attestation: 'Ana and Olivia attended the full two-hour privacy refresher and completed the case exercises.' },
   2: { course: 'fire', held: -60, instructor: 'Hugh Mercer, Coastal Fire Safety', location: 'Harbour Physio, car park assembly point', attestation: 'Noah took part in the building evacuation drill and the warden briefing.' },
 } as const
 
@@ -175,7 +176,12 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   const owner = await db.prepare("SELECT id, display_name FROM oa_operators WHERE email = ? AND role = 'owner'").bind(ownerEmail).first<{ id: string; display_name: string }>()
   if (!owner) return
   // The owner's Beam membership may already exist from a first page view; keep its id.
-  await q('INSERT INTO beam_members (id, email, name, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO NOTHING', id('a0', 0), ownerEmail, owner.display_name || 'Owner', at(-500)).run()
+  // A demo owner arrives with a placeholder name; the clinic's owner has her own.
+  const generic = (name: string | null) => !name || name.trim().toLowerCase() === 'owner'
+  const ownerName = generic(owner.display_name) ? OWNER_NAME : owner.display_name
+  await q('INSERT INTO beam_members (id, email, name, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO NOTHING', id('a0', 0), ownerEmail, ownerName, at(-500)).run()
+  await q("UPDATE beam_members SET name = ? WHERE email = ? AND (name = '' OR lower(name) = 'owner')", ownerName, ownerEmail).run()
+  if (generic(owner.display_name)) await q('UPDATE oa_operators SET display_name = ? WHERE id = ?', ownerName, owner.id).run()
   const ownerMember = (await q('SELECT id FROM beam_members WHERE email = ?', ownerEmail).first<{ id: string }>())!.id
   const member = (person: Person) => person === 'owner' ? ownerMember : id('a0', Object.keys(STAFF).indexOf(person) + 1)
   const emailOf = (person: keyof typeof STAFF) => `${STAFF[person][1]}@harbour-physio.example`
@@ -313,5 +319,36 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       )
     }
   }
+
+  // The clinic's own agent prepares reminders and plans through Tom's preparation credential; people decide.
+  const AGENT = 'Harbour ops agent'
+  const assignmentInput = (n: number) => { const a = ASSIGNMENTS.find(item => item.n === n)!; return { type: 'assignment', id: id('f0', n), label: `${a.learner === 'owner' ? ownerName : STAFF[a.learner][0]}'s ${COURSES.find(c => c.key === a.course)!.title} assignment` } }
+  const PROPOSALS: { n: number; kind: 'reminders' | 'assignment_plan'; title: string; at: number; inputs: object[]; reasons: string[]; excluded: { item: string; reason: string }[]; payload: object; decided?: { state: 'approved' | 'declined'; by: Person; at: number; note: string; result: object | null } }[] = [
+    { n: 1, kind: 'reminders', title: 'Reminders for two overdue courses', at: -0.2, inputs: [assignmentInput(4), assignmentInput(14)],
+      reasons: ['Lee Park\'s Handling client records was due three days ago, with one of two lessons done.', 'Tom Okafor\'s Fire and emergency evacuation was due two days ago, with one of two lessons done.'],
+      excluded: [{ item: 'Jordan Blake, Opening the clinic', reason: 'Out of quiz attempts: a manager decides on another attempt; a reminder would not help.' }],
+      payload: { items: [
+        { assignment: id('f0', 4), message: 'Hi Lee, Handling client records is now overdue. The second lesson (checking identity) takes about ten minutes; please finish it in paid time before Friday.' },
+        { assignment: id('f0', 14), message: 'Hi Tom, your fire evacuation course is two days overdue. One lesson left: assembly and roll call.' }] } },
+    { n: 2, kind: 'assignment_plan', title: 'Payments course for the rest of the front desk', at: -0.5, inputs: [{ type: 'course_revision', id: published.get('payments')!.revision, label: 'Payments, refunds and receipts revision 1' }],
+      reasons: ['Grace Kim joined the front desk and has not been assigned Payments, refunds and receipts.', 'Sam and Jordan already have it; Lee completed it last month.'],
+      excluded: [{ item: 'Clinicians', reason: 'Clinicians do not take payments at the desk.' }],
+      payload: { items: [{ learner: member('grace'), course: courseId('payments'), courseRevision: published.get('payments')!.revision, dueDate: localDate(at(14), ZONE), dueTime: '17:00', timezone: ZONE }] } },
+    { n: 3, kind: 'reminders', title: 'A nudge for Sam\'s opening course', at: -4, inputs: [assignmentInput(1)],
+      reasons: ['Sam Lee opens with Tom next week and has one of three lessons of Opening the clinic done.'], excluded: [],
+      payload: { items: [{ assignment: id('f0', 1), message: 'Hi Sam, you open with Tom on Tuesday. Please finish the opening steps and fridge log lessons before then.' }] },
+      decided: { state: 'approved', by: 'owner', at: -3.8, note: 'Good timing.', result: { delivered: [id('f0', 1)], skipped: [] } } },
+    { n: 4, kind: 'reminders', title: 'Hand hygiene renewal reminder for Noah', at: -3, inputs: [assignmentInput(9)],
+      reasons: ['Noah Patel\'s hand hygiene renewal is due in ten days, with two of three lessons done.'], excluded: [],
+      payload: { items: [{ assignment: id('f0', 9), message: 'Hi Noah, your hand hygiene renewal is due soon: one lesson left.' }] },
+      decided: { state: 'declined', by: 'tom', at: -2.9, note: 'Noah is on leave until the 20th; it can wait until he is back.', result: null } },
+  ]
+  for (const proposal of PROPOSALS) {
+    const pid = id('g0', proposal.n), decided = proposal.decided
+    statements.push(q("INSERT OR IGNORE INTO beam_agent_proposals (id, kind, title, agent, prepared_by, via_agent, inputs_json, reasons_json, excluded_json, payload_json, payload_sha256, state, decided_by, decided_at, decision_note, result_json, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      pid, proposal.kind, proposal.title, AGENT, member('tom'), JSON.stringify(proposal.inputs), JSON.stringify(proposal.reasons), JSON.stringify(proposal.excluded), JSON.stringify(proposal.payload), await payloadDigest(proposal.payload),
+      decided?.state ?? 'waiting', decided ? member(decided.by) : null, decided ? at(decided.at) : null, decided?.note ?? null, decided ? JSON.stringify(decided.result) : null, at(proposal.at)))
+  }
+  statements.push(q('INSERT OR IGNORE INTO beam_reminder_messages (id, assignment_id, learner_id, body, proposal_id, approved_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', id('g1', 1), id('f0', 1), member('sam'), 'Hi Sam, you open with Tom on Tuesday. Please finish the opening steps and fridge log lessons before then.', id('g0', 3), ownerMember, at(-3.8)))
   await db.batch(statements)
 }

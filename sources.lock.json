@@ -139,7 +139,7 @@
   ],
   "files": {
     ".github/workflows/run-demo.yml": {
-      "sha256": "f7263d881a6a091a4c37b50da1b8014d01d8381b47b0a38a29b17cc48af02508",
+      "sha256": "7931d85be89c2c1cc68a262d3318ab702fc1f9ee6bf7ee4d3ded191941278d73",
       "executable": false
     },
     ".github/workflows/run-site.yml": {
@@ -183,7 +183,7 @@
       "executable": false
     },
     "DEMO.md": {
-      "sha256": "519a7fbfe559d0eefa1273aba55ee3a094f0a877ff74a6ac4d8d232db9314b06",
+      "sha256": "c500843857728a42e864cbc5b9d170478a65abf0ff50c58ad45c38070cac3bcc",
       "executable": false
     },
     "deploy-demo.json": {
@@ -567,7 +567,7 @@
       "executable": false
     },
     "src/beam/agent-work.ts": {
-      "sha256": "85958aba5b48952722b30b1edd2a1edccb402400815f9e338a6b61e103a234da",
+      "sha256": "e860e9d107af190587a64a9db14bb1685a9fc0a7afa74a75b644790d246d38da",
       "executable": false
     },
     "src/beam/assignments.ts": {
@@ -699,7 +699,7 @@
       "executable": false
     },
     "src/demo.ts": {
-      "sha256": "d19ef7f7c6e5d119d06290e0378a5746b9464a6a9ec54dee672b311ac2ff1d7f",
+      "sha256": "73a86c7052f83b532a1af221ec7a0e92e890de60349d0a696d7c23d0fbf8103b",
       "executable": false
     },
     "src/dev-personas.ts": {

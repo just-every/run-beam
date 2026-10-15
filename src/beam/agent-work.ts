@@ -41,7 +41,8 @@ const INPUTS: Record<string, { sql: string; label: (row: any) => string }> = {
 }
 
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item)
-const digest = async (payload: unknown) => sha256Hex(new TextEncoder().encode(canonical(payload)))
+/** The SHA-256 a person approves: the payload's canonical JSON. */
+export const payloadDigest = async (payload: unknown) => sha256Hex(new TextEncoder().encode(canonical(payload)))
 
 function texts(value: unknown, name: string, { max = 300, limit = 20 } = {}): string[] {
   const list = value ?? []
@@ -74,7 +75,7 @@ export async function propose(env: Bindings, actor: Actor, input: Input) {
     inputs.push({ type: item.type, id: item.id, label: rule.label(row) })
   }
   const payload = await kind.validate(env, actor, input.json('payload'))
-  const id = newId(), sha256 = await digest(payload)
+  const id = newId(), sha256 = await payloadDigest(payload)
   await commit(env, [stmt(env, "INSERT INTO beam_agent_proposals (id, kind, title, agent, prepared_by, via_agent, inputs_json, reasons_json, excluded_json, payload_json, payload_sha256, state, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?)",
     id, input.text('kind'), title, agent, actor.id, actor.agent ? 1 : 0, JSON.stringify(inputs), JSON.stringify(reasons), JSON.stringify(excluded), JSON.stringify(payload), sha256, now())],
   { actor: actor.id, action: 'agent.propose', subject: id, detail: { kind: input.text('kind'), agent, viaAgent: actor.agent, sha256 } })

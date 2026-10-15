@@ -24,7 +24,9 @@ evidence, seven courses (published, returned, in review and draft), two role
 paths, and a few weeks of learning: lessons in progress, overdue courses, a
 learner out of quiz attempts, practical evidence waiting for its assessors,
 renewals coming due, offline sessions, certificates, and revisions and a
-procedure change waiting for review. The owner's own My learning shows a
+procedure change waiting for review, and the clinic agent's work (two
+proposals waiting for a decision, one approved, one declined). The owner,
+Olivia Hart unless the demo names her, sees on My learning a
 week's work: three courses assigned (one overdue, one renewal due in two
 days), two completions with certificates, three items to review and one
 practical to assess.
@@ -39,7 +41,8 @@ Public reads run for real and sends to other people are simulated (Base's
 | Invitations, restored access, sign-in links and step-up mail (`operatorMail` in `src/mail.server.mjs`) | Staff mailboxes through Resend, SendGrid or Cloudflare | Mocked success: Base's development sender suppresses the message and the auth routes answer as sent |
 | Identity provider discovery and keys (operator-auth OIDC) | The provider set in `IDENTITY_PROVIDER` | A real public read; demos configure no provider |
 
-Beam has no other outbound path: no webhooks, payments, publishing or AI.
+Beam has no other outbound path: no webhooks, payments, publishing or AI. The
+agent work in the sample data is stored proposals; nothing calls a model.
 
 ## Hosting
 
