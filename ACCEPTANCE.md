@@ -2,8 +2,8 @@
 
 **Useful outcome:** an operations lead publishes one procedure revision,
 assigns it to a cohort, assesses completion and retrieves the exact course and
-completion evidence. It runs locally with no provider account: sign-in through
-the development outbox, uploads to local R2, native lessons, deterministic
+completion evidence. It runs locally with no provider account: dev sign-in
+through the checkout key, uploads to local R2, native lessons, deterministic
 quizzes, named-assessor decisions, in-app queues and reminders, CSV and
 archive downloads. [CONTRACT.md](CONTRACT.md) holds clauses BEAM-01 to BEAM-20.
 

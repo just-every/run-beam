@@ -125,17 +125,6 @@
       ],
       "effects": "See SEED-COMMAND-CONTRACT.md for release effects."
     },
-    "outbox": {
-      "argv": [
-        "rer",
-        "outbox"
-      ],
-      "inputs": [
-        "package.json",
-        "scripts/installer/local.mjs"
-      ],
-      "effects": "See SEED-COMMAND-CONTRACT.md for outbox effects."
-    },
     "doctor": {
       "argv": [
         "rer",

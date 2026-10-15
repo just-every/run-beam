@@ -20,11 +20,14 @@ owner claim (`/auth/owner-claim`).
 `src/demo.ts` writes it once, after the owner exists, with fixed ids and
 dates relative to the start: Harbour Physio (Australia/Sydney), ten staff in
 two teams (one whose access was removed), six owned procedures with licence
-evidence, six courses (published, returned, in review and draft), two role
-paths, and a few weeks of learning: lessons in progress, two overdue courses,
-a learner out of quiz attempts, practical evidence waiting for its assessor, a
-renewal coming due, offline sessions, certificates and a procedure change
-waiting for review.
+evidence, seven courses (published, returned, in review and draft), two role
+paths, and a few weeks of learning: lessons in progress, overdue courses, a
+learner out of quiz attempts, practical evidence waiting for its assessors,
+renewals coming due, offline sessions, certificates, and revisions and a
+procedure change waiting for review. The owner's own My learning shows a
+week's work: three courses assigned (one overdue, one renewal due in two
+days), two completions with certificates, three items to review and one
+practical to assess.
 
 ## Effects
 
@@ -33,14 +36,14 @@ Public reads run for real and sends to other people are simulated (Base's
 
 | Path | Reaches | In a demo |
 |---|---|---|
-| Invitations, restored access, sign-in links and step-up mail (`operatorAuth` in `src/auth.server.ts`) | Staff mailboxes through Resend, SendGrid or Cloudflare | Mocked success through Base's `demoEffect`: the provider's accepted result, nothing sent |
+| Invitations, restored access, sign-in links and step-up mail (`operatorMail` in `src/mail.server.mjs`) | Staff mailboxes through Resend, SendGrid or Cloudflare | Mocked success: Base's development sender suppresses the message and the auth routes answer as sent |
 | Identity provider discovery and keys (operator-auth OIDC) | The provider set in `IDENTITY_PROVIDER` | A real public read; demos configure no provider |
 
 Beam has no other outbound path: no webhooks, payments, publishing or AI.
 
 ## Hosting
 
-`deploy-demo.json` declares the host (`demo.run-beam.com`, `basic`
+`deploy-demo.json` declares the host (`demo.run-beam.com`, `standard-1`
 containers) and `.github/workflows/run-demo.yml` deploys it when run by hand
 (or on push to main once `RUN_DEMO_DEPLOY` is `true`), reading the `run-demo`
 environment. Run it by hand with `test_only` for the separate test host

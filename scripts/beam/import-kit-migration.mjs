@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 const [out, revision] = process.argv.slice(2);
 if (!out || !/^[0-9a-f]{7,40}$/.test(revision ?? '')) throw Error('Usage: import-kit-migration.mjs OUT.sql BASE_SHA');
 const d1 = await import('../../src/modules/import-kit/src/d1/index.ts');
-const groups = [d1.d1Schema, d1.d1ErasureSchema, [...d1.d1StreamOriginSchema, ...d1.d1LegacyStreamReceiptUpgrade], d1.d1StagingSchema, d1.d1NativeStagingSchema, d1.d1CustodyStateSchema, d1.d1ReversalFenceSchema, d1.d1PreparationSchema, d1.d1PreparationStepsSchema, d1.d1RetirementSchema];
+const groups = [d1.d1Schema, d1.d1ErasureSchema, [...d1.d1StreamOriginSchema, ...d1.d1LegacyStreamReceiptUpgrade], d1.d1StagingSchema, d1.d1NativeStagingSchema, d1.d1CustodyStateSchema, d1.d1ReversalFenceSchema, d1.d1PreparationSchema, d1.d1PreparationStepsSchema, d1.d1RetirementSchema, d1.d1ErasureProgressSchema];
 const statements = groups.flat().map(sql => sql.trim().replace(/;\s*$/, ''));
 const schema = db => JSON.stringify(db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name").all());
 const directory = new URL('../../migrations/core/', import.meta.url);

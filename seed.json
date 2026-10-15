@@ -70,7 +70,7 @@
       "/health",
       "/signin"
     ],
-    "notes": "Native owner and staff sessions guard /app and /api/beam; unknown paths return real 404s; the development outbox is local-only."
+    "notes": "Native owner and staff sessions guard /app and /api/beam; unknown paths return real 404s; local dev sign-in answers only the checkout key."
   },
   "extensionPoints": {
     "contributions": [],

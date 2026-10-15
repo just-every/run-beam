@@ -40,13 +40,13 @@ export async function agentCheck(f) {
   for (const path of ['/api/beam/person.roles', '/api/beam/assignment.create', '/api/beam/offline.record', '/api/beam/proposal.decide']) assert.equal((await request(path, { token, role: 'owner', body: {} })).status, 403)
   for (const path of ['/app', '/app/courses', '/auth/session', '/setup']) assert.equal((await request(path, { token, role: 'owner' })).status, 403)
   for (const path of ['/auth/signout', '/app/do/course.create', '/app/do/agent.issue']) assert.equal((await request(path, { token, role: 'owner', body: {} })).status, 403)
-  const forgedCookie = `operator_session_local=${token}`
+  const forgedCookie = `__Host-operator_session=${token}`
   assert.equal((await request('/api/beam/me', { cookie: forgedCookie })).status, 401)
   for (const invalid of ['invalid', token.slice(0, -1) + (token.endsWith('a') ? 'b' : 'a')]) assert.equal((await request('/api/beam/me', { token: invalid, role: 'owner' })).status, 401)
   assert.equal((await api('reviewer', `revisions/${revision}`)).revision.state, 'in_review')
   // Preparation works with the restricted token and real stored source bytes.
   const source = await api('author', 'source.create', { title: 'Agent input', licence: 'owned', licenceEvidence: 'Owned procedure', provenance: 'Business author', reviewer: ids.reviewer, file: file('procedure.txt', 'Agent preparation source bytes') })
-  const download = await fetch(h.origin + `/api/beam/source-files/${source.versionId}`, { headers: { authorization: `Bearer ${token}` } })
+  const download = await h.fetch(`/api/beam/source-files/${source.versionId}`, { headers: { authorization: `Bearer ${token}` } })
   assert.equal(download.status, 200); assert.equal(await download.text(), 'Agent preparation source bytes')
   const draft = (await agent(`courses/${c.id}`)).data
   const proposal = { course: c.id, draftVersion: draft.draftVersion, inputs: [source.versionId], summary: 'Prepared from owned procedure', agent: 'Scoped preparation agent', draft: draft.draft }

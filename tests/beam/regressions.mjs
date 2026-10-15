@@ -11,9 +11,6 @@ try {
     await check(f)
     console.log(`PASS ${name}`)
   }
-} catch (error) {
-  console.error(f.h.output().slice(-6000))
-  throw error
 } finally {
   await f.h.close()
 }

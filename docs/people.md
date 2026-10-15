@@ -14,7 +14,7 @@ Each person has one or more roles. The owner holds every role.
 
 ## Invite a staff member
 
-Open **People** and use **Invite a staff member**: enter their **Name** and **Email**, tick their **Roles** and any **Teams**, and press **Send invitation**. The invitation is an ordinary sign-in email. While you run Beam on your own computer, it waits in the local outbox instead of being sent.
+Open **People** and use **Invite a staff member**: enter their **Name** and **Email**, tick their **Roles** and any **Teams**, and press **Send invitation**. The invitation is an ordinary sign-in email. While you run Beam on your own computer, nothing is sent: the invitation answers as sent and the person signs in once Beam is hosted.
 
 To change someone's roles later, open their roles in the **People** table, tick the ones they need and press **Save roles**.
 

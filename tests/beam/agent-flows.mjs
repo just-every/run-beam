@@ -8,7 +8,7 @@ export async function agentFlows({ h, check, people, ids, publish }) {
   const agentOf = async cookie => {
     const { token } = await h.api('agent.issue', cookie, { expiresInSeconds: 900 })
     return async (path, body, status = 200) => {
-      const response = await fetch(`${h.origin}/api/beam/${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { origin: h.origin, 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) })
+      const response = await h.fetch(`/api/beam/${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { origin: h.origin, 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) })
       const text = await response.text()
       assert.equal(response.status, status, `${path}: ${response.status} ${text.slice(0, 300)}`)
       return text ? JSON.parse(text) : null

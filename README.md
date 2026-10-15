@@ -15,9 +15,8 @@ rer setup --owner-email you@example.com
 rer dev
 ```
 
-`setup` builds the app, applies every local migration, claims the first owner
-and checks that an ordinary sign-in message reached the local outbox; it exits
-with nothing running. Use the setup prompt instead of `--owner-email` to enter
+`setup` builds the app, applies every local migration and claims the first
+owner; it exits with nothing running. Use the setup prompt instead of `--owner-email` to enter
 the real owner mailbox, or pass a private mode-0600 answers file inside the
 checkout: `rer setup --answers exports/answers.json --non-interactive`
 with `{"OWNER_EMAIL":"you@example.com"}`. No external email is sent; nothing
@@ -36,8 +35,8 @@ rer dev --as manager    # Tom Okafor, manager, assessor and learner
 ```
 
 With `dev` already running, these print a fresh `RER_OPEN` for that persona and
-exit. `dev --login` turns dev identity off and prints the outbox instead: open
-it and follow the newest ordinary sign-in link. Stop `dev` with
+exit. Local runs send no email: invitations and sign-in links answer as sent
+and nothing leaves this computer. Stop `dev` with
 `rer dev --stop` or Ctrl-C, and stop `preview` with
 `rer preview --stop` before build or verification.
 

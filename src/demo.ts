@@ -1,9 +1,10 @@
 // Demo data for `rer demo` and the hosted demo (modules/demo runs it once, after
 // the owner exists). Harbour Physio, the clinic Beam's flow tests train: its
 // staff and teams, owned procedures, published courses and role paths, and a
-// few weeks of learning: work in progress, an overdue course, exhausted quiz
-// attempts, evidence waiting for its assessor, a renewal coming due and a
-// procedure change to review. Fixed ids with INSERT OR IGNORE keep it
+// few weeks of learning: work in progress, overdue courses, exhausted quiz
+// attempts, evidence waiting for its assessor (one for the owner), renewals
+// coming due, revisions and a procedure change to review, and the owner's own
+// week of assigned, overdue and completed learning. Fixed ids with INSERT OR IGNORE keep it
 // idempotent; every date follows `now`. It never fetches.
 import type { Bindings } from './auth.server'
 import { sha256Hex } from './beam/core'
@@ -48,7 +49,7 @@ interface LessonData { title: string; body: string; sources?: SourceKey[] }
 interface QuestionData { prompt: string; choices: string[]; correct: number[] }
 interface CourseData {
   key: string; title: string; summary: string; author: Person; reviewer: Person; createdAt: number
-  lessons: LessonData[]; questions?: QuestionData[]; passPercent?: number; maxAttempts?: number; practical?: string
+  lessons: LessonData[]; questions?: QuestionData[]; passPercent?: number; maxAttempts?: number; practical?: string; assessor?: Person
   // Revisions, oldest first; the last published one is current.
   revisions: { state: 'returned' | 'published' | 'in_review'; at: number; note?: string; lessons?: number }[]
 }
@@ -107,10 +108,18 @@ const COURSES: CourseData[] = [
   { key: 'reset', title: 'Treatment room reset', summary: 'Getting a room ready for the next client in five minutes.', author: 'ana', reviewer: 'priya', createdAt: -6,
     lessons: [{ title: 'The five-minute reset', body: 'Wipe down, fresh paper, pillows squared, equipment back on the trolley, bin emptied if more than half full.' }],
     revisions: [] },
+  { key: 'payments', title: 'Payments, refunds and receipts', summary: 'Taking payment at the desk, health fund claims, and refunds the right way.', author: 'ana', reviewer: 'owner', createdAt: -70,
+    lessons: [
+      { title: 'Taking payment', body: 'Check the invoice with the client before you take payment. Card payments go through the terminal at the desk; cash goes in the till and is counted at close.' },
+      { title: 'Health fund claims', body: 'Swipe the client\'s health fund card on the terminal before the payment card, and give them both receipts.' },
+      { title: 'Refunds', body: 'Refunds go back to the card that paid, never as cash. Note the reason on the invoice and tell the practice manager the same day.' },
+    ],
+    practical: 'Take a payment with a health fund claim, then process a refund, with your assessor watching.', assessor: 'owner',
+    revisions: [{ state: 'published', at: -60 }, { state: 'in_review', at: -1 }] },
 ]
-type CourseKey = 'opening' | 'records' | 'hygiene' | 'fire' | 'lifting' | 'reset'
+type CourseKey = 'opening' | 'records' | 'hygiene' | 'fire' | 'lifting' | 'reset' | 'payments'
 
-const TEAMS = { frontdesk: ['Front desk', ['sam', 'lee', 'jordan', 'grace']], clinicians: ['Clinicians', ['mia', 'noah', 'priya', 'tom']] } as const
+const TEAMS = { frontdesk: ['Front desk', ['sam', 'lee', 'jordan', 'grace']], clinicians: ['Clinicians', ['owner', 'mia', 'noah', 'priya', 'tom']] } as const
 const PATHS = {
   frontdesk: { name: 'Front desk onboarding', team: 'frontdesk', at: -60, requirements: [{ course: 'opening', dueDays: 7 }, { course: 'records', prerequisite: 'opening', dueDays: 14, renewalDays: 365 }] },
   clinicians: { name: 'Clinician essentials', team: 'clinicians', at: -430, requirements: [{ course: 'hygiene', dueDays: 7, renewalDays: 365 }, { course: 'fire', dueDays: 14, renewalDays: 730 }] },
@@ -142,9 +151,18 @@ const ASSIGNMENTS: AssignmentData[] = [
   { n: 14, learner: 'tom', course: 'fire', due: -2, assigned: -16, path: 'clinicians', lessonsDone: 1 },
   { n: 15, learner: 'ana', course: 'records', due: -40, assigned: -50, completed: { at: -45, method: 'offline', session: 1 } },
   { n: 16, learner: 'ana', course: 'fire', due: -10, assigned: -20, lessonsDone: 2, completed: { at: -15, method: 'lessons' } },
-  { n: 17, learner: 'owner', course: 'fire', due: 7, assigned: -1 },
+  { n: 17, learner: 'owner', course: 'fire', due: 7, assigned: -1, lessonsDone: 1 },
   { n: 18, learner: 'mia', course: 'records', due: 9, assigned: -5 },
   { n: 19, learner: 'owner', course: 'records', due: -40, assigned: -50, completed: { at: -45, method: 'offline', session: 1 } },
+  { n: 20, learner: 'owner', course: 'hygiene', due: -361, assigned: -370, path: 'clinicians', lessonsDone: 3, quiz: [{ at: -363, answers: [[0, 1], [1]] }], completed: { at: -363, method: 'assessed' } },
+  { n: 21, learner: 'owner', course: 'hygiene', due: 2, assigned: -11, path: 'clinicians', reason: 'renewal', lessonsDone: 2 },
+  { n: 22, learner: 'owner', course: 'opening', due: -1, assigned: -12, lessonsDone: 2 },
+  { n: 23, learner: 'lee', course: 'payments', due: -20, assigned: -50, lessonsDone: 3,
+    practical: { at: -45, evidence: 'Took a $95 payment with a Medibank claim for a standard consult and refunded a duplicate $20 charge to the paying card, with the owner at the desk.', decided: { at: -44, note: 'Claim before payment, both receipts given, refund to the card with the reason noted.' } },
+    completed: { at: -44, method: 'assessed' } },
+  { n: 24, learner: 'sam', course: 'payments', due: 6, assigned: -8, lessonsDone: 3,
+    practical: { at: -1, evidence: 'Wednesday afternoon: took payment for a follow-up with an HCF claim (gap $38.50), printed both receipts, then refunded a cancelled class to the original card and noted the reason on the invoice.' } },
+  { n: 25, learner: 'jordan', course: 'payments', due: 13, assigned: -3, lessonsDone: 1 },
 ]
 const SESSIONS = {
   1: { course: 'records', held: -45, instructor: 'Karen Doyle, privacy consultant', location: 'Harbour Physio meeting room', attestation: 'Ana and the owner attended the full two-hour privacy refresher and completed the case exercises.' },
@@ -209,7 +227,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const draftLessons = course.lessons.map((lesson, position) => ({ id: id('c1', index * 10 + position + 1), title: lesson.title, body: lesson.body, sources: cite(lesson) }))
     const questions = (course.questions ?? []).map((question, position) => ({ id: id('c2', index * 10 + position + 1), prompt: question.prompt, choices: question.choices, correct: question.correct }))
     const assessed = questions.length > 0 || !!course.practical
-    const draft = { title: course.title, summary: course.summary, lessons: draftLessons, questions, passPercent: course.passPercent ?? null, maxAttempts: course.maxAttempts ?? null, practical: course.practical ? { instructions: course.practical, assessor: member('tom') } : null }
+    const draft = { title: course.title, summary: course.summary, lessons: draftLessons, questions, passPercent: course.passPercent ?? null, maxAttempts: course.maxAttempts ?? null, practical: course.practical ? { instructions: course.practical, assessor: member(course.assessor ?? 'tom') } : null }
     const draftVersion = 3 + course.lessons.length * 2 + questions.length + course.revisions.length * 2
     const current = [...course.revisions.keys()].reverse().find(position => course.revisions[position].state === 'published')
     statements.push(q('INSERT OR IGNORE INTO beam_courses (id, title, reviewer_id, created_by, created_at, draft_json, draft_version, published_revision_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', cid, course.title, member(course.reviewer), member(course.author), at(course.createdAt), JSON.stringify(draft), draftVersion, current === undefined ? null : id('c3', revisionCount + current + 1)))
@@ -224,7 +242,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
         return lid
       })
       const assessment = assessed ? id('c5', revisionCount) : null
-      if (assessment) statements.push(q('INSERT OR IGNORE INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, practical_instructions, assessor_id) VALUES (?, ?, ?, ?, ?, ?, ?)', assessment, rid, JSON.stringify(questions), draft.passPercent, draft.maxAttempts, course.practical ?? null, course.practical ? member('tom') : null))
+      if (assessment) statements.push(q('INSERT OR IGNORE INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, practical_instructions, assessor_id) VALUES (?, ?, ?, ?, ?, ?, ?)', assessment, rid, JSON.stringify(questions), draft.passPercent, draft.maxAttempts, course.practical ?? null, course.practical ? member(course.assessor ?? 'tom') : null))
       if (number === current) published.set(key, { revision: rid, lessons: lessonIds, assessment, questions })
     }
   }
@@ -252,6 +270,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   let attemptCount = 0
   for (const assignment of ASSIGNMENTS) {
     const course = published.get(assignment.course)!, aid = id('f0', assignment.n), when = due(assignment.due)
+    const assessor = COURSES.find(item => item.key === assignment.course)!.assessor ?? 'tom'
     const requirement = assignment.path ? PATHS[assignment.path].requirements.find(item => item.course === assignment.course) : undefined
     const renewalDays = requirement && 'renewalDays' in requirement ? requirement.renewalDays : null
     const done = assignment.completed ? course.lessons.length : assignment.lessonsDone ?? 0
@@ -277,7 +296,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       if (decided) practicalAttempt = tid
       statements.push(q("INSERT OR IGNORE INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, passed, scoring_rule, retry_decision, state, evidence_text) VALUES (?, ?, ?, 'practical', 1, ?, ?, 'named assessor decision', ?, ?, ?)",
         tid, aid, course.assessment, at(assignment.practical.at, 11), decided ? 1 : null, decided ? 'accepted by the named assessor' : 'awaiting the named assessor', decided ? 'accepted' : 'awaiting_review', assignment.practical.evidence))
-      if (decided) statements.push(q("INSERT OR IGNORE INTO beam_review_decisions (id, attempt_id, assessor_id, decision, note, decided_at) VALUES (?, ?, ?, 'accepted', ?, ?)", id('f2', attemptCount), tid, member('tom'), decided.note, at(decided.at, 12)))
+      if (decided) statements.push(q("INSERT OR IGNORE INTO beam_review_decisions (id, attempt_id, assessor_id, decision, note, decided_at) VALUES (?, ?, ?, 'accepted', ?, ?)", id('f2', attemptCount), tid, member(assessor), decided.note, at(decided.at, 12)))
     }
     if (assignment.completed) {
       const completion = id('f3', assignment.n), session = assignment.completed.session
@@ -288,9 +307,9 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       statements.push(
         q('INSERT OR IGNORE INTO beam_completions (id, assignment_id, learner_id, course_id, course_revision_id, assessment_revision_id, method, evidence_json, completed_at, expires_at, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           completion, aid, member(assignment.learner), courseId(assignment.course), course.revision, assignment.completed.method === 'assessed' ? course.assessment : null, assignment.completed.method, JSON.stringify(evidence), completedAt, expires,
-          member(practicalAttempt || session ? 'tom' : assignment.learner)),
+          member(practicalAttempt ? assessor : session ? 'tom' : assignment.learner)),
         q('INSERT OR IGNORE INTO beam_certificates (id, completion_id, number, issuer, issued_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)', id('f4', assignment.n), completion, `${new Date(completedAt).getUTCFullYear()}-${completion.slice(0, 8).toUpperCase()}`, BUSINESS, completedAt, expires),
-        q("INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, 'completion.record', ?, ? WHERE changes() = 1", completedAt, member(practicalAttempt || session ? 'tom' : assignment.learner), completion, JSON.stringify({ assignment: aid, method: assignment.completed.method })),
+        q("INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, 'completion.record', ?, ? WHERE changes() = 1", completedAt, member(practicalAttempt ? assessor : session ? 'tom' : assignment.learner), completion, JSON.stringify({ assignment: aid, method: assignment.completed.method })),
       )
     }
   }

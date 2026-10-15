@@ -41,7 +41,7 @@ export async function fixture() {
         if (encoding === 'json') { headers['content-type'] = 'application/json'; encoded = JSON.stringify(body) }
         else { encoded = encoding === 'multipart' ? new FormData() : new URLSearchParams(); for (const [key, value] of Object.entries(body)) for (const item of [value].flat()) encoded.append(key, item) }
       }
-      const res = await fetch(h.origin + path, { method: body === undefined ? 'GET' : 'POST', headers, body: encoded, redirect: 'manual' })
+      const res = await h.fetch(path, { method: body === undefined ? 'GET' : 'POST', headers, body: encoded })
       const text = await res.text()
       const safeError = res.status >= 400 ? [token, cookie, cookies[role], ...Object.values(h.vars)].filter(Boolean).reduce((safe, secret) => safe.replaceAll(secret, '[redacted]'), text).slice(0, 1200) : undefined
       return { status: res.status, location: res.headers.get('location'), data: res.headers.get('content-type')?.includes('application/json') ? JSON.parse(text) : null, ...(safeError ? { errorText: safeError } : {}) }

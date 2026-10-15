@@ -73,7 +73,7 @@ Recorded as decided for this release:
 - First move-in kit: TalentLMS records first (course list CSV and course
   report workbooks); course content is rebuilt as native lessons, never
   reconstructed from a progress spreadsheet.
-- No provider account: local sign-in through the development outbox, local
+- No provider account: local dev sign-in through the checkout key, local
   uploads, in-app reminders and downloads. Agents work through the
   preparation credential; Beam itself calls no model.
 - Question plans release answers only after closing with at least three

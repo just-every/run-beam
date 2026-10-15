@@ -47,19 +47,8 @@ export async function devKey(root) {
   return (await readFile(`${root}/.rer/local/dev-key.env`, 'utf8')).trim().split('=')[1]
 }
 
-/** An ordinary emailed sign-in link from the key-gated local outbox. */
-export async function signIn(origin, key, email) {
-  const requested = await fetch(`${origin}/auth/magic-link`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify({ email, returnTo: '/app' }) })
-  assert.equal(requested.status, 202)
-  const listing = await (await fetch(`${origin}/__dev/outbox`, { headers: { 'x-rer-dev-key': key } })).text()
-  for (const match of listing.matchAll(/href="(\/__dev\/outbox\?message=[^"]+)"/g)) {
-    const detail = await (await fetch(origin + match[1].replaceAll('&amp;', '&'), { headers: { 'x-rer-dev-key': key } })).text()
-    const link = detail.includes(email) && detail.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)
-    if (!link) continue
-    const token = new URL(link[1].replaceAll('&amp;', '&'), origin).searchParams.get('token')
-    const confirmed = await fetch(`${origin}/auth/confirm`, { method: 'POST', redirect: 'manual', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify({ token }) })
-    assert.equal(confirmed.status, 303)
-    return confirmed.headers.getSetCookie().map(line => line.split(';')[0]).join('; ')
-  }
-  throw new Error(`no sign-in message for ${email}`)
+/** Local dev sign-in as a persona through the checkout's key gate (the key header stands in for RER_OPEN's fragment). */
+export async function enter(origin, key, as) {
+  const response = await fetch(`${origin}/auth/dev/enter?as=${as}`, { redirect: 'manual', headers: { 'x-rer-dev-key': key } })
+  return { status: response.status, cookie: response.headers.getSetCookie().map(line => line.split(';')[0]).join('; ') }
 }

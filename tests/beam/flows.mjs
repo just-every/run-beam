@@ -1,7 +1,7 @@
 import { queuedEntrypoint } from '@runeditrun/rer/queued-entry'
 const queued = await queuedEntrypoint(import.meta.url, 'test:flows'); if (queued !== null) process.exit(queued)
 // Beam's contract clauses, each exercised through public HTTP doors against
-// the built Worker with real local D1 and R2. No provider is involved.
+// the built Worker with real local D1 and R2. Mail is captured at the Resend edge.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { courseListCsv, courseReport, pdf, procedureV1, procedureV2 } from './fixtures.mjs'
@@ -292,7 +292,7 @@ try {
     await h.api(`attempts/${ids.samQuiz}`, people.reviewer, undefined, 404)
     assert.equal((await h.raw('/app/files/attachment/' + attachment)).status, 303)
     // Cross-site posts are refused before any action runs.
-    const forged = await fetch(`${h.origin}/api/beam/business.configure`, { method: 'POST', headers: { cookie: people.owner, origin: 'https://evil.example', 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Taken', timezone: 'UTC' }) })
+    const forged = await h.fetch('/api/beam/business.configure', { method: 'POST', headers: { cookie: people.owner, origin: 'https://evil.example', 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Taken', timezone: 'UTC' }) })
     assert.equal(forged.status, 403)
     assert.equal((await h.api('me', people.owner)).business.name, 'Harbour Physio')
   })
@@ -380,9 +380,6 @@ try {
   })
 
   await agentFlows({ h, check, people, ids, publish })
-} catch (error) {
-  console.error(h.output().slice(-6000))
-  throw error
 } finally {
   await h.close()
 }

@@ -38,7 +38,7 @@ rer dev --as reviewer   # Priya Shah, reviewer and learner
 rer dev --as manager    # Tom Okafor, manager, assessor and learner
 ```
 
-Each prints a fresh link for that person. To use the ordinary emailed sign-in instead, start with `rer dev --login`: Beam prints the address of its local outbox, where every sign-in message waits for you to open it.
+Each prints a fresh link for that person. Running locally, Beam sends no email: invitations and sign-in links answer as sent and nothing leaves your computer.
 
 ## Stop and start again
 

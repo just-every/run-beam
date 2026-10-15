@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto'
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readArchive } from '@runeditrun/rer/modules/portability'
-import { command, devKey, serving, signIn } from './cli.mjs'
+import { command, devKey, enter, serving } from './cli.mjs'
 import { procedureV1 } from './fixtures.mjs'
 
 async function archive(path) {
@@ -50,11 +50,13 @@ export async function restoreJourney({ root, target, port }) {
   const answers = join(target, 'exports/answers.json')
   await writeFile(answers, JSON.stringify({ OWNER_EMAIL: 'owner@example.test' }), { mode: 0o600 })
   await command(target, ['setup', '--answers', 'exports/answers.json', '--non-interactive', '--port', String(port)])
-  const server = await serving(target, 'preview', port)
+  const server = await serving(target, 'dev', port)
   const origin = `http://127.0.0.1:${port}`
   try {
     const key = await devKey(target)
-    const cookie = await signIn(origin, key, 'owner@example.test')
+    const owner = await enter(origin, key, 'owner')
+    assert.equal(owner.status, 303)
+    const cookie = owner.cookie
     // First-run confirmation belongs to the installation, not the archive: the new owner confirms it again.
     const confirmed = await fetch(`${origin}/setup`, { method: 'POST', redirect: 'manual', headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' }, body: 'confirm=yes' })
     assert.equal(confirmed.status, 303)
@@ -74,13 +76,16 @@ export async function restoreJourney({ root, target, port }) {
     }
     assert.equal(certificates, 2)
     // Archives carry no sign-in accounts. The owner restores a learner's access from People, the learner
-    // signs in from the emailed invitation and reaches their own restored record and certificate.
+    // signs in again and reaches their own restored record and certificate.
     const learner = learners.find(member => member.email.startsWith('learner@'))
+    assert.equal((await enter(origin, key, 'learner')).status, 403, 'a restored archive lets no learner in by itself')
     const restore = new URLSearchParams({ returnTo: '/app/people', email: learner.email, status: 'active' })
     const restored = await fetch(`${origin}/app/do/person.access`, { method: 'POST', redirect: 'manual', headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' }, body: restore })
     assert.equal(restored.status, 303)
     assert.equal(new URL(restored.headers.get('location'), origin).searchParams.get('error'), null, 'restoring access is accepted')
-    const learnerCookie = await signIn(origin, key, learner.email)
+    const signedIn = await enter(origin, key, 'learner')
+    assert.equal(signedIn.status, 303)
+    const learnerCookie = signedIn.cookie
     const own = await fetch(`${origin}/api/beam/records/me`, { headers: { cookie: learnerCookie } })
     assert.equal(own.status, 200, 'the restored learner reaches their own record')
     const mine = await own.json()

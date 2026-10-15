@@ -21,6 +21,7 @@
           "tests/beam",
           "scripts/beam",
           "migrations/core/0015_import_kit_upgrade.sql",
+          "migrations/core/0018_import_kit_erasure_progress.sql",
           "src/auth.server.ts",
           "src/identity.ts",
           "src/server.ts",
@@ -29,7 +30,8 @@
           "vite.site.config.ts",
           "deploy-site.json",
           "src/demo.ts",
-          "deploy-demo.json"
+          "deploy-demo.json",
+          "tests/runtime.mjs"
         ]
       }
     },
@@ -45,11 +47,12 @@
           "scripts/edition-authoring",
           "src/modules/dependencies",
           "src/modules/owner-claim",
-          "src/modules/demo"
+          "src/modules/demo",
+          "src/modules/d1-transport"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "79f61faef682f9d6cdb64e843cfbd3cf02887982",
+          "revision": "1ce15dd8cbb7c8cf2d83ebfde2b4a8a130ff9d74",
           "path": ".",
           "paths": [
             "foundation/runtime",
@@ -57,7 +60,8 @@
             "modules/mail",
             "modules/dependencies",
             "modules/owner-claim",
-            "edition-authoring"
+            "edition-authoring",
+            "modules/d1-transport"
           ]
         }
       }
@@ -72,7 +76,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "79f61faef682f9d6cdb64e843cfbd3cf02887982",
+          "revision": "1ce15dd8cbb7c8cf2d83ebfde2b4a8a130ff9d74",
           "path": "modules/import-kit",
           "paths": [
             "src",
@@ -95,7 +99,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "79f61faef682f9d6cdb64e843cfbd3cf02887982",
+          "revision": "1ce15dd8cbb7c8cf2d83ebfde2b4a8a130ff9d74",
           "path": "export",
           "paths": [
             "HOMEPAGE-VARIANTS.md",

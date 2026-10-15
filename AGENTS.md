@@ -10,9 +10,9 @@ Enter the real owner mailbox through the setup prompt or `--owner-email` (or a
 private answers file inside the checkout: `--answers exports/answers.json
 --non-interactive`). `dev` prints `RER_OPEN`, which opens Beam signed in as the
 owner; `dev --as learner|author|reviewer|manager` prints one for a persona
-(real local members at `<as>@dev.localhost`, defined in `src/dev-personas.ts`);
-`dev --login` uses the ordinary outbox sign-in instead. No external mail is
-sent and no provider account is needed. Stop servers with
+(real local members at `<as>@dev.localhost`, defined in `src/dev-personas.ts`).
+No external mail is sent (invitations and sign-in links answer as sent) and no
+provider account is needed. Stop servers with
 `rer dev --stop` or `rer preview --stop`
 before build or verification.
 
@@ -68,16 +68,16 @@ Rules that hold everywhere:
   portability and first-run; 0006 Beam; 0007 the import kit schema; 0008–0014
   Base provider control, dependency approval and owner claim; 0015 the import
   kit upgrade to Base `79f61fa`; 0016 Beam agent work; 0017 Base's owner
-  sign-in link (`rer signin`). Import-kit migrations come from
+  sign-in link (`rer signin`); 0018 the import kit's resumable erasure. Import-kit migrations come from
   `node --experimental-strip-types scripts/beam/import-kit-migration.mjs OUT BASE_SHA`,
   which writes only what the applied ones lack. Never edit an applied
   migration; add the next number.
-- `src/modules/` — Base operator-auth, mail, dependencies, owner-claim, demo
-  and import-kit; `src/base/` and `scripts/edition-authoring/` — the Base runtime
+- `src/modules/` — Base operator-auth, mail, dependencies, owner-claim, demo,
+  import-kit and d1-transport; `src/base/` and `scripts/edition-authoring/` — the Base runtime
   pieces (Lobby, setup state, static assets, hydration) and authoring tool.
-  They are byte copies of Base recorded in `base-copies.json` (`79f61fa`;
-  operator-auth, owner-claim and demo at the demo runtime's Base commit)
-  (applied migrations keep the Base revision they were copied from); check with
+  They are byte copies of Base recorded in `base-copies.json`, all at the
+  commit of the pinned rer release (applied migrations keep the Base revision
+  they were copied from); check with
   `node scripts/edition-authoring/cli.mjs verify-base` and move to a newer Base
   with `refresh-base`. The `rer` command itself is the pinned
   `@runeditrun/rer` package. `edition.json` and `sources.lock.json` declare the
@@ -99,8 +99,8 @@ human signed in by ordinary email link or OIDC issues it with
 `POST /api/beam/agent.issue` and `{ "expiresInSeconds": 3600 }`. The response
 contains `token` and `expiresAt`; keep it private and send it as
 `Authorization: Bearer <token>`. Keep the human browser session private and
-separate. Dev-identity and review sessions cannot issue these credentials; use
-`dev --login` for ordinary local outbox sign-in. Authors, reviewers and
+separate. Dev-identity and review sessions cannot issue these credentials, so
+issue one from a hosted installation's ordinary sign-in. Authors, reviewers and
 managers can issue one; it carries that person's current roles.
 
 The credential expires within one hour and no later than its parent session.
