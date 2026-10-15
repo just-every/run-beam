@@ -7,7 +7,7 @@ import { closing, hero, included, sections } from './copy'
 import { agentDrawing, bandSheets, changesDrawing, freeDrawing, heroDrawing, moveInDrawing, quizDrawing, recordsDrawing } from './drawings'
 
 const arrow = raw(icon('arrow', { size: 18 }))
-const actions = () => h`<div class="site-actions"><a class="run-button" href="/run">${hero.action} ${arrow}</a><a class="docs-link" href="/docs">${hero.docs}</a></div><p class="site-small">${hero.small}</p>`
+const actions = () => h`<div class="site-actions"><a class="run-button" href="/run">${hero.action} ${arrow}</a><a class="run-button" href="https://demo.run-beam.com/">${hero.demo}</a><a class="docs-link" href="/docs">${hero.docs}</a></div><p class="site-small">${hero.small}</p>`
 const alternatives = () => h`<p class="hero-alt">100% free, open source alternative to ${hero.alternatives.map((name, index) => h`${index ? (index === hero.alternatives.length - 1 ? ' and ' : ', ') : ''}<b>${name}</b>`)}</p>`
 
 function feature(id: string, copy: { eyebrow: string; heading: string; body: string }, art: Html, flip = false): Html {

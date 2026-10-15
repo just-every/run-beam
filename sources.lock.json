@@ -2103,7 +2103,7 @@
       "executable": false
     },
     "src/site/landing/copy.ts": {
-      "sha256": "bbd85a8c7b92dc000a5e4633be0f5a2361976ac8d29ed310f66ee90530844f82",
+      "sha256": "56777a6f349f03de577dd4e3f5f593368b96f9aa387119305c46a419f37d980e",
       "executable": false
     },
     "src/site/landing/drawings.ts": {
@@ -2111,7 +2111,7 @@
       "executable": false
     },
     "src/site/landing/landing.ts": {
-      "sha256": "f91c3dc7eb280880ebabb0eacca73c8c01839324c3e380d0eb029c652fa30a92",
+      "sha256": "83a42a86770ae0aa0f6a827452d47544617f795fa838f6b8fc967574156fb813",
       "executable": false
     },
     "src/site/pages.ts": {

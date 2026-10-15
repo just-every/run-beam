@@ -7,6 +7,7 @@ export const hero = {
   subhead: 'Turn your procedures into courses, and see who has completed the latest version.',
   alternatives: ['TalentLMS', 'Trainual', '360Learning'],
   action: 'Run Beam',
+  demo: 'Try the demo',
   docs: 'Read the docs',
   small: 'Free and open source, MIT licensed.',
   drawingLabel: '1. Front desk handbook, version 3: Disarm the alarm, then check the fridge log. 2. Opening the clinic, revision 3, Front desk, due 29 Oct. 3. Sam Lee completed revision 3, with a certificate.',
