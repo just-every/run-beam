@@ -46,7 +46,7 @@ export function page(title: string, actor: Actor | null, body: Html, { current =
   // Until the owner names the business every /app page leads to it, so the bar shows only the brand and the person.
   const nav = actor ? h`${actor.business ? h`<span class="business">${actor.business}</span><nav class="nav" aria-label="Main"><ul>${NAV.filter(item => item.show(actor)).map(item => h`<li><a href="${item.href}"${item.href === current ? raw(' aria-current="page"') : ''}>${item.label}</a></li>`)}</ul></nav>` : ''}<span class="who">${actor.name}</span>` : ''
   const document = h`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/rer-theme.css"><link rel="stylesheet" href="/beam.css"></head><body>
-<header class="top"><div class="top-inner"><a class="brand" href="/app"><img src="/brand/mark.svg" alt="" width="28" height="28"><span>${branding.name}</span></a>${nav}</div></header>
+<header class="top"><div class="top-inner"><a class="brand" href="/app"><img src="/brand/mark.svg" alt="" width="28" height="28"><span data-rer-name>${branding.name}</span></a>${nav}</div></header>
 <main class="column">${notice ? h`<p class="flash" role="status">${notice}</p>` : ''}${error ? h`<p class="flash error" role="alert">That did not work: ${describeError(error)}</p>` : ''}${body}</main></body></html>`
   return new Response(document.html, { status, headers })
 }

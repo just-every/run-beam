@@ -33,6 +33,10 @@ preview, export and import itself). Reset is destructive local cleanup; import
 needs an empty destination. Read `README.md` for the product and
 `SEED-COMMAND-CONTRACT.md` for the full command contract.
 
+`rer demo` runs a throwaway signed-in copy with Harbour Physio's sample data
+(`src/demo.ts`); `DEMO.md` covers it and the hosted demo at
+https://demo.run-beam.com.
+
 ## Product contract
 
 [CONTRACT.md](CONTRACT.md) holds clauses BEAM-01 to BEAM-20 and
@@ -63,14 +67,16 @@ Rules that hold everywhere:
 - `migrations/core/` — numbered D1 migrations: 0001–0005 Base auth, outbox,
   portability and first-run; 0006 Beam; 0007 the import kit schema; 0008–0014
   Base provider control, dependency approval and owner claim; 0015 the import
-  kit upgrade to Base `79f61fa`. Import-kit migrations come from
+  kit upgrade to Base `79f61fa`; 0016 Beam agent work; 0017 Base's owner
+  sign-in link (`rer signin`). Import-kit migrations come from
   `node --experimental-strip-types scripts/beam/import-kit-migration.mjs OUT BASE_SHA`,
   which writes only what the applied ones lack. Never edit an applied
   migration; add the next number.
-- `src/modules/` — Base operator-auth, mail, dependencies, owner-claim and
-  import-kit; `src/base/` and `scripts/edition-authoring/` — the Base runtime
+- `src/modules/` — Base operator-auth, mail, dependencies, owner-claim, demo
+  and import-kit; `src/base/` and `scripts/edition-authoring/` — the Base runtime
   pieces (Lobby, setup state, static assets, hydration) and authoring tool.
-  They are byte copies of Base `79f61fa` recorded in `base-copies.json`
+  They are byte copies of Base recorded in `base-copies.json` (`79f61fa`;
+  operator-auth, owner-claim and demo at the demo runtime's Base commit)
   (applied migrations keep the Base revision they were copied from); check with
   `node scripts/edition-authoring/cli.mjs verify-base` and move to a newer Base
   with `refresh-base`. The `rer` command itself is the pinned

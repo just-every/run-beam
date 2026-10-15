@@ -27,7 +27,9 @@
           "src/site",
           "docs",
           "vite.site.config.ts",
-          "deploy-site.json"
+          "deploy-site.json",
+          "src/demo.ts",
+          "deploy-demo.json"
         ]
       }
     },
@@ -42,7 +44,8 @@
           "src/modules/mail",
           "scripts/edition-authoring",
           "src/modules/dependencies",
-          "src/modules/owner-claim"
+          "src/modules/owner-claim",
+          "src/modules/demo"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",

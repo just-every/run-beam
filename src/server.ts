@@ -1,3 +1,4 @@
+import { withDemo } from './modules/demo/index.mjs'
 import start from '@tanstack/react-start/server-entry'
 import { Hono } from 'hono'
 import { dispatch } from './base/dispatch'
@@ -9,6 +10,7 @@ import { setupStateResponse } from './base/setup-state'
 import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { beamResponse } from './beam/http'
+import { seedDemo } from './demo'
 
 const api = new Hono<{ Bindings: Bindings }>()
 api.get('/health', (context) => context.json({ status: 'ok', ...deploymentHealth(context.env) }))
@@ -21,7 +23,7 @@ function noTransform(response: Response): Response {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
 }
 
-export default {
+export default withDemo({
   async fetch(request, env, execution) {
     // Authorization is exclusively Beam's scoped agent door. Never allow a
     // co-present human cookie to turn a bearer request into a form/auth action.
@@ -41,4 +43,4 @@ export default {
     if (beam) return request.headers.has('authorization') && beam.status >= 400 ? rejectedResponse(request, beam) : beam
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
   },
-} satisfies ExportedHandler<Bindings>
+} satisfies ExportedHandler<Bindings>, { seed: seedDemo })
