@@ -2,8 +2,9 @@
   "version": 1,
   "domain": "run-beam.com",
   "name": "Beam",
-  "instanceType": "standard-1",
+  "instanceType": "basic",
   "settings": {
-    "MAIL_FROM": "Beam demo <demo@demo.invalid>"
-  }
+    "MAIL_FROM": "Beam demo <olivia.hart@harbourphysio.example>"
+  },
+  "ownerEmail": "olivia.hart@harbourphysio.example"
 }

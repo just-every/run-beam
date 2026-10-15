@@ -53,3 +53,7 @@ environment. Run it by hand with `test_only` for the separate test host
 `demo.test.run-beam.com`, and with `remove` to delete a demo. Base's
 demo adoption guide (`DEMO.md` in Base's default seed) holds the full hosting
 and removal contract.
+
+The hosted demo uses `basic` containers and signs in Olivia Hart as
+`olivia.hart@harbourphysio.example`. `deploy-demo.json` sets that owner address.
+Invitations and sign-in links complete successfully through Base mail without sending.
