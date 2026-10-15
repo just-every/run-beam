@@ -5,6 +5,7 @@ procedure as a course, staff complete the right revision, and managers can
 recover who completed what, when and on which evidence. Working name;
 first-release seed. Source code:
 [just-every/run-beam](https://github.com/just-every/run-beam).
+The site is at https://run-beam.com.
 
 From this checkout:
 
