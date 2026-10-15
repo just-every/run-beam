@@ -179,7 +179,7 @@
       "executable": false
     },
     "DEMO.md": {
-      "sha256": "4e14645767a7a0f83dc6f3dead70f6bab02f803a05b7bbc5cc5eec5671e52bc2",
+      "sha256": "91c6e92f4f2eaa4bb857ab3d38a18ddb92a2da7d8d7e2b038b2005f66a7192af",
       "executable": false
     },
     "deploy-demo.json": {
@@ -475,7 +475,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "ed0f216e74757fdae38e81e13848c078972f2f5fc6d45fe7b9e9513be256de5c",
+      "sha256": "7512c2d4a2317982eb5c7fce8e279d5db017a2dfecc3624b206d3b0f48d02527",
       "executable": false
     },
     "src/base/deployment-health.ts": {

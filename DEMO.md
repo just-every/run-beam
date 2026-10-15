@@ -33,7 +33,7 @@ Public reads run for real and sends to other people are simulated (Base's
 
 | Path | Reaches | In a demo |
 |---|---|---|
-| Invitations, restored access, sign-in links and step-up mail (`operatorAuth` in `src/auth.server.ts`) | Staff mailboxes through Resend, SendGrid or Cloudflare | Mocked success: kept in the demo's own throwaway database, never sent |
+| Invitations, restored access, sign-in links and step-up mail (`operatorAuth` in `src/auth.server.ts`) | Staff mailboxes through Resend, SendGrid or Cloudflare | Mocked success through Base's `demoEffect`: the provider's accepted result, nothing sent |
 | Identity provider discovery and keys (operator-auth OIDC) | The provider set in `IDENTITY_PROVIDER` | A real public read; demos configure no provider |
 
 Beam has no other outbound path: no webhooks, payments, publishing or AI.
