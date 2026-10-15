@@ -1,0 +1,109 @@
+{
+  "id": "beam",
+  "name": "Beam",
+  "version": "0.1.0",
+  "maturity": "first-release-local",
+  "category": "learning",
+  "spine": {
+    "id": "completion",
+    "record": "A completion bound to the exact course and assessment revision, with its evidence"
+  },
+  "description": "Training for a business's own procedures: reviewed course revisions, role paths, assignments, deterministic quizzes, named-assessor practical evidence, revision-bound completions and certificates, a training report, agent-prepared work a person approves, and a TalentLMS records move-in kit.",
+  "capabilities": [
+    {
+      "id": "learning-records",
+      "clauses": [
+        "BEAM-01",
+        "BEAM-02",
+        "BEAM-03",
+        "BEAM-04",
+        "BEAM-05",
+        "BEAM-06",
+        "BEAM-07",
+        "BEAM-08",
+        "BEAM-09",
+        "BEAM-10",
+        "BEAM-11",
+        "BEAM-12",
+        "BEAM-13",
+        "BEAM-14",
+        "BEAM-15",
+        "BEAM-16",
+        "BEAM-17"
+      ]
+    },
+    {
+      "id": "agent-prepared-work",
+      "clauses": [
+        "BEAM-14",
+        "BEAM-18",
+        "BEAM-19",
+        "BEAM-20"
+      ]
+    }
+  ],
+  "nonGoals": [
+    "Accreditation or statements of competence",
+    "SCORM or xAPI playback",
+    "Course sales",
+    "Child learners",
+    "Model calls from Beam itself in the first release"
+  ],
+  "externals": [
+    {
+      "id": "cloudflare",
+      "required": true,
+      "why": "Worker hosting, D1 records and R2 files",
+      "data": [
+        "Staff identities",
+        "Training records",
+        "Uploaded procedures and evidence"
+      ],
+      "adapters": []
+    }
+  ],
+  "env": [],
+  "deploy": {
+    "healthPath": "/health",
+    "publicPaths": [
+      "/",
+      "/health",
+      "/signin"
+    ],
+    "notes": "Native owner and staff sessions guard /app and /api/beam; unknown paths return real 404s; the development outbox is local-only."
+  },
+  "extensionPoints": {
+    "contributions": [],
+    "policies": [],
+    "events": [],
+    "slots": [],
+    "adapters": []
+  },
+  "limits": {
+    "status": "local admission limits only",
+    "sourceFileBytes": 25000000,
+    "evidenceFileBytes": 8000000,
+    "moveInFileBytes": 10000000
+  },
+  "accessibility": {
+    "level": "WCAG 2.2 AA",
+    "status": "target; unaudited"
+  },
+  "operatingCost": {
+    "status": "unmeasured"
+  },
+  "composition": {
+    "base": "base",
+    "family": "learning",
+    "edition": "beam",
+    "modules": [
+      "job-queue",
+      "release",
+      "deploy-kit",
+      "mail",
+      "operator-auth",
+      "portability",
+      "import-kit"
+    ]
+  }
+}

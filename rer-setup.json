@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "title": "Beam",
+  "groups": [
+    {
+      "id": "application",
+      "label": "Your application"
+    },
+    {
+      "id": "owner",
+      "label": "First owner"
+    }
+  ],
+  "fields": [
+    {
+      "name": "APP_NAME",
+      "label": "Application name",
+      "help": "The name shown to your staff.",
+      "kind": "text",
+      "required": true,
+      "default": "Beam",
+      "group": "application"
+    },
+    {
+      "name": "PRIMARY_COLOR",
+      "label": "Brand colour",
+      "kind": "colour",
+      "required": true,
+      "default": "#191D29",
+      "group": "application"
+    },
+    {
+      "name": "OWNER_EMAIL",
+      "label": "Owner email",
+      "help": "Sign-in links for this address appear in the local development outbox; no email is sent.",
+      "kind": "email",
+      "required": true,
+      "prefill": "account-email",
+      "group": "owner"
+    },
+    {
+      "name": "SESSION_SECRET",
+      "label": "Session secret",
+      "kind": "secret",
+      "required": true,
+      "ownerVisible": false,
+      "input": "managed",
+      "generate": "hex",
+      "group": "owner"
+    },
+    {
+      "name": "SETUP_TOKEN",
+      "label": "Setup token",
+      "kind": "secret",
+      "required": true,
+      "ownerVisible": true,
+      "generate": "hex",
+      "group": "owner"
+    }
+  ],
+  "steps": [
+    {
+      "type": "extension",
+      "id": "branding"
+    },
+    {
+      "type": "owner-claim",
+      "mode": "setup-token",
+      "emailField": "OWNER_EMAIL",
+      "tokenField": "SETUP_TOKEN"
+    }
+  ]
+}

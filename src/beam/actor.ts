@@ -1,0 +1,55 @@
+// The signed-in person as Beam sees them: an operator-auth session joined to
+// a Beam member and that member's learning roles. The owner holds every role.
+import { operatorAuth, type Bindings } from '../auth.server'
+import { delegatedSession } from './agent-credentials'
+import { BeamError, all, insist, newId, now, one, stmt } from './core'
+
+export const ROLES = ['author', 'reviewer', 'learner', 'manager', 'assessor'] as const
+export type Role = typeof ROLES[number]
+
+export interface Actor {
+  id: string
+  sessionId: string
+  email: string
+  name: string
+  /** The business's name, once the owner has set it up. */
+  business: string | null
+  owner: boolean
+  agent: boolean
+  roles: Set<Role>
+}
+
+export async function currentActor(env: Bindings, request: Request): Promise<Actor | null> {
+  const agent = request.headers.has('authorization')
+  const session = agent ? await delegatedSession(env, request) : await operatorAuth(env).getSession(request)
+  if (!session) return null
+  const email = session.operator.email.toLowerCase()
+  const owner = session.operator.role === 'owner'
+  let member = await one<{ id: string; name: string; business?: string | null }>(env, 'SELECT id, name, (SELECT name FROM beam_business WHERE singleton = 1) AS business FROM beam_members WHERE email = ?', email)
+  if (!member && owner) member = await ensureMember(env, email, session.operator.displayName, [...ROLES])
+  if (!member) throw new BeamError('not_a_member', 403)
+  const roles = new Set((await all<{ role: Role }>(env, 'SELECT role FROM beam_member_roles WHERE member_id = ?', member.id)).map(row => row.role))
+  if (owner) ROLES.forEach(role => roles.add(role))
+  return { id: member.id, sessionId: session.id, email, name: member.name, business: member.business ?? null, owner, agent, roles }
+}
+
+export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {
+  const existing = await one<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_members WHERE email = ?', email)
+  if (existing) return existing
+  const id = newId()
+  await env.DB.batch([
+    stmt(env, 'INSERT INTO beam_members (id, email, name, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO NOTHING', id, email, name, now()),
+    ...roles.map(role => stmt(env, 'INSERT OR IGNORE INTO beam_member_roles (member_id, role) SELECT id, ? FROM beam_members WHERE email = ?', role, email)),
+  ])
+  return (await one<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_members WHERE email = ?', email))!
+}
+
+export function requireRole(actor: Actor, ...roles: Role[]) {
+  insist(actor.owner || roles.some(role => actor.roles.has(role)), 'forbidden', 403)
+}
+
+export function requireOwner(actor: Actor) {
+  insist(actor.owner, 'owner_required', 403)
+}
+
+export const isManager = (actor: Actor) => actor.owner || actor.roles.has('manager')

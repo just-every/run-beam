@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "id": "learning/beam",
+  "identityKind": "project",
+  "toolchain": {
+    "id": "runeditrun/edition-authoring",
+    "version": "1.1.0"
+  },
+  "parent": null,
+  "components": [
+    {
+      "id": "learning/beam",
+      "role": "edition",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/beam",
+          "src/routes",
+          "public/beam.css",
+          "migrations/core/0006_beam.sql",
+          "tests/beam",
+          "scripts/beam",
+          "migrations/core/0015_import_kit_upgrade.sql",
+          "src/auth.server.ts",
+          "src/identity.ts",
+          "src/server.ts",
+          "src/site",
+          "docs",
+          "vite.site.config.ts",
+          "deploy-site.json"
+        ]
+      }
+    },
+    {
+      "id": "runeditrun/base",
+      "role": "foundation",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/base",
+          "src/modules/operator-auth",
+          "src/modules/mail",
+          "scripts/edition-authoring",
+          "src/modules/dependencies",
+          "src/modules/owner-claim"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "79f61faef682f9d6cdb64e843cfbd3cf02887982",
+          "path": ".",
+          "paths": [
+            "foundation/runtime",
+            "modules/operator-auth",
+            "modules/mail",
+            "modules/dependencies",
+            "modules/owner-claim",
+            "edition-authoring"
+          ]
+        }
+      }
+    },
+    {
+      "id": "runeditrun/import-kit",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/import-kit"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "79f61faef682f9d6cdb64e843cfbd3cf02887982",
+          "path": "modules/import-kit",
+          "paths": [
+            "src",
+            "schema",
+            "README.md",
+            "CONTRACT.md"
+          ]
+        }
+      }
+    },
+    {
+      "id": "learning/beam-command-docs",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "HOMEPAGE-VARIANTS.md",
+          "RUN-LOCALLY.md",
+          "SEED-COMMAND-CONTRACT.md"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "79f61faef682f9d6cdb64e843cfbd3cf02887982",
+          "path": "export",
+          "paths": [
+            "HOMEPAGE-VARIANTS.md",
+            "RUN-LOCALLY.md",
+            "SEED-COMMAND-CONTRACT.md"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "HOMEPAGE-VARIANTS.md",
+            "originPath": "HOMEPAGE-VARIANTS.md"
+          },
+          {
+            "path": "RUN-LOCALLY.md",
+            "originPath": "RUN-LOCALLY.md"
+          },
+          {
+            "path": "SEED-COMMAND-CONTRACT.md",
+            "originPath": "SEED-COMMAND-CONTRACT.md"
+          }
+        ]
+      }
+    }
+  ]
+}

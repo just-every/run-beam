@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "projectId": "learning/beam",
+  "name": "Beam",
+  "sourceRepository": "https://github.com/just-every/run-beam",
+  "license": "MIT"
+}

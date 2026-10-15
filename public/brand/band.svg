@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 300" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="11" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -2.6 1.32"/></filter>
+    <clipPath id="band"><path d="M0 150 C 260 138 460 160 720 150 S 1190 138 1440 152 V300 H0 Z"/></clipPath>
+  </defs>
+  <path d="M0 150 C 260 138 460 160 720 150 S 1190 138 1440 152 V300 H0 Z" fill="#FDE3EE"/>
+  <rect width="1440" height="300" fill="#FFFFFF" filter="url(#grain)" clip-path="url(#band)" opacity=".5"/>
+  <g fill="none" stroke="#191D29" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".16">
+    <g transform="rotate(-3 190 248)"><rect x="110" y="200" width="160" height="110" rx="10"/><path d="M134 230h96M134 250h112"/></g>
+    <g transform="rotate(2 1250 248)"><rect x="1170" y="200" width="160" height="110" rx="10"/><circle cx="1204" cy="236" r="12"/><path d="M1228 232h76M1192 262h112"/></g>
+  </g>
+  <g fill="none" stroke="#FC68AB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".55">
+    <path d="M300 258h120M404 246l16 12-16 12"/><path d="M1020 258h120M1124 246l16 12-16 12"/>
+  </g>
+</svg>

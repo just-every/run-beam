@@ -1,0 +1,28 @@
+Everything a staff member needs is on **My learning**. Training that is part of their work is done in paid working time.
+
+## My learning
+
+- **Reminders**: training due soon or overdue, and messages a manager approved.
+- **Assigned to me**: each course with its revision, lessons done and due date.
+- **Completed**: every completion with its certificate.
+- **Questions for you**: optional questions from a manager, when there are any.
+
+Reviewers and assessors also see **Waiting for my review** and **Practical evidence to assess**.
+
+## Lessons
+
+Open a course and press **Start**, or **Resume** to carry on. Progress is saved as each lesson is marked done, so a person can start on a computer and finish on a phone. Each lesson links its **Source material**. **Mark done and continue** moves to the next lesson.
+
+## Quiz and practical
+
+When every lesson is done, **Take the quiz** opens. Each question scores when exactly the right choices are selected, and the pass mark and attempts left are shown before starting.
+
+If the course has a practical part, **Submit evidence** describes what the person did, with an optional file, and sends it to the named assessor. The assessor accepts it or asks for resubmission with a note. Nobody can accept their own evidence.
+
+## Practice
+
+Some courses offer **Practice**: short scenarios staff can try as often as they like. Practice never counts toward completion and nobody scores it.
+
+## Certificates
+
+Every completion issues a numbered certificate from your business, naming the course revision. Use the browser's print command to save a copy. A certificate records completion of your own training; it is not an accreditation or a statement of competence.

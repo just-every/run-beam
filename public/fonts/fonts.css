@@ -1,0 +1,10 @@
+/* Lexend (SIL Open Font License 1.1), self-hosted from public/fonts/lexend. Every Beam document links this file (the
+   app, sign-in, /setup, the Lobby and the run site), so the face is declared here once. No third-party request. */
+@font-face {
+  font-family: Lexend;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/lexend/lexend-latin-wght-normal.woff2') format('woff2');
+}
+button, input, select, textarea { font-family: inherit; }
