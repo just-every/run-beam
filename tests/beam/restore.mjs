@@ -75,23 +75,16 @@ export async function restoreJourney({ root, target, port }) {
       certificates++
     }
     assert.equal(certificates, 2)
-    // Archives carry no sign-in accounts. The owner restores a learner's access from People; the learner
-    // signs in (local dev sign-in, as no mail leaves a local run) and reaches their own restored record and certificate.
+    // Archives carry no sign-in accounts. Restoring a learner's access sends them an ordinary invitation;
+    // until they accept it from their mailbox (a hosted installation's mail) they cannot sign in.
     const learner = learners.find(member => member.email.startsWith('learner@'))
     const restore = new URLSearchParams({ returnTo: '/app/people', email: learner.email, status: 'active' })
     const restored = await fetch(`${origin}/app/do/person.access`, { method: 'POST', redirect: 'manual', headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' }, body: restore })
     assert.equal(restored.status, 303)
     assert.equal(new URL(restored.headers.get('location'), origin).searchParams.get('error'), null, 'restoring access is accepted')
-    const signedIn = await enter(origin, key, 'learner')
-    assert.equal(signedIn.status, 303)
-    const learnerCookie = signedIn.cookie
-    const own = await fetch(`${origin}/api/beam/records/me`, { headers: { cookie: learnerCookie } })
-    assert.equal(own.status, 200, 'the restored learner reaches their own record')
-    const mine = await own.json()
-    assert.equal(mine.completions.length, 1)
-    assert.equal((await fetch(`${origin}/app/certificates/${mine.completions[0].certificate}`, { headers: { cookie: learnerCookie } })).status, 200)
+    assert.equal((await enter(origin, key, 'learner')).status, 403, 'the restored learner signs in only by accepting the invitation')
   } finally {
     await server.stop()
   }
-  console.log('BEAM-16 passed: rer export, public-path refusal, corrupt and nonempty import refused, fresh-clone restore with identical rows and file bytes, records and certificates readable after a new sign-in, a restored learner let back in by the owner and signed in locally')
+  console.log('BEAM-16 passed: rer export, public-path refusal, corrupt and nonempty import refused, fresh-clone restore with identical rows and file bytes, records and certificates readable after a new sign-in, a restored learner re-invited by the owner')
 }

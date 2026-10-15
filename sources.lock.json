@@ -2219,7 +2219,7 @@
       "executable": false
     },
     "tests/beam/restore.mjs": {
-      "sha256": "8c0d0fb4cd7e5291e3bfd03be79083d1227a9c41e6c0cb1c68a7935ea0691b53",
+      "sha256": "04e16f66ef0bace37dfdb316ffe0865fe2bd80f00c445c219302082d65973712",
       "executable": false
     },
     "tests/email-link.mjs": {
