@@ -204,7 +204,8 @@ try {
   assert.equal((await fetch(`${origin}/health`)).status, 200)
   assert.equal((await fetch(`${origin}/signin`)).status, 200)
   await server.stop(); server = null
-  await command(root, ['deploy', '--dry-run'])
+  // A production deploy needs its declared mail provider's key (rer refuses production without sign-in mail).
+  await command(root, ['deploy', '--dry-run'], { extraEnv: { MAIL_API_KEY: 'fixture-dry-run-mail-key' } })
   await restoreJourney({ root, target: join(scratch, 'target'), port })
 } finally {
   await browser?.close()
