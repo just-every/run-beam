@@ -2,5 +2,8 @@
   "version": 1,
   "domain": "run-beam.com",
   "name": "Beam",
-  "instanceType": "standard-1"
+  "instanceType": "standard-1",
+  "settings": {
+    "MAIL_FROM": "Beam demo <demo@demo.invalid>"
+  }
 }
