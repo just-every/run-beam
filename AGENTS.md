@@ -76,8 +76,8 @@ Rules that hold everywhere:
   import-kit and d1-transport; `src/base/` and `scripts/edition-authoring/` — the Base runtime
   pieces (Lobby, setup state, static assets, hydration) and authoring tool.
   They are byte copies of Base recorded in `base-copies.json`, all at the
-  commit of the pinned rer release (applied migrations keep the Base revision
-  they were copied from); check with
+  commit of the pinned rer release (copied migrations stay out of the record:
+  an applied migration is never rewritten by a refresh); check with
   `node scripts/edition-authoring/cli.mjs verify-base` and move to a newer Base
   with `refresh-base`. The `rer` command itself is the pinned
   `@runeditrun/rer` package. `edition.json` and `sources.lock.json` declare the

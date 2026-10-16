@@ -207,8 +207,9 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   })
   const team = (key: keyof typeof TEAMS) => id('a2', Object.keys(TEAMS).indexOf(key) + 1)
 
-  // Owned sources: bytes in FILES by content hash, as sources.ts stores them.
-  const versions = new Map<string, string[]>()
+  // Owned sources: bytes in FILES by content hash, as sources.ts stores them. A put of the same
+  // bytes to their content key is idempotent, so the objects are written together, without a head.
+  const versions = new Map<string, string[]>(), objects = new Map<string, Uint8Array>()
   let versionNumber = 0
   for (const [index, source] of SOURCES.entries()) {
     const sourceId = id('b0', index + 1)
@@ -216,12 +217,13 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const ids: string[] = []
     for (const [number, version] of source.versions.entries()) {
       const bytes = new TextEncoder().encode(version.text), sha256 = await sha256Hex(bytes), versionId = id('b1', ++versionNumber)
-      if (!await env.FILES.head(`sha256/${sha256}`)) await env.FILES.put(`sha256/${sha256}`, bytes, { httpMetadata: { contentType: 'application/octet-stream' } })
+      objects.set(sha256, bytes)
       statements.push(q("INSERT OR IGNORE INTO beam_source_versions (id, source_id, number, filename, media_type, size, sha256, provenance, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?, 'text/plain', ?, ?, ?, ?, ?)", versionId, sourceId, number + 1, version.file, bytes.length, sha256, version.provenance, member(source.key === 'hygiene' || source.key === 'lifting' ? 'noah' : 'ana'), at(version.at)))
       ids.push(versionId)
     }
     versions.set(source.key, ids)
   }
+  await Promise.all([...objects].map(([sha256, bytes]) => env.FILES.put(`sha256/${sha256}`, bytes, { httpMetadata: { contentType: 'application/octet-stream' } })))
   // Courses cite each source's first version; the opening procedure's newer version raises a notice.
   const cite = (lesson: LessonData) => (lesson.sources ?? []).map(key => versions.get(key)![0])
 
