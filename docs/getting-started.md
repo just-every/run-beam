@@ -1,17 +1,14 @@
 Beam runs on your own computer with one command, `rer`. Nothing needs an account with anyone, and no email leaves your computer while you try it.
 
-## Install rer and start Beam
+## Get Beam and start it
 
-Install the Run Edit Run command once per computer, then get Beam and start it:
+One line installs the Run Edit Run command, gets Beam and starts it:
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
-git clone https://github.com/just-every/run-beam.git beam
-cd beam && rer dev
+npx -y @runeditrun/rer dev just-every/run-beam
 ```
 
-You can also install rer with `npm install -g @runeditrun/rer`. Beam needs Node 22 or later and pnpm 10.12.4, on macOS, Linux or Windows with WSL2; `rer` selects the exact versions itself.
+To start Beam again later, run `cd run-beam && rer dev`. Beam needs Node 22 or later and pnpm 10.12.4, on macOS, Linux or Windows with WSL2; `rer` selects the exact versions itself.
 
 `rer dev` installs everything, makes you the owner and prints a link that opens Beam signed in. The link is a key to your copy of Beam: open it on this computer and do not share it.
 

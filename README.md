@@ -7,7 +7,13 @@ first-release seed. Source code:
 [just-every/run-beam](https://github.com/just-every/run-beam).
 The site is at https://run-beam.com.
 
-From this checkout:
+Start it from nothing with one line:
+
+```sh
+npx -y @runeditrun/rer dev just-every/run-beam
+```
+
+To start it again later, run `cd run-beam && rer dev`. From an existing checkout, to choose the owner mailbox yourself:
 
 ```sh
 rer install
