@@ -219,7 +219,7 @@
       "executable": false
     },
     "docs/getting-started.md": {
-      "sha256": "ebe171943649aede14666453be06352e7611b2be9d10e3fb9aa9e287e0fafc5f",
+      "sha256": "cd42df8c2c0ee96a886827236e38979bb5bdc30d164781f3f94b382dafbceeee",
       "executable": false
     },
     "docs/learning.md": {
@@ -391,7 +391,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "0251736dde292971e2ee9422784b3977d56985237dcd26207323b1dd8cb677e3",
+      "sha256": "113666d5cb02319ab1d168cc87315ecd4032787e2ec0294271e6de8e9eb677e5",
       "executable": false
     },
     "RELEASE.json": {
@@ -539,7 +539,7 @@
       "executable": false
     },
     "src/base/run-site.ts": {
-      "sha256": "b902f9421d902f73fac0fe50c874d1200f1dca33a811fb52c60a9bb76c95ea40",
+      "sha256": "53b3f379b9b35c7736ab7f62e36b2687c61ce135bfc0f3b7fc77f752092bc081",
       "executable": false
     },
     "src/base/setup-state.ts": {
@@ -2239,7 +2239,7 @@
       "executable": false
     },
     "src/site/run.ts": {
-      "sha256": "538e51f4e8b82b42f46108913103c9832b8f4914603ebee70be27edb2881a8c9",
+      "sha256": "d2004c33e719dbe850ce416bf0b6fc296718a69de5f25460555b0ccb897d220b",
       "executable": false
     },
     "src/site/shell.ts": {

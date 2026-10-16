@@ -7,11 +7,14 @@ first-release seed. Source code:
 [just-every/run-beam](https://github.com/just-every/run-beam).
 The site is at https://run-beam.com.
 
-Start it from nothing with one line:
+Start it from nothing with two lines:
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-beam
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-beam
 ```
+
+The first line installs `rer` for you alone, with its own Node if you have none. It changes no shell settings: if it prints an `export PATH=…` line, run that line before the second. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-beam` does both lines in one.
 
 To start it again later, run `cd run-beam && rer dev`. From an existing checkout, to choose the owner mailbox yourself:
 
