@@ -175,7 +175,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "718720fd4549e12f88bf6d1310de26e81d05682e976684788a67d4b90d92522f",
+      "sha256": "050e715bc622ea5dd716fd884c6ee1b642fe8e85a34f01bd6a62e080ca454202",
       "executable": false
     },
     "CLAUDE.md": {
@@ -1631,7 +1631,7 @@
       "executable": false
     },
     "src/modules/mail/src/core/validation.mjs": {
-      "sha256": "fa1f79579a96fc7b12964d9515e98135993c18ea1af23922779139abc4221571",
+      "sha256": "cae684efe6aa8903ed0404ceb2e83df9ffe273d72dc9d46509eb84476b1809e7",
       "executable": false
     },
     "src/modules/mail/src/development/index.d.mts": {
@@ -1711,7 +1711,7 @@
       "executable": false
     },
     "src/modules/mail/src/inbound/headers.mjs": {
-      "sha256": "79673d562647f4e15e7fe10ca3b13241acd5b2cc25a651a32918cee45e02235c",
+      "sha256": "266f8f427c21c45c78c2403d62259cf46c2df7a8cd2f9beef0da4f5450946770",
       "executable": false
     },
     "src/modules/mail/src/inbound/index.mjs": {
