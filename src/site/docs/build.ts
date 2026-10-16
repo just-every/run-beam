@@ -12,7 +12,10 @@ export interface DocsBody { html: string; toc: { depth: number; id: string; text
 export interface DocsSite { sections: DocsSection[]; bodies: Record<string, DocsBody>; files: string[] }
 
 const escape = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!))
-const text = (html: string) => html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim()
+const entities: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" }
+// Rendered inline HTML to plain text: drop everything from each "<" to its ">" (no regex, so removal cannot join the
+// remainder into a new tag), then decode each entity once, so "&amp;lt;" becomes "&lt;" and not "<".
+const text = (html: string) => html.split('<').map((part, index) => index ? part.slice(part.indexOf('>') + 1) : part).join('').replace(/&(?:amp|lt|gt|quot|#39);/g, entity => entities[entity]).replace(/\s+/g, ' ').trim()
 const slugOf = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, '').trim().replace(/\s+/g, '-')
 const machinePath = /(?<![\w.@~-])\/(?:Users|home|private|tmp|var|Volumes|root)\/[^\s"'`<\\]*/g
 
