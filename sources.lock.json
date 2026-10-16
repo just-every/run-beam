@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "8f136705e5a938a9426ff10765f5c4b4c5c05870e934e96fd554236c9eef34b2",
+  "manifest": "6825b9aba650b94e59b82a53e40812e2f53f23191f3302c16ce68f1c35454910",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -52,7 +52,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+          "revision": "398bdd222401a60ac2d0732454f6a947b3033029",
           "path": ".",
           "paths": [
             "foundation/runtime",
@@ -66,9 +66,9 @@
         }
       },
       "baseline": {
-        "key": "45e35e1123798afb3d4f27db23fcfdec6cffffc56fb3ba13751b7fc38317003b",
-        "digest": "4823825c599797a3e08c388b4414dbf2533ce7ea5232f81e0701ffce19d09414",
-        "sha256": "b815d60d0dd4c64bf9078cf6e16a3065c590c9ff9bba7c0c75432a9a38348937"
+        "key": "c2200c2828b0bfb049ed52fbd3436664be756de97ef3e0993c4bf34f1aa89eb6",
+        "digest": "1dde089a3df5012a4e1ce4ee99a5bc07b2ce03cc354ee9cbbafd5ccbf6d16df5",
+        "sha256": "1d5a5ac6fa88c9888daba3bc04b954efb7a19bdc8a16c63d9ad2d08a3361bd25"
       }
     },
     {
@@ -80,7 +80,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+          "revision": "398bdd222401a60ac2d0732454f6a947b3033029",
           "path": "modules/import-kit",
           "paths": [
             "src",
@@ -91,9 +91,9 @@
         }
       },
       "baseline": {
-        "key": "a5b219d31bc661204ae94da7ef52ba3c8af4a8076fa6c853a9cef697c8e6f71f",
-        "digest": "4fbe450b56f5dffac8ebbb13b9e88453cfc66ea9373a0848ef90a447517a170b",
-        "sha256": "06cbe0bbffffc9544cbed1857a0451300d4837b44c0f556d20da27ec52e346ee"
+        "key": "20cbc0a6555cbd7f0b37d65a1de5a20fea2052151fa3c7ab76574f9a34fd17a3",
+        "digest": "6b1f361cd66e30cb901746e8c44438c40baeac74851d9162b4144e52c2b6468b",
+        "sha256": "c8e6b47601e8d9fa691cdf8bc3d4b5109fbb0436c69002f5a766a9222fcdd808"
       }
     },
     {
@@ -107,7 +107,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "1ee378e41142c673a9098f60af21664c6d8477d1",
+          "revision": "398bdd222401a60ac2d0732454f6a947b3033029",
           "path": "export",
           "paths": [
             "HOMEPAGE-VARIANTS.md",
@@ -131,9 +131,9 @@
         ]
       },
       "baseline": {
-        "key": "6f47310814eba45708ad172a358acd8ae43618d20cbb28774ca9a4d4be4f58e4",
-        "digest": "78602f128f4e1715e8470a97827e764125dfff33cfc811aaa41df893accc5daf",
-        "sha256": "44c00890152a9a9ad034ec43d57b05fdbbe132115c794e9b2a75e3418af93141"
+        "key": "437d5ae264a057ce955427ad346ed1ad584b8c91ed548a4c1c3dc2b114e5049e",
+        "digest": "223bdd660708e1bbe477ef5f0ea2f4d66f9ebef3ea666596807b06a523fe1a2d",
+        "sha256": "f548545e6be791ef996b71557fc12f34f273a07712aab703611b896aa115cae8"
       }
     }
   ],
@@ -143,7 +143,7 @@
       "executable": false
     },
     ".github/workflows/run-demo.yml": {
-      "sha256": "f6c99a99bdb86fb1c77bd97b5bb2d76061417683cd2bb8b4b9caa9a931479721",
+      "sha256": "f2dd68dbfaff33615a0cfb1d4cfa7deed6b9f496c143a9676bba8a9227ddb1df",
       "executable": false
     },
     ".github/workflows/run-site.yml": {
@@ -175,7 +175,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "050e715bc622ea5dd716fd884c6ee1b642fe8e85a34f01bd6a62e080ca454202",
+      "sha256": "1228c932255cfee790141014142c78192f200a2a24adbe02d2f85eaa6f55362a",
       "executable": false
     },
     "CLAUDE.md": {
@@ -247,7 +247,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "8f136705e5a938a9426ff10765f5c4b4c5c05870e934e96fd554236c9eef34b2",
+      "sha256": "6825b9aba650b94e59b82a53e40812e2f53f23191f3302c16ce68f1c35454910",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -407,15 +407,11 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "07b36d5616eef6a07f9ce16b784db166d4ebe78ba279095fb9afe8444a64a2b9",
+      "sha256": "2f04a01fe9107f40a7c8552206e057f07d6b092f8360f641a291c72472330e3c",
       "executable": false
     },
     "scripts/beam/import-kit-migration.mjs": {
       "sha256": "c80b573a167e20da6fe14c07776e1cce7b604c585412da4450e58f9b07564c42",
-      "executable": false
-    },
-    "scripts/demo-tail.mjs": {
-      "sha256": "86ecf71eb0e72580d32f983b6c21bf259f465a8b91d36eba01a1eb1f7b28b3ec",
       "executable": false
     },
     "scripts/edition-authoring/base-copies.mjs": {
@@ -483,7 +479,7 @@
       "executable": false
     },
     "SEED-COMMAND-CONTRACT.md": {
-      "sha256": "0b97e2459883fbb77845844cf20e6760dc775881fd26640a6a6dae050504b891",
+      "sha256": "903b250214addcb434bcf4671558aa1ff3be62656741a309f45ca6e459bdcd78",
       "executable": false
     },
     "seed.json": {
@@ -527,7 +523,7 @@
       "executable": false
     },
     "src/base/identity.ts": {
-      "sha256": "0ad0cad48af3e2c6a40d931e6065185e87208600bc99ab5f886d5d571d5be547",
+      "sha256": "14b41b6f427e20d0aa15a7c4c9f8f2bfd51ea0c2fefab25bb7c5111b5c61217b",
       "executable": false
     },
     "src/base/lobby.ts": {
@@ -755,7 +751,7 @@
       "executable": false
     },
     "src/modules/demo/label.mjs": {
-      "sha256": "e39cffea58d72eebacf6d587f539f1632dd7139bb8e851451877a5ef0a60f2e5",
+      "sha256": "5a879dba78bcebfa5f12ce79856998ac1f54706955a0346b94babed7da5a8cf5",
       "executable": false
     },
     "src/modules/demo/README.md": {
@@ -803,7 +799,7 @@
       "executable": false
     },
     "src/modules/dependencies/logout.mjs": {
-      "sha256": "3bfa236ead120187b96da5f05e94861da682eb8419954a97ac594ff2de49ceb0",
+      "sha256": "d2760dc2d9143094ddf9a883cf54f98ed7818c471e7ca99d5e195f524b2ae8b1",
       "executable": false
     },
     "src/modules/dependencies/native.mjs": {
@@ -831,7 +827,7 @@
       "executable": false
     },
     "src/modules/import-kit/CONTRACT.md": {
-      "sha256": "eab60ff3766461dc41c5253fd88dd5845539eb8dca2f38189c96bdf3f857ea87",
+      "sha256": "bd72b1541b7d3644099205b3e69de233fd8c5144da76a1cb3a4084378443f1b5",
       "executable": false
     },
     "src/modules/import-kit/README.md": {
@@ -1535,7 +1531,7 @@
       "executable": false
     },
     "src/modules/mail/README.md": {
-      "sha256": "2067e03ab3f25fcf55d0ada52a19c44689839c6ca322853529d497430d4aa429",
+      "sha256": "7a041dddfa7161acfb2d53c7fd4522551c5e0c8a6061a8001eefaf9d0539be33",
       "executable": false
     },
     "src/modules/mail/src/adapters/cloudflare/headers.mjs": {
@@ -1583,11 +1579,11 @@
       "executable": false
     },
     "src/modules/mail/src/adapters/rer/contract.mjs": {
-      "sha256": "3dba4b2c07367775768b5d1683cb859ffd000a6eefd2236308a33ebf7ecad1dd",
+      "sha256": "b5daebf8e3b3e0a8cb9482d93af021db74e5202d75d1d414a98259841fa35ac3",
       "executable": false
     },
     "src/modules/mail/src/adapters/rer/index.mjs": {
-      "sha256": "23faa46d74aa987e7fc51e1a78d83760414a169e8bc0101e399bb4d685c4ce14",
+      "sha256": "bbf0d393bc9a5488595cc6f50854e3e7a90fe7272c4ba80721239913ca8be5c7",
       "executable": false
     },
     "src/modules/mail/src/adapters/resend/index.mjs": {
@@ -1631,11 +1627,11 @@
       "executable": false
     },
     "src/modules/mail/src/core/validation.mjs": {
-      "sha256": "cae684efe6aa8903ed0404ceb2e83df9ffe273d72dc9d46509eb84476b1809e7",
+      "sha256": "742a3ca756c15a6e7973ab48cd3c46ee697ab62d44b78ceae59a8fb7ec524f4d",
       "executable": false
     },
     "src/modules/mail/src/development/index.d.mts": {
-      "sha256": "abec697c7f83a0cb7035a6c8d9b4e3a87c393d6ecd3ccb1ccbe49022eb03d0e2",
+      "sha256": "c5a98aa45d773ca730dda8a197aa3c9ee3fcf44c7999cfe5fd8365c28f8f2faf",
       "executable": false
     },
     "src/modules/mail/src/development/index.mjs": {
@@ -1711,7 +1707,7 @@
       "executable": false
     },
     "src/modules/mail/src/inbound/headers.mjs": {
-      "sha256": "266f8f427c21c45c78c2403d62259cf46c2df7a8cd2f9beef0da4f5450946770",
+      "sha256": "7f97376f6817e84940503dcc29d9e99ad4490d3260c142700538ec941b8bfc4f",
       "executable": false
     },
     "src/modules/mail/src/inbound/index.mjs": {
@@ -1743,7 +1739,7 @@
       "executable": false
     },
     "src/modules/mail/src/sender.mjs": {
-      "sha256": "32e35cd88b3b7199f5ce7ac7139be853890428549a84f70a733a5a9a0df6979d",
+      "sha256": "32a413be1866cd5ca060b72c0e30de2c09ff4d37c87c1c94fbcf3de6f86d1dc6",
       "executable": false
     },
     "src/modules/mail/src/sendgrid-email/index.d.mts": {
@@ -1755,7 +1751,7 @@
       "executable": false
     },
     "src/modules/mail/src/unsubscribe/index.mjs": {
-      "sha256": "4cd7c05a3a885d4d16cfcb50e623fdc201fe6c6bb8d9418502b0837161e55295",
+      "sha256": "5804439f7b5981c73dba442cb33237ba73eedfaf1a71fd1c2f5e5a91cb1b2927",
       "executable": false
     },
     "src/modules/operator-auth/accounts/adapter.mjs": {
@@ -1851,7 +1847,7 @@
       "executable": false
     },
     "src/modules/operator-auth/accounts/store.mjs": {
-      "sha256": "535a6fcbad898c48133b30a294ff9e2a51dc633b56c58c37aa50942063023ad8",
+      "sha256": "3492051e3675c69bbccf2bed483ee7d4a068d78bbc114abc33edcd5b94eb2b4f",
       "executable": false
     },
     "src/modules/operator-auth/branding.mjs": {
@@ -1859,7 +1855,7 @@
       "executable": false
     },
     "src/modules/operator-auth/config.mjs": {
-      "sha256": "2299c5081b0e8731572c34066e4f9421c997f44b8c3ecd85944a54e1e2fda122",
+      "sha256": "5741effe188be9e49a6c4c98ff41d5de05db0f2edad17eb06229d2bfdf44b555",
       "executable": false
     },
     "src/modules/operator-auth/conformance/index.d.mts": {
@@ -1871,7 +1867,7 @@
       "executable": false
     },
     "src/modules/operator-auth/conformance/presentation.mjs": {
-      "sha256": "5626e1c96f43c41dfe5ff8d15d0b98e4cd0c1965cb2693968b50ae1295671606",
+      "sha256": "5b6bb34b9b4c3a7791a54dd302248780b2a345183affb57fed6c5d31be49064b",
       "executable": false
     },
     "src/modules/operator-auth/conformance/README.md": {
@@ -1907,7 +1903,7 @@
       "executable": false
     },
     "src/modules/operator-auth/dev/index.mjs": {
-      "sha256": "19fb6e69087159df9b21d4439bb27ef1205a2c9cffa489044bfa41e14e8ea301",
+      "sha256": "af555f0b1ee95ccadb301dca3d777fbbd764373f6e441d4ace2b9879b8b24125",
       "executable": false
     },
     "src/modules/operator-auth/dev/personas.mjs": {
@@ -1955,7 +1951,7 @@
       "executable": false
     },
     "src/modules/operator-auth/identity/email-link/confirmation.mjs": {
-      "sha256": "b01e1ea198eaada5085c4c60b836dbe458421d10553adf73cc906e54449e5a7f",
+      "sha256": "b6b2006fc646a2fc6fd28a01e8be050269e59c8360b9dd07a695417c5bd75826",
       "executable": false
     },
     "src/modules/operator-auth/identity/email-link/index.d.mts": {
@@ -1963,11 +1959,11 @@
       "executable": false
     },
     "src/modules/operator-auth/identity/email-link/index.mjs": {
-      "sha256": "7d7aa3530804b772006dfd881a8457ba11bc10ca65893a6bc1ec23a5e48e9c43",
+      "sha256": "001d9cdabb4dd610b80cbb9bbed02c4e5ee4b9daf69a51e382b6abef4125a255",
       "executable": false
     },
     "src/modules/operator-auth/identity/email-link/message.mjs": {
-      "sha256": "dcbd0eef8f8bac023235162b079945441daab3e0b27541f4738ba15c3ebebbec",
+      "sha256": "d076de1231d45890683595cc2889b32cc1fa15958c1d55a313cbb811821a0f65",
       "executable": false
     },
     "src/modules/operator-auth/identity/index.d.mts": {
@@ -2031,7 +2027,7 @@
       "executable": false
     },
     "src/modules/operator-auth/index.d.mts": {
-      "sha256": "d51648eaed1df60a210e96375c28764e48fe5c67c9dcfdb85c09f02ffa120f31",
+      "sha256": "ad37bcd7c0b1a80f187e9e51a49ff7af3b35fb85c79491a40e3c4f4b3bbf5faa",
       "executable": false
     },
     "src/modules/operator-auth/index.mjs": {
@@ -2063,7 +2059,7 @@
       "executable": false
     },
     "src/modules/operator-auth/README.md": {
-      "sha256": "fa9f1b13e8b98c269ebedc93ef703ac3438120b6a05937bc43eb1dc97c029b12",
+      "sha256": "4c1dd9be73834e9195236893b37c80ea51a68e5a3e050a412c17119dadb23413",
       "executable": false
     },
     "src/modules/operator-auth/rejected-response.mjs": {
@@ -2071,11 +2067,11 @@
       "executable": false
     },
     "src/modules/operator-auth/routes.mjs": {
-      "sha256": "30e43f0da6c7b512639fd5187b67e3114773948ed9bdef751e4c8950b60e2dca",
+      "sha256": "eefbd9f62f1926e927cadc63162db37c6d9a6ed38ca3fa96a498cf19777d1959",
       "executable": false
     },
     "src/modules/operator-auth/service.mjs": {
-      "sha256": "ea77181f36b03f3fc821e5d8b7fbd31594a99303c89621f7e2a0b8fcf60f62ac",
+      "sha256": "08389c58754ca340ace9f67944c17d56f07fbf962a9469350cdc39cf28879c69",
       "executable": false
     },
     "src/modules/operator-auth/signin/index.d.mts": {
@@ -2083,7 +2079,7 @@
       "executable": false
     },
     "src/modules/operator-auth/signin/index.mjs": {
-      "sha256": "4dfa87e4c9699834bfc0271e8c0ad39c50062a30548b57d2a147052dcdb56ec2",
+      "sha256": "a0a5f0aca761c7752caef4bd161aaf7c4db7bf614e7d070ec67e1a44d3c99266",
       "executable": false
     },
     "src/modules/owner-claim/idp.mjs": {

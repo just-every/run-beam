@@ -12,8 +12,9 @@ rer demo --stop
 Its data lives in `.rer/demo/<start time>/` and is deleted on stop, Ctrl-C or
 expiry; this checkout's `.wrangler/state` is never written. The hosted demo at
 https://demo.run-beam.com gives each visitor their own copy in their own
-container for up to an hour (15 idle minutes), signed in through Base's signed
-owner claim (`/auth/owner-claim`).
+native Worker isolate (its own SQLite database and R2 prefix) for up to an
+hour (15 idle minutes), signed in through Base's signed owner claim
+(`/auth/owner-claim`).
 
 ## Sample data
 
@@ -46,14 +47,13 @@ agent work in the sample data is stored proposals; nothing calls a model.
 
 ## Hosting
 
-`deploy-demo.json` declares the host (`demo.run-beam.com`, `standard-1`
-containers) and `.github/workflows/run-demo.yml` deploys it when run by hand
+`deploy-demo.json` declares the host (`demo.run-beam.com`) and `.github/workflows/run-demo.yml` deploys it when run by hand
 (or on push to main once `RUN_DEMO_DEPLOY` is `true`), reading the `run-demo`
 environment. Run it by hand with `test_only` for the separate test host
 `demo.test.run-beam.com`, and with `remove` to delete a demo. Base's
 demo adoption guide (`DEMO.md` in Base's default seed) holds the full hosting
 and removal contract.
 
-The hosted demo uses `basic` containers and signs in Olivia Hart as
+The hosted demo runs on Base's native Worker Loader host and signs in Olivia Hart as
 `olivia.hart@harbourphysio.example`. `deploy-demo.json` sets that owner address.
 Invitations and sign-in links complete successfully through Base mail without sending.

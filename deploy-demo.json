@@ -2,7 +2,6 @@
   "version": 1,
   "domain": "run-beam.com",
   "name": "Beam",
-  "instanceType": "basic",
   "settings": {
     "MAIL_FROM": "Beam demo <olivia.hart@harbourphysio.example>"
   },
