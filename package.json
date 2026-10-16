@@ -57,6 +57,11 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "workerd"
-    ]
+    ],
+    "overrides": {
+      "sharp": "0.35.5",
+      "undici": "7.29.1",
+      "source-map-js": "1.2.2"
+    }
   }
 }
