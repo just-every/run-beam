@@ -475,13 +475,13 @@ removed or changed by this contract-only round.
 
 ## Status
 
-Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2c6` (17 October 2026).
+Judged from the code and tests at commit `17a6296d1825fe341f23baa56d4426904907f83c` (17 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 0 | 49 | 77 | 126 |
-| All | 20 | 49 | 77 | 146 |
+| Target and push further | 0 | 44 | 82 | 126 |
+| All | 20 | 44 | 82 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -592,12 +592,12 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `CONNECT-005` | Synchronize ADP RUN workforce records | target | missing |  | ADP RUN connector, mapping/approval and lifecycle reconciliation are absent. |
 | `CONNECT-006` | Synchronize ADP Workforce Now records | target | missing |  | ADP Workforce Now connector, mapping/approval and lifecycle reconciliation are absent. |
 | `CONNECT-017` | Write completions back to the HRIS training record | target | missing |  | HRIS training-record write-back (BambooHR first), recompletion records, training-type mapping and HRIS history import are absent. |
-| `CONNECT-018` | Sign in through any SAML 2.0 or OIDC provider | target | partial | `src/modules/operator-auth/identity/oidc/index.mjs` | Generic OIDC exists in Base; SAML 2.0, attribute/group mapping, SCIM and JumpCloud/OneLogin proof are absent. |
+| `CONNECT-018` | Sign in through any SAML 2.0 or OIDC provider | target | missing |  | Beam configures no OIDC provider (Base's generic OIDC adapter is not wired into sign-in); issuer-discovery setup, SAML 2.0, attribute/group mapping, SCIM and JumpCloud/OneLogin proof are absent. |
 | `CONNECT-019` | Synchronize other HRIS through scheduled file feeds | target | missing |  | Scheduled SFTP/cloud-folder roster feeds, saved mappings, hold rules and stale-feed warnings are absent. |
 | `CONNECT-020` | Connect no-code automation through Zapier | target | missing |  | A published Zapier app with scoped triggers and actions is absent. |
-| `CONNECT-007` | Sign in with Google Workspace | target | partial | `src/modules/operator-auth/identity/oidc/presets.mjs`, `src/modules/operator-auth/identity/oidc/index.mjs` | Base has Google OIDC presets; workplace domain/group enforcement and Beam-specific offboarding proof are absent. |
-| `CONNECT-008` | Sign in and provision with Microsoft Entra ID | target | partial | `src/modules/operator-auth/identity/oidc/presets.mjs`, `src/modules/operator-auth/identity/oidc/index.mjs` | Base Microsoft OIDC primitives exist; Entra tenant/group policy, SAML and SCIM integration are absent. |
-| `CONNECT-009` | Support Okta and enterprise identity lifecycle | target | partial | `src/modules/operator-auth/identity/oidc/index.mjs` | Generic OIDC exists; named Okta setup, SAML, SCIM and lifecycle conformance are absent. |
+| `CONNECT-007` | Sign in with Google Workspace | target | missing |  | Base has Google OIDC presets but Beam configures no provider, so no Workspace sign-in runs; domain/group enforcement and Beam-specific offboarding proof are absent. |
+| `CONNECT-008` | Sign in and provision with Microsoft Entra ID | target | missing |  | Base has Microsoft OIDC primitives but Beam configures no provider, so no Entra sign-in runs; tenant/group policy, SAML and SCIM integration are absent. |
+| `CONNECT-009` | Support Okta and enterprise identity lifecycle | target | missing |  | Beam configures no OIDC provider (Base's generic OIDC adapter is not wired into sign-in); named Okta setup, SAML, SCIM and lifecycle conformance are absent. |
 | `CONNECT-010` | Connect Google Drive procedure sources | target | missing |  | Google Drive source connector, permission reconciliation and change tracking are absent. |
 | `CONNECT-011` | Connect OneDrive and SharePoint procedure sources | target | missing |  | OneDrive / SharePoint source connector, permission reconciliation and change tracking are absent. |
 | `CONNECT-012` | Connect Notion procedure sources | target | missing |  | Notion source connector, permission reconciliation and change tracking are absent. |
@@ -616,7 +616,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `MOVE-009` | Credit imported compliance history at cutover | target | partial | `src/beam/movein/talentlms.ts`, `src/beam/ui/movein.ts`, `tests/beam/flows.mjs` | TalentLMS completions import as labelled history with person, mapped course and completion date, a manager can mark single rows reviewed and undo keeps reviewed rows; per-course credit decisions with exclusion preview, credited current status and expiry, renewal scheduling from it, enrollment suppression, credit labels in reports and transcripts, HRIS-history credit and credit undo are absent. |
 | `OPS-001` | Keep a searchable decision and automation audit | target | partial | `src/beam/core.ts`, `src/beam/agent-work.ts`, `src/beam/questions.ts` | Audited transactions and proposal decisions exist; searchable/exportable audit UI and full automation coverage are absent. |
 | `OPS-002` | Export portable learning content and records | target | partial | `tests/beam/restore.mjs`, `tests/beam/journey.mjs` | Whole-installation portability is exercised; open-format content interchange, package/signature coverage and licensed exclusion manifest are absent. |
-| `OPS-003` | Erase personal data with retention and legal holds | target | partial | `src/modules/import-kit/src/d1/erasure.ts`, `src/modules/import-kit/src/d1/redaction-step.ts` | Base import-kit erasure/redaction primitives exist; Beam-wide erasure, retention/hold UI, provider/mobile propagation and resurrection proof are absent. |
+| `OPS-003` | Erase personal data with retention and legal holds | target | missing |  | Base import-kit erasure/redaction primitives are in the tree but no Beam door calls them (import jobs only resume or undo); Beam-wide erasure, retention/hold UI, provider/mobile propagation and resurrection proof are absent. |
 | `OPS-004` | Operate backups and tested recovery | target | partial | `tests/beam/restore.mjs`, `tests/beam/journey.mjs` | Manual export/empty-target restore exists; scheduled encrypted backups, restore activation fence and operational alerts are absent. |
 | `OPS-005` | Control provider credentials and model spending | target | partial | `src/modules/dependencies/index.mjs`, `src/modules/operator-auth/accounts/provider-control.mjs` | Base provider approval/control exists; Beam-specific connections, cost estimates and spend enforcement are absent. |
 | `OPS-006` | Run locally and in an employer-owned installation | target | partial | `tests/beam/journey.mjs`, `tests/beam/restore.mjs`, `README.md` | Fresh local command journey and archive recovery exist; full hosted/provider qualification remains owed; the upstream Base-copy record repair does not prove those flows. |
