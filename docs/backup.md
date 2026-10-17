@@ -18,9 +18,8 @@ Save archives in the `exports` folder or anywhere outside the Beam folder. Beam 
 Restore into an empty copy of Beam, such as a fresh clone on a new computer:
 
 ```sh
-git clone https://github.com/just-every/run-beam.git beam
+npx -y @runeditrun/rer install just-every/run-beam --dir beam
 cd beam
-rer install
 mkdir -p exports && cp /path/to/your/beam.rer exports/
 rer import --input exports/beam.rer --yes
 rer setup --owner-email you@example.com

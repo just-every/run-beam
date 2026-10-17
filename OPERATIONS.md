@@ -1,11 +1,12 @@
 # Beam operations
 
 Run all first-party operations from the composed, runnable edition checkout
-with the shared RER command path. The detailed flags and effects are in
+with the shared RER command path. To get a runnable checkout, run
+`npx -y @runeditrun/rer install just-every/run-beam` (or start it directly with
+`npx -y @runeditrun/rer dev just-every/run-beam`). The detailed flags and effects are in
 `RUN-LOCALLY.md` and `SEED-COMMAND-CONTRACT.md`.
 
 ```sh
-rer install
 rer setup --owner-email you@example.com
 rer dev
 ```
