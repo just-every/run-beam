@@ -2291,7 +2291,7 @@
       "executable": false
     },
     "tests/beam/journey.mjs": {
-      "sha256": "73a6d78b1533548da22fad3624d3a9705908d6a4d5251c771129f08cbf53c04d",
+      "sha256": "5645d4d7369435d1118361ce6b57c1ee21d1ab758184dade0315a88ad95c5ba7",
       "executable": false
     },
     "tests/beam/regression-agent.mjs": {
