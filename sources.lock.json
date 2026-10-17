@@ -407,7 +407,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "a5b9eac33f1dbdb4fd65084159e43dadf3bfa9944988a996e1b83b9093a4d5ac",
+      "sha256": "2f04a01fe9107f40a7c8552206e057f07d6b092f8360f641a291c72472330e3c",
       "executable": false
     },
     "scripts/beam/import-kit-migration.mjs": {
