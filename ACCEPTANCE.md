@@ -50,7 +50,7 @@ schema, 0016 the agent work, reminder, question and practice tables, and 0017
 Base's owner sign-in link. The
 first change to an applied migration's tables after a release owes a
 populated-installation upgrade check. Restore an export with the release that
-made it, then upgrade with `rer install` and `rer setup`.
+made it, then upgrade it in place, running `rer install` and `rer setup` inside that existing checkout.
 
 ## Preserved obligations (not accepted yet)
 
