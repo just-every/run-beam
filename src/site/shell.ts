@@ -1,5 +1,5 @@
 // The run site's frame: one document with Beam's own tokens and components (/rer-theme.css, /beam.css) plus the site's
-// compiled stylesheet, the header (mark and Beam; Docs and Source) and the footer. Static, no script, one origin.
+// compiled stylesheet, the header (mark and Beam; Docs, Contract and Source) and the footer. Static, no script, one origin.
 import { h, raw, type Html } from '../beam/ui/html'
 import { footer as words } from './landing/copy'
 import { run } from './run'
@@ -13,7 +13,7 @@ export function siteDocument({ title, description, styles, body }: { title: stri
 const brand = () => h`<a class="site-brand" href="/"><img src="/brand/mark.svg" alt="" width="30" height="30"><span>Beam</span></a>`
 
 export function siteHeader(current: 'home' | 'docs' = 'home'): Html {
-  return h`<header class="site-header"><div class="site-bar">${brand()}<nav class="site-nav" aria-label="Site"><a href="/docs"${current === 'docs' ? raw(' aria-current="page"') : ''}>Docs</a><a href="${run.repository}">Source</a></nav></div></header>`
+  return h`<header class="site-header"><div class="site-bar">${brand()}<nav class="site-nav" aria-label="Site"><a href="/docs"${current === 'docs' ? raw(' aria-current="page"') : ''}>Docs</a><a href="/contract">Contract</a><a href="${run.repository}">Source</a></nav></div></header>`
 }
 
 export function siteFooter(): Html {
