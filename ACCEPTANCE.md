@@ -197,4 +197,3 @@ obligations. Beam issues employer training evidence, not accreditation,
 statutory compliance guarantees or inferred competence. Published revisions,
 assessor decisions, anonymous answers and private practice retain the
 CONTRACT.md evidence/authority rules throughout the target build.
-
