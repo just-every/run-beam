@@ -211,7 +211,7 @@
       "executable": false
     },
     "docs/backup.md": {
-      "sha256": "f78c6064ba33da1e1513a5519c4fb9f4d6276073d0286e0d5032d371e68416ad",
+      "sha256": "bd1c91acb8d27c064d6e1d0173b416fcacf33fad09f92c7dffddd1d30ea87a28",
       "executable": false
     },
     "docs/courses.md": {
@@ -219,7 +219,7 @@
       "executable": false
     },
     "docs/getting-started.md": {
-      "sha256": "cd42df8c2c0ee96a886827236e38979bb5bdc30d164781f3f94b382dafbceeee",
+      "sha256": "65ec2b91d0c9be5e18716b5b5ffc6d6d65e728684131ef3b7fab0fa79130a0f5",
       "executable": false
     },
     "docs/learning.md": {
@@ -339,7 +339,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "a189036053b1612c5cb172bf28d442219f82a8000e42fcc08b77f7c689abfc33",
+      "sha256": "fbe9dbd5ab7aa3ce237bda953233778f317fe14fb6ecdb2fdd79d922827ad425",
       "executable": false
     },
     "package.json": {
@@ -391,7 +391,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "113666d5cb02319ab1d168cc87315ecd4032787e2ec0294271e6de8e9eb677e5",
+      "sha256": "5ea2b295e2f42ed2b8173b0cbf734cc75e3c5d260cf34c047cfe809d4e3cd14c",
       "executable": false
     },
     "RELEASE.json": {
@@ -407,7 +407,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "2f04a01fe9107f40a7c8552206e057f07d6b092f8360f641a291c72472330e3c",
+      "sha256": "a5b9eac33f1dbdb4fd65084159e43dadf3bfa9944988a996e1b83b9093a4d5ac",
       "executable": false
     },
     "scripts/beam/import-kit-migration.mjs": {
