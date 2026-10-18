@@ -358,6 +358,10 @@
       "sha256": "9ab673ebe1cb39d67a0613322fdffc2fef71d1a03f8fc0c269543d63144bfeef",
       "executable": false
     },
+    "public/brand/chevron-muted.svg": {
+      "sha256": "70716163916582df6d6808e7803c334de33449f2f54d593054728b9340f78500",
+      "executable": false
+    },
     "public/brand/mark.svg": {
       "sha256": "e489ec70730a64347a5c29b3734df5b7bf3a3dfa88351342e7f9b8050526a45e",
       "executable": false
