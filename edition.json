@@ -30,6 +30,7 @@
           "vite.site.config.ts",
           "deploy-site.json",
           "src/demo.ts",
+          "src/demo-records.ts",
           "deploy-demo.json",
           "tests/runtime.mjs"
         ]
