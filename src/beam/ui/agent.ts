@@ -64,5 +64,5 @@ ${drafts.map(draft => h`<article class="card proposal" aria-labelledby="d-${draf
 
 function decisionForm(proposal: any): Html {
   const fields = [hidden('proposal', proposal.id), hidden('sha256', proposal.sha256), area('Note (optional)', 'note', '', false)]
-  return h`<form method="post" action="/app/do/agent.decide" class="decision">${hidden('returnTo', '/app/agent')}${fields}<div class="actions"><button type="submit" name="decision" value="approve">Approve</button><button type="submit" name="decision" value="decline" class="secondary">Decline</button></div></form>`
+  return h`<form method="post" action="/app/do/agent.decide" class="decide-form">${hidden('returnTo', '/app/agent')}${fields}<div class="actions"><button type="submit" name="decision" value="approve">Approve</button><button type="submit" name="decision" value="decline" class="secondary">Decline</button></div></form>`
 }

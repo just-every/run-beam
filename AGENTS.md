@@ -33,7 +33,7 @@ preview, export and import itself). Reset is destructive local cleanup; import
 needs an empty destination. Read `README.md` for the product and
 `SEED-COMMAND-CONTRACT.md` for the full command contract.
 
-`rer demo` runs a throwaway signed-in copy with Harbour Physio's sample data
+`rer demo` runs a throwaway signed-in copy with Sierra Lakes Produce's sample data
 (`src/demo.ts`); `DEMO.md` covers it and the hosted demo at
 https://demo.run-beam.com.
 
@@ -84,7 +84,7 @@ Rules that hold everywhere:
   components; re-run `node scripts/edition-authoring/cli.mjs lock` after
   intentional edits (`verify` checks the lock and the copy record first and
   fails until then). `src/base/font-head.ts` is Beam's own adaptation (it
-  preloads Lexend) and is deliberately not in the copy record.
+  preloads Inter, the body face) and is deliberately not in the copy record.
 - `src/site/` — the static run site (`rer build --site`): the desk-approved landing (`landing/`, one month at
   Sierra Lakes Produce; its figures in `landing/records.ts`), Base's Run page and the docs rendered from
   `docs/*.md` (`docs/`), on the site's own tokens (`public/site/theme.css`) and faces (`public/site/fonts.css`).

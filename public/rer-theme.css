@@ -1,78 +1,49 @@
-/* Beam's declared theme: the risograph print. Near-black ink on warm paper, one fluorescent pink plate printed a
-   little off-register. Every Beam document reads these tokens: the app (public/beam.css), the run site, the Lobby, and
-   Base's sign-in and /setup frames, which link this file. Lexend is declared once, in /fonts/fonts.css. */
-:root {
-  --rer-font-body: Lexend, Arial, sans-serif;
-  --rer-font-heading: Lexend, Arial, sans-serif;
-  --rer-page: #fbfaf7;
-  --rer-surface: #ffffff;
-  --rer-text: #191d29;
-  --rer-muted: #5a6072;
-  --rer-border: #191d29;
-  --rer-focus: #191d29;
-  --rer-link: #191d29;
-  --rer-accent: #191d29;
-  --rer-accent-text: #ffffff;
-  --rer-radius: 10px;
-  --rer-button-radius: 999px;
-  --rer-wordmark-weight: 700;
-  --rer-logo: url('/brand/mark.svg');
+/* Beam's declared theme for Base's documents (sign-in, first-run /setup, the Lobby): the site's faces and tokens, which
+   are defined once in /site/fonts.css and /site/theme.css, and the frame in the site's family: a periwinkle field, one
+   white soft card with no outline, the Roboto Serif display heading, Inter body, hairline fields with a periwinkle focus
+   ring and the navy button. These documents are Base copies; they are styled here, from the file they link, and never
+   edited. */
+@import url('/site/fonts.css');
+@import url('/site/theme.css');
 
-  --beam-paper: var(--rer-page);
-  --beam-ink: var(--rer-text);
-  --beam-rule: #e3e1dc;
-  --beam-pink: #fc68ab;
-  --beam-pink-highlight: #fdbedc;
-  --beam-pink-ink: #b0145f;
-  --beam-track: #e6e7eb;
-  --beam-grey: #eef0f3;
-  --beam-grain: url('/brand/riso-grain.svg');
-  --beam-plate-x: 6px;
-  --beam-plate-y: 7px;
-}
-@media (max-width: 640px) {
-  :root { --beam-plate-x: 4px; --beam-plate-y: 5px; }
-}
+:root { --rer-logo: url('/brand/mark.svg'); }
 
-/* Base's sign-in and /setup frames: one ink-outlined card on the pink plate, an ink pill, Lexend headings. These
-   documents are Base copies; they are styled here, from the file they link, and never edited. */
-html.rer-themed body { background: var(--rer-page); }
-html.rer-themed main { max-width: 560px; padding: 40px 40px 36px; border: 1.5px solid var(--rer-border); border-radius: 10px; box-shadow: var(--beam-plate-x) var(--beam-plate-y) 0 var(--beam-pink); }
-html.rer-themed h1 { font-size: 56px; line-height: 1.1; font-weight: 700; letter-spacing: -.025em; color: var(--rer-text); }
-html.rer-themed .brand, html.rer-themed .rer-brand { justify-content: center; gap: 10px; font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
-html.rer-themed .brand::before, html.rer-themed .rer-brand::before { width: 30px; height: 30px; }
-html.rer-themed main > .brand + h1 { text-align: center; }
-html.rer-themed label { font-size: 15px; font-weight: 600; color: var(--rer-text); }
-html.rer-themed input:not([type=checkbox]):not([type=hidden]) { min-height: 48px; border: 1.5px solid var(--rer-border); border-radius: 8px; background: var(--rer-surface); }
-html.rer-themed input:focus-visible { border-color: var(--beam-pink); outline: 3px solid var(--rer-focus); outline-offset: 3px; }
-html.rer-themed button { min-height: 48px; border-radius: 999px; font-weight: 600; font-size: 16px; }
-html.rer-themed .secondary-link a { text-decoration-thickness: 1px; text-underline-offset: 3px; }
-html.rer-themed .secondary-link a:hover { text-decoration-thickness: 2px; }
+html.rer-themed body { background: radial-gradient(ellipse at 50% 0%, var(--pale), transparent 70%), linear-gradient(180deg, var(--periwinkle), var(--band) 55%, var(--pale)); background-attachment: fixed; color: var(--ink); font-family: var(--font-body); }
+html.rer-themed main { max-width: 520px; padding: 40px 40px 36px; border: 0; border-radius: 20px; background: var(--white); box-shadow: 0 1px 2px rgba(13, 18, 40, .05), 0 24px 60px -24px rgba(13, 18, 40, .28); }
+html.rer-themed h1 { font-family: var(--font-display); font-size: 46px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+html.rer-themed p, html.rer-themed dt { color: var(--body); }
+html.rer-themed .brand, html.rer-themed .rer-brand { justify-content: center; gap: 10px; color: var(--ink); font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+html.rer-themed .brand::before, html.rer-themed .rer-brand::before { width: 30px; height: 35px; }
+html.rer-themed main > .brand + h1, html.rer-themed main > .rer-brand + h1 { text-align: center; }
+html.rer-themed label { font-size: 14px; font-weight: 600; color: var(--ink); }
+html.rer-themed label:has(input[type=checkbox]) { font-size: 15px; font-weight: 400; }
+html.rer-themed input:not([type=checkbox]):not([type=hidden]) { min-height: 46px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); color: var(--ink); }
+html.rer-themed input:not([type=checkbox]):not([type=hidden]):hover { border-color: var(--rer-border); }
+html.rer-themed input[type=checkbox] { accent-color: var(--blue); }
+html.rer-themed input:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--focus-ring); }
+html.rer-themed input[type=checkbox]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; box-shadow: none; }
+html.rer-themed button { min-height: 48px; border-radius: 10px; background: var(--navy); color: var(--white); font-weight: 600; font-size: 16px; }
+html.rer-themed button:hover { background: var(--ink-2); }
+html.rer-themed :focus-visible { outline-color: var(--blue); }
+html.rer-themed a { color: var(--ink); text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+html.rer-themed a:hover { text-decoration-color: currentColor; }
 
 /* /setup: the heading and its line sit above the card; the owner's details and the confirmation are the card. */
-html.rer-themed main:has(> dl) { max-width: 620px; padding: 0; border: 0; background: transparent; box-shadow: none; text-align: center; }
-html.rer-themed main:has(> dl) > p:not(.rer-brand) { margin-bottom: 28px; color: var(--rer-text); }
-html.rer-themed main > dl, html.rer-themed main:has(> dl) > form { margin: 0; background: var(--rer-surface); border: 1.5px solid var(--rer-border); box-shadow: var(--beam-plate-x) var(--beam-plate-y) 0 var(--beam-pink); text-align: left; }
-html.rer-themed main > dl { padding: 24px 28px 4px; border-bottom: 0; border-radius: 10px 10px 0 0; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0; }
-html.rer-themed main > dl dt, html.rer-themed main > dl dd { padding: 12px 0; border-bottom: 1px solid var(--beam-rule); }
+html.rer-themed main:has(> dl) { max-width: 620px; padding: 0; background: transparent; box-shadow: none; text-align: center; }
+html.rer-themed main:has(> dl) > p:not(.rer-brand) { margin-bottom: 28px; color: var(--ink-2); }
+html.rer-themed main > dl, html.rer-themed main:has(> dl) > form { margin: 0; background: var(--white); text-align: left; }
+html.rer-themed main > dl { padding: 24px 28px 4px; border-radius: 20px 20px 0 0; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0; box-shadow: 0 1px 2px rgba(13, 18, 40, .05), 0 -4px 30px -20px rgba(13, 18, 40, .2); }
+html.rer-themed main > dl dt, html.rer-themed main > dl dd { padding: 12px 0; border-bottom: 1px solid var(--line); }
 html.rer-themed main > dl dt { font-size: 15px; }
 html.rer-themed main > dl dd { font-weight: 600; overflow-wrap: anywhere; }
-html.rer-themed main:has(> dl) > form { padding: 16px 28px 28px; border-top: 0; border-radius: 0 0 10px 10px; }
+html.rer-themed main:has(> dl) > form { padding: 16px 28px 28px; border-radius: 0 0 20px 20px; box-shadow: 0 24px 60px -24px rgba(13, 18, 40, .28); }
 
 @media (max-width: 480px) {
   html.rer-themed main { padding: 28px 20px; }
-  html.rer-themed h1 { font-size: 36px; }
+  html.rer-themed h1 { font-size: 34px; }
   html.rer-themed main:has(> dl) { padding: 0; }
   html.rer-themed main > dl { padding: 16px 20px 4px; grid-template-columns: 1fr; }
   html.rer-themed main > dl dt { padding-bottom: 0; border-bottom: 0; }
   html.rer-themed main > dl dd { padding-top: 2px; }
   html.rer-themed main:has(> dl) > form { padding: 12px 20px 24px; }
-}
-
-/* Base's Run page (/run): its step cards are Beam's ink-outlined sheets on the pink plate, and its band sits low
-   enough to clear the facts line. Scoped by the page's own structure so the landing's drawings are untouched. */
-ol.steps > li.step { border: 1.5px solid var(--beam-ink); border-radius: 10px; background: var(--rer-surface); box-shadow: var(--beam-plate-x) var(--beam-plate-y) 0 var(--beam-pink); backdrop-filter: none; }
-@media (min-width: 761px) {
-  body > .art:has(> img) { height: 16vh; }
-  body > main:has(> .intro) { padding-bottom: 20vh; }
 }

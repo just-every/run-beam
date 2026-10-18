@@ -1,7 +1,7 @@
 // Page frame and small form helpers. Every value is escaped; pages need no script.
 import branding from '../../branding.json'
 import type { Actor } from '../actor'
-import { formatInstant } from '../time'
+import { formatClock, formatInstant, formatWeekday } from '../time'
 import { icon, type IconName } from './icons'
 
 export const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!))
@@ -20,17 +20,24 @@ function render(value: unknown): string {
   return esc(value)
 }
 
-const NAV: { href: string; label: string; show: (actor: Actor) => boolean }[] = [
-  { href: '/app', label: 'My learning', show: () => true },
-  { href: '/app/manage', label: 'Manage', show: actor => actor.owner || actor.roles.has('manager') },
-  { href: '/app/reports', label: 'Reports', show: actor => actor.owner || actor.roles.has('manager') },
-  { href: '/app/agent', label: 'Agent work', show: actor => actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never)) },
-  { href: '/app/courses', label: 'Courses', show: actor => actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never)) },
-  { href: '/app/sources', label: 'Sources', show: actor => actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never)) },
-  { href: '/app/paths', label: 'Paths', show: actor => actor.owner || actor.roles.has('manager') },
-  { href: '/app/people', label: 'People', show: actor => actor.owner || actor.roles.has('manager') },
-  { href: '/app/import', label: 'Move in', show: actor => actor.owner },
+// The rail, in the order a manager works; each item shows only to the roles that can open it.
+const preparer = (actor: Actor) => actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
+const manager = (actor: Actor) => actor.owner || actor.roles.has('manager')
+const NAV: { href: string; label: string; icon: IconName; show: (actor: Actor) => boolean; count?: (shell: Shell) => number }[] = [
+  { href: '/app', label: 'My learning', icon: 'home', show: () => true },
+  { href: '/app/manage', label: 'Manage', icon: 'document', show: manager },
+  { href: '/app/people', label: 'People', icon: 'people', show: manager, count: shell => shell.people },
+  { href: '/app/courses', label: 'Courses', icon: 'book', show: preparer },
+  { href: '/app/paths', label: 'Paths', icon: 'route', show: manager },
+  { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
+  { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
+  { href: '/app/reports', label: 'Reports', icon: 'chart', show: manager },
+  { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
+  { href: '/app/business', label: 'Settings', icon: 'gear', show: actor => actor.owner },
 ]
+
+/** What the frame shows around every page: active people, decisions waiting at Agent work, and the business's clock. */
+export interface Shell { people: number; waiting: number; now: number; zone: string }
 
 const headers = {
   'content-type': 'text/html; charset=utf-8',
@@ -41,23 +48,38 @@ const headers = {
   'content-security-policy': "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; media-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
 }
 
-export function page(title: string, actor: Actor | null, body: Html, { current = '', url, status = 200 }: { current?: string; url?: URL; status?: number } = {}): Response {
+const ROLE_NAMES: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
+const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...actor.roles].filter(role => role !== 'learner').map(role => ROLE_NAMES[role]).join(', ') || 'Learner'
+
+function rail(actor: Actor, current: string, shell?: Shell): Html {
+  // Until the owner names the business every /app page leads to it, so the rail shows only the brand and the person.
+  const items = actor.business ? NAV.filter(item => item.show(actor)) : []
+  return h`<nav class="nav" aria-label="Main"><ul>${items.map(item => {
+    const count = shell && item.count ? item.count(shell) : 0
+    return h`<li><a href="${item.href}"${item.href === current ? raw(' aria-current="page"') : ''}>${raw(icon(item.icon, { size: 22 }))}<span>${item.label}</span>${count ? h`<span class="count">${count.toLocaleString('en-US')}</span>` : ''}</a></li>`
+  })}</ul></nav>
+<div class="who">${raw(icon('person', { size: 26 }))}<p><strong>${actor.name}</strong><span>${roleLine(actor)}</span>${actor.business ? h`<span>${actor.business}${shell ? `, ${shell.people.toLocaleString('en-US')} active` : ''}</span>` : ''}</p></div>`
+}
+
+/** The app frame: the left rail (a menu at phone width), the top bar with the business's date and time and any page
+ * tools, and the work surface. `wide` pages lay out their own columns. */
+export function page(title: string, actor: Actor | null, body: Html, { current = '', url, status = 200, tools, wide = false }: { current?: string; url?: URL; status?: number; tools?: Html; wide?: boolean } = {}): Response {
   const notice = url?.searchParams.get('notice'), error = url?.searchParams.get('error')
-  // Until the owner names the business every /app page leads to it, so the bar shows only the brand and the person.
-  const nav = actor ? h`${actor.business ? h`<span class="business">${actor.business}</span><nav class="nav" aria-label="Main"><ul>${NAV.filter(item => item.show(actor)).map(item => h`<li><a href="${item.href}"${item.href === current ? raw(' aria-current="page"') : ''}>${item.label}</a></li>`)}</ul></nav>` : ''}<span class="who">${actor.name}</span>` : ''
-  const document = h`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/rer-theme.css"><link rel="stylesheet" href="/beam.css"></head><body>
-<header class="top"><div class="top-inner"><a class="brand" href="/app"><img src="/brand/mark.svg" alt="" width="24" height="28"><span data-rer-name>${branding.name}</span></a>${nav}</div></header>
-<main class="column">${notice ? h`<p class="flash" role="status">${notice}</p>` : ''}${error ? h`<p class="flash error" role="alert">That did not work: ${describeError(error)}</p>` : ''}${body}</main></body></html>`
+  const shell = actor?.shell
+  const brand = h`<a class="brand" href="/app"><img src="/brand/mark.svg" alt="" width="30" height="35"><span data-rer-name>${branding.name}</span></a>`
+  const clock = shell ? h`<p class="clock"><span>${formatWeekday(shell.now, shell.zone)}</span><span>${formatClock(shell.now, shell.zone)}</span></p>` : ''
+  const document = h`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/site/fonts.css"><link rel="stylesheet" href="/site/theme.css"><link rel="stylesheet" href="/beam.css"></head><body>
+<div class="app${actor ? '' : ' bare'}">${actor ? h`<input type="checkbox" id="menu-toggle" class="menu-toggle" aria-hidden="true" tabindex="-1"><aside class="rail">${brand}<label for="menu-toggle" class="menu-button">${raw(icon('menu', { size: 22 }))}<span>Menu</span></label>${rail(actor, current, shell)}</aside>` : h`<aside class="rail">${brand}</aside>`}
+<header class="topbar">${clock}${tools ?? ''}</header>
+<main class="work${wide ? ' wide' : ''}">${notice ? h`<p class="flash" role="status">${notice}</p>` : ''}${error ? h`<p class="flash error" role="alert">That did not work: ${describeError(error)}</p>` : ''}${body}</main></div></body></html>`
   return new Response(document.html, { status, headers })
 }
 
-/** A card with the pink icon disc and its heading; the body sits beside the disc. Settings cards pass no icon. */
-export function card(heading: string, body: unknown, { icon: name, id, className = '', level = 2 }: { icon?: IconName; id?: string; className?: string; level?: 2 | 3 } = {}): Html {
+/** A white card with its heading. */
+export function card(heading: string, body: unknown, { id, className = '', level = 2, aside }: { id?: string; className?: string; level?: 2 | 3; aside?: Html } = {}): Html {
   const label = id ? raw(` aria-labelledby="${esc(id)}"`) : ''
   const title = raw(`<h${level} class="card-title"${id ? ` id="${esc(id)}"` : ''}>${esc(heading)}</h${level}>`)
-  return name
-    ? h`<section class="card with-disc${className ? ` ${className}` : ''}"${label}><span class="disc">${raw(icon(name))}</span><div class="card-body">${title}${body}</div></section>`
-    : h`<section class="card${className ? ` ${className}` : ''}"${label}>${title}${body}</section>`
+  return h`<section class="card${className ? ` ${className}` : ''}"${label}>${aside ? h`<div class="card-head">${title}${aside}</div>` : title}${body}</section>`
 }
 
 /** Rows split by a rule; a row with an href is a link with a chevron. */
@@ -68,11 +90,11 @@ export function rows(items: { title: unknown; meta?: unknown; href?: string; asi
   })}</ul>`
 }
 
-/** Lesson progress: a pink fill on a grey track; the words stay in the row's meta text. */
+/** Lesson progress: a navy fill on a periwinkle track; the words stay in the row's meta text. */
 export const progress = (done: number, total: number) => h`<progress class="progress" value="${done}" max="${Math.max(total, 1)}" aria-hidden="true"></progress>`
 
-/** A status pill: Completed takes the pink highlight, the others their quiet colours. */
-export const pill = (status: string, label: string) => h`<span class="status status-${status}">${label}</span>`
+/** A status as a coloured dot and its words: green done, marigold waiting, red-orange overdue. */
+export const pill = (status: string, label: string) => h`<span class="status status-${status}"><i class="dot" aria-hidden="true"></i>${label}</span>`
 
 export const backLink = (href: string, label: string) => h`<p class="back"><a href="${href}">${raw(icon('back', { size: 20 }))}<span>${label}</span></a></p>`
 
@@ -152,8 +174,9 @@ export function fileField(label: string, name: string, { required = false, accep
   return h`<label for="${id}">${label}</label><input id="${id}" type="file" name="${name}"${accept ? h` accept="${accept}"` : ''}${required ? raw(' required') : ''}>`
 }
 
-export const checks = (legend: string, name: string, options: { value: string; label: string }[], selected: string[] = []) =>
-  h`<fieldset><legend>${legend}</legend>${options.map(option => h`<label class="check"><input type="checkbox" name="${name}" value="${option.value}"${selected.includes(option.value) ? raw(' checked') : ''}> ${option.label}</label>`)}</fieldset>`
+/** Checkboxes under a legend; `scroll` keeps a long list (everyone in the business) to a scrolling box. */
+export const checks = (legend: string, name: string, options: { value: string; label: string }[], selected: string[] = [], { scroll = false } = {}) =>
+  h`<fieldset${scroll ? raw(' class="scroll-list"') : ''}><legend>${legend}</legend>${options.map(option => h`<label class="check"><input type="checkbox" name="${name}" value="${option.value}"${selected.includes(option.value) ? raw(' checked') : ''}> ${option.label}</label>`)}</fieldset>`
 
 /** Due and event times; pass the business zone as `home` when `zone` is the record's own. */
 export const when = (instant: number | null | undefined, zone: string, home = zone) => instant ? formatInstant(instant, zone, home) : '—'

@@ -1,7 +1,7 @@
 # Beam demo
 
 `rer demo` (the same as `rer dev --demo`) runs a throwaway copy of Beam,
-signed in as the saved owner, with Harbour Physio's sample data. The nav and
+signed in as the saved owner, with Sierra Lakes Produce's sample data. The nav and
 page titles read **Beam Demo**; there is no injected bar or outbox.
 
 ```sh
@@ -19,18 +19,21 @@ hour (15 idle minutes), signed in through Base's signed owner claim
 ## Sample data
 
 `src/demo.ts` writes it once, after the owner exists, with fixed ids and
-dates relative to the start: Harbour Physio (Australia/Sydney), ten staff in
-two teams (one whose access was removed), six owned procedures with licence
-evidence, seven courses (published, returned, in review and draft), two role
-paths, and a few weeks of learning: lessons in progress, overdue courses, a
-learner out of quiz attempts, practical evidence waiting for its assessors,
-renewals coming due, offline sessions, certificates, and revisions and a
-procedure change waiting for review, and the clinic agent's work (two
-proposals waiting for a decision, one approved, one declined). The owner,
-Olivia Hart unless the demo names her, sees on My learning a
-week's work: three courses assigned (one overdue, one renewal due in two
-days), two completions with certificates, three items to review and one
-practical to assess.
+dates relative to the start, from the records in `src/demo-records.ts`:
+Sierra Lakes Produce (America/Los_Angeles), the employer the run site's
+homepage follows. 131 people in three site teams (Fresno, CA 79; Joliet, IL 40;
+Chicago, IL 12) plus one former employee whose access was removed; six owned
+procedures with licence evidence; seven courses (published with earlier
+superseded revisions, one revision in review and one draft); three role paths;
+nine attested classroom sessions, which carry most of the crew's history; and
+the followed staff: five overdue courses, a practical waiting for Maria Chen,
+one waiting for the owner, a learner out of quiz attempts, a new hire whose
+lift-truck course waits on its prerequisite, renewals expiring within 30 days,
+the DP-7 procedure change and its revision waiting for review, and the
+business agent's work (two plans waiting for a decision, one approved, one
+declined). The owner, Colleen Shaw unless the demo names her, sees Manage
+training with these records and, on My learning, her own course, a completion
+with its certificate, a review and a practical to assess.
 
 ## Effects
 
@@ -54,6 +57,6 @@ environment. Run it by hand with `test_only` for the separate test host
 demo adoption guide (`DEMO.md` in Base's default seed) holds the full hosting
 and removal contract.
 
-The hosted demo runs on Base's native Worker Loader host and signs in Olivia Hart as
-`olivia.hart@harbourphysio.example`. `deploy-demo.json` sets that owner address.
+The hosted demo runs on Base's native Worker Loader host and signs in Colleen Shaw as
+`colleen.shaw@sierra-lakes.example`. `deploy-demo.json` sets that owner address.
 Invitations and sign-in links complete successfully through Base mail without sending.

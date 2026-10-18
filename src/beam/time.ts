@@ -40,9 +40,22 @@ export function localDate(instant: number, zone: string): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(instant)
 }
 
-/** Wall-clock date and time in the zone, without naming it. */
+// One time style everywhere people read a time: "9:12 a.m.".
+const meridiem = (text: string) => text.replace(/[\s\u202f]?([AP])M\b/g, (_match, half: string) => ` ${half.toLowerCase()}.m.`)
+
+/** Wall-clock date and time in the zone, without naming it: "Oct 16, 2026, 5:00 p.m.". */
 export function formatLocal(instant: number, zone: string): string {
-  return new Intl.DateTimeFormat('en-US', { timeZone: zone, dateStyle: 'medium', timeStyle: 'short' }).format(instant)
+  return meridiem(new Intl.DateTimeFormat('en-US', { timeZone: zone, dateStyle: 'medium', timeStyle: 'short' }).format(instant))
+}
+
+/** A clock time in the zone: "6:05 a.m.". */
+export function formatClock(instant: number, zone: string): string {
+  return meridiem(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', minute: '2-digit' }).format(instant))
+}
+
+/** A date with its weekday, as the manager's queues show it: "Fri Oct 16, 2026". */
+export function formatWeekday(instant: number, zone: string): string {
+  return new Intl.DateTimeFormat('en-US', { timeZone: zone, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(instant).replace(/,(?= [A-Z])/, '')
 }
 
 /** A zone as people say it: "America/Los_Angeles" is "Los Angeles time". */

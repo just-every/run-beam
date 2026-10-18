@@ -1,5 +1,5 @@
-// Beam's line icons: one ink stroke on a 24px grid, drawn inline so pages need no image request. The app's card discs
-// and the run site's drawings share them.
+// Beam's line icons: one ink stroke on a 24px grid, drawn inline so pages need no image request: the rail, the count
+// cards and the row actions.
 const PATHS = {
   book: '<path d="M12 6.5C10 5 7 4.6 3.5 5v13c3.5-.4 6.5 0 8.5 1.5 2-1.5 5-1.9 8.5-1.5V5C17 4.6 14 5 12 6.5Z"/><path d="M12 6.5v13"/>',
   bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
@@ -24,6 +24,19 @@ const PATHS = {
   back: '<path d="M19 12H5.5M11 6l-6 6 6 6"/>',
   arrow: '<path d="M4.5 12h14M13 6l6 6-6 6"/>',
   arrowDown: '<path d="M12 4.5v14M6 13l6 6 6-6"/>',
+  home: '<path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9.5h11V10M10 19.5v-5h4v5"/>',
+  route: '<circle cx="6" cy="18.5" r="2"/><circle cx="18" cy="5.5" r="2"/><path d="M6 16.5V13c0-3 2-4 6-4s6-1 6-3.5"/>',
+  database: '<ellipse cx="12" cy="6" rx="7.5" ry="2.8"/><path d="M4.5 6v12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/>',
+  spark: '<path d="M10 5.5 11.6 10l4.4 1.6-4.4 1.6L10 17.5l-1.6-4.3L4 11.6 8.4 10Z"/><path d="M17.5 3.5 18.3 5.7l2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z"/>',
+  chart: '<path d="M4 20h16M6.5 17v-6M11 17V7M15.5 17v-4M20 17V4.5"/>',
+  plug: '<path d="M9 3.5v4M15 3.5v4M6.5 7.5h11v3.5a5.5 5.5 0 0 1-11 0ZM12 16.5v4"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M18 6l-1.6 1.6M7.6 16.4 6 18M18 18l-1.6-1.6M7.6 7.6 6 6"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>',
+  filter: '<path d="M4 5h16l-6.2 7.3V18l-3.6 1.7v-7.4Z"/>',
+  alert: '<path d="M12 8v5M12 16.5h.01"/>',
+  warning: '<path d="M10.3 4.4a2 2 0 0 1 3.4 0l7.4 13A2 2 0 0 1 19.4 20H4.6a2 2 0 0 1-1.7-2.6Z"/><path d="M12 9.5v4M12 16.8h.01"/>',
+  dots: '<path d="M6 12h.01M12 12h.01M18 12h.01"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
 } as const
 
 export type IconName = keyof typeof PATHS

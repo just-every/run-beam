@@ -6,14 +6,16 @@ import { AuthError, safeReturnTo } from '../modules/operator-auth/index.mjs'
 import { issueAgentCredential, requireAgentScope } from './agent-credentials'
 import { actions } from './actions'
 import { currentActor, type Actor } from './actor'
-import { BeamError } from './core'
+import { BeamError, one } from './core'
+import { listProposals } from './agent-work'
 import { Input } from './input'
 import { attachmentFile } from './learning'
 import { business } from './people'
 import { sourceFile } from './sources'
 import { coursePage, coursesPage, revisionPage, sourcesPage } from './ui/authoring'
 import { certificatePage, dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
-import { attemptPage, businessPage, managePage, pathsPage, peoplePage } from './ui/managing'
+import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
+import { managePage } from './ui/compliance'
 import { importPage, previewPage } from './ui/movein'
 import { agentPage } from './ui/agent'
 import { practicePage, questionsPage } from './ui/practice'
@@ -97,6 +99,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
     if (actor.owner) return path === '/app/business' ? businessPage(env, actor, url) : Response.redirect(`${env.AUTH_ORIGIN}/app/business`, 303)
     return page('Not ready', actor, h`<h1>Beam is not set up yet</h1><p>The owner needs to name the business first.</p>`)
   }
+  actor.shell = await shellFacts(env, actor)
   let match: RegExpMatchArray | null
   if (path === '/app') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
@@ -123,6 +126,16 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/files\/source\/([\w-]+)$/))) return sourceFile(env, actor, match[1], url.searchParams.has('download'))
   if ((match = path.match(/^\/app\/files\/attachment\/([\w-]+)$/))) return attachmentFile(env, actor, match[1])
   throw new BeamError('not_found', 404)
+}
+
+// Active people for the rail and the footer, and the proposals this person can decide.
+async function shellFacts(env: Bindings, actor: Actor) {
+  const [people, zone, waiting] = await Promise.all([
+    one<{ n: number }>(env, "SELECT COUNT(*) AS n FROM beam_members m WHERE EXISTS (SELECT 1 FROM oa_operators o WHERE lower(o.email) = m.email AND o.status = 'active')"),
+    business(env).then(value => value!.timezone),
+    actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never)) ? listProposals(env, actor).then(list => list.filter(item => item.canDecide).length) : 0,
+  ])
+  return { people: people?.n ?? 0, waiting, now: Date.now(), zone }
 }
 
 function redirect(env: Bindings, target: string, key: 'notice' | 'error', value: string) {

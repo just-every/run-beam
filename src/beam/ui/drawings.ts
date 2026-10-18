@@ -1,5 +1,5 @@
-// Riso drawings for empty states: a confident ink line, white-filled so it sits in front of a grained pink disc
-// (the disc is .empty-art::before in public/beam.css). Decorative only.
+// Line drawings for empty states: a navy line, white-filled so it sits in front of a pale periwinkle disc (the disc
+// is .empty-art::before in public/beam.css). Decorative only.
 const frame = (body: string) => `<span class="empty-art" aria-hidden="true"><svg viewBox="0 0 160 110" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg></span>`
 
 // A ground line with a short hatched shadow to the right, shared by both drawings.

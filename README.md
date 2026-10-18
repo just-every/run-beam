@@ -112,5 +112,5 @@ agent work, moving in, backup and restore), published with the run site. `rer bu
 (the landing page, the Run page and these docs) to `dist/site`. [CONTRACT.md](CONTRACT.md) — clauses and proofs. [ACCEPTANCE.md](ACCEPTANCE.md) —
 the first-release outcome and what is still owed. [AGENTS.md](AGENTS.md) — how
 to change Beam, including its JSON API for agents. [OPERATIONS.md](OPERATIONS.md)
-— data custody and deployment. Licence: MIT ([LICENSE](LICENSE)); Lexend is
+— data custody and deployment. Licence: MIT ([LICENSE](LICENSE)); the fonts are
 under the SIL Open Font License ([public/fonts](public/fonts/README.md)).

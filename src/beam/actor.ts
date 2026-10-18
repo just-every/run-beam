@@ -17,6 +17,8 @@ export interface Actor {
   owner: boolean
   agent: boolean
   roles: Set<Role>
+  /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
+  shell?: { people: number; waiting: number; now: number; zone: string }
 }
 
 export async function currentActor(env: Bindings, request: Request): Promise<Actor | null> {

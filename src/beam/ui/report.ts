@@ -48,7 +48,7 @@ export async function reportPage(env: Bindings, actor: Actor, url: URL) {
 </tr>`) : h`<tr><td colspan="10" class="muted">No training matches these filters.</td></tr>`}</tbody></table></div>
 </section>
 <p class="muted foot-note">Completion records what happened against an exact revision. It is not a statement of competence.</p>`
-  return page('Training report', actor, body, { current: '/app/reports', url })
+  return page('Training report', actor, body, { current: '/app/reports', url, wide: true })
 }
 
 export async function reportCsvResponse(env: Bindings, actor: Actor, url: URL) {

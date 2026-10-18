@@ -3,7 +3,7 @@
   "domain": "run-beam.com",
   "name": "Beam",
   "settings": {
-    "MAIL_FROM": "Beam demo <olivia.hart@harbourphysio.example>"
+    "MAIL_FROM": "Beam demo <colleen.shaw@sierra-lakes.example>"
   },
-  "ownerEmail": "olivia.hart@harbourphysio.example"
+  "ownerEmail": "colleen.shaw@sierra-lakes.example"
 }

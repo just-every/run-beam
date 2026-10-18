@@ -1,7 +1,8 @@
-/* The run site's tokens, defined once (the approved desk look, 18 Oct 2026): the hero's periwinkle ground, near-black
-   navy ink, marigold for the exception and chosen states, green for done, and white and pale periwinkle sections that
-   alternate (never cream). Every run site page links this file: the landing and docs, and Base's /run, /contract and
-   not-found pages, which read the --rer-* names below. The installed app keeps /rer-theme.css. */
+/* Beam's tokens, defined once (the approved desk looks, 18 Oct 2026): the hero's periwinkle ground, near-black navy ink,
+   marigold for the exception and chosen states, green for done, red-orange for overdue, and white and pale periwinkle
+   sections that alternate (never cream). Every Beam document reads this file: the run site's pages, Base's /run,
+   /contract and not-found pages (the --rer-* names below), the installed app (public/beam.css, the app-* names), and
+   Base's sign-in, /setup and Lobby through /rer-theme.css, which imports it. */
 :root {
   --ink: #0d1228;
   --ink-2: #1e2540;
@@ -32,6 +33,24 @@
   --tint-yellow: #fde49c;
   --tint-peach: #fbd5c8;
   --olive: #79872b;
+
+  /* The installed app (desk pick K): the periwinkle work surface, its rail and quiet wall-blue tints. */
+  --app-surface: #dce6fc;
+  --app-rail: #e7eefe;
+  --app-tint: #e3ebfe;
+  --app-tint-strong: #c9d8fe;
+  --blue: #2148d8;
+  --navy-deep: #13205a;
+  --focus-ring: rgba(33, 72, 216, .22);
+  --orange: #ee4b2b;
+  --orange-soft: #ffe9e2;
+  --orange-ink: #a8300f;
+  --orange-wash: #fff6f3;
+  --marigold-line: #f4cf7c;
+  --marigold-deep: #c98500;
+  --marigold-wash: #fffaf0;
+  --green-wash: #f2fbf5;
+  --violet: #4a2fc0;
 
   --font-display: 'Roboto Serif Display', Georgia, serif;
   --font-body: Inter, -apple-system, 'Segoe UI', Arial, sans-serif;
