@@ -163,8 +163,8 @@ export async function grantAttempt(env: Bindings, actor: Actor, input: Input) {
   const result = await env.DB.batch([
     stmt(env, `UPDATE beam_assignments SET extra_attempts = extra_attempts + 1 WHERE id = ? AND status = 'open'
       AND EXISTS (SELECT 1 FROM beam_assessment_revisions s WHERE s.course_revision_id = beam_assignments.course_revision_id AND s.max_attempts IS NOT NULL
-        AND (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = beam_assignments.id AND t.kind = 'quiz') >= s.max_attempts + beam_assignments.extra_attempts)
-      AND NOT EXISTS (SELECT 1 FROM beam_attempts t WHERE t.assignment_id = beam_assignments.id AND t.kind = 'quiz' AND t.passed = 1)`, assignment.id),
+        AND (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = beam_assignments.id AND t.kind = 'quiz' AND t.reset_id IS NULL) >= s.max_attempts + beam_assignments.extra_attempts)
+      AND NOT EXISTS (SELECT 1 FROM beam_attempts t WHERE t.assignment_id = beam_assignments.id AND t.kind = 'quiz' AND t.passed = 1 AND t.reset_id IS NULL)`, assignment.id),
     stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, 'attempt.grant', assignment.id, JSON.stringify({ reason })),
   ])
   insist(result[0].meta.changes === 1, 'attempts_remaining', 409)

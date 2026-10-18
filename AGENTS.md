@@ -68,7 +68,7 @@ Rules that hold everywhere:
   portability and first-run; 0006 Beam; 0007 the import kit schema; 0008–0014
   Base provider control, dependency approval and owner claim; 0015 the import
   kit upgrade to Base `79f61fa`; 0016 Beam agent work; 0017 Base's owner
-  sign-in link (`rer signin`); 0018 the import kit's resumable erasure. Import-kit migrations come from
+  sign-in link (`rer signin`); 0018 the import kit's resumable erasure; 0019 Beam's assignment resets (LEARN-019). Import-kit migrations come from
   `node --experimental-strip-types scripts/beam/import-kit-migration.mjs OUT BASE_SHA`,
   which writes only what the applied ones lack. Never edit an applied
   migration; add the next number.

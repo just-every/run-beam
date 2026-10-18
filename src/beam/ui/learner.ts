@@ -14,7 +14,7 @@ import { formatDate } from '../time'
 import branding from '../../branding.json'
 import { formatDay } from '../time'
 import { bookStack, documentSheet } from './drawings'
-import { area, backLink, card, cellLabel, lessonCount, fileField, form, h, hidden, lessonText, page, pill, progress, raw, rows, when, type Html } from './html'
+import { area, backLink, card, cellLabel, field, lessonCount, fileField, form, h, hidden, lessonText, page, pill, progress, raw, rows, when, type Html } from './html'
 import { icon } from './icons'
 
 const STATUS: Record<string, string> = { open: 'Open', completed: 'Completed', expiring: 'Expiring', overdue: 'Overdue', cancelled: 'Canceled', replaced: 'Replaced' }
@@ -62,13 +62,20 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const practical = view.practical ? card('Practical assessment', h`<p>Assessor: ${names.get(view.practical.assessor ?? '')}</p>${view.practical.accepted || view.practical.pending ? h`<p>${view.practical.accepted ? 'Accepted.' : 'Submitted and waiting for the assessor.'}</p>` : ''}${!view.practical.accepted && !view.practical.pending && a.status === 'open' && a.learner === actor.id ? (view.lessonsComplete ? h`<a class="button" href="/app/learn/${id}/practical">Submit evidence</a>` : h`<p class="muted">Available after every lesson is done.</p>`) : ''}`) : ''
   const attempts = view.attempts.length ? card('Attempts', rows(view.attempts.map(attempt => ({ title: h`<a href="/app/attempts/${attempt.id}">${attempt.kind === 'quiz' ? 'Quiz' : 'Practical'} attempt ${attempt.number}</a>`, meta: `${attempt.kind === 'quiz' ? `${attempt.score} of ${attempt.maxScore}` : attemptState(attempt.state)}; ${attempt.retryDecision}` })))) : ''
   const practiceCard = practice.length ? card('Practice', h`<p class="muted">Optional. Practice does not count toward completion and nobody scores it.</p><ul class="rows">${practice.map(row => h`<li class="row"><a href="/app/practice/${row.id}">${row.title}</a></li>`)}</ul>`) : ''
+  const latestReset = view.resets.at(-1)
+  const resetNotice = latestReset && a.status === 'open' ? h`<p class="flash" role="status">${a.learner === actor.id ? 'Your progress on this course was reset' : 'Progress was reset'} ${when(latestReset.resetAt, zone)} by ${latestReset.resetByName}: ${latestReset.reason} Lessons start again from the first one, with a fresh set of attempts; the earlier work is kept in the history below.</p>` : ''
+  const history = view.resets.length ? card('History before a reset', view.resets.map(reset => h`<section><h3>Reset ${when(reset.resetAt, zone)} by ${reset.resetByName}</h3><p>Reason: ${reset.reason}</p><p class="muted">Before it: ${reset.lessons.length} ${reset.lessons.length === 1 ? 'lesson' : 'lessons'} done${reset.extraAttempts ? `, ${reset.extraAttempts} extra ${reset.extraAttempts === 1 ? 'attempt' : 'attempts'} granted` : ''}.</p>${reset.attempts.length ? rows(reset.attempts.map(attempt => ({ title: h`<a href="/app/attempts/${attempt.id}">${attempt.kind === 'quiz' ? 'Quiz' : 'Practical'} attempt ${attempt.number}</a>`, meta: `${attempt.kind === 'quiz' ? `${attempt.score} of ${attempt.maxScore}` : attempt.closedByReset ? 'closed by the reset before a decision' : attemptState(attempt.state)}; before the reset` }))) : ''}</section>`)) : ''
+  const manage = a.learner !== actor.id && (actor.owner || actor.roles.has('manager')) ? a.status === 'open'
+    ? card('Reset progress', h`<p>Starts the lessons again from the first one and gives a fresh set of attempts. Earlier lessons, attempts and evidence stay in this assignment's history; the learner sees why.</p>${form('assignment.reset', `/app/learn/${id}`, [hidden('assignment', id), area('Reason', 'reason')], 'Reset progress', { secondary: true })}`)
+    : a.status === 'completed' ? card('Assign again', h`<p>A completed assignment is not reset: its completion and certificate stay with revision ${a.revisionNumber}. Assign the course again to train this person once more.</p>${form('assignment.create', `/app/records/${a.learner}`, [hidden('course', a.course), hidden('learners', a.learner), field('Due date', 'dueDate', { type: 'date' })], 'Assign the course again', { secondary: true })}`) : '' : ''
   const completion = view.completion ? card('Completion', h`<p><mark class="hl">Completed</mark> ${when(view.completion.completedAt, a.timezone, zone)} against revision ${a.revisionNumber}. <a href="/app/certificates/${view.completion.certificate}">Certificate</a></p>`) : ''
   const body = h`${backLink('/app/learning', 'My learning')}<h1>${a.courseTitle}</h1>
 <p class="subtitle">Revision ${a.revisionNumber} · ${a.status} · due ${when(a.dueAt, a.timezone, zone)}${a.learner !== actor.id ? h` · learner ${names.get(a.learner)}` : ''}</p>
 ${view.blocked ? h`<p class="flash">Complete the prerequisite course first; your manager can see this requirement.</p>` : ''}
+${resetNotice}
 ${a.status === 'open' && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? 'Resume' : 'Start'}</a></p>` : ''}
 ${completion}
-<div class="split">${lessons}<div class="stack">${quiz}${practical}${practiceCard}${attempts}</div></div>`
+<div class="split">${lessons}<div class="stack">${quiz}${practical}${practiceCard}${attempts}${history}${manage}</div></div>`
   return page(a.courseTitle, actor, body, { current: '/app/learning', url })
 }
 

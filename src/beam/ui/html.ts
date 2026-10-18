@@ -142,6 +142,9 @@ const ERRORS: Record<string, string> = {
   already_member: 'this person already has access.',
   person_not_found: 'that person is not in Beam.',
   owner_access_fixed: 'the owner’s access cannot be changed.',
+  completed_assignment_not_reset: 'a completed assignment is never reset; its completion stays with its revision. Assign the course again instead.',
+  learner_outside_your_team: 'you can reset training only for people in one of your teams.',
+  attempt_closed_by_reset: 'this attempt was closed when the assignment was reset.',
 }
 export const describeError = (code: string) => ERRORS[code] ?? code.replace(/_/g, ' ') + '.'
 

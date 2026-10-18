@@ -4,10 +4,11 @@
 import type { Bindings } from '../auth.server'
 import { isManager, requireRole, type Actor } from './actor'
 import { revisionDetail, type Question } from './courses'
-import { BeamError, all, commit, insist, newId, now, one, stmt } from './core'
+import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import { serve, store } from './files'
 import type { Input } from './input'
 import { requireBusiness } from './people'
+import { resetHistory } from './resets'
 import { DAY } from './time'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
@@ -25,12 +26,15 @@ async function prerequisiteMet(env: Bindings, assignment: any) {
 async function progress(env: Bindings, assignment: any) {
   const content = await revisionDetail(env, assignment.course_revision_id)
   const done = new Set((await all<{ lesson_revision_id: string }>(env, 'SELECT lesson_revision_id FROM beam_lesson_progress WHERE assignment_id = ?', assignment.id)).map(row => row.lesson_revision_id))
-  const attempts = await all(env, 'SELECT id, kind, number, submitted_at AS submittedAt, score, max_score AS maxScore, passed, scoring_rule AS scoringRule, retry_decision AS retryDecision, state, evidence_text AS evidenceText, attachment_id AS attachment FROM beam_attempts WHERE assignment_id = ? ORDER BY submitted_at', assignment.id)
+  // Attempts closed by a reset (LEARN-019) stay as history and no longer count.
+  const recorded = await all(env, 'SELECT id, kind, number, submitted_at AS submittedAt, score, max_score AS maxScore, passed, scoring_rule AS scoringRule, retry_decision AS retryDecision, state, evidence_text AS evidenceText, attachment_id AS attachment, reset_id AS reset FROM beam_attempts WHERE assignment_id = ? ORDER BY submitted_at', assignment.id)
+  const attempts = recorded.filter(attempt => !attempt.reset), earlier = recorded.filter(attempt => attempt.reset)
+  const nextNumber = (kind: string) => recorded.filter(attempt => attempt.kind === kind).length + 1
   const assessment = content.assessment
   const quizAttempts = attempts.filter(attempt => attempt.kind === 'quiz')
   const allowed = assessment?.max_attempts ? assessment.max_attempts + assignment.extra_attempts : 0
   return {
-    content, done, attempts,
+    content, done, attempts, earlier, nextNumber,
     lessonsComplete: content.lessons.every(lesson => done.has(lesson.id)),
     quizRequired: !!assessment && assessment.questions.length > 0,
     quizPassed: quizAttempts.some(attempt => attempt.passed === 1),
@@ -57,6 +61,8 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: state.content.assessment!.questions.map(question => ({ id: question.id, prompt: question.prompt, choices: question.choices, multiple: question.correct.length > 1 })) } : null,
     practical: state.practicalRequired ? { instructions: state.content.assessment!.practical_instructions, assessor: state.content.assessment!.assessor_id, accepted: state.practicalAccepted, pending: state.practicalPending } : null,
     attempts: learner || isManager(actor) ? state.attempts : [],
+    // Everything before each reset, marked with who reset it and why.
+    resets: learner || isManager(actor) ? (await resetHistory(env, assignment.id)).map(reset => ({ ...reset, attempts: state.earlier.filter(attempt => attempt.reset === reset.id).map(attempt => ({ ...attempt, closedByReset: attempt.state === 'awaiting_review' }) as Row) })) : [],
     completion: completion ? { id: completion.id, method: completion.method, completedAt: completion.completed_at, expiresAt: completion.expires_at, certificate: completion.certificate, revision: completion.course_revision_id, assessmentRevision: completion.assessment_revision_id } : null,
   }
 }
@@ -104,7 +110,7 @@ export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
   const points = responses.filter(response => response.correct).length
   const percent = Math.floor(points * 100 / responses.length)
   const passed = percent >= assessment.pass_percent
-  const number = state.attempts.filter(attempt => attempt.kind === 'quiz').length + 1
+  const number = state.nextNumber('quiz')
   const left = state.quizAttemptsLeft - 1
   const decision = passed ? 'passed' : left > 0 ? `retry allowed: ${left} attempt${left === 1 ? '' : 's'} remaining` : 'no attempts remaining: a manager may grant another attempt'
   const id = newId()
@@ -126,7 +132,7 @@ export async function submitPractical(env: Bindings, actor: Actor, input: Input)
   const file = await input.file('file', { optional: true })
   const attachment = file ? { id: newId(), ...await store(env, file) } : null
   const id = newId()
-  const number = state.attempts.filter(attempt => attempt.kind === 'practical').length + 1
+  const number = state.nextNumber('practical')
   await commit(env, [
     ...(attachment ? [stmt(env, 'INSERT INTO beam_attachments (id, filename, media_type, size, sha256, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?)', attachment.id, attachment.filename, attachment.mediaType, attachment.size, attachment.sha256, actor.id, now())] : []),
     stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, scoring_rule, retry_decision, state, evidence_text, attachment_id) VALUES (?, ?, ?, 'practical', ?, ?, 'named assessor decision', 'awaiting the named assessor', 'awaiting_review', ?, ?)", id, assignment.id, state.content.assessment!.id, number, now(), evidence, attachment?.id ?? null),
@@ -145,6 +151,7 @@ export async function decidePractical(env: Bindings, actor: Actor, input: Input)
   insist(attempt.assessor_id === actor.id, 'named_assessor_required', 403)
   // Nobody signs off their own evidence: the owner or a reassigned assessor decides it.
   insist(attempt.learner_id !== actor.id, 'self_assessment_refused', 403)
+  insist(!attempt.reset_id, 'attempt_closed_by_reset', 409)
   insist(attempt.state === 'awaiting_review', 'attempt_decided', 409)
   const decision = input.text('decision')
   insist(decision === 'accepted' || decision === 'rejected', 'invalid_decision')
@@ -164,7 +171,7 @@ export async function attemptDetail(env: Bindings, actor: Actor, id: string) {
   if (!allowed) throw new BeamError('not_found', 404)
   const responses = await all(env, 'SELECT question_id AS question, answer_json AS answer, correct FROM beam_responses WHERE attempt_id = ?', id)
   const decision = await one(env, 'SELECT assessor_id AS assessor, decision, note, decided_at AS decidedAt FROM beam_review_decisions WHERE attempt_id = ?', id)
-  return { id, assignment: attempt.assignment_id, learner: attempt.learner_id, kind: attempt.kind, number: attempt.number, score: attempt.score, maxScore: attempt.max_score, passed: attempt.passed, scoringRule: attempt.scoring_rule, retryDecision: attempt.retry_decision, state: attempt.state, evidence: attempt.evidence_text, attachment: attempt.attachment_id, responses: responses.map(response => ({ ...response, answer: JSON.parse(response.answer) })), decision }
+  return { id, assignment: attempt.assignment_id, learner: attempt.learner_id, kind: attempt.kind, number: attempt.number, score: attempt.score, maxScore: attempt.max_score, passed: attempt.passed, scoringRule: attempt.scoring_rule, retryDecision: attempt.retry_decision, state: attempt.state, evidence: attempt.evidence_text, attachment: attempt.attachment_id, reset: attempt.reset_id ? await one(env, 'SELECT r.id, r.reason, r.reset_at AS resetAt, r.reset_by AS resetBy FROM beam_assignment_resets r WHERE r.id = ?', attempt.reset_id) : null, responses: responses.map(response => ({ ...response, answer: JSON.parse(response.answer) })), decision }
 }
 
 export async function attachmentFile(env: Bindings, actor: Actor, id: string) {

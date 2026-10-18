@@ -22,6 +22,7 @@
           "scripts/beam",
           "migrations/core/0015_import_kit_upgrade.sql",
           "migrations/core/0018_import_kit_erasure_progress.sql",
+          "migrations/core/0019_beam_resets.sql",
           "src/auth.server.ts",
           "src/identity.ts",
           "src/server.ts",

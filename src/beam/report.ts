@@ -29,10 +29,10 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
       a.status AS assignmentStatus, a.due_at AS dueAt, a.timezone, a.reason,
       (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone,
       (SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id = a.course_revision_id) AS lessonsTotal,
-      (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz') AS quizAttempts,
-      (SELECT MAX(CASE WHEN t.max_score > 0 THEN t.score * 100 / t.max_score END) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz') AS bestPercent,
-      (SELECT MAX(t.passed) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz') AS quizPassed,
-      (SELECT t.state || '|' || COALESCE(dm.name, '') FROM beam_attempts t LEFT JOIN beam_review_decisions d ON d.attempt_id = t.id LEFT JOIN beam_members dm ON dm.id = d.assessor_id WHERE t.assignment_id = a.id AND t.kind = 'practical' ORDER BY t.number DESC LIMIT 1) AS practical,
+      (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.reset_id IS NULL) AS quizAttempts,
+      (SELECT MAX(CASE WHEN t.max_score > 0 THEN t.score * 100 / t.max_score END) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.reset_id IS NULL) AS bestPercent,
+      (SELECT MAX(t.passed) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.reset_id IS NULL) AS quizPassed,
+      (SELECT t.state || '|' || COALESCE(dm.name, '') FROM beam_attempts t LEFT JOIN beam_review_decisions d ON d.attempt_id = t.id LEFT JOIN beam_members dm ON dm.id = d.assessor_id WHERE t.assignment_id = a.id AND t.kind = 'practical' AND t.reset_id IS NULL ORDER BY t.number DESC LIMIT 1) AS practical,
       c.id AS completion, c.method, c.completed_at AS completedAt, c.expires_at AS expiresAt, k.number AS certificate, k.id AS certificateId
     FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_course_revisions r ON r.id = a.course_revision_id
     LEFT JOIN beam_completions c ON c.assignment_id = a.id LEFT JOIN beam_certificates k ON k.completion_id = c.id

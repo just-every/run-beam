@@ -86,14 +86,14 @@ export async function queues(env: Bindings, actor: Actor) {
     overdue: manager ? await all(env, `SELECT a.id, a.learner_id AS learner, m.name AS learnerName, c.title AS courseTitle, a.due_at AS dueAt, a.timezone FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id
       WHERE a.status = 'open' AND a.due_at < ? ORDER BY a.due_at`, now()) : [],
     attemptsExhausted: manager ? await all(env, `SELECT a.id, m.name AS learnerName, c.title AS courseTitle FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_assessment_revisions s ON s.course_revision_id = a.course_revision_id
-      WHERE a.status = 'open' AND s.max_attempts IS NOT NULL AND (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz') >= s.max_attempts + a.extra_attempts
-      AND NOT EXISTS (SELECT 1 FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.passed = 1)`) : [],
+      WHERE a.status = 'open' AND s.max_attempts IS NOT NULL AND (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.reset_id IS NULL) >= s.max_attempts + a.extra_attempts
+      AND NOT EXISTS (SELECT 1 FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.passed = 1 AND t.reset_id IS NULL)`) : [],
     renewals: manager ? await renewalsDue(env) : [],
     reviews: actor.roles.has('reviewer') ? await all(env, `SELECT r.id, r.course_id AS course, r.number, r.title, r.submitted_at AS submittedAt FROM beam_course_revisions r JOIN beam_courses c ON c.id = r.course_id
       WHERE r.state = 'in_review' AND (c.reviewer_id = ? OR ?) ORDER BY r.submitted_at`, actor.id, actor.owner ? 1 : 0) : [],
     notices: actor.roles.has('reviewer') ? await all(env, `SELECT n.id, n.course_id AS course, c.title AS courseTitle, s.title AS sourceTitle FROM beam_source_notices n JOIN beam_courses c ON c.id = n.course_id JOIN beam_sources s ON s.id = n.source_id
       WHERE n.state = 'open' AND (c.reviewer_id = ? OR ?) ORDER BY n.created_at`, actor.id, actor.owner ? 1 : 0) : [],
     assessments: actor.roles.has('assessor') ? await all(env, `SELECT t.id, m.name AS learnerName, c.title AS courseTitle, t.submitted_at AS submittedAt FROM beam_attempts t JOIN beam_assessment_revisions s ON s.id = t.assessment_revision_id JOIN beam_assignments a ON a.id = t.assignment_id
-      JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id WHERE t.state = 'awaiting_review' AND s.assessor_id = ? ORDER BY t.submitted_at`, actor.id) : [],
+      JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id WHERE t.state = 'awaiting_review' AND t.reset_id IS NULL AND s.assessor_id = ? ORDER BY t.submitted_at`, actor.id) : [],
   }
 }

@@ -105,4 +105,71 @@ async function renewal(f) {
   }
   return { path, origin, cycles }
 }
-export const learningChecks = [['BEAM-08 live named assessor authority', assessor], ['BEAM-10 exact offline revision', offline], ['BEAM-12 recurring renewal provenance', renewal]]
+async function reset(f) {
+  const { api, h, cookies, ids, publish } = f
+  ids.outsider = (await api('owner', 'person.invite', { email: 'outsider@example.test', name: 'outsider', roles: ['learner'] })).id
+  cookies.outsider = await h.signIn('outsider@example.test', { requested: true })
+  const team = (await api('manager', 'team.create', { name: 'Reset team' })).id
+  await api('manager', 'team.members', { team, members: [ids.manager, ids.learner] })
+  const c = await api('author', 'course.create', { title: 'Resettable procedure', reviewer: ids.reviewer })
+  let draftVersion = c.draftVersion
+  const edit = async (action, fields) => { draftVersion = (await api('author', action, { course: c.id, draftVersion, ...fields })).draftVersion }
+  await edit('course.lesson', { title: 'Prepare', body: 'Lay out the tools.', sources: [] })
+  await edit('course.lesson', { title: 'Perform', body: 'Perform the procedure.', sources: [] })
+  await edit('course.question', { prompt: 'First step?', choices: 'Lay out the tools\nStart', correct: '1' })
+  await edit('course.assessment', { passPercent: 100, maxAttempts: 1, practicalInstructions: 'Demonstrate the procedure', assessor: ids.assessor })
+  const revision = (await api('author', 'course.submit', { course: c.id, draftVersion })).id
+  await publish(revision)
+  const [assignment, outside] = (await api('manager', 'assignment.create', { course: c.id, learners: [ids.learner, ids.outsider], dueDate: '2030-10-01' })).created
+  const learn = async () => { const view = await api('learner', `assignments/${assignment}`); for (const lesson of view.lessons) await api('learner', 'lesson.complete', { assignment, lesson: lesson.id }); return view.quiz.questions[0] }
+  // The learner fails the quiz, has a practical returned and resubmits it.
+  const question = await learn()
+  const failed = await api('learner', 'quiz.submit', { assignment, [`q_${question.id}`]: ['1'] })
+  const rejected = await api('learner', 'practical.submit', { assignment, evidence: 'Skipped the tool check', file: file('first.txt', 'first evidence') })
+  await api('assessor', 'practical.decide', { attempt: rejected.id, decision: 'rejected', note: 'Tools were not laid out.' })
+  const pending = await api('learner', 'practical.submit', { assignment, evidence: 'Second try' })
+  assert.equal((await api('learner', `assignments/${assignment}`)).quiz.attemptsLeft, 0)
+  // Only managers reset, only for their own team's people; the owner resets anyone.
+  await api('learner', 'assignment.reset', { assignment, reason: 'Self' }, 403)
+  await api('manager', 'assignment.reset', { assignment: outside, reason: 'Not my team' }, 403)
+  const reason = 'Failed the practical twice; retrained on the tool check.'
+  const form = await h.submit('assignment.reset', cookies.manager, { assignment, reason }, `/app/learn/${assignment}`)
+  assert.equal(form.searchParams.get('error'), null)
+  const after = await api('learner', `assignments/${assignment}`)
+  assert.deepEqual([after.resumeLesson, after.lessons.map(lesson => lesson.completed), after.quiz.attemptsLeft, after.attempts, after.practical.pending], [after.lessons[0].id, [false, false], 1, [], false])
+  const [history] = after.resets
+  assert.deepEqual([history.reason, history.resetBy, history.lessons.map(row => row.lesson)], [reason, ids.manager, after.lessons.map(lesson => lesson.id)])
+  assert.deepEqual(history.attempts.map(row => [row.id, row.kind, row.state, row.closedByReset]), [[failed.id, 'quiz', 'scored', false], [rejected.id, 'practical', 'rejected', false], [pending.id, 'practical', 'awaiting_review', true]])
+  const earlier = await api('manager', `attempts/${rejected.id}`)
+  assert.deepEqual([earlier.reset.reason, earlier.decision.note, earlier.evidence], [reason, 'Tools were not laid out.', 'Skipped the tool check'])
+  assert.equal((await h.raw(`/app/files/attachment/${earlier.attachment}`, { cookie: cookies.learner })).status, 200)
+  // The unfinished practical was closed by the reset: its assessor can no longer decide it.
+  assert.ok(!(await api('assessor', 'queues')).assessments.some(row => row.id === pending.id))
+  await api('assessor', 'practical.decide', { attempt: pending.id, decision: 'accepted', note: 'Late' }, 409)
+  const page = await (await h.raw(`/app/learn/${assignment}`, { cookie: cookies.learner })).text()
+  assert.ok(page.includes('Your progress on this course was reset') && page.includes(reason))
+  // A fresh run completes; numbering continues after the history.
+  await learn()
+  const passed = await api('learner', 'quiz.submit', { assignment, [`q_${question.id}`]: ['0'] })
+  assert.deepEqual([passed.number, passed.passed], [2, true])
+  const fresh = await api('learner', 'practical.submit', { assignment, evidence: 'Laid out the tools first' })
+  assert.equal(fresh.number, 3)
+  assert.ok((await api('assessor', 'practical.decide', { attempt: fresh.id, decision: 'accepted', note: 'Correct order.' })).completion)
+  const completion = (await api('learner', 'records/me')).completions.find(row => row.course === c.id)
+  assert.deepEqual([completion.evidence.quizAttempt, completion.evidence.practicalAttempt], [passed.id, fresh.id])
+  // A completed assignment is not reset; the manager assigns the course again and the old completion stays.
+  const refused = await h.raw('/api/beam/assignment.reset', { cookie: cookies.manager, body: { assignment, reason: 'Again' } })
+  assert.equal(refused.status, 409)
+  assert.deepEqual(await refused.json(), { error: 'completed_assignment_not_reset', detail: { createAssignment: { course: c.id, learners: [ids.learner] } } })
+  const offer = await (await h.raw(`/app/learn/${assignment}`, { cookie: cookies.manager })).text()
+  assert.ok(offer.includes('Assign the course again'))
+  const again = await api('manager', 'assignment.create', { course: c.id, learners: [ids.learner], dueDate: '2031-10-01' })
+  assert.equal(again.created.length, 1)
+  const kept = (await api('learner', 'records/me')).completions.find(row => row.course === c.id)
+  assert.deepEqual(kept, completion)
+  assert.equal((await api('learner', `certificates/${kept.certificate}`)).revision, 1)
+  assert.equal((await api('learner', `assignments/${assignment}`)).assignment.status, 'completed')
+  await api('owner', 'assignment.reset', { assignment: outside, reason: 'Owner restart' })
+  return { assignment, history }
+}
+export const learningChecks = [['BEAM-08 live named assessor authority', assessor], ['BEAM-10 exact offline revision', offline], ['BEAM-12 recurring renewal provenance', renewal], ['LEARN-019 reset with history kept', reset]]

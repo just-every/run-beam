@@ -53,11 +53,11 @@ export async function attemptPage(env: Bindings, actor: Actor, id: string, url: 
   const attempt = await attemptDetail(env, actor, id)
   const names = await memberNames(env)
   const assessorId = attempt.kind === 'practical' ? (await all(env, 'SELECT s.assessor_id FROM beam_attempts t JOIN beam_assessment_revisions s ON s.id = t.assessment_revision_id WHERE t.id = ?', id))[0]?.assessor_id : null
-  const assessor = actor.roles.has('assessor') && attempt.learner !== actor.id && attempt.state === 'awaiting_review' && !!assessorId && assessorId === actor.id
+  const assessor = actor.roles.has('assessor') && attempt.learner !== actor.id && attempt.state === 'awaiting_review' && !attempt.reset && !!assessorId && assessorId === actor.id
   const state = ({ awaiting_review: 'waiting for the assessor', accepted: 'accepted', rejected: 'returned for resubmission', scored: 'scored' } as Record<string, string>)[attempt.state] ?? attempt.state.replace(/_/g, ' ')
   const body = h`${backLink(`/app/learn/${attempt.assignment}`, 'Assignment')}<h1>${attempt.kind === 'quiz' ? 'Quiz' : 'Practical'} attempt ${attempt.number}</h1><p class="subtitle">Learner: ${names.get(attempt.learner)} · ${state}${attempt.kind === 'quiz' ? ` · ${attempt.scoringRule}` : attempt.state === 'awaiting_review' && assessorId ? ` · ${names.get(assessorId)} decides` : ''}</p>
 <div class="narrow">${attempt.kind === 'quiz' ? card('Result', h`<p>Score ${attempt.score} of ${attempt.maxScore} — ${attempt.passed ? 'passed' : 'not passed'}; ${attempt.retryDecision}.</p>`) : card('Evidence', h`<p>${attempt.evidence}</p>${attempt.attachment ? h`<p><a href="/app/files/attachment/${attempt.attachment}">Download the evidence file</a></p>` : ''}`)}
-${attempt.decision ? card('Decision', h`<p>${names.get(attempt.decision.assessor)}: ${attempt.decision.decision === 'accepted' ? 'accepted' : 'returned for resubmission'} — ${attempt.decision.note}</p>`) : ''}
+${attempt.reset ? h`<p class="flash" role="status">Before a reset: ${attempt.reset.reason}</p>` : ''}${attempt.decision ? card('Decision', h`<p>${names.get(attempt.decision.assessor)}: ${attempt.decision.decision === 'accepted' ? 'accepted' : 'returned for resubmission'} — ${attempt.decision.note}</p>`) : ''}
 ${assessor ? card('Your decision', form('practical.decide', `/app/attempts/${id}`, [hidden('attempt', id), select('Decision', 'decision', [{ value: 'accepted', label: 'Accept the evidence' }, { value: 'rejected', label: 'Not yet: ask for resubmission' }]), area('Note to the learner', 'note')], 'Record decision')) : ''}</div>`
   return page('Attempt', actor, body, { url })
 }

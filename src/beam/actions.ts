@@ -15,6 +15,7 @@ import { configureBusiness, createTeam, invitePerson, setAccess, setRoles, setTe
 import { choosePractice, restartPractice } from './practice'
 import { answerQuestions, closeQuestions, declineQuestions } from './questions'
 import { recordOffline } from './records'
+import { resetAssignment } from './resets'
 import { addSourceVersion, createSource } from './sources'
 
 type Handler = (env: Bindings, actor: Actor, input: Input, request: Request) => Promise<unknown>
@@ -49,6 +50,7 @@ export const actions: Record<string, Handler> = {
   'assignment.cancel': (env, actor, input) => cancelAssignment(env, actor, input),
   'assignment.renewals': (env, actor, input) => assignRenewals(env, actor, input),
   'attempt.grant': (env, actor, input) => grantAttempt(env, actor, input),
+  'assignment.reset': (env, actor, input) => resetAssignment(env, actor, input),
   'lesson.complete': (env, actor, input) => completeLesson(env, actor, input),
   'quiz.submit': (env, actor, input) => submitQuiz(env, actor, input),
   'practical.submit': (env, actor, input) => submitPractical(env, actor, input),
