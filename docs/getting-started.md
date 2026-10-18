@@ -2,13 +2,14 @@ Beam runs on your own computer with one command, `rer`. Nothing needs an account
 
 ## Get Beam and start it
 
-One line installs the Run Edit Run command, gets Beam and starts it:
+Two lines, the same as the [Run Beam](/run) page. The first installs the Run Edit Run command, `rer`, for you alone, with its own Node if you have no Node 22 or later. The second gets Beam and starts it:
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-beam
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-beam
 ```
 
-No Node? `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-beam` brings its own Node and does the same.
+If the installer's last line puts `rer` on your PATH, run that line before the second one. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-beam` does both steps in one line.
 
 To start Beam again later, run `cd run-beam && rer dev`. Beam runs on macOS, Linux or Windows with WSL2; the installer brings Node when it is missing, and `rer` selects the exact Node and pnpm versions itself.
 

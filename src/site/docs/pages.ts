@@ -2,7 +2,7 @@
 // section list beside it, its contents, and the previous and next guide.
 import { bodies, sections } from 'virtual:beam-docs'
 import { h, raw, type Html } from '../../beam/ui/html'
-import { icon } from '../../beam/ui/icons'
+import { glyph } from '../icons'
 import { siteFooter, siteHeader } from '../shell'
 
 export const docsPages = sections.flatMap(section => section.pages)
@@ -14,7 +14,7 @@ function sidebar(current?: string): Html {
 
 export function docsIndex(): Html {
   return h`${siteHeader('docs')}<main class="docs"><div class="docs-layout">${sidebar()}<div class="docs-main"><p class="eyebrow">Docs</p><h1>Beam docs</h1><p class="docs-lede">Everything you need to run Beam for your own team: from the first <code>rer dev</code> to moving in, backups and agent work.</p>
-${sections.map(section => h`<section class="docs-section" aria-label="${section.title}"><h2>${section.title}</h2><ul class="docs-cards">${section.pages.map(page => h`<li><a class="card docs-card" href="/docs/${page.slug}"><span class="docs-card-title">${page.title}</span><span class="docs-card-body">${page.summary}</span><span class="docs-card-go">${raw(icon('arrow', { size: 18 }))}</span></a></li>`)}</ul></section>`)}</div></div></main>${siteFooter()}`
+${sections.map(section => h`<section class="docs-section" aria-label="${section.title}"><h2>${section.title}</h2><ul class="docs-cards">${section.pages.map(page => h`<li><a class="card docs-card" href="/docs/${page.slug}"><span class="docs-card-title">${page.title}</span><span class="docs-card-body">${page.summary}</span><span class="docs-card-go">${glyph('arrow', { size: 16, stroke: 2.4 })}</span></a></li>`)}</ul></section>`)}</div></div></main>${siteFooter()}`
 }
 
 export function docsArticle(slug: string): Html {

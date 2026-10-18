@@ -17,7 +17,7 @@ Each row shows the learner, the course and revision, the due time in its time zo
 
 ## A learner's record
 
-From **Manage**, open **Learner records** and choose a person: their assignments, completions with certificates, and history imported from a previous system, which is labelled as such and never counts as a Beam completion.
+From **Manage**, open **Learner records** and choose a person: their assignments, completions with certificates, and history imported from a previous system, which is labeled as such and never counts as a Beam completion.
 
 ## What a completion means
 

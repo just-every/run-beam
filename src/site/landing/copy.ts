@@ -1,39 +1,38 @@
-// The landing page's words, exactly as approved. Every claim is backed by Beam's code
-// and contract; nothing here names a price, a provider or a number Beam cannot show.
-export const meta = { title: 'Beam — Your team, on the same page.' }
+// The homepage's words, exactly as the owner approved them on the design desk (18 Oct 2026). The figures inside the
+// product drawings come from records.ts.
+export const meta = {
+  title: 'Beam — Everyone trained. Everyone current.',
+  description: 'Beam enrolls hires from your HR system, teaches on any phone, even offline, runs your SCORM courses, renews certifications and redrafts lessons when procedures change. 100% free, open source alternative to TalentLMS, Trainual and Docebo.',
+}
 
 export const hero = {
-  headline: 'Your team, on the same page.',
-  subhead: 'Turn your procedures into courses, and see who has completed the latest version.',
-  alternatives: ['TalentLMS', 'Trainual', '360Learning'],
+  headline: ['Everyone trained.', 'Everyone current.'],
+  subhead: 'Beam enrolls hires from your HR system, teaches on any phone, even offline, runs your SCORM courses, renews certifications and redrafts lessons when procedures change.',
+  alternatives: ['TalentLMS', 'Trainual', 'Docebo'],
   action: 'Run Beam',
   demo: 'Try the demo',
+  demoUrl: 'https://demo.run-beam.com/',
   docs: 'Read the docs',
-  small: 'Free and open source, MIT licensed.',
-  drawingLabel: '1. Front desk handbook, version 3: Disarm the alarm, then check the fridge log. 2. Opening the clinic, revision 3, Front desk, due 29 Oct. 3. Sam Lee completed revision 3, with a certificate.',
+  art: 'A warehouse break room at 6:00 am beside an open roll-up door onto the yard: two workers in hi-vis vests at the break-room tablet kiosk, a QR sign-in sheet on the wall, vests on a hook rail, a coffee urn and yellow chairs.',
 }
 
 export const sections = {
-  free: { eyebrow: 'Free', heading: '100% free. Yours to keep.', body: 'Free as in cost, and free as in code. Run it on your own computer and change whatever you like.' },
-  changes: { eyebrow: 'Changes', heading: 'When a procedure changes, so does the training.', body: 'A new version of a source flags every course that cites the old one. Publish the update and move the people who need it.' },
-  quizzes: { eyebrow: 'Quizzes', heading: 'Quizzes with one right answer.', body: 'A question scores only when exactly the right choices are picked. Practical work goes to the assessor you name.' },
-  records: { eyebrow: 'Records', heading: 'See who completed what.', body: 'Every completion names the exact revision it was made against, with a numbered certificate and a report you can download.' },
-  agent: { eyebrow: 'Agent work', heading: 'Your agent drafts. You decide.', body: 'Your own agent can prepare course drafts, assignment plans and reminders. Nothing reaches staff until you approve it.' },
-  moveIn: { eyebrow: 'Moving in', heading: 'Try it beside what you have.', body: 'Bring your TalentLMS course list and reports across as history. Preview first; undo if you change your mind.' },
+  month: { eyebrow: '131 people · 3 sites · Sep 29 – Nov 2', heading: 'One month at Sierra Lakes Produce.', body: 'From the TalentLMS move to the Illinois cycle, with one new hire and one changed procedure on the way.' },
+  firstShift: { eyebrow: 'First shift · Mon Oct 19 · 6:00 am', heading: ['A badge number, a PIN,', 'and Spanish.'], body: 'No work email needed. Rafael signs in on the break-room tablet, and Beam speaks his language.' },
+  cooler: { eyebrow: 'In the cooler · 7:10 – 9:12 am', heading: ['34°F, no signal.', 'Lessons still play.'], body: 'Rafael downloads the course on his own phone, learns in the cooler and syncs when he walks out.' },
+  practical: { eyebrow: 'Practical · Tue Oct 20 · 10:00 am', heading: 'Watched on the floor, not just clicked.', body: 'Maria Chen scores the drive on her phone. The certificate and BambooHR update themselves.' },
+  followUp: { eyebrow: 'Follow-up · Mon Oct 19 · 6:04 – 6:45 am', heading: ['Overdue, and the', 'manager is out.'], body: 'Tomás works nights, so the reminders landed while he slept. The agent sees it, finds his manager on leave and asks the cover instead.' },
+  diagnosis: { eyebrow: 'Joliet dock · Doors 7–9 · Oct 6 – 14', heading: ['Three near-misses.', 'One unclear step.'], body: 'The agent reads the safety log, the procedure and the quiz results, and finds the crew knew the step. The step itself was unclear.' },
+  redraft: { eyebrow: 'Rev 6 · Tue Oct 20 – Fri Oct 23', heading: 'Redrafted only where it changed.', body: 'One lesson and one question move to rev 6. Everyone keeps their progress.' },
+  interlude: { tag: ['Door 9 · both wheels', 'chocked first · rev 6'], art: 'The Joliet cross-dock from the truck yard: three white reefer trailers backed into doors 7, 8 and 9, every wheel chocked, and at door 9 a worker in a hi-vis vest kneeling to set the second chock.' },
+  compliance: { eyebrow: 'Compliance · Mon Nov 2 · 7:00 am', heading: ['California and Illinois,', 'on one page.'], body: 'TalentLMS history counts as current, labeled. Renewals and each state’s cycle schedule themselves.' },
+  moveIn: { eyebrow: 'Moving in · Tue Sep 29', heading: ['2,406 completions.', 'All carried over.'], body: 'Beam reads your TalentLMS export, credits current training and plays your SCORM files as they are.', run: 'Run it yourself', command: 'npx -y @runeditrun/rer dev just-every/run-beam' },
 }
 
-export const included = {
-  eyebrow: 'Also included',
-  heading: 'The details, handled.',
-  tiles: [
-    { icon: 'paths', title: 'Role paths', body: 'A team’s courses in order, with prerequisites and renewals.' },
-    { icon: 'laptop', title: 'Pick up anywhere', body: 'Learners resume at the next lesson on any device.' },
-    { icon: 'cloud', title: 'Offline training', body: 'Record instructor-led sessions against the right revision.' },
-    { icon: 'play', title: 'Practice scenarios', body: 'Unscored situations staff can try again and again.' },
-    { icon: 'document', title: 'Questions for staff', body: 'Optional, and answers come back without names.' },
-    { icon: 'download', title: 'Export everything', body: 'Every record and file in one archive you keep.' },
-  ],
-} as const
+export const closing = {
+  heading: 'Ready for the first shift.',
+  body: '100% free and open source. MIT licensed.',
+  art: 'California’s Central Valley at first light: orchard rows and fields, a two-lane road with a white reefer truck, and the snow-capped Sierra Nevada behind.',
+}
 
-export const closing = { heading: 'Teach it once. Keep it current.', body: 'Training for your own procedures, run by you.' }
-export const footer = { line: 'Training for your own procedures.', licence: 'MIT licence' }
+export const footer = { line: 'Free, open source employee training', licence: 'MIT licensed' }

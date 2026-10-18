@@ -1,3 +1,5 @@
+<p><img src="public/brand/mark.svg" alt="Beam" width="40" height="47"></p>
+
 # Run it locally
 
 Beam is training for your own procedures: a reviewer publishes an owned
@@ -7,13 +9,16 @@ first-release seed. Source code:
 [just-every/run-beam](https://github.com/just-every/run-beam).
 The site is at https://run-beam.com.
 
-Start it from nothing with one line:
+Start it from nothing in two lines, the same as https://run-beam.com/run: the
+installer brings rer (and its own Node when there is none), then rer gets Beam,
+installs everything, makes you the owner and opens it.
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-beam
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-beam
 ```
 
-No Node? `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-beam` brings its own Node and does the same.
+Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-beam` does both steps in one line.
 
 To start it again later, run `cd run-beam && rer dev`. To choose the owner mailbox yourself, run `npx -y @runeditrun/rer install just-every/run-beam`, then from the checkout:
 

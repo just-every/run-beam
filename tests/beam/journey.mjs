@@ -68,7 +68,7 @@ async function journey(width, ownerOpen, learnerOpen, learnerName) {
   await writeFile(sourceFile, procedureV1)
   await owner.getByLabel('Title', { exact: true }).fill(`Opening procedure (${width})`)
   await owner.locator('form[action="/app/do/source.create"] input[type=file]').setInputFiles(sourceFile)
-  await owner.getByLabel('Licence evidence').fill('Written by the clinic manager.')
+  await owner.getByLabel('License evidence').fill('Written by the clinic manager.')
   await owner.getByLabel('Where it came from').fill('Clinic shared drive')
   await owner.getByRole('button', { name: 'Add source' }).click()
   await owner.getByText(`opening-${width}.txt`).waitFor()

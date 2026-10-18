@@ -1,0 +1,104 @@
+/* The hero, laid out on the desk's 1536 canvas: --px is one desk pixel, so at 1440 everything is 0.9375 of the image.
+   From 1280 up the painting, cards and copy sit where the desk drew them; below 1280 they stack (the 390 plan). */
+.hero { --px: min(calc(100vw / 1536), 1.25px); position: relative; background: var(--periwinkle); color: var(--ink); }
+.hero-band { position: relative; z-index: 3; height: calc(60 * var(--px)); }
+.hero-band::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: calc(820 * var(--px) + (100vw - 1536 * var(--px)) / 2); background: var(--band); }
+.hero-bar { position: relative; max-width: calc(1536 * var(--px)); height: 100%; margin: 0 auto; display: flex; align-items: center; padding: 0 calc(50 * var(--px)) 0 calc(52 * var(--px)); }
+.hero-brand { gap: calc(12 * var(--px)); font-size: max(22px, calc(33 * var(--px))); }
+.hero-brand img { width: auto; height: calc(39 * var(--px)); min-height: 27px; }
+.hero-nav { gap: calc(57 * var(--px)); }
+.hero-nav a { font-size: max(16px, calc(20 * var(--px))); }
+.hero-stage { position: relative; max-width: calc(1536 * var(--px)); height: calc(964 * var(--px)); margin: 0 auto; }
+.hero-art { position: absolute; top: 0; bottom: 0; right: calc(100% - 820 * var(--px)); width: calc(820 * var(--px) + (100vw - 1536 * var(--px)) / 2); }
+.hero-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: right top; }
+
+.hero-cards { position: absolute; z-index: 2; left: calc(684 * var(--px)); top: calc(68 * var(--px)); width: calc(317 * var(--px)); margin: 0; padding: 0; list-style: none; }
+.hc { position: relative; display: flex; align-items: center; gap: calc(17 * var(--px)); padding: calc(14 * var(--px)) calc(14 * var(--px)) calc(14 * var(--px)) calc(16 * var(--px)); border-radius: calc(16 * var(--px)); background: var(--white); box-shadow: 0 1px 2px rgba(13, 18, 40, .05), 0 calc(14 * var(--px)) calc(30 * var(--px)) calc(-14 * var(--px)) rgba(13, 18, 40, .28); }
+.hc:nth-child(1) { height: calc(110 * var(--px)); }
+.hc:nth-child(2) { height: calc(131 * var(--px)); margin-top: calc(29 * var(--px)); }
+.hc:nth-child(3) { height: calc(109 * var(--px)); margin-top: calc(27 * var(--px)); }
+.hc:nth-child(4) { height: calc(113 * var(--px)); margin-top: calc(21 * var(--px)); }
+.hc:nth-child(5) { height: calc(111 * var(--px)); margin-top: calc(22 * var(--px)); }
+.hc .disc { --d: calc(57 * var(--px)); align-self: flex-start; margin-top: calc(2 * var(--px)); }
+.hc:nth-child(1) .disc, .hc:nth-child(5) .disc { background: #c9b8f5; }
+.hc:nth-child(2) .disc { background: #9ed78c; }
+.hc:nth-child(3) .disc { background: #9ec0f5; }
+.hc:nth-child(4) .disc { background: #f8c21a; }
+.hc .disc .gl { width: calc(var(--d) * .46); height: calc(var(--d) * .46); }
+.hc-text > span { white-space: nowrap; }
+.hc-text { display: flex; flex-direction: column; min-width: 0; color: #2b3045; font-size: max(12.5px, calc(15 * var(--px))); line-height: 1.47; }
+.hc-title { padding-right: calc(40 * var(--px)); color: var(--ink); font-size: max(13.5px, calc(16.5 * var(--px))); font-weight: 700; line-height: 1.6; letter-spacing: -.005em; }
+.hc-grey { color: var(--muted); }
+.hc-cond { font-family: var(--font-condensed); font-size: max(12px, calc(14 * var(--px))); letter-spacing: -.01em; white-space: nowrap; }
+.hc-text .gl { display: inline-block; width: 1em; height: 1em; vertical-align: -.12em; }
+.hc-status { position: absolute; top: calc(18 * var(--px)); right: calc(18 * var(--px)); display: flex; align-items: center; gap: calc(10 * var(--px)); }
+.hc-status .dot { width: calc(13 * var(--px)); height: calc(13 * var(--px)); min-width: 9px; min-height: 9px; border-radius: 50%; }
+.d-green { background: #23ac59; } .d-grey { background: #c4c8d4; } .d-yellow { background: #f8b500; }
+.ck-green { color: #23ac59; width: calc(17 * var(--px)); height: calc(17 * var(--px)); min-width: 13px; min-height: 13px; }
+
+.hero-copy { position: absolute; left: calc(1043 * var(--px)); top: calc(132 * var(--px)); width: calc(486 * var(--px)); }
+.hero h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: calc(75 * var(--px)); line-height: 1.067; letter-spacing: -.03em; color: var(--ink); }
+.hero h1 .ln { display: block; white-space: nowrap; }
+.hero-sub { margin: calc(28 * var(--px)) 0 0 calc(4 * var(--px)); color: #2b3045; font-size: calc(21.4 * var(--px)); line-height: 1.5; }
+.hero-alt { margin: calc(18 * var(--px)) 0 0 calc(4 * var(--px)); color: #2b3045; font-size: calc(21.4 * var(--px)); line-height: 1.5; }
+.hero-alt b { color: var(--ink); font-weight: 700; }
+.hero-actions { margin: calc(34 * var(--px)) 0 0 calc(4 * var(--px)); }
+.run-button { display: inline-flex; align-items: center; justify-content: center; gap: .45em; min-width: calc(252 * var(--px)); min-height: calc(69 * var(--px)); padding: 0 1.4em; border-radius: calc(6 * var(--px)); background: var(--ink); color: var(--white); font-size: max(17px, calc(22 * var(--px))); font-weight: 700; letter-spacing: -.005em; text-decoration: none; box-shadow: 0 10px 24px -14px rgba(13, 18, 40, .7); }
+.run-button .gl { width: .95em; height: .95em; }
+.run-button:hover { background: var(--ink-2); }
+.hero-links { display: flex; flex-wrap: wrap; gap: 10px calc(42 * var(--px)); margin: calc(30 * var(--px)) 0 0 calc(3 * var(--px)); }
+.hero-links a { color: var(--ink); font-size: max(16px, calc(21 * var(--px))); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: .32em; }
+.hero-links a:hover { text-decoration-thickness: 2.5px; }
+.nb { white-space: nowrap; }
+
+/* Below 1280: the copy first, then the painting cropped to the break room, then the cards on the pale band. */
+@media (max-width: 1279px) {
+  .hero { --px: 1px; }
+  .hero-band { height: 64px; background: var(--band); }
+  .hero-band::before { display: none; }
+  .hero-bar { padding: 0 32px; }
+  .hero-brand { font-size: 28px; gap: 10px; }
+  .hero-brand img { height: 34px; }
+  .hero-nav { gap: 36px; }
+  .hero-nav a { font-size: 18px; }
+  .hero-stage { height: auto; display: flex; flex-direction: column; }
+  .hero-copy { position: static; order: 1; width: auto; max-width: 720px; padding: 48px 32px 56px; }
+  .hero h1 { font-size: 64px; }
+  .hero-sub, .hero-alt { font-size: 20px; margin-left: 0; }
+  .hero-actions { margin-left: 0; }
+  .hero-links { margin-left: 0; }
+  .hero-art { position: static; order: 2; width: 100%; height: 560px; }
+  .hero-art img { object-position: 30% 40%; }
+  .hero-cards { position: static; order: 3; width: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 24px 32px 40px; background: var(--band); }
+  .hc, .hc:nth-child(n) { margin-top: 0; height: auto; padding: 16px 40px 16px 16px; border-radius: 16px; gap: 18px; }
+  .hc .disc { --d: 48px; }
+  .hc-text { font-size: 15px; }
+  .hc-title { font-size: 16px; }
+  .hc-cond { font-size: 15px; }
+  .hc-text > span { white-space: normal; }
+  .hc-status { top: 16px; right: 16px; gap: 8px; }
+  .hc-status .dot { width: 10px; height: 10px; }
+  .ck-green { width: 15px; height: 15px; }
+}
+@media (max-width: 760px) {
+  .hero-band { height: 52px; }
+  .hero-bar { padding: 0 16px; }
+  .hero-brand { font-size: 25px; gap: 8px; }
+  .hero-brand img { height: 30px; min-height: 0; }
+  .hero-nav { gap: 24px; }
+  .hero-nav a { font-size: 16px; }
+  .hero-copy { padding: 28px 16px 36px; }
+  .hero h1 { font-size: 50px; line-height: 1.04; }
+  .hero h1 .ln { white-space: normal; }
+  .hero-sub { margin-top: 18px; font-size: 18px; line-height: 1.55; }
+  .hero-alt { margin-top: 16px; font-size: 18px; }
+  .hero-actions { margin-top: 26px; }
+  .run-button { display: flex; width: 100%; min-height: 56px; font-size: 20px; border-radius: 8px; }
+  .hero-links { gap: 12px 30px; margin-top: 18px; }
+  .hero-links a { font-size: 18px; }
+  .hero-art { height: auto; aspect-ratio: 684 / 806; }
+  .hero-art img { object-position: center; }
+  .hero-cards { grid-template-columns: 1fr; gap: 12px; padding: 20px 16px 28px; }
+  .hc, .hc:nth-child(n) { padding: 14px 40px 14px 14px; gap: 16px; }
+  .hc .disc { --d: 44px; }
+}

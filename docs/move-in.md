@@ -20,7 +20,7 @@ The preview is a dry run: nothing has been written. It shows:
 
 Under **2. Apply**, **Apply import** applies exactly the preview you reviewed. If the files or your people changed in the meantime, Beam asks you to preview again.
 
-Imported completions are labelled **TalentLMS history**. They show on each person's record but never complete a current assignment. A manager can **Mark reviewed** any of them with a note.
+Imported completions are labeled **TalentLMS history**. They show on each person's record but never complete a current assignment. A manager can **Mark reviewed** any of them with a note.
 
 **Undo this import** removes what the import added, except records a manager reviewed afterwards, which are kept. You can then preview and apply the same files again.
 

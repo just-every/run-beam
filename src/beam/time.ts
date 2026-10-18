@@ -42,10 +42,10 @@ export function localDate(instant: number, zone: string): string {
 
 /** Wall-clock date and time in the zone, without naming it. */
 export function formatLocal(instant: number, zone: string): string {
-  return new Intl.DateTimeFormat('en-AU', { timeZone: zone, dateStyle: 'medium', timeStyle: 'short' }).format(instant)
+  return new Intl.DateTimeFormat('en-US', { timeZone: zone, dateStyle: 'medium', timeStyle: 'short' }).format(instant)
 }
 
-/** A zone as people say it: "Australia/Sydney" is "Sydney time". */
+/** A zone as people say it: "America/Los_Angeles" is "Los Angeles time". */
 export const zoneName = (zone: string) => `${zone.split('/').pop()!.replace(/_/g, ' ')} time`
 
 /** Wall-clock date and time in the zone; the zone is named only when it differs from the business's own. */
@@ -54,12 +54,12 @@ export function formatInstant(instant: number, zone: string, home = zone): strin
 }
 
 export function formatDate(instant: number, zone: string): string {
-  return new Intl.DateTimeFormat('en-AU', { timeZone: zone, dateStyle: 'medium' }).format(instant)
+  return new Intl.DateTimeFormat('en-US', { timeZone: zone, dateStyle: 'medium' }).format(instant)
 }
 
 export const DAY = 86_400_000
 
-/** A calendar date (YYYY-MM-DD, no time zone) as people read it: "24 Mar 2025". */
+/** A calendar date (YYYY-MM-DD, no time zone) as people read it: "Mar 24, 2025". */
 export function formatDay(date: string): string {
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Intl.DateTimeFormat('en-AU', { timeZone: 'UTC', dateStyle: 'medium' }).format(Date.parse(`${date}T00:00:00Z`)) : date
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', dateStyle: 'medium' }).format(Date.parse(`${date}T00:00:00Z`)) : date
 }

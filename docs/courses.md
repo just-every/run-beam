@@ -5,7 +5,7 @@ A course in Beam is built from your own procedures. Every lesson cites the exact
 A source is a procedure or other material your business owns or may use: a handbook, a checklist, a short video. Open **Sources** and use **Add a source**:
 
 - **Title** and **File**.
-- **Licence**: owned by the business, licensed to the business, or used with written permission, with the **licence evidence**.
+- **License**: owned by the business, licensed to the business, or used with written permission, with the **license evidence**.
 - **Where it came from**, so anyone can trace it.
 - The **responsible reviewer**.
 

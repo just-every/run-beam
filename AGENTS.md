@@ -85,9 +85,10 @@ Rules that hold everywhere:
   intentional edits (`verify` checks the lock and the copy record first and
   fails until then). `src/base/font-head.ts` is Beam's own adaptation (it
   preloads Lexend) and is deliberately not in the copy record.
-- `src/site/` — the static run site (`rer build --site`): the landing (`landing/`), the shared Run page and
-  the docs rendered from `docs/*.md` (`docs/`), on the same tokens and components as the app
-  (`public/rer-theme.css`, `public/beam.css`).
+- `src/site/` — the static run site (`rer build --site`): the desk-approved landing (`landing/`, one month at
+  Sierra Lakes Produce; its figures in `landing/records.ts`), Base's Run page and the docs rendered from
+  `docs/*.md` (`docs/`), on the site's own tokens (`public/site/theme.css`) and faces (`public/site/fonts.css`).
+  The painted bands are `public/site/*.avif|webp`; the vest mark and favicons are in `public/brand/`.
 - `tests/beam/` — `flows.mjs` (one check per clause against the built Worker),
   `journey.mjs` and `restore.mjs` (browser and recovery from a fresh clone),
   `fixtures.mjs` (documented-shape TalentLMS fixtures).

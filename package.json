@@ -17,7 +17,7 @@
     "test:email-link": "rer queue test:email-link -- sh -c \"node tests/email-link.mjs\"",
     "onboard": "node scripts/install.mjs",
     "build:app": "rer queue build:app -- sh -c \"vite build\"",
-    "verify:app": "rer queue verify:app -- sh -c \"node scripts/edition-authoring/cli.mjs check >/dev/null && node scripts/edition-authoring/cli.mjs verify-base --offline >/dev/null && pnpm run build && pnpm run typecheck && pnpm run test:email-link && pnpm run test:flows\"",
+    "verify:app": "rer queue verify:app -- sh -c \"node scripts/edition-authoring/cli.mjs check >/dev/null && node scripts/edition-authoring/cli.mjs verify-base --offline >/dev/null && pnpm run build && pnpm run typecheck && pnpm run test:email-link && pnpm run test:flows && pnpm run test:site\"",
     "reset": "rer reset",
     "export": "rer export",
     "import": "rer import",
@@ -29,7 +29,8 @@
     "rer": "rer",
     "test:flows": "rer queue test:flows -- sh -c \"node tests/beam/flows.mjs && node tests/beam/regressions.mjs\"",
     "test:regressions": "node tests/beam/regressions.mjs",
-    "test:journey": "node tests/beam/journey.mjs"
+    "test:journey": "node tests/beam/journey.mjs",
+    "test:site": "node --test tests/site/site.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.33",

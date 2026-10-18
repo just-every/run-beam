@@ -1,0 +1,87 @@
+/* The run site's tokens, defined once (the approved desk look, 18 Oct 2026): the hero's periwinkle ground, near-black
+   navy ink, marigold for the exception and chosen states, green for done, and white and pale periwinkle sections that
+   alternate (never cream). Every run site page links this file: the landing and docs, and Base's /run, /contract and
+   not-found pages, which read the --rer-* names below. The installed app keeps /rer-theme.css. */
+:root {
+  --ink: #0d1228;
+  --ink-2: #1e2540;
+  --body: #454b5e;
+  --muted: #6b7184;
+  --faint: #8a90a2;
+  --line: #e3e7f2;
+  --line-strong: #d3d9ea;
+  --white: #ffffff;
+  --pale: #eef2fe;
+  --periwinkle: #c5d7fd;
+  --band: #e4ebfe;
+  --wall: #7f9bdd;
+  --eyebrow: #3b55c4;
+  --navy: #111936;
+  --navy-body: #c9cfe6;
+  --marigold: #fab60c;
+  --marigold-soft: #fff4d6;
+  --marigold-ink: #6b4a00;
+  --green: #20aa58;
+  --green-ink: #13803f;
+  --green-soft: #e3f6ea;
+  --red: #e5484d;
+  --red-soft: #fde8e8;
+  --tint-violet: #ddd2fb;
+  --tint-green: #cdeed6;
+  --tint-blue: #cfe0fd;
+  --tint-yellow: #fde49c;
+  --tint-peach: #fbd5c8;
+  --olive: #79872b;
+
+  --font-display: 'Roboto Serif Display', Georgia, serif;
+  --font-body: Inter, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-condensed: 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --shadow-card: 0 1px 2px rgba(13, 18, 40, .04), 0 12px 32px -12px rgba(13, 18, 40, .14);
+  --shadow-soft: 0 1px 2px rgba(13, 18, 40, .04), 0 8px 22px -14px rgba(13, 18, 40, .16);
+
+  /* Base's shared pages (/run, /contract, not found) read these. */
+  --rer-font-body: var(--font-body);
+  --rer-font-heading: var(--font-display);
+  --rer-font-mono: var(--font-mono);
+  --rer-page: var(--pale);
+  --rer-surface: var(--white);
+  --rer-text: var(--ink);
+  --rer-muted: var(--body);
+  --rer-border: #9aa6c8;
+  --rer-focus: var(--eyebrow);
+  --rer-link: var(--ink);
+  --rer-accent: var(--ink);
+  --rer-accent-text: var(--white);
+  --rer-code-background: var(--ink);
+  --rer-code-text: #eef2fe;
+  --rer-radius: 12px;
+  --rer-button-radius: 10px;
+  --rer-wordmark-tracking: -.01em;
+}
+
+/* Base's Run page and its siblings in the site's look: the pale ground, the display headline, white step cards with a
+   hairline, navy numerals and command cards. Scoped by Base's own markup; the landing and docs never use these. */
+body:has(> main > .intro), body:has(> main > .hero) { background: var(--pale); }
+header.bar .brand { font-weight: 800; letter-spacing: -.01em; }
+header.bar .brand img { width: 34px; height: 40px; }
+main > .intro h1, main > .hero h1 { font-weight: 800; letter-spacing: -.03em; line-height: 1.02; }
+main > .intro h1 { font-size: 66px; }
+ol.steps > li.step { border: 1px solid var(--line); border-radius: 16px; background: var(--white); box-shadow: var(--shadow-card); backdrop-filter: none; }
+ol.steps .step h2 { font-family: var(--font-body); font-weight: 700; letter-spacing: -.015em; }
+ol.steps .num { font-family: var(--font-body); font-weight: 700; }
+body > .art img { -webkit-mask-image: linear-gradient(180deg, transparent, #000 40%); mask-image: linear-gradient(180deg, transparent, #000 40%); }
+@media (min-width: 761px) {
+  body > .art:has(> img) { height: 22vh; }
+  body > main:has(> .intro) { padding-bottom: 24vh; }
+}
+@media (min-width: 761px) and (max-width: 900px) {
+  ol.steps .code pre { padding: 46px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+  ol.steps .copy { top: 8px; right: 8px; transform: none; }
+}
+@media (max-width: 760px) {
+  main > .intro h1 { font-size: 44px; }
+}

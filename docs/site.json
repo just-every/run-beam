@@ -21,7 +21,7 @@
     {
       "title": "Your data",
       "pages": [
-        { "slug": "move-in", "title": "Move in from TalentLMS", "file": "move-in.md", "summary": "Bring your TalentLMS course list and course reports across as labelled history, with a preview and undo." },
+        { "slug": "move-in", "title": "Move in from TalentLMS", "file": "move-in.md", "summary": "Bring your TalentLMS course list and course reports across as labeled history, with a preview and undo." },
         { "slug": "backup", "title": "Backup and restore", "file": "backup.md", "summary": "Export everything to one archive, restore it into a fresh copy, and let your staff back in." }
       ]
     }

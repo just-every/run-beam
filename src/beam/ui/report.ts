@@ -8,7 +8,7 @@ import { reportCsv, reportFilters, trainingReport } from '../report'
 import { formatDate, formatLocal, zoneName } from '../time'
 import { count, h, page, pill, raw, select } from './html'
 
-const STATUS_LABELS: Record<string, string> = { all: 'All', open: 'Open', overdue: 'Overdue', completed: 'Completed', expiring: 'Expiring', cancelled: 'Cancelled' }
+const STATUS_LABELS: Record<string, string> = { all: 'All', open: 'Open', overdue: 'Overdue', completed: 'Completed', expiring: 'Expiring', cancelled: 'Canceled' }
 
 // A cell that shows only a dash is marked, so the stacked 390 view can leave it out.
 const empty = (value: unknown) => value ? '' : raw(' data-empty')

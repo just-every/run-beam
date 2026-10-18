@@ -20,7 +20,7 @@ mark.hl, .hl { color: inherit; background: linear-gradient(transparent 8%, var(-
 .top { background: var(--rer-surface); border-bottom: 1px solid var(--beam-rule); }
 .top-inner { max-width: 1440px; margin: 0 auto; min-height: 72px; padding: 0 40px; display: flex; align-items: center; gap: 0 24px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--beam-ink); text-decoration: none; font-size: 22px; font-weight: 700; letter-spacing: -.01em; flex: none; }
-.brand img { width: 28px; height: 28px; display: block; }
+.brand img { width: 24px; height: 28px; display: block; }
 .business { flex: none; padding-left: 24px; border-left: 1px solid var(--beam-rule); color: var(--rer-muted); font-size: 16px; line-height: 28px; }
 .nav { flex: 1; min-width: 0; margin-left: 24px; }
 .nav ul { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 0; padding: 0; }
@@ -185,7 +185,7 @@ td.nowrap, .nowrap { white-space: nowrap; }
 .source-line { margin: 20px 0 0; }
 .certificate { max-width: 680px; margin: 40px auto 0; text-align: center; padding: 40px 48px 36px; }
 .certificate .lockup { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-.certificate .lockup img { width: 28px; height: 28px; }
+.certificate .lockup img { width: 24px; height: 28px; }
 .certificate hr { border: 0; border-top: 1px solid var(--beam-rule); margin: 20px auto; max-width: 420px; }
 .certificate h1 { margin: 8px 0 4px; font-size: 48px; }
 .certificate h2 { margin: 4px 0; font-size: 32px; }

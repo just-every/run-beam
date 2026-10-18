@@ -1,0 +1,7 @@
+/* The run site's faces, self-hosted (SIL Open Font License 1.1; licences beside each file in /fonts/, listed in
+   /fonts/README.md). Roboto Serif is one static instance (width 50, weight 800, optical size 144) for headings and the
+   wordmark; Inter is the body; Roboto Condensed sets the hero cards' long lines; JetBrains Mono the commands. */
+@font-face { font-family: 'Roboto Serif Display'; font-style: normal; font-weight: 800; font-display: swap; src: url('/fonts/roboto-serif/roboto-serif-display-800.woff2') format('woff2'); }
+@font-face { font-family: Inter; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/inter/inter-latin-wght-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Roboto Condensed'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/roboto-condensed/roboto-condensed-latin-wght-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 100 800; font-display: swap; src: url('/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2') format('woff2'); }
