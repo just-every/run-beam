@@ -14,11 +14,14 @@ A role path lists the courses a team needs, in order. Open **Paths**, use **New 
 
 ## The queues
 
-The top of **Manage** shows what needs you:
+The top of **Manage** shows what needs you. Four count cards (**Completed**, **Expiring in 30 days**, **Overdue**, **Open**) count every training record once and pick the queue below them. The team chips and **Filters** narrow the whole page: **Filters** lists the statuses, the teams and the published courses as links, and **Open these records in the report** opens the same records in **Reports**.
 
-- **Overdue**: open assignments past their due time.
-- **Out of quiz attempts**: people who used every attempt without passing. Write a **Reason for another attempt** and press **Grant one more attempt**.
-- **Renewals due**: completions that expire within 30 days. **Assign all renewals** assigns each one again.
+Choose a person in the queue to see their record in the panel beside it. With nobody chosen, the panel opens on the first record that a plan waiting for your decision names. There you can:
+
+- **Record decision** on that plan: send the drafted reminders, or decline the plan.
+- **Grant one more attempt** to someone out of quiz attempts, with a **Reason for another attempt**.
+
+In the **Expiring in 30 days** queue, **Assign all renewals** assigns each expiring course again.
 
 ## Record offline training
 

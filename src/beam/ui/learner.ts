@@ -14,7 +14,7 @@ import { formatDate } from '../time'
 import branding from '../../branding.json'
 import { formatDay } from '../time'
 import { bookStack, documentSheet } from './drawings'
-import { area, backLink, card, lessonCount, fileField, form, h, hidden, lessonText, page, pill, progress, raw, rows, when, type Html } from './html'
+import { area, backLink, card, cellLabel, lessonCount, fileField, form, h, hidden, lessonText, page, pill, progress, raw, rows, when, type Html } from './html'
 import { icon } from './icons'
 
 const STATUS: Record<string, string> = { open: 'Open', completed: 'Completed', overdue: 'Overdue', cancelled: 'Canceled', replaced: 'Replaced' }
@@ -114,7 +114,7 @@ export async function recordPage(env: Bindings, actor: Actor, memberId: string, 
   const record = await learnerRecord(env, actor, memberId)
   const zone = (await business(env))!.timezone
   const body = h`${backLink('/app/manage', 'Manage')}<h1>${record.member.name}</h1><p class="subtitle">${record.member.email}</p>
-<section class="card table-card" aria-labelledby="assignments"><h2 class="card-title table-title" id="assignments">Assignments</h2>${record.assignments.length ? h`<div class="table-wrap"><table class="stacked"><thead><tr><th scope="col">Course</th><th scope="col">Revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th></tr></thead><tbody>${record.assignments.map(row => h`<tr><td data-label="Course"><a href="/app/learn/${row.id}">${row.courseTitle}</a></td><td data-label="Revision">${row.revisionNumber}</td><td class="cell-status" data-label="Status">${pill(row.status, STATUS[row.status] ?? row.status)}</td><td data-label="Due">${when(row.dueAt, row.timezone, zone)}</td><td data-label="Lessons">${row.lessonsDone} of ${row.lessonsTotal}</td></tr>`)}</tbody></table></div>` : h`<p class="muted table-empty">Nothing assigned.</p>`}</section>
+<section class="card table-card" aria-labelledby="assignments"><h2 class="card-title table-title" id="assignments">Assignments</h2>${record.assignments.length ? h`<div class="table-wrap"><table class="stacked"><thead><tr><th scope="col">Course</th><th scope="col">Revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th></tr></thead><tbody>${record.assignments.map(row => h`<tr><td>${cellLabel('Course')}<a href="/app/learn/${row.id}">${row.courseTitle}</a></td><td>${cellLabel('Revision')}${row.revisionNumber}</td><td class="cell-status">${cellLabel('Status')}${pill(row.status, STATUS[row.status] ?? row.status)}</td><td>${cellLabel('Due')}${when(row.dueAt, row.timezone, zone)}</td><td>${cellLabel('Lessons')}${row.lessonsDone} of ${row.lessonsTotal}</td></tr>`)}</tbody></table></div>` : h`<p class="muted table-empty">Nothing assigned.</p>`}</section>
 ${card('Completions', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} revision ${row.revisionNumber}`, meta: h`Completed ${formatDate(row.completedAt, zone)} (${METHOD[row.method] ?? row.method}) · <a href="/app/certificates/${row.certificate}">certificate</a>` }))) : h`<p class="muted">No completions yet.</p>`)}
 ${record.history.length ? card('Imported history', h`<p class="muted">Historical evidence from a previous system, not a Beam assessment.</p>${rows(record.history.map(row => ({ title: row.sourceCourseName, meta: `completed ${day(row.completedOn)} in ${row.source}${row.accepted ? ' · reviewed' : ''}` })))}`) : ''}`
   return page(record.member.name, actor, body, { url })

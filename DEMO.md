@@ -35,6 +35,15 @@ declined). The owner, Colleen Shaw unless the demo names her, sees Manage
 training with these records and, on My learning, her own course, a completion
 with its certificate, a review and a practical to assess.
 
+Manage training (`/app/manage`) opens on the overdue queue (5) with its
+decision panel on the record that needs a decision first: the first record the
+waiting plan names, Tomás Vega (Fresno, CA; Ammonia release awareness, 3 days
+overdue). The panel shows the amber "Waiting on your decision" banner (Nadia
+Flores's agent drafted the four reminders at 6:05 a.m.; Beam delivers them on
+My learning only, with no email or text), his facts, the resolutions "Send the
+drafted reminders" or "Decline the plan" with Record decision, and his drafted
+message in Spanish, then English.
+
 ## Effects
 
 Public reads run for real and sends to other people are simulated (Base's

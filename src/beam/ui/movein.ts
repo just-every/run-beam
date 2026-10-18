@@ -6,12 +6,14 @@ import { listCourses } from '../courses'
 import type { Input } from '../input'
 import { importJobs, importedHistory, previewImport, type Preview } from '../movein/talentlms'
 import { business, memberNames } from '../people'
-import { formatDay } from '../time'
+import { formatDay, usZone } from '../time'
 import { backLink, card, count, field, fileField, form, h, hidden, page, select, when, type Html } from './html'
 
 const JOB_STATES: Record<string, string> = { queued: 'Waiting to apply', applying: 'Applying', completed: 'Applied', failed: 'Stopped before finishing', undoing: 'Undoing', undone: 'Undone', rolled_back: 'Rolled back' }
 
 const DATE_FORMATS = [{ value: 'DMY', label: 'Day/month/year (31/12/2025)' }, { value: 'MDY', label: 'Month/day/year (12/31/2025)' }, { value: 'YMD', label: 'Year-month-day (2025-12-31)' }]
+// A business on a US clock lists and selects month-first dates first.
+const US_FIRST = [DATE_FORMATS[1], DATE_FORMATS[0], DATE_FORMATS[2]]
 
 export async function importPage(env: Bindings, actor: Actor, url: URL) {
   requireOwner(actor)
@@ -19,7 +21,7 @@ export async function importPage(env: Bindings, actor: Actor, url: URL) {
   const uploads = [1, 2, 3].map(slot => h`<fieldset><legend>Course report ${slot} (.xlsx)</legend>${field('TalentLMS course ID', `report${slot}Course`, { required: false })}${fileField('Report file', `report${slot}`, { accept: '.xlsx' })}</fieldset>`)
   const zone = actor.business ? (await business(env))!.timezone : 'UTC'
   const body = h`<h1>Move in from TalentLMS</h1><p class="lede">Bring your course list and course reports across as historical records. Nothing is written until you have reviewed a preview. Imported completions stay labeled as history from TalentLMS; they are not Beam assessments and do not complete current assignments. Course content moves separately: rebuild lessons from your own source documents.</p>
-<section class="card settings"><h2>1. Preview</h2><form method="post" action="/app/import/preview" enctype="multipart/form-data">${fileField('Course list (.csv)', 'courseList', { required: true, accept: '.csv' })}${uploads}${select('Dates in these files', 'dateFormat', DATE_FORMATS, 'DMY')}<button type="submit">Preview import</button></form></section>
+<section class="card settings"><h2>1. Preview</h2><form method="post" action="/app/import/preview" enctype="multipart/form-data">${fileField('Course list (.csv)', 'courseList', { required: true, accept: '.csv' })}${uploads}${select('Dates in these files', 'dateFormat', usZone(zone) ? US_FIRST : DATE_FORMATS, usZone(zone) ? 'MDY' : 'DMY')}<button type="submit">Preview import</button></form></section>
 ${card('Imports', jobs.length ? h`<ul class="rows">${[...new Map(jobs.map(job => [job.id, job])).values()].map(job => h`<li class="row"><span class="row-text"><span class="row-title">Imported ${when(job.appliedAt, zone)}</span><span class="row-meta">${JOB_STATES[job.state] ?? job.state} · ${count(job.effects)} ${job.effects === 1 ? 'record' : 'records'}${job.retained.length ? h` · ${count(job.retained.length)} kept because ${job.retained.length === 1 ? 'it was' : 'they were'} reviewed after import` : ''}</span>${job.state === 'completed' ? form('import.job', '/app/import', [hidden('job', job.id), hidden('action', 'undo')], 'Undo this import', { secondary: true }) : ''}</span></li>`)}</ul>` : h`<p class="muted">No imports yet.</p>`)}
 ${card('Imported history', h`<ul class="rows">${history.filter(row => row.kind === 'completion').map(row => h`<li class="row"><span class="row-text"><span class="row-title">${row.name || row.email} — ${row.sourceCourseName}</span><span class="row-meta">completed ${formatDay(row.completedOn)} <span class="tag">${row.source} history</span>${row.member ? '' : h` <span class="tag">no matching person</span>`}${row.accepted ? h` <span class="tag">reviewed by ${names.get(row.accepted.by)}</span>` : ''}</span>${row.accepted ? '' : form('history.accept', '/app/import', [hidden('history', row.id), field('Review note', 'note')], 'Mark reviewed', { secondary: true })}</span></li>`)}</ul>${history.length ? '' : h`<p class="muted">Nothing imported.</p>`}`)}`
   return page('Move in', actor, body, { current: '/app/import', url })

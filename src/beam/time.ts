@@ -31,6 +31,10 @@ export function zonedInstant(date: string, time: string, zone: string): number {
   return instant
 }
 
+// The IANA zones of the United States, whose people write dates month first.
+const US_ZONES = /^(America\/(New_York|Detroit|Chicago|Denver|Boise|Phoenix|Los_Angeles|Anchorage|Juneau|Sitka|Metlakatla|Yakutat|Nome|Adak|Menominee|Indiana\/\w+|Kentucky\/\w+|North_Dakota\/\w+|Puerto_Rico)|Pacific\/Honolulu|US\/\w+)$/
+export const usZone = (zone: string) => US_ZONES.test(zone)
+
 export function addDays(date: string, days: number): string {
   const [year, month, day] = date.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10)

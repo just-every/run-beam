@@ -5,8 +5,8 @@ import { listCourses } from '../courses'
 import { all } from '../core'
 import { business } from '../people'
 import { reportCsv, reportFilters, trainingReport } from '../report'
-import { formatDate, formatLocal, zoneName } from '../time'
-import { count, h, page, pill, raw, select } from './html'
+import { formatClock, formatDate, zoneName } from '../time'
+import { cellLabel, count, h, page, pill, raw, select } from './html'
 
 const STATUS_LABELS: Record<string, string> = { all: 'All', open: 'Open', overdue: 'Overdue', completed: 'Completed', expiring: 'Expiring', cancelled: 'Canceled' }
 
@@ -31,21 +31,20 @@ export async function reportPage(env: Bindings, actor: Actor, url: URL) {
 <fieldset class="radios"><legend>Status</legend>${['all', 'open', 'overdue', 'completed', 'expiring'].map(status => h`<label class="check"><input type="radio" name="status" value="${status}"${status === filters.status ? raw(' checked') : ''}> ${STATUS_LABELS[status]}</label>`)}</fieldset>
 <div class="filter-actions"><button type="submit">Apply</button><a href="/app/reports.csv${query ? `?${query}` : ''}" download>Download CSV</a></div>
 </form>
-<p class="summary"><strong>${count(s.rows)} ${s.rows === 1 ? 'record' : 'records'}</strong> · ${count(s.overdue)} overdue · ${count(s.completed)} completed · ${count(s.expiring)} expiring within 30 days</p>
+<p class="summary"><strong>${count(s.rows)} ${s.rows === 1 ? 'record' : 'records'}</strong> · ${count(s.completed)} completed · ${count(s.expiring)} expiring in 30 days · ${count(s.overdue)} overdue · ${count(s.open)} open</p>
 <section class="card table-card"><div class="table-wrap"><table class="report stacked">
-<thead><tr><th scope="col">Learner</th><th scope="col">Course and revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th><th scope="col">Quiz attempts</th><th scope="col">Practical</th><th scope="col">Completed</th><th scope="col">Certificate</th><th scope="col">Expires</th></tr></thead>
+<thead><tr><th scope="col">Learner</th><th scope="col">Course and revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th><th scope="col">Quiz attempts</th><th scope="col">Practical</th><th scope="col">Completed and certificate</th><th scope="col">Expires</th></tr></thead>
 <tbody>${report.rows.length ? report.rows.map(row => h`<tr>
-<td class="nowrap" data-label="Learner"><a href="/app/records/${row.learner}">${row.learnerName}</a></td>
-<td class="cell-plain" data-label="Course and revision">${row.assignment ? h`<a href="/app/learn/${row.assignment}">${row.courseTitle}</a>` : row.courseTitle} — revision ${row.revisionNumber}${row.method === 'offline' ? h`<br><span class="muted">offline attendance</span>` : ''}</td>
-<td class="cell-status" data-label="Status">${pill(row.status, STATUS_LABELS[row.status])}</td>
-<td data-label="Due"${empty(row.dueAt)}>${row.dueAt ? h`<span class="nowrap">${formatLocal(row.dueAt, row.timezone)}</span>${row.timezone === zone ? '' : h`<br><span class="muted">${zoneName(row.timezone)}</span>`}` : '—'}</td>
-<td class="nowrap" data-label="Lessons"${empty(row.lessonsTotal)}>${row.lessonsTotal ? `${row.lessonsDone} of ${row.lessonsTotal}` : '—'}</td>
-<td data-label="Quiz attempts"${empty(row.quizAttempts)}>${row.quizAttempts ? `${row.quizAttempts} ${row.quizAttempts === 1 ? 'attempt' : 'attempts'} · ${row.bestPercent ?? 0}%, ${row.quizPassed === 1 ? 'passed' : 'not passed'}` : '—'}</td>
-<td data-label="Practical"${empty(row.practical)}>${practical(row)}</td>
-<td class="nowrap" data-label="Completed"${empty(row.completedAt)}>${row.completedAt ? formatDate(row.completedAt, zone) : '—'}</td>
-<td class="nowrap" data-label="Certificate"${empty(row.certificate)}>${row.certificate ? h`<a href="/app/certificates/${row.certificateId}">${row.certificate}</a>` : '—'}</td>
-<td class="nowrap" data-label="Expires"${empty(row.expiresAt)}>${row.expiresAt ? formatDate(row.expiresAt, zone) : '—'}</td>
-</tr>`) : h`<tr><td colspan="10" class="muted">No training matches these filters.</td></tr>`}</tbody></table></div>
+<td class="nowrap">${cellLabel('Learner')}<a href="/app/records/${row.learner}">${row.learnerName}</a></td>
+<td class="cell-plain">${cellLabel('Course and revision')}${row.assignment ? h`<a href="/app/learn/${row.assignment}">${row.courseTitle}</a>` : row.courseTitle} — revision ${row.revisionNumber}${row.method === 'offline' ? h`<br><span class="muted">offline attendance</span>` : ''}</td>
+<td class="cell-status">${cellLabel('Status')}${pill(row.status, STATUS_LABELS[row.status])}</td>
+<td${empty(row.dueAt)}>${cellLabel('Due')}${row.dueAt ? h`<span class="nowrap">${formatDate(row.dueAt, row.timezone)}</span><br><span class="nowrap">${formatClock(row.dueAt, row.timezone)}${row.timezone === zone ? '' : h` <span class="muted">${zoneName(row.timezone)}</span>`}</span>` : '—'}</td>
+<td class="nowrap"${empty(row.lessonsTotal)}>${cellLabel('Lessons')}${row.lessonsTotal ? `${row.lessonsDone} of ${row.lessonsTotal}` : '—'}</td>
+<td${empty(row.quizAttempts)}>${cellLabel('Quiz attempts')}${row.quizAttempts ? h`${row.quizAttempts} ${row.quizAttempts === 1 ? 'attempt' : 'attempts'}<br>${row.bestPercent ?? 0}%, ${row.quizPassed === 1 ? 'passed' : 'not passed'}` : '—'}</td>
+<td${empty(row.practical)}>${cellLabel('Practical')}${practical(row)}</td>
+<td class="nowrap"${empty(row.completedAt)}>${cellLabel('Completed')}${row.completedAt ? h`${formatDate(row.completedAt, zone)}${row.certificate ? h`<br><a href="/app/certificates/${row.certificateId}">${row.certificate}</a>` : ''}` : '—'}</td>
+<td class="nowrap"${empty(row.expiresAt)}>${cellLabel('Expires')}${row.expiresAt ? formatDate(row.expiresAt, zone) : '—'}</td>
+</tr>`) : h`<tr><td colspan="9" class="muted">No training matches these filters.</td></tr>`}</tbody></table></div>
 </section>
 <p class="muted foot-note">Completion records what happened against an exact revision. It is not a statement of competence.</p>`
   return page('Training report', actor, body, { current: '/app/reports', url, wide: true })

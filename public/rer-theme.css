@@ -20,7 +20,7 @@ html.rer-themed label:has(input[type=checkbox]) { font-size: 15px; font-weight: 
 html.rer-themed input:not([type=checkbox]):not([type=hidden]) { min-height: 46px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); color: var(--ink); }
 html.rer-themed input:not([type=checkbox]):not([type=hidden]):hover { border-color: var(--rer-border); }
 html.rer-themed input[type=checkbox] { accent-color: var(--blue); }
-html.rer-themed input:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--focus-ring); }
+html.rer-themed input:not([type=checkbox]):not([type=hidden]):focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue), 0 0 0 4px var(--focus-ring); }
 html.rer-themed input[type=checkbox]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; box-shadow: none; }
 html.rer-themed button { min-height: 48px; border-radius: 10px; background: var(--navy); color: var(--white); font-weight: 600; font-size: 16px; }
 html.rer-themed button:hover { background: var(--ink-2); }

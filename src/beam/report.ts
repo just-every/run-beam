@@ -41,9 +41,9 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
     const [practicalState, assessor] = row.practical ? String(row.practical).split('|') : [null, null]
     const status = row.completion ? (row.expiresAt && row.expiresAt <= soon ? 'expiring' : 'completed') : row.assignmentStatus === 'cancelled' ? 'cancelled' : row.dueAt < at ? 'overdue' : 'open'
     return { ...row, practical: practicalState ? { state: practicalState, assessor: assessor || null } : null, status } as Row
-  }).filter(row => filters.status === 'all' || row.status === filters.status || (filters.status === 'completed' && row.status === 'expiring'))
+  }).filter(row => filters.status === 'all' || row.status === filters.status)
   const count = (status: string) => shaped.filter(row => row.status === status).length
-  return { filters, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed') + count('expiring'), expiring: count('expiring'), open: count('open') } }
+  return { filters, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open') } }
 }
 
 const COLUMNS: [string, (row: any) => unknown][] = [

@@ -58,7 +58,7 @@ function rail(actor: Actor, current: string, shell?: Shell): Html {
     const count = shell && item.count ? item.count(shell) : 0
     return h`<li><a href="${item.href}"${item.href === current ? raw(' aria-current="page"') : ''}>${raw(icon(item.icon, { size: 22 }))}<span>${item.label}</span>${count ? h`<span class="count">${count.toLocaleString('en-US')}</span>` : ''}</a></li>`
   })}</ul></nav>
-<div class="who">${raw(icon('person', { size: 26 }))}<p><strong>${actor.name}</strong><span>${roleLine(actor)}</span>${actor.business ? h`<span>${actor.business}${shell ? `, ${shell.people.toLocaleString('en-US')} active` : ''}</span>` : ''}</p></div>`
+<div class="who">${raw(icon('person', { size: 26 }))}<p><strong>${actor.name}</strong><span>${roleLine(actor)}</span>${actor.business && shell ? h`<span>${shell.people.toLocaleString('en-US')} active</span>` : ''}</p></div>`
 }
 
 /** The app frame: the left rail (a menu at phone width), the top bar with the business's date and time and any page
@@ -92,6 +92,9 @@ export function rows(items: { title: unknown; meta?: unknown; href?: string; asi
 
 /** Lesson progress: a navy fill on a periwinkle track; the words stay in the row's meta text. */
 export const progress = (done: number, total: number) => h`<progress class="progress" value="${done}" max="${Math.max(total, 1)}" aria-hidden="true"></progress>`
+
+/** A stacked table cell's label: hidden while the table is a table, the cell's own first line of text at phone width. */
+export const cellLabel = (label: string) => h`<span class="cell-label">${label}</span>`
 
 /** A status as a coloured dot and its words: green done, marigold waiting, red-orange overdue. */
 export const pill = (status: string, label: string) => h`<span class="status status-${status}"><i class="dot" aria-hidden="true"></i>${label}</span>`

@@ -22,7 +22,9 @@ mark.hl, .hl { background: var(--marigold-soft); color: var(--marigold-ink); pad
 /* The frame: rail, top bar and the work surface. */
 .app { display: grid; grid-template-columns: 193px minmax(0, 1fr); grid-template-rows: 56px auto; min-height: 100vh; background: linear-gradient(90deg, var(--app-rail) 193px, transparent 193px); }
 .rail { grid-row: 1 / span 2; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 22px; padding: 16px 12px 22px; background: var(--app-rail); overflow-y: auto; }
-.brand { display: flex; align-items: center; gap: 9px; padding: 0 10px; color: var(--ink); font: 800 32px/.95 var(--font-condensed); letter-spacing: -.02em; text-decoration: none; }
+.brand { display: flex; align-items: center; gap: 9px; padding: 0 10px; color: var(--ink); font: 800 32px/.95 var(--font-condensed); letter-spacing: -.02em; text-decoration: none; white-space: nowrap; }
+/* rer dev and rer demo add " Dev" / " Demo" after the name: a small tag beside the one-line wordmark. */
+.brand [data-rer-name]::after { margin-left: 6px; padding: 2px 6px 1px; border-radius: 6px; background: var(--app-tint-strong); color: var(--navy-deep); font: 700 13px/1.2 var(--font-body); letter-spacing: 0; vertical-align: 5px; }
 .brand img { width: 30px; height: 35px; flex: none; }
 .menu-toggle, .menu-button { display: none; }
 .nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
@@ -35,7 +37,7 @@ mark.hl, .hl { background: var(--marigold-soft); color: var(--marigold-ink); pad
 .nav a[aria-current="page"] .count { background: var(--white); }
 .who { margin-top: auto; display: flex; gap: 11px; padding: 12px 10px 0; font-size: 13px; line-height: 1.35; color: var(--body); }
 .who .icon { flex: none; color: var(--navy-deep); }
-.who p { margin: 0; display: grid; gap: 2px; min-width: 0; }
+.who p { margin: 0; display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .who strong { color: var(--ink); font-size: 15px; }
 .topbar { display: flex; justify-content: flex-end; align-items: center; gap: 24px; padding: 0 24px; min-width: 0; }
 .clock { display: flex; gap: 14px; margin: 0; padding-right: 24px; color: var(--ink-2); font-size: 15px; white-space: nowrap; }
@@ -53,6 +55,15 @@ mark.hl, .hl { background: var(--marigold-soft); color: var(--marigold-ink); pad
 .pop > ul { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 200px; margin: 0; padding: 6px; list-style: none; border-radius: 12px; background: var(--white); box-shadow: var(--shadow-card); }
 .pop > ul a { display: block; padding: 9px 12px; border-radius: 8px; text-decoration: none; }
 .pop > ul a:hover, .pop > ul a[aria-current] { background: var(--app-tint); }
+.pop > .pop-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: 260px; max-height: 70vh; overflow-y: auto; padding: 8px 6px; border-radius: 12px; background: var(--white); box-shadow: var(--shadow-card); font-size: 14px; }
+.pop-panel ul { list-style: none; margin: 0 0 6px; padding: 0; }
+.pop-panel ul a { display: block; padding: 6px 10px; border-radius: 8px; text-decoration: none; }
+.pop-panel ul a:hover, .pop-panel ul a[aria-current] { background: var(--app-tint); }
+.pop-panel ul a[aria-current] { font-weight: 600; }
+.pop-head { margin: 4px 10px 2px; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.pop-foot { margin: 4px 0 0; padding: 8px 10px 2px; border-top: 1px solid var(--line); }
+.pop-foot a { font-weight: 600; }
+.pop > summary.button { box-shadow: none; border-radius: var(--radius-control); }
 
 /* Page heads, flashes and back links. */
 .work > h1:first-child, .work > .flash + h1, .work > .back + h1, .work > .back + .muted + h1 { margin: 6px 0 14px; }
@@ -133,7 +144,9 @@ label.check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: va
 input[type=text], input[type=email], input[type=date], input[type=time], input[type=number], input[type=search], input[type=file], select, textarea {
   width: 100%; max-width: 560px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--white); color: var(--ink); font: 15px/1.4 var(--font-body);
 }
-input[type=file] { padding: 8px 10px; }
+input[type=file] { padding: 6px 8px; color: var(--body); font-size: 14px; }
+input[type=file]::file-selector-button { min-height: 32px; margin-right: 12px; padding: 5px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); color: var(--navy-deep); font: 600 14px/1.2 var(--font-body); cursor: pointer; }
+input[type=file]::file-selector-button:hover { border-color: var(--ink-2); }
 input:hover, select:hover, textarea:hover { border-color: var(--rer-border); }
 /* Base #247's chevron: two gradient strokes 14px inside the border, 40px of end padding. */
 select:not([multiple]):not([size]), select[size="1"]:not([multiple]) {
@@ -142,7 +155,9 @@ select:not([multiple]):not([size]), select[size="1"]:not([multiple]) {
   background-position: right 20px center, right 14px center; background-size: 6px 6px; background-repeat: no-repeat;
 }
 textarea { min-height: 104px; resize: vertical; }
-input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--focus-ring); }
+/* Focus: the field's border turns wall blue and a 1 px blue line sits on it (2 px solid at 6:1 on white), inside a soft
+   periwinkle halo. */
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue), 0 0 0 4px var(--focus-ring); }
 .hint, .hint-after { margin: 2px 0 4px; font-size: 13px; }
 form > button, form > .actions { margin-top: 14px; }
 fieldset { margin: 10px 0 0; padding: 0; border: 0; min-width: 0; width: 100%; }
@@ -170,9 +185,11 @@ tbody th { font-weight: 700; }
 td.cell-access { white-space: nowrap; }
 td.cell-access form { display: inline-flex; margin-left: 10px; vertical-align: middle; }
 td.cell-access form button { margin: 0; }
-table.report td.cell-plain { min-width: 190px; }
+table.report td.cell-plain { min-width: 200px; }
+table.report th, table.report td { padding-inline: 10px; }
 table.report td:first-child { white-space: nowrap; }
 tbody th a { text-decoration: none; }
+.cell-label { display: none; }
 tbody th a:hover { text-decoration: underline; }
 td.nowrap, .nowrap { white-space: nowrap; }
 .table-card .table-title { margin-bottom: 12px; }
@@ -267,7 +284,7 @@ form button.choice:hover { border-color: var(--blue); background: var(--app-tint
 .activity li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; }
 
 .queue .search { display: flex; flex-direction: row; align-items: center; gap: 6px; width: 260px; max-width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 12px; color: var(--muted); }
-.queue .search:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--focus-ring); }
+.queue .search:focus-within { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue), 0 0 0 4px var(--focus-ring); }
 .queue .search input { flex: 1; min-width: 0; min-height: 36px; padding: 0; border: 0; box-shadow: none; background: none; font-size: 14px; }
 .queue .search input:focus-visible { box-shadow: none; }
 .queue .card-head form:not(.search) button { min-height: 38px; padding: 7px 14px; font-size: 14px; }
@@ -293,9 +310,11 @@ form button.choice:hover { border-color: var(--blue); background: var(--app-tint
 .decision { padding: 18px 18px 20px; box-shadow: var(--shadow-card); }
 .decision-head { position: relative; padding-right: 44px; }
 .decision-head h2 { font: 800 36px/1.05 var(--font-condensed); letter-spacing: -.01em; }
-.decision-head p { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 6px 0 0; color: var(--body); }
-.decision-head p span { min-width: 0; overflow-wrap: anywhere; }
-.decision-head p span + span::before { content: '|'; margin: 0 10px; color: var(--line-strong); }
+/* The meta line: a rule only between items on the same line. Each item draws its rule on its left; the row is pulled
+   left by one gap and clipped, so the rule of an item that starts a line falls outside. */
+.decision-head .meta { margin: 6px 0 0; overflow: hidden; color: var(--body); }
+.meta-items { display: flex; flex-wrap: wrap; row-gap: 2px; margin-left: -21px; }
+.meta-items > span { min-width: 0; margin-left: 10px; padding-left: 10px; border-left: 1px solid var(--line-strong); line-height: 1.3; overflow-wrap: anywhere; }
 .decision-head .more { position: absolute; right: 0; top: 2px; }
 .decision-head .more > summary { width: 36px; height: 36px; min-height: 0; padding: 0; justify-content: center; border-radius: 50%; background: #f3f5fa; box-shadow: none; }
 .banner-warn { display: flex; gap: 14px; margin: 18px 0 14px; padding: 12px 14px; border: 1px solid var(--marigold-line); border-radius: 12px; background: var(--marigold-soft); }
@@ -390,10 +409,14 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
   .table-wrap:has(> table.stacked) { overflow: visible; border: 0; border-radius: 0; }
   table.stacked tbody tr { height: auto; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 12px; }
   table.stacked tbody tr:last-child { margin-bottom: 0; }
-  table.stacked td, table.stacked tbody th { position: relative; padding: 4px 0 4px 118px; border: 0 !important; text-align: left !important; }
+  /* Each cell is its label (a column of its own, in real text) and its value beside it; a label that wraps grows the
+     cell, so nothing can sit on top of the next one. */
+  table.stacked td, table.stacked tbody th { display: flow-root; padding: 4px 0 4px 146px; border: 0 !important; text-align: left !important; }
   table.stacked tbody th { padding-left: 0; font-size: 16px; padding-bottom: 6px; }
-  table.stacked td[data-label]::before { content: attr(data-label); position: absolute; left: 0; top: 5px; width: 108px; color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1.3; }
+  table.stacked .cell-label { display: block; float: left; width: 136px; margin-left: -146px; padding-top: 1px; color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1.3; white-space: normal; }
   table.stacked td[colspan] { padding-left: 0; }
+  table.stacked td.cell-access { white-space: normal; }
+  table.stacked td.cell-access form { display: flex; margin: 6px 0 0; }
   table.stacked td.cell-number { text-align: left; }
   .queue-table td:nth-child(2), .queue-table td:nth-child(4) { white-space: normal; }
   table.stacked td[data-empty] { display: none; }

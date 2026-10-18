@@ -11,11 +11,11 @@ import { DAY, localDate } from './time'
 
 export const QUEUES = ['overdue', 'expiring', 'open', 'completed'] as const
 export type Queue = typeof QUEUES[number]
-export interface ComplianceFilters { team: string; status: Queue; q: string; select: string }
+export interface ComplianceFilters { team: string; course: string; status: Queue; q: string; select: string }
 
 export function complianceFilters(url: URL): ComplianceFilters {
   const status = url.searchParams.get('status') as Queue
-  return { team: url.searchParams.get('team') ?? '', status: QUEUES.includes(status) ? status : 'overdue', q: (url.searchParams.get('q') ?? '').trim().slice(0, 80), select: url.searchParams.get('select') ?? '' }
+  return { team: url.searchParams.get('team') ?? '', course: url.searchParams.get('course') ?? '', status: QUEUES.includes(status) ? status : 'overdue', q: (url.searchParams.get('q') ?? '').trim().slice(0, 80), select: url.searchParams.get('select') ?? '' }
 }
 
 /** What a record is waiting on, in the queue's status column: `tone` is done, waiting or late. */
@@ -25,7 +25,7 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
   requireRole(actor, 'manager')
   const at = now()
   const [report, teams, memberTeams, work, blocked, reminded, proposals, approved, declined] = await Promise.all([
-    trainingReport(env, actor, { course: '', team: filters.team, status: 'all' }),
+    trainingReport(env, actor, { course: filters.course, team: filters.team, status: 'all' }),
     all<{ id: string; name: string; people: number }>(env, 'SELECT t.id, t.name, COUNT(tm.member_id) AS people FROM beam_teams t LEFT JOIN beam_team_members tm ON tm.team_id = t.id GROUP BY t.id ORDER BY people DESC, t.name'),
     all<{ member: string; name: string }>(env, 'SELECT tm.member_id AS member, t.name FROM beam_team_members tm JOIN beam_teams t ON t.id = tm.team_id ORDER BY t.name'),
     queues(env, actor),
@@ -67,7 +67,10 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
     completed: (a, b) => b.completedAt - a.completedAt,
   }
   const queue = shaped.filter(row => row.status === filters.status && (!needle || `${row.learnerName} ${row.courseTitle} ${row.team ?? ''}`.toLowerCase().includes(needle))).sort(order[filters.status])
-  const selected = queue.find(row => row.key === filters.select) ?? queue[0] ?? null
+  // With nothing chosen, the panel opens on the record that needs a decision first: the first record in this queue that
+  // a waiting plan names, in the plan's own order (newest plan first); then the queue's first record.
+  const planned = waiting.flatMap(proposal => proposal.payload.items ?? []).map((item: any) => queue.find(row => item.assignment ? row.assignment === item.assignment : row.learner === item.learner && row.course === item.course)).find(Boolean)
+  const selected = queue.find(row => row.key === filters.select) ?? planned ?? queue[0] ?? null
 
   const coverage = [...new Map(rows.map(row => [row.course, row.courseTitle])).entries()].map(([course, title]) => {
     const mine = rows.filter(row => row.course === course), of = (status: Queue) => mine.filter(row => row.status === status).length

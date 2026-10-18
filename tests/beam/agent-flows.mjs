@@ -27,9 +27,15 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     assert.ok(sam.some(row => row.revision === ids.openingRev3 && row.status === 'open'), 'the reassignment to revision 3 is its own row')
     assert.ok(report.rows.every(row => row.course === ids.opening))
     // Offline attendance is reported, and team and status filters narrow the rows.
-    const records = await h.api(`report?course=${ids.records}&status=completed`, people.manager)
+    const records = await h.api(`report?course=${ids.records}`, people.manager)
     assert.ok(records.rows.some(row => row.learner === ids.lee && row.method === 'offline'))
-    assert.ok(records.rows.every(row => row.status === 'completed' || row.status === 'expiring'))
+    // Completed and expiring are separate statuses, as on Manage: each filter returns its own rows and the summary sums.
+    for (const status of ['completed', 'expiring']) {
+      const filtered = await h.api(`report?course=${ids.records}&status=${status}`, people.manager)
+      assert.ok(filtered.rows.every(row => row.status === status))
+      assert.equal(filtered.rows.length, records.summary[status])
+    }
+    assert.equal(records.summary.completed + records.summary.expiring + records.summary.overdue + records.summary.open, records.rows.filter(row => row.status !== 'cancelled').length)
     const overdue = await h.api('report?status=overdue', people.manager)
     assert.ok(overdue.rows.length > 0 && overdue.rows.every(row => row.status === 'overdue'))
     assert.equal(overdue.summary.overdue, overdue.rows.length)

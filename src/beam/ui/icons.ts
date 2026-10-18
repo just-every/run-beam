@@ -33,7 +33,7 @@ const PATHS = {
   gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M18 6l-1.6 1.6M7.6 16.4 6 18M18 18l-1.6-1.6M7.6 7.6 6 6"/>',
   search: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>',
   filter: '<path d="M4 5h16l-6.2 7.3V18l-3.6 1.7v-7.4Z"/>',
-  alert: '<path d="M12 8v5M12 16.5h.01"/>',
+  alert: '<path d="M12 4.6v9" stroke-width="3.4"/><circle cx="12" cy="18.6" r="1.9" fill="currentColor" stroke="none"/>',
   warning: '<path d="M10.3 4.4a2 2 0 0 1 3.4 0l7.4 13A2 2 0 0 1 19.4 20H4.6a2 2 0 0 1-1.7-2.6Z"/><path d="M12 9.5v4M12 16.8h.01"/>',
   dots: '<path d="M6 12h.01M12 12h.01M18 12h.01"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
