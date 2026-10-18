@@ -20,11 +20,13 @@ function render(value: unknown): string {
   return esc(value)
 }
 
-// The rail, in the order a manager works; each item shows only to the roles that can open it.
+// The rail, in the order a manager works; each item shows only to the roles that can open it. Managers open on Manage,
+// so it leads their rail and their own learning follows the work; everyone else's rail starts at My learning.
 const preparer = (actor: Actor) => actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
 const manager = (actor: Actor) => actor.owner || actor.roles.has('manager')
-const NAV: { href: string; label: string; icon: IconName; show: (actor: Actor) => boolean; count?: (shell: Shell) => number }[] = [
-  { href: '/app', label: 'My learning', icon: 'home', show: () => true },
+type NavItem = { href: string; label: string; icon: IconName; show: (actor: Actor) => boolean; count?: (shell: Shell) => number }
+const LEARNING: NavItem = { href: '/app/learning', label: 'My learning', icon: 'home', show: () => true }
+const NAV: NavItem[] = [
   { href: '/app/manage', label: 'Manage', icon: 'document', show: manager },
   { href: '/app/people', label: 'People', icon: 'people', show: manager, count: shell => shell.people },
   { href: '/app/courses', label: 'Courses', icon: 'book', show: preparer },
@@ -32,6 +34,7 @@ const NAV: { href: string; label: string; icon: IconName; show: (actor: Actor) =
   { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
   { href: '/app/reports', label: 'Reports', icon: 'chart', show: manager },
+  LEARNING,
   { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
   { href: '/app/business', label: 'Settings', icon: 'gear', show: actor => actor.owner },
 ]
@@ -53,7 +56,7 @@ const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...actor.roles].filt
 
 function rail(actor: Actor, current: string, shell?: Shell): Html {
   // Until the owner names the business every /app page leads to it, so the rail shows only the brand and the person.
-  const items = actor.business ? NAV.filter(item => item.show(actor)) : []
+  const items = !actor.business ? [] : manager(actor) ? NAV.filter(item => item.show(actor)) : [LEARNING, ...NAV.filter(item => item !== LEARNING && item.show(actor))]
   return h`<nav class="nav" aria-label="Main"><ul>${items.map(item => {
     const count = shell && item.count ? item.count(shell) : 0
     return h`<li><a href="${item.href}"${item.href === current ? raw(' aria-current="page"') : ''}>${raw(icon(item.icon, { size: 22 }))}<span>${item.label}</span>${count ? h`<span class="count">${count.toLocaleString('en-US')}</span>` : ''}</a></li>`

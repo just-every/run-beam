@@ -17,7 +17,8 @@ import { bookStack, documentSheet } from './drawings'
 import { area, backLink, card, cellLabel, lessonCount, fileField, form, h, hidden, lessonText, page, pill, progress, raw, rows, when, type Html } from './html'
 import { icon } from './icons'
 
-const STATUS: Record<string, string> = { open: 'Open', completed: 'Completed', overdue: 'Overdue', cancelled: 'Canceled', replaced: 'Replaced' }
+const STATUS: Record<string, string> = { open: 'Open', completed: 'Completed', expiring: 'Expiring', overdue: 'Overdue', cancelled: 'Canceled', replaced: 'Replaced' }
+const statusLabel = (row: any) => row.state === 'overdue' ? `Overdue, ${row.daysOverdue} ${row.daysOverdue === 1 ? 'day' : 'days'}` : STATUS[row.state] ?? row.state
 const METHOD: Record<string, string> = { lessons: 'lessons', assessed: 'lessons and assessment', offline: 'attested offline training' }
 const attemptState = (state: string) => ({ awaiting_review: 'waiting for the assessor', accepted: 'accepted', rejected: 'returned for resubmission' } as Record<string, string>)[state] ?? state.replace(/_/g, ' ')
 const day = formatDay
@@ -46,7 +47,7 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
 ${reminderCard}${asks}${agent}
 ${open.length ? assigned : ''}
 <div class="grid">${open.length ? '' : assigned}${completed}${side}</div>`
-  return page('My learning', actor, body, { current: '/app', url })
+  return page('My learning', actor, body, { current: '/app/learning', url })
 }
 
 export async function learnOverview(env: Bindings, actor: Actor, id: string, url: URL) {
@@ -62,13 +63,13 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const attempts = view.attempts.length ? card('Attempts', rows(view.attempts.map(attempt => ({ title: h`<a href="/app/attempts/${attempt.id}">${attempt.kind === 'quiz' ? 'Quiz' : 'Practical'} attempt ${attempt.number}</a>`, meta: `${attempt.kind === 'quiz' ? `${attempt.score} of ${attempt.maxScore}` : attemptState(attempt.state)}; ${attempt.retryDecision}` })))) : ''
   const practiceCard = practice.length ? card('Practice', h`<p class="muted">Optional. Practice does not count toward completion and nobody scores it.</p><ul class="rows">${practice.map(row => h`<li class="row"><a href="/app/practice/${row.id}">${row.title}</a></li>`)}</ul>`) : ''
   const completion = view.completion ? card('Completion', h`<p><mark class="hl">Completed</mark> ${when(view.completion.completedAt, a.timezone, zone)} against revision ${a.revisionNumber}. <a href="/app/certificates/${view.completion.certificate}">Certificate</a></p>`) : ''
-  const body = h`${backLink('/app', 'My learning')}<h1>${a.courseTitle}</h1>
+  const body = h`${backLink('/app/learning', 'My learning')}<h1>${a.courseTitle}</h1>
 <p class="subtitle">Revision ${a.revisionNumber} · ${a.status} · due ${when(a.dueAt, a.timezone, zone)}${a.learner !== actor.id ? h` · learner ${names.get(a.learner)}` : ''}</p>
 ${view.blocked ? h`<p class="flash">Complete the prerequisite course first; your manager can see this requirement.</p>` : ''}
 ${a.status === 'open' && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? 'Resume' : 'Start'}</a></p>` : ''}
 ${completion}
 <div class="split">${lessons}<div class="stack">${quiz}${practical}${practiceCard}${attempts}</div></div>`
-  return page(a.courseTitle, actor, body, { current: '/app', url })
+  return page(a.courseTitle, actor, body, { current: '/app/learning', url })
 }
 
 export async function lessonPage(env: Bindings, actor: Actor, id: string, lessonId: string, url: URL) {
@@ -83,7 +84,7 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
     ? form('lesson.complete', next ? `/app/learn/${id}/lessons/${next.id}` : `/app/learn/${id}`, [hidden('assignment', id), hidden('lesson', lesson.id)], lesson.completed ? (next ? 'Next lesson' : 'Back to course') : next ? 'Mark done and continue' : 'Mark done')
     : ''
   const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">Lesson ${index + 1} of ${view.lessons.length}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">Lesson reading</p><div class="lesson-body">${lessonText(lesson.body, { lead: true })}</div></article>${sources}${action}`
-  return page(lesson.title, actor, body, { current: '/app', url })
+  return page(lesson.title, actor, body, { current: '/app/learning', url })
 }
 
 export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL) {
@@ -91,7 +92,7 @@ export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL
   if (!view.quiz || view.assignment.learner !== actor.id) throw new BeamError('not_found', 404)
   const fields: Html[] = [hidden('assignment', id), ...view.quiz.questions.map((question, n) => h`<fieldset><legend>${n + 1}. ${question.prompt}${question.multiple ? h` <span class="muted">(choose all that apply)</span>` : ''}</legend>${question.choices.map((choice, index) => h`<label class="check"><input type="${question.multiple ? 'checkbox' : 'radio'}" name="q_${question.id}" value="${index}"> ${choice}</label>`)}</fieldset>`)]
   const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<h1>Quiz</h1><p class="subtitle">Pass mark ${view.quiz.passPercent}%. ${view.quiz.attemptsLeft} attempt${view.quiz.attemptsLeft === 1 ? '' : 's'} left. Each question scores when exactly the right choices are selected.</p><div class="card narrow">${form('quiz.submit', `/app/learn/${id}`, fields, 'Submit answers')}</div>`
-  return page('Quiz', actor, body, { current: '/app', url })
+  return page('Quiz', actor, body, { current: '/app/learning', url })
 }
 
 export async function practicalPage(env: Bindings, actor: Actor, id: string, url: URL) {
@@ -100,24 +101,24 @@ export async function practicalPage(env: Bindings, actor: Actor, id: string, url
   const names = await memberNames(env)
   const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<h1>Practical assessment</h1><div class="narrow">${card('Instructions', lessonText(view.practical.instructions ?? ''))}
 <section class="card"><p>Your evidence goes to ${names.get(view.practical.assessor ?? '')}, who decides it.</p>${form('practical.submit', `/app/learn/${id}`, [hidden('assignment', id), area('What you did', 'evidence'), fileField('Evidence file (optional)', 'file')], 'Submit for assessment', { multipart: true })}</section></div>`
-  return page('Practical assessment', actor, body, { current: '/app', url })
+  return page('Practical assessment', actor, body, { current: '/app/learning', url })
 }
 
 export async function certificatePage(env: Bindings, actor: Actor, id: string, url: URL) {
   const certificateView = await certificate(env, actor, id)
   const zone = (await business(env))!.timezone
-  const body = h`<article class="card certificate"><p class="lockup"><img src="/brand/mark.svg" alt="" width="24" height="28">${branding.name}</p><p class="muted">Certificate of completion · ${certificateView.number}</p><hr><h1>${certificateView.learner}</h1><p>completed</p><h2>${certificateView.course}</h2><p class="muted">revision ${certificateView.revision} · ${certificateView.method === 'offline' ? 'attested offline training' : certificateView.method === 'assessed' ? 'lessons and assessment' : 'lessons'}</p><p class="muted">on ${formatDate(certificateView.completedAt, zone)}${certificateView.expiresAt ? h` · valid until ${formatDate(certificateView.expiresAt, zone)}` : ''}</p><hr><p class="issuer">Issued by ${certificateView.issuer}</p><p class="muted disclaimer">This certificate records completion of the issuer’s own training. It is not an accreditation or a statement of competence.</p></article><p class="no-print muted print-note"><a href="/app">← My learning</a> · Use your browser’s print command to save a copy.</p>`
-  return page('Certificate', actor, body, { current: '/app', url })
+  const body = h`<article class="card certificate"><p class="lockup"><img src="/brand/mark.svg" alt="" width="24" height="28">${branding.name}</p><p class="muted">Certificate of completion · ${certificateView.number}</p><hr><h1>${certificateView.learner}</h1><p>completed</p><h2>${certificateView.course}</h2><p class="muted">revision ${certificateView.revision} · ${certificateView.method === 'offline' ? 'attested offline training' : certificateView.method === 'assessed' ? 'lessons and assessment' : 'lessons'}</p><p class="muted">on ${formatDate(certificateView.completedAt, zone)}${certificateView.expiresAt ? h` · valid until ${formatDate(certificateView.expiresAt, zone)}` : ''}</p><hr><p class="issuer">Issued by ${certificateView.issuer}</p><p class="muted disclaimer">This certificate records completion of the issuer’s own training. It is not an accreditation or a statement of competence.</p></article><p class="no-print muted print-note"><a href="/app/learning">← My learning</a> · Use your browser’s print command to save a copy.</p>`
+  return page('Certificate', actor, body, { current: '/app/learning', url })
 }
 
 export async function recordPage(env: Bindings, actor: Actor, memberId: string, url: URL) {
   const record = await learnerRecord(env, actor, memberId)
   const zone = (await business(env))!.timezone
   const body = h`${backLink('/app/manage', 'Manage')}<h1>${record.member.name}</h1><p class="subtitle">${record.member.email}</p>
-<section class="card table-card" aria-labelledby="assignments"><h2 class="card-title table-title" id="assignments">Assignments</h2>${record.assignments.length ? h`<div class="table-wrap"><table class="stacked"><thead><tr><th scope="col">Course</th><th scope="col">Revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th></tr></thead><tbody>${record.assignments.map(row => h`<tr><td>${cellLabel('Course')}<a href="/app/learn/${row.id}">${row.courseTitle}</a></td><td>${cellLabel('Revision')}${row.revisionNumber}</td><td class="cell-status">${cellLabel('Status')}${pill(row.status, STATUS[row.status] ?? row.status)}</td><td>${cellLabel('Due')}${when(row.dueAt, row.timezone, zone)}</td><td>${cellLabel('Lessons')}${row.lessonsDone} of ${row.lessonsTotal}</td></tr>`)}</tbody></table></div>` : h`<p class="muted table-empty">Nothing assigned.</p>`}</section>
+<section class="card table-card" aria-labelledby="assignments"><h2 class="card-title table-title" id="assignments">Assignments</h2>${record.assignments.length ? h`<div class="table-wrap"><table class="stacked"><thead><tr><th scope="col">Course</th><th scope="col">Revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th></tr></thead><tbody>${record.assignments.map(row => h`<tr><td>${cellLabel('Course')}<a href="/app/learn/${row.id}">${row.courseTitle}</a></td><td>${cellLabel('Revision')}${row.revisionNumber}</td><td class="cell-status">${cellLabel('Status')}${pill(row.state, statusLabel(row))}</td><td>${cellLabel('Due')}${when(row.dueAt, row.timezone, zone)}</td><td>${cellLabel('Lessons')}${row.lessonsDone} of ${row.lessonsTotal}</td></tr>`)}</tbody></table></div>` : h`<p class="muted table-empty">Nothing assigned.</p>`}</section>
 ${card('Completions', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} revision ${row.revisionNumber}`, meta: h`Completed ${formatDate(row.completedAt, zone)} (${METHOD[row.method] ?? row.method}) · <a href="/app/certificates/${row.certificate}">certificate</a>` }))) : h`<p class="muted">No completions yet.</p>`)}
 ${record.history.length ? card('Imported history', h`<p class="muted">Historical evidence from a previous system, not a Beam assessment.</p>${rows(record.history.map(row => ({ title: row.sourceCourseName, meta: `completed ${day(row.completedOn)} in ${row.source}${row.accepted ? ' · reviewed' : ''}` })))}`) : ''}`
   return page(record.member.name, actor, body, { url })
 }
 
-export const notFound = (actor: Actor | null) => page('Not found', actor, raw('<h1>Not found</h1><p>This page is not part of Beam, or you cannot open it.</p><p><a href="/app">Back to My learning</a></p>'), { status: 404 })
+export const notFound = (actor: Actor | null) => page('Not found', actor, raw('<h1>Not found</h1><p>This page is not part of Beam, or you cannot open it.</p><p><a href="/app/learning">Back to My learning</a></p>'), { status: 404 })

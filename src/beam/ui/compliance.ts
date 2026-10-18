@@ -6,7 +6,7 @@ import { complianceFilters, complianceView, type ComplianceFilters, type Complia
 import { listCourses } from '../courses'
 import { all } from '../core'
 import { people } from '../people'
-import { formatClock, formatDate, formatWeekday, localDate } from '../time'
+import { calendarDays, formatClock, formatDate, formatWeekday, localDate } from '../time'
 import { agentName, area, card, cellLabel, checks, count, field, fileField, form, h, hidden, page, raw, select, type Html } from './html'
 import { icon, type IconName } from './icons'
 
@@ -63,7 +63,7 @@ ${newest ? h`<p class="strip-latest"><time>${when(newest.at, zone, view.at)}</ti
 ${view.activity.length > 1 ? h`<ol class="activity" aria-label="Recent agent work">${view.activity.slice(1).map(item => h`<li><time>${when(item.at, zone, view.at)}</time><span>${item.who} ${item.verb} ${item.title}</span></li>`)}</ol>` : ''}</section>`
 }
 
-function columns(status: Queue, zone: string): { head: string; cell: (row: any) => unknown; className?: string }[] {
+function columns(status: Queue, zone: string, now: number): { head: string; cell: (row: any) => unknown; className?: string }[] {
   const course = { head: 'Course', cell: (row: any) => h`${row.courseTitle}${row.method === 'offline' && !row.assignment ? h`<br><span class="muted">offline attendance</span>` : ''}` }
   const team = { head: 'Team', cell: (row: any) => row.team ?? '—' }
   const daysLeft = (days: number | null) => days === null ? '—' : -days
@@ -71,7 +71,7 @@ function columns(status: Queue, zone: string): { head: string; cell: (row: any) 
   const status_ = { head: 'Status', cell: (row: any) => standing(row.standing), className: 'cell-status' }
   if (status === 'overdue') return [team, course, { head: 'Due date ↓', cell: row => formatWeekday(row.dueAt, row.timezone) }, { head: 'Days overdue', cell: row => h`<span class="chip-late">${row.days}</span>`, className: 'cell-number' }, lessons, status_]
   if (status === 'open') return [team, course, { head: 'Due date', cell: row => formatWeekday(row.dueAt, row.timezone) }, { head: 'Days left', cell: row => daysLeft(row.days), className: 'cell-number' }, lessons, status_]
-  if (status === 'expiring') return [team, course, { head: 'Expires', cell: row => formatWeekday(row.expiresAt, zone) }, { head: 'Days left', cell: row => Math.max(0, Math.ceil((row.expiresAt - Date.now()) / 86_400_000)), className: 'cell-number' }, { head: 'Completed', cell: row => formatDate(row.completedAt, zone) }, status_]
+  if (status === 'expiring') return [team, course, { head: 'Expires', cell: row => formatWeekday(row.expiresAt, zone) }, { head: 'Days left', cell: row => Math.max(0, calendarDays(now, row.expiresAt, zone)), className: 'cell-number' }, { head: 'Completed', cell: row => formatDate(row.completedAt, zone) }, status_]
   return [team, course, { head: 'Completed', cell: row => formatDate(row.completedAt, zone) }, { head: 'Expires', cell: row => row.expiresAt ? formatDate(row.expiresAt, zone) : '—' }, { head: 'Certificate', cell: row => row.certificate ? h`<a href="/app/certificates/${row.certificateId}">${row.certificate}</a>` : '—' }, status_]
 }
 
@@ -90,7 +90,7 @@ function filterMenu(view: ComplianceView, link: Link, courses: { id: string; tit
 }
 
 function queue(view: ComplianceView, link: Link, zone: string, courses: { id: string; title: string }[]): Html {
-  const status = view.filters.status, cols = columns(status, zone)
+  const status = view.filters.status, cols = columns(status, zone, view.at)
   const search = h`<form class="search" method="get" action="/app/manage" role="search">${view.filters.team ? hidden('team', view.filters.team) : ''}${view.filters.course ? hidden('course', view.filters.course) : ''}${status === 'overdue' ? '' : hidden('status', status)}<label class="visually-hidden" for="queue-search">Search people, courses or teams</label>${raw(icon('search', { size: 18 }))}<input id="queue-search" type="search" name="q" value="${view.filters.q}" placeholder="Search people, courses or teams…"></form>`
   const renew = status === 'expiring' && view.renewals ? form('assignment.renewals', link({ status: 'expiring' }), [], 'Assign all renewals', { className: 'inline-form' }) : ''
   const aside = h`${search}${renew}${filterMenu(view, link, courses)}`

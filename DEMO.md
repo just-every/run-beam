@@ -31,9 +31,11 @@ one waiting for the owner, a learner out of quiz attempts, a new hire whose
 lift-truck course waits on its prerequisite, renewals expiring within 30 days,
 the DP-7 procedure change and its revision waiting for review, and the
 business agent's work (two plans waiting for a decision, one approved, one
-declined). The owner, Colleen Shaw unless the demo names her, sees Manage
-training with these records and, on My learning, her own course, a completion
-with its certificate, a review and a practical to assess.
+declined). The owner, Colleen Shaw unless the demo names her, lands on Manage
+training with these records: sign-in opens `/app`, which takes the owner and
+managers to Manage, first in their rail, and everyone else to My learning. Her
+own course, a completion with its certificate, a review and a practical to
+assess are on My learning (`/app/learning`).
 
 Manage training (`/app/manage`) opens on the overdue queue (5) with its
 decision panel on the record that needs a decision first: the first record the

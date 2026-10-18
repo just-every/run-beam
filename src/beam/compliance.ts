@@ -7,7 +7,7 @@ import { listProposals } from './agent-work'
 import { all, now } from './core'
 import { queues } from './records'
 import { trainingReport } from './report'
-import { DAY, localDate } from './time'
+import { calendarDays } from './time'
 
 export const QUEUES = ['overdue', 'expiring', 'open', 'completed'] as const
 export type Queue = typeof QUEUES[number]
@@ -57,7 +57,7 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
     return row.status === 'overdue' ? { label: 'No reminder yet', tone: 'late' } : { label: row.lessonsDone ? 'In progress' : 'Not started', tone: row.lessonsDone ? 'waiting' : 'late' }
   }
   // Whole days between the record's due date and today, on the calendar of the record's own zone.
-  const daysFromDue = (row: any) => row.dueAt ? Math.round((Date.parse(localDate(at, row.timezone)) - Date.parse(localDate(row.dueAt, row.timezone))) / DAY) : null
+  const daysFromDue = (row: any) => row.dueAt ? calendarDays(row.dueAt, at, row.timezone) : null
   const shaped: any[] = rows.map((row: any) => ({ ...row, key: row.assignment ?? row.completion, team: teamOf.get(row.learner) ?? null, standing: standing(row), days: daysFromDue(row), plan: planFor(row) ?? null }))
   const needle = filters.q.toLowerCase()
   const order: Record<Queue, (a: any, b: any) => number> = {

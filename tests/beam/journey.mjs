@@ -61,7 +61,8 @@ async function journey(width, ownerOpen, learnerOpen, learnerName) {
   await owner.getByLabel('Business name').fill('Harbour Physio')
   await owner.getByLabel('Time zone for due dates').selectOption('Australia/Sydney')
   await owner.getByRole('button', { name: 'Save' }).click()
-  await owner.waitForURL(`${origin}/app?notice=Saved.`)
+  // The owner manages training, so /app takes them to Manage.
+  await owner.waitForURL(`${origin}/app/manage?notice=Saved.`)
 
   await owner.goto(`${origin}/app/sources`)
   const sourceFile = join(scratch, `opening-${width}.txt`)

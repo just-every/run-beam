@@ -5,7 +5,7 @@ import { runtimeBindings, type Bindings } from '../auth.server'
 import { AuthError, safeReturnTo } from '../modules/operator-auth/index.mjs'
 import { issueAgentCredential, requireAgentScope } from './agent-credentials'
 import { actions } from './actions'
-import { currentActor, type Actor } from './actor'
+import { currentActor, isManager, type Actor } from './actor'
 import { BeamError, one } from './core'
 import { listProposals } from './agent-work'
 import { Input } from './input'
@@ -51,7 +51,7 @@ export async function beamResponse(request: Request, original: Bindings): Promis
     const { code, status, detail } = failure(error)
     if (api) return json({ error: code, ...(detail === undefined ? {} : { detail }) }, status)
     if (status === 404) return notFound(actor)
-    return page('Something went wrong', actor, h`<h1>That did not work</h1><p>${describeError(code).replace(/^./, letter => letter.toUpperCase())}</p><p><a href="/app">Back to My learning</a></p>`, { status })
+    return page('Something went wrong', actor, h`<h1>That did not work</h1><p>${describeError(code).replace(/^./, letter => letter.toUpperCase())}</p><p><a href="/app/learning">Back to My learning</a></p>`, { status })
   }
 }
 
@@ -101,7 +101,9 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   }
   actor.shell = await shellFacts(env, actor)
   let match: RegExpMatchArray | null
-  if (path === '/app') return dashboard(env, actor, url)
+  // Sign-in lands on /app: people who manage training open on Manage, everyone else on My learning.
+  if (path === '/app') return isManager(actor) ? Response.redirect(`${env.AUTH_ORIGIN}/app/manage${url.search}`, 303) : dashboard(env, actor, url)
+  if (path === '/app/learning') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
   if (path === '/app/people') return peoplePage(env, actor, request, url)
   if (path === '/app/sources') return sourcesPage(env, actor, url)

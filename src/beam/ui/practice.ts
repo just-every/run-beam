@@ -17,7 +17,7 @@ ${view.step ? h`<section class="card"><h2>Scenario</h2><p>${view.step.situation}
 ${view.feedback ? h`<section class="card feedback" aria-labelledby="feedback"><h2 id="feedback">${view.finished ? 'Last choice' : 'Your last choice'}: ${view.feedback.choice}</h2><p>${view.feedback.text}</p>${view.feedback.sources.length ? h`<p class="muted">${view.feedback.sources.join(', ')}</p>` : ''}</section>` : ''}
 ${view.finished ? h`<p>You reached the end of this scenario.</p>` : ''}
 <div class="practice-foot"><span class="muted">${view.finished ? `Finished · ${view.steps} ${view.steps === 1 ? 'step' : 'steps'} in this scenario` : `Step ${view.stepNumber}`}</span>${form('practice.restart', back, [hidden('scenario', id)], 'Start again', { secondary: true })}</div></div>`
-  return page(`Practice: ${view.title}`, actor, body, { current: '/app', url })
+  return page(`Practice: ${view.title}`, actor, body, { current: '/app/learning', url })
 }
 
 export async function questionsPage(env: Bindings, actor: Actor, id: string, url: URL) {
@@ -33,5 +33,5 @@ ${view.open ? form('questions.close', back, [hidden('plan', id)], 'Close the que
 ${view.answers ? h`<h2>Answers (without names, in no particular order)</h2>${view.questions.map((question: string, index: number) => h`<h3>${index + 1}. ${question}</h3><ul>${view.answers.map((answers: (string | null)[]) => answers[index]).filter(Boolean).map((answer: string) => h`<li>${answer}</li>`)}</ul>`)}`
     : h`<p class="muted">${view.hidden === 'still_open' ? 'Answers are shown once the questions close.' : 'Too few people answered to show answers without identifying anyone.'}</p>`}</section>` : ''}
 <p class="muted">Closes ${formatDay(view.closesOn)}.</p></div>`
-  return page(view.title, actor, body, { current: '/app', url })
+  return page(view.title, actor, body, { current: '/app/learning', url })
 }

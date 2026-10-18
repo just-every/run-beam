@@ -76,6 +76,9 @@ export function formatDate(instant: number, zone: string): string {
 
 export const DAY = 86_400_000
 
+/** Whole calendar days from one instant's date to another's, on the zone's calendar (negative when `to` is earlier). */
+export const calendarDays = (from: number, to: number, zone: string) => Math.round((Date.parse(localDate(to, zone)) - Date.parse(localDate(from, zone))) / DAY)
+
 /** A calendar date (YYYY-MM-DD, no time zone) as people read it: "Mar 24, 2025". */
 export function formatDay(date: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', dateStyle: 'medium' }).format(Date.parse(`${date}T00:00:00Z`)) : date

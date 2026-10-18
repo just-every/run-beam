@@ -10,6 +10,12 @@ import { DAY } from './time'
 export const STATUSES = ['all', 'open', 'overdue', 'completed', 'expiring'] as const
 export interface Filters { course: string; team: string; status: string }
 
+/** A record's one status, as the report, Manage and the learner record show it: a completion is completed (expiring
+ * within 30 days of `at`), an open assignment past its due instant is overdue. */
+export const recordStatus = (row: { completion?: unknown; expiresAt?: number | null; assignmentStatus: string; dueAt?: number | null }, at: number) =>
+  row.completion ? (row.expiresAt && row.expiresAt <= at + 30 * DAY ? 'expiring' : 'completed')
+    : ['cancelled', 'replaced'].includes(row.assignmentStatus) ? row.assignmentStatus : row.dueAt! < at ? 'overdue' : 'open'
+
 export function reportFilters(url: URL): Filters {
   const status = url.searchParams.get('status') || 'all'
   insist((STATUSES as readonly string[]).includes(status), 'invalid_status')
@@ -18,7 +24,7 @@ export function reportFilters(url: URL): Filters {
 
 export async function trainingReport(env: Bindings, actor: Actor, filters: Filters) {
   requireRole(actor, 'manager')
-  const at = now(), soon = at + 30 * DAY
+  const at = now()
   const rows = await all(env, `SELECT a.id AS assignment, a.learner_id AS learner, m.name AS learnerName, a.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, a.course_revision_id AS revision,
       a.status AS assignmentStatus, a.due_at AS dueAt, a.timezone, a.reason,
       (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone,
@@ -39,7 +45,7 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
   ORDER BY learnerName, courseTitle, revisionNumber`, filters.course, filters.course, filters.team, filters.team, filters.course, filters.course, filters.team, filters.team)
   const shaped = rows.map(row => {
     const [practicalState, assessor] = row.practical ? String(row.practical).split('|') : [null, null]
-    const status = row.completion ? (row.expiresAt && row.expiresAt <= soon ? 'expiring' : 'completed') : row.assignmentStatus === 'cancelled' ? 'cancelled' : row.dueAt < at ? 'overdue' : 'open'
+    const status = recordStatus(row as any, at)
     return { ...row, practical: practicalState ? { state: practicalState, assessor: assessor || null } : null, status } as Row
   }).filter(row => filters.status === 'all' || row.status === filters.status)
   const count = (status: string) => shaped.filter(row => row.status === status).length

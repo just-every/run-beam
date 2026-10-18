@@ -369,7 +369,11 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
   .topbar { justify-content: space-between; gap: 12px; padding: 10px 16px 0; flex-wrap: wrap; }
   .clock { padding-right: 0; border: 0 !important; font-size: 13px; gap: 8px; }
   .pop > ul { right: auto; left: 0; }
-  .topbar .pop > ul { left: auto; right: 0; }
+  .topbar .pop > ul, .decision-head .more > ul { left: auto; right: 0; }
+  /* The queue's head wraps, so its Filters menu opens full width under the head, inside the card. */
+  .queue .card-head { position: relative; }
+  .queue .filters-menu { position: static; }
+  .queue .filters-menu > .pop-panel { left: 0; right: 0; width: auto; }
   .work { padding: 6px 16px 40px; background: none; border-radius: 0; }
   h1, .page-head h1 { font-size: 40px; }
   h2 { font-size: 23px; }

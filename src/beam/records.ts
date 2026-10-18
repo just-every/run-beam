@@ -8,7 +8,8 @@ import { store } from './files'
 import type { Input } from './input'
 import { recordCompletion } from './learning'
 import { requireBusiness } from './people'
-import { DAY, localDate, zonedInstant } from './time'
+import { recordStatus } from './report'
+import { DAY, calendarDays, localDate, zonedInstant } from './time'
 
 export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
   requireRole(actor, 'manager', 'assessor')
@@ -61,12 +62,16 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
   const member = await one(env, 'SELECT id, name, email FROM beam_members WHERE id = ?', memberId)
   if (!member) throw new BeamError('not_found', 404)
   const assignments = await all(env, `SELECT a.id, a.course_id AS course, c.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,
-    (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone, (SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id = a.course_revision_id) AS lessonsTotal
-    FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE a.learner_id = ? ORDER BY a.status = 'open' DESC, a.due_at`, memberId)
+    (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone, (SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id = a.course_revision_id) AS lessonsTotal,
+    k.id AS completion, k.expires_at AS expiresAt
+    FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id LEFT JOIN beam_completions k ON k.assignment_id = a.id WHERE a.learner_id = ? ORDER BY a.status = 'open' DESC, a.due_at`, memberId)
+  // `state` is the record's one status, the same as Manage and the report show; `status` stays the stored assignment state.
+  const at = now()
+  const shaped = assignments.map(row => ({ ...row, state: recordStatus({ ...row, assignmentStatus: row.status } as any, at), daysOverdue: row.status === 'open' && row.dueAt < at ? calendarDays(row.dueAt, at, row.timezone) : null }) as Row)
   const completions = await all(env, `SELECT c.id, c.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, c.course_revision_id AS revision, c.assessment_revision_id AS assessmentRevision, c.method, c.evidence_json AS evidence, c.completed_at AS completedAt, c.expires_at AS expiresAt, k.id AS certificate
     FROM beam_completions c JOIN beam_course_revisions r ON r.id = c.course_revision_id LEFT JOIN beam_certificates k ON k.completion_id = c.id WHERE c.learner_id = ? ORDER BY c.completed_at DESC`, memberId)
   const history = (await all(env, "SELECT id, payload FROM beam_imported_history WHERE kind = 'completion'")).map(row => ({ id: row.id, ...JSON.parse(row.payload) })).filter(row => row.member === memberId)
-  return { member, assignments, completions: completions.map(row => ({ ...row, evidence: JSON.parse(row.evidence) }) as Row), history }
+  return { member, assignments: shaped, completions: completions.map(row => ({ ...row, evidence: JSON.parse(row.evidence) }) as Row), history }
 }
 
 export async function reminders(env: Bindings, actor: Actor) {
