@@ -111,7 +111,8 @@ label.check { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0 0
 label.check input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--beam-ink); }
 input[type=text], input[type=email], input[type=date], input[type=time], input[type=number], input[type=file], select, textarea { display: block; width: 100%; max-width: 40rem; min-height: 48px; padding: 10px 14px; border: 1.5px solid var(--beam-ink); border-radius: 8px; background: var(--rer-surface); color: var(--beam-ink); font: 400 16px/1.4 var(--rer-font-body); }
 input[type=file] { padding: 10px; }
-select { -webkit-appearance: none; appearance: none; padding-right: 44px; background: var(--rer-surface) url('/brand/select.svg') right 14px center / 18px no-repeat; }
+/* Every single-choice select: own chevron 14px in from the border (--rer-muted), text stops before it; multiple and size>1 lists stay native. */
+select:not([multiple]):not([size]), select[size="1"]:not([multiple]) { -webkit-appearance: none; appearance: none; padding-right: 44px; background-image: url('/brand/chevron-muted.svg'); background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 8px; }
 textarea { min-height: 8rem; resize: vertical; }
 input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--beam-pink); box-shadow: 0 0 0 1px var(--beam-pink); }
 .hint { margin: -2px 0 6px; }
