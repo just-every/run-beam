@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 0 | 49 | 77 | 126 |
-| All | 20 | 49 | 77 | 146 |
+| Target and push further | 1 | 48 | 77 | 126 |
+| All | 21 | 48 | 77 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -520,7 +520,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `AUTHOR-001` | Author multimedia courses without rebuilding files | target | partial | `src/beam/courses.ts`, `src/beam/sources.ts`, `tests/beam/flows.mjs` | Text lessons and uploaded sources work; rich reusable media blocks, author preview and allowlisted sandboxed embeds (YouTube, Vimeo, Loom, Google, Microsoft 365) are absent. |
 | `AUTHOR-002` | Turn existing SOP documents into editable learning | target | partial | `src/beam/sources.ts`, `src/beam/files.ts` | Original bytes are stored; document parsing, OCR and editable lesson conversion are absent. |
 | `AUTHOR-003` | Collect expert feedback before publication | target | missing |  | Collaborative comments, coauthor conflict resolution and learner feedback workflow are absent. |
-| `AUTHOR-004` | Compare and restore earlier content safely | target | partial | `src/beam/courses.ts`, `src/beam/sources.ts`, `tests/beam/flows.mjs` | Immutable course/source versions exist; comparison and restore-to-new-draft tools are absent. |
+| `AUTHOR-004` | Compare and restore earlier content safely | target | done | `src/beam/history.ts`, `src/beam/diff.ts`, `src/beam/ui/history.ts`, `tests/beam/flows.mjs` (AUTHOR-004) |  |
 | `AUTHOR-005` | Organize and reuse the course estate | target | missing |  | Course taxonomy, templates, cloning, bulk catalog operations and retirement are absent. |
 | `AUTHOR-006` | Schedule content upkeep and accountable review | target | partial | `src/beam/sources.ts`, `src/beam/maintenance.ts`, `tests/beam/flows.mjs` | Source-change notices and material decisions exist; scheduled stale reviews, fallback owners and delivered escalation are absent. |
 | `AUTHOR-007` | Generate source-grounded course drafts with AI | target | partial | `src/beam/maintenance.ts`, `src/beam/agent-credentials.ts`, `tests/beam/agent-flows.mjs` | Externally prepared source-bound proposals work; embedded model calls, document-to-outline generation and cost controls are absent. |

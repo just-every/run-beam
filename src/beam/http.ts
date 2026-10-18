@@ -13,6 +13,7 @@ import { attachmentFile } from './learning'
 import { business } from './people'
 import { sourceFile } from './sources'
 import { coursePage, coursesPage, revisionPage, sourcesPage } from './ui/authoring'
+import { revisionComparePage, sourceComparePage } from './ui/history'
 import { certificatePage, dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
 import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
 import { managePage } from './ui/compliance'
@@ -109,6 +110,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/sources') return sourcesPage(env, actor, url)
   if (path === '/app/courses') return coursesPage(env, actor, url)
   if ((match = path.match(/^\/app\/courses\/([\w-]+)$/))) return coursePage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/courses\/([\w-]+)\/compare$/))) return revisionComparePage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/sources\/([\w-]+)\/compare$/))) return sourceComparePage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/revisions\/([\w-]+)$/))) return revisionPage(env, actor, match[1], url)
   if (path === '/app/paths') return pathsPage(env, actor, url)
   if (path === '/app/manage') return managePage(env, actor, request, url)

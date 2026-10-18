@@ -6,6 +6,7 @@ import type { Actor } from './actor'
 import { decide, propose } from './agent-work'
 import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, revisePath } from './assignments'
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
+import { restoreRevision } from './history'
 import type { Input } from './input'
 import { completeLesson, decidePractical, submitPractical, submitQuiz } from './learning'
 import { decideNotice, decideProposal, proposeDraft } from './maintenance'
@@ -36,6 +37,7 @@ export const actions: Record<string, Handler> = {
   'course.question.remove': (env, actor, input) => removeQuestion(env, actor, input),
   'course.assessment': (env, actor, input) => saveAssessment(env, actor, input),
   'course.submit': (env, actor, input) => submitForReview(env, actor, input),
+  'course.restore': (env, actor, input) => restoreRevision(env, actor, input),
   'revision.decide': (env, actor, input) => decideRevision(env, actor, input),
   'proposal.create': (env, actor, input) => proposeDraft(env, actor, input, input.json('draft')),
   'proposal.decide': (env, actor, input) => decideProposal(env, actor, input),

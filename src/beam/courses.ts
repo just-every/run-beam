@@ -69,7 +69,7 @@ export async function normaliseDraft(env: Bindings, value: unknown): Promise<Dra
   return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, practical }
 }
 
-async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>) {
+export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}) {
   requireRole(actor, 'author')
   const course = await loadCourse(env, input.text('course'))
   const expected = input.integer('draftVersion', { min: 1, max: 1_000_000 })
@@ -78,7 +78,7 @@ async function editDraft(env: Bindings, actor: Actor, input: Input, action: stri
   const draft = await normaliseDraft(env, course.draft)
   const result = await env.DB.batch([
     stmt(env, 'UPDATE beam_courses SET draft_json = ?, draft_version = draft_version + 1, title = ? WHERE id = ? AND draft_version = ?', JSON.stringify(draft), draft.title, course.id, expected),
-    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, course.id, JSON.stringify({ from: expected })),
+    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, course.id, JSON.stringify({ from: expected, ...detail })),
   ])
   insist(result[0].meta.changes === 1, 'stale_draft', 409)
   return { id: course.id, draftVersion: expected! + 1, draft }

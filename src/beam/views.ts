@@ -5,6 +5,7 @@ import { listProposals, proposalDetail } from './agent-work'
 import { listPaths } from './assignments'
 import { courseDetail, listCourses, revisionDetail } from './courses'
 import { BeamError, all } from './core'
+import { compareRevisions, compareSourceVersions } from './history'
 import { assignmentView, attemptDetail } from './learning'
 import { importJobs, importedHistory } from './movein/talentlms'
 import { business, people } from './people'
@@ -24,6 +25,8 @@ export const views: Record<string, View> = {
   sources: (env, actor) => listSources(env, actor),
   courses: async (env, actor) => { requireRole(actor, 'author', 'reviewer', 'manager', 'assessor'); return await listCourses(env) },
   course: (env, actor, _request, id) => courseDetail(env, actor, id),
+  compare: (env, actor, request) => { const query = new URL(request.url).searchParams; return compareRevisions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
+  'source-compare': (env, actor, request) => { const query = new URL(request.url).searchParams; return compareSourceVersions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
   revision: async (env, actor, _request, id) => { requireRole(actor, 'author', 'reviewer', 'manager'); return await revisionDetail(env, id) },
   paths: async (env, actor) => { requireRole(actor, 'manager'); return await listPaths(env) },
   assignment: (env, actor, _request, id) => assignmentView(env, actor, id),
@@ -44,7 +47,7 @@ export const views: Record<string, View> = {
 
 const ROUTES: [RegExp, string][] = [
   [/^me$/, 'me'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
-  [/^revisions\/([\w-]+)$/, 'revision'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
+  [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
   [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'],
 ]

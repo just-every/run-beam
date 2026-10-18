@@ -124,7 +124,9 @@ even with a human cookie. Reads are `GET /api/beam/me`, `/api/beam/people`,
 `/api/beam/courses/:id`, `/api/beam/revisions/:id`, `/api/beam/paths`,
 `/api/beam/assignments/:id`, `/api/beam/attempts/:id`, `/api/beam/records/:id`
 (or `/api/beam/records/me`), `/api/beam/queues`, `/api/beam/reminders`,
-`/api/beam/certificates/:id`, `/api/beam/imports` and `/api/beam/history`. Writes are `POST /api/beam/ACTION` with a JSON body and
+`/api/beam/certificates/:id`, `/api/beam/imports`, `/api/beam/history`,
+`/api/beam/compare?from=REV&to=REV` (two revisions of one course) and
+`/api/beam/source-compare?from=VER&to=VER` (two versions of one source). Writes are `POST /api/beam/ACTION` with a JSON body and
 an `Origin` header equal to the app origin; the human action names are the keys of
 `src/beam/actions.ts`, subject to publication restrictions above. Files go as `{ "filename": "...", "base64": "..." }`.
 

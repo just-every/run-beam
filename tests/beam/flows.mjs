@@ -379,6 +379,74 @@ try {
     assert.ok((await h.api('imports', people.owner)).some(job => job.retained.some(item => item.target === jo.id && item.reason === 'edited')))
   })
 
+  await check('AUTHOR-004', async () => {
+    const course = await h.api('course.create', people.author, { title: 'Closing the clinic', summary: 'How we close.', reviewer: ids.reviewer })
+    let draftVersion = course.draftVersion
+    const edit = async (action, fields) => { draftVersion = (await h.api(action, people.author, { course: course.id, draftVersion, ...fields })).draftVersion }
+    await edit('course.lesson', { title: 'Lock up', body: 'Lock the doors.\nSet the alarm.', sources: [ids.sourceV1] })
+    await edit('course.lesson', { title: 'Cash', body: 'Count the till.', sources: [] })
+    await edit('course.question', { prompt: 'What comes last?', choices: 'Set the alarm\nCount the till', correct: '1' })
+    await edit('course.assessment', { passPercent: 100, maxAttempts: 2 })
+    const first = await h.api('course.submit', people.author, { course: course.id, draftVersion })
+    await publish(first.id)
+    // Lee completes revision 1 before anything changes.
+    const assigned = (await h.api('assignment.create', people.manager, { course: course.id, learners: [ids.lee], dueDate: '2030-03-01' })).created[0]
+    for (const lesson of await lessonsOf(people.lee, assigned)) await h.api('lesson.complete', people.lee, { assignment: assigned, lesson: lesson.id })
+    const [question] = (await h.api(`assignments/${assigned}`, people.lee)).quiz.questions
+    const passed = await h.api('quiz.submit', people.lee, { assignment: assigned, [`q_${question.id}`]: ['0'] })
+    assert.ok(passed.completion)
+    const before = (await h.api('records/me', people.lee)).completions.find(row => row.course === course.id)
+    // Revision 2 rewrites a line, drops a lesson, adds one citing procedure v2, and changes the quiz and rules.
+    const sourceV2 = (await h.api('sources', people.author)).find(row => row.id === ids.source).versions[1].id
+    const draft = (await h.api(`courses/${course.id}`, people.author)).draft
+    await edit('course.lesson', { lesson: draft.lessons[0].id, title: 'Lock up', body: 'Lock the doors.\nSet the alarm and wait for the beep.', sources: [ids.sourceV1] })
+    await edit('course.lesson.remove', { lesson: draft.lessons[1].id })
+    await edit('course.lesson', { title: 'Fridge check', body: 'Record the fridge temperature.', sources: [sourceV2] })
+    await edit('course.question', { question: draft.questions[0].id, prompt: 'What do you do last?', choices: 'Set the alarm\nCount the till', correct: '1' })
+    await edit('course.question', { prompt: 'Where is the temperature written?', choices: 'Fridge log\nWhiteboard', correct: '1' })
+    await edit('course.assessment', { passPercent: 80, maxAttempts: 2 })
+    const second = await h.api('course.submit', people.author, { course: course.id, draftVersion })
+    await publish(second.id)
+    const compared = await h.api(`compare?from=${first.id}&to=${second.id}`, people.author)
+    assert.equal(compared.changed, true)
+    assert.deepEqual(compared.lessons.map(row => [row.change, (row.to ?? row.from).title]), [['changed', 'Lock up'], ['removed', 'Cash'], ['added', 'Fridge check']])
+    assert.deepEqual(compared.lessons[0].body.lines.filter(line => line.op !== 'same'), [{ op: 'del', text: 'Set the alarm.' }, { op: 'add', text: 'Set the alarm and wait for the beep.' }])
+    assert.deepEqual(compared.lessons[2].sources.added, [sourceV2])
+    assert.deepEqual(compared.assessment.questions.map(row => [row.change, row.prompt.from, row.prompt.to]), [['changed', 'What comes last?', 'What do you do last?'], ['added', null, 'Where is the temperature written?']])
+    assert.deepEqual(compared.assessment.rules.find(rule => rule.name === 'passPercent'), { name: 'passPercent', from: 100, to: 80, changed: true })
+    await h.api(`compare?from=${first.id}&to=${ids.openingRev2}`, people.author, undefined, 400)
+    await h.api(`compare?from=${first.id}&to=${second.id}`, people.lee, undefined, 403)
+    const comparePage = await (await h.raw(`/app/courses/${course.id}/compare?from=${first.id}&to=${second.id}`, { cookie: people.author })).text()
+    assert.ok(comparePage.includes('<del>− Set the alarm.</del>') && comparePage.includes('Restore revision 1 into the draft'))
+    // Source versions compare by their recorded facts and, for text, line by line.
+    const sourceDiff = await h.api(`source-compare?from=${ids.sourceV1}&to=${sourceV2}`, people.reviewer)
+    assert.deepEqual([sourceDiff.sameBytes, sourceDiff.from.sha256, sourceDiff.to.number], [false, sha(procedureV1), 2])
+    assert.deepEqual(sourceDiff.text.lines.filter(line => line.op !== 'same'), [{ op: 'del', text: 'Opening procedure v1' }, { op: 'add', text: 'Opening procedure v2' }, { op: 'del', text: '2. Check the fridge log.' }, { op: 'add', text: '2. Check the fridge log and record the temperature.' }])
+    const sourcePage = await (await h.raw(`/app/sources/${ids.source}/compare`, { cookie: people.author })).text()
+    assert.ok(sourcePage.includes('<ins>+ 2. Check the fridge log and record the temperature.</ins>'))
+    // Restore revision 1 into the draft through course history; a stale or non-author restore is refused.
+    await h.api('course.restore', people.manager, { course: course.id, draftVersion, revision: first.id }, 403)
+    await h.api('course.restore', people.author, { course: course.id, draftVersion: draftVersion - 1, revision: first.id }, 409)
+    assert.ok((await (await h.raw(`/app/courses/${course.id}`, { cookie: people.author })).text()).includes('Restore into draft'))
+    const restored = await h.submit('course.restore', people.author, { course: course.id, draftVersion, revision: first.id }, `/app/courses/${course.id}`)
+    assert.equal(restored.searchParams.get('notice'), 'Saved.')
+    const detail = await h.api(`courses/${course.id}`, people.author)
+    assert.deepEqual(detail.draft.lessons.map(lesson => [lesson.title, lesson.body, lesson.sources]), [['Lock up', 'Lock the doors.\nSet the alarm.', [ids.sourceV1]], ['Cash', 'Count the till.', []]])
+    assert.deepEqual([detail.draft.questions.map(row => row.prompt), detail.draft.passPercent], [['What comes last?'], 100])
+    assert.equal(detail.publishedRevision, second.id, 'restoring changes only the draft')
+    const third = await h.api('course.submit', people.author, { course: course.id, draftVersion: detail.draftVersion })
+    await publish(third.id)
+    assert.equal((await h.api(`compare?from=${first.id}&to=${third.id}`, people.author)).changed, false)
+    assert.deepEqual((await h.api(`courses/${course.id}`, people.reviewer)).revisions.map(row => [row.number, row.state]), [[3, 'published'], [2, 'superseded'], [1, 'superseded']])
+    assert.deepEqual((await h.api(`revisions/${second.id}`, people.reviewer)).lessons.map(lesson => lesson.title), ['Lock up', 'Fridge check'])
+    // Lee's completion and certificate stay bound to revision 1.
+    const after = (await h.api('records/me', people.lee)).completions.find(row => row.course === course.id)
+    assert.deepEqual(after, before)
+    assert.equal(after.revision, first.id)
+    assert.equal((await h.api(`certificates/${after.certificate}`, people.lee)).revision, 1)
+    assert.equal((await h.api(`assignments/${assigned}`, people.lee)).assignment.status, 'completed')
+  })
+
   await agentFlows({ h, check, people, ids, publish })
 } finally {
   await h.close()
