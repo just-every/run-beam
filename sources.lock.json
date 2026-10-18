@@ -350,6 +350,10 @@
       "sha256": "4382dabdad750df02560793ad1cd7275e0acf08bbf8a760e7a3d6411cc5e8f31",
       "executable": false
     },
+    "public/apple-touch-icon.png": {
+      "sha256": "15ad6dedd05d189da2c3a95ac19a8b01629c9574ae25aa641288cd43849fbb3f",
+      "executable": false
+    },
     "public/beam.css": {
       "sha256": "46f1ded0fc146cda70df6cb788be93a672a7b4701cd497a470e0c9a328968c3b",
       "executable": false
@@ -360,6 +364,30 @@
     },
     "public/brand/chevron-muted.svg": {
       "sha256": "70716163916582df6d6808e7803c334de33449f2f54d593054728b9340f78500",
+      "executable": false
+    },
+    "public/brand/favicon-16.png": {
+      "sha256": "3736e16e5e451086fac6d833b1b9f7e9d51c8a2ce028ae83df002825c96cf1ef",
+      "executable": false
+    },
+    "public/brand/favicon-16.svg": {
+      "sha256": "6f8f06cace1ab3c73310f9b0c9f89e08f3b97e7a019914b2ed979177aca37911",
+      "executable": false
+    },
+    "public/brand/favicon-32.png": {
+      "sha256": "71f3bb19f7531b2fdb70510c50c33c0e11b5c144e2e9c023b61dfd5a82541ab4",
+      "executable": false
+    },
+    "public/brand/favicon-32.svg": {
+      "sha256": "6afe1bf7b7f2811dc27ad6ca604d26dcf2e71c331be01334ff8eaf61a3af5f25",
+      "executable": false
+    },
+    "public/brand/icon-192.png": {
+      "sha256": "b6ebd18a54fb277cf631d2e6302ea58edf0c70604bc718ef17b0127659a2c13d",
+      "executable": false
+    },
+    "public/brand/icon-512.png": {
+      "sha256": "c895459e17a7f6a83f35a121275de95fe441da25c40e24d2d06aece5eebb772a",
       "executable": false
     },
     "public/brand/mark.svg": {
@@ -374,8 +402,28 @@
       "sha256": "718d5d36944fc0407adc306b1e6b1bc864181812b146a9d8d891f693d6bb8397",
       "executable": false
     },
+    "public/favicon.ico": {
+      "sha256": "576393c5d889009a45beb6c8d8744ff61dab4eb819dd4a813601a38ddd36c691",
+      "executable": false
+    },
     "public/fonts/fonts.css": {
       "sha256": "fe04c75a98851ebf01fd094ee12cab8c59bd4cb984da4245651aee61fc48e4ac",
+      "executable": false
+    },
+    "public/fonts/inter/inter-latin-wght-normal.woff2": {
+      "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
+      "executable": false
+    },
+    "public/fonts/inter/LICENSE.txt": {
+      "sha256": "3b0a5fca3d17942cde889069889dedbbbd075e9b599968c82a95f4d944e9b345",
+      "executable": false
+    },
+    "public/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2": {
+      "sha256": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e",
+      "executable": false
+    },
+    "public/fonts/jetbrains-mono/LICENSE.txt": {
+      "sha256": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
       "executable": false
     },
     "public/fonts/lexend/lexend-latin-wght-normal.woff2": {
@@ -390,8 +438,160 @@
       "sha256": "b6a86037c629cceec31a8d9607becafdecb7d8e63103903603d449e1a45f537f",
       "executable": false
     },
+    "public/fonts/roboto-condensed/LICENSE.txt": {
+      "sha256": "82baba1bc6be17e47b138e90ab99ad134168f931282b68bc560102ab1db743c1",
+      "executable": false
+    },
+    "public/fonts/roboto-condensed/roboto-condensed-latin-wght-normal.woff2": {
+      "sha256": "8d230115e58faa2ed303bee567b91d1a792e0c958a0118998b53648b2ab7c057",
+      "executable": false
+    },
+    "public/fonts/roboto-serif/LICENSE.txt": {
+      "sha256": "5b1c53325498e573f825dbd6e9a8a4f12d259609268c99dde7ff37089830c56e",
+      "executable": false
+    },
+    "public/fonts/roboto-serif/roboto-serif-display-800.woff2": {
+      "sha256": "1f6496532d8d70291fc31d220b651d134036540128691bb987a777586e044e71",
+      "executable": false
+    },
     "public/rer-theme.css": {
       "sha256": "f358a483859dfd8a653b183c444db10a5accd50ca17e55555bcc34ae5e3e1f78",
+      "executable": false
+    },
+    "public/site/closing-1152.avif": {
+      "sha256": "47c48fa40753a6135049d2762cb7e890fee39b6e5b8aaacdf63740360bc9743d",
+      "executable": false
+    },
+    "public/site/closing-1152.webp": {
+      "sha256": "d993685a0bf5ff748520842e5b0239dc68b2c2ba7e90845b4a4ff573d6d80a89",
+      "executable": false
+    },
+    "public/site/closing-1536.avif": {
+      "sha256": "218ee803ec884dc71883b92111594aa0e11b5b4ab7843c55c278522beed7c6c4",
+      "executable": false
+    },
+    "public/site/closing-1536.webp": {
+      "sha256": "adf43063d9e4c1ade131bb1bffcab4b958edf794c64663d810f6ebf1c54cd23b",
+      "executable": false
+    },
+    "public/site/closing-768.avif": {
+      "sha256": "0917fe399ebad839cb9c9fac903c7c65021f5b4a281d18d32b5e8012c03cffce",
+      "executable": false
+    },
+    "public/site/closing-768.webp": {
+      "sha256": "8c823572131e84dfd7510041e3ef33680049983a177be2e17b5f2cc82ee10675",
+      "executable": false
+    },
+    "public/site/closing-phone-400.avif": {
+      "sha256": "d827a8b12fad0770028d6aa632368fab9c79448412ff510b50705a863113950d",
+      "executable": false
+    },
+    "public/site/closing-phone-400.webp": {
+      "sha256": "9c021810aec88a033572a24300579262df813edd318b0ba3ebc2fc8a63947f63",
+      "executable": false
+    },
+    "public/site/closing-phone-800.avif": {
+      "sha256": "4dd5e1ed40d104d0ab61d9193647507a1eef0b669162db149a8a2e43ad187872",
+      "executable": false
+    },
+    "public/site/closing-phone-800.webp": {
+      "sha256": "661d6d64e590fba074652c28b3b569ac3c6d475bc9890c46e3f43feb31e70222",
+      "executable": false
+    },
+    "public/site/fonts.css": {
+      "sha256": "ee4068eda5284b41d85fe8d1e86881b32971c68bf3fa3308ff1f28be43641a22",
+      "executable": false
+    },
+    "public/site/hero-410.avif": {
+      "sha256": "bab9441d74ccaab35aaeb6d06f773eedfb09e4701529a269956b3904828d9a0d",
+      "executable": false
+    },
+    "public/site/hero-410.webp": {
+      "sha256": "b999f8e334963dedc23948b1c52c41ae277ce253a6bc3b4ac922d8aa3773d972",
+      "executable": false
+    },
+    "public/site/hero-615.avif": {
+      "sha256": "88efe1bf2bce8e9dcbb8a310438f45711cc3e8bbf7ed992578109f8e66a7ba37",
+      "executable": false
+    },
+    "public/site/hero-615.webp": {
+      "sha256": "0e767a84df5a9bf272363ac78e225692bd462f1ed0835cdf0229ab21f45b59eb",
+      "executable": false
+    },
+    "public/site/hero-820.avif": {
+      "sha256": "8eb46ea18b2ac888e0e087fe1f8d1020b4deb56b262e685e969278c67bb11487",
+      "executable": false
+    },
+    "public/site/hero-820.webp": {
+      "sha256": "c9fdd0ef1163982c0a3ec4a20f3b7d3d79ec46084703d065a200831636887b29",
+      "executable": false
+    },
+    "public/site/hero-phone-400.avif": {
+      "sha256": "0617753a306c86f9fb970adc0ce04cf1cce14c00609dd77d04d02e621545e834",
+      "executable": false
+    },
+    "public/site/hero-phone-400.webp": {
+      "sha256": "b301dc4e73bb82950e0a157ce160d6b96b67703a0e2c16e4bea9306b27a1f368",
+      "executable": false
+    },
+    "public/site/hero-phone-684.avif": {
+      "sha256": "89cbf2b8a4b266abb90812df010164a93af8341e7877e71e7285ec99265bf6ec",
+      "executable": false
+    },
+    "public/site/hero-phone-684.webp": {
+      "sha256": "ab98523415a30752a9ee4c43fe654f094118c4a648d9122eddb3b1aaa2084e86",
+      "executable": false
+    },
+    "public/site/interlude-1152.avif": {
+      "sha256": "abdba1d9d781a3b0429298f491db5aa499951b4b62a07bf4b4b24d2710e1f5d8",
+      "executable": false
+    },
+    "public/site/interlude-1152.webp": {
+      "sha256": "073df5a9e02821ef3d30a6c3284b46bdec12cb9d0d34445edf157f76b9b88569",
+      "executable": false
+    },
+    "public/site/interlude-1536.avif": {
+      "sha256": "e40bd89350cb300e2226e13736fc813c88a45b6f6133c108b15549631abf11ef",
+      "executable": false
+    },
+    "public/site/interlude-1536.webp": {
+      "sha256": "a7a6fa222e53912078471b0446ea6cf1079a81ec9990a009776aeaa9fc91ff74",
+      "executable": false
+    },
+    "public/site/interlude-768.avif": {
+      "sha256": "03ed5a1852c5bd7764e1f793c63572ba901821d30434f5e762e6371cf693f286",
+      "executable": false
+    },
+    "public/site/interlude-768.webp": {
+      "sha256": "ce98890d7a6e77ce90cd7722bca78ab64bf5f255ebfb1968450ed1c9ad195d9f",
+      "executable": false
+    },
+    "public/site/interlude-phone-400.avif": {
+      "sha256": "ad215cc4dde305ffeceef7b4e1fbefaa07f0fe514b5c85b68f1c7aceab94ec97",
+      "executable": false
+    },
+    "public/site/interlude-phone-400.webp": {
+      "sha256": "a3c4ae90666b87329aba0e874af3b45c8516d1f5644b58a9930209905567f6d5",
+      "executable": false
+    },
+    "public/site/interlude-phone-700.avif": {
+      "sha256": "11c99e71b8c5415ad6b5903a8031eabd56c111bac8e98005e79b45b7e8a77518",
+      "executable": false
+    },
+    "public/site/interlude-phone-700.webp": {
+      "sha256": "c3135c27fbe5120a67d855f3b3d09567ec66872275d5f458272eec5f136f5fba",
+      "executable": false
+    },
+    "public/site/run-floor.webp": {
+      "sha256": "4e5064e39c2fb989a1e78daa7c30c8b7ac8d376b3556cda219d689ca59c91b0b",
+      "executable": false
+    },
+    "public/site/share.jpg": {
+      "sha256": "dd2d81295edec5fa317b89eb7e5a104b74eb4517756f722e1fe170184ef4cb70",
+      "executable": false
+    },
+    "public/site/theme.css": {
+      "sha256": "cc3e42c35d02d89f4f46922c67532fbb180ef362ca46d2ff55fb44dd9289c391",
       "executable": false
     },
     "README.md": {
@@ -2250,12 +2450,72 @@
       "sha256": "306807dca7bb903d87e1073cdd7133336d29fe043679ea0039584a24bdc311e4",
       "executable": false
     },
+    "src/site/icons.ts": {
+      "sha256": "dc3dd1c0e38945abcdc3c07117ec0d4df5ae94cb840718d6853c4910aa3152ee",
+      "executable": false
+    },
     "src/site/landing/copy.ts": {
       "sha256": "23722cb842caf22947189986447fe5f1ee862317d393d3e41f14d5548232abfc",
       "executable": false
     },
+    "src/site/landing/hero.ts": {
+      "sha256": "e3e36287a115992bcf3fd7eb513d087c1da1fd61363ba0deee0addde348bc3ad",
+      "executable": false
+    },
     "src/site/landing/landing.ts": {
       "sha256": "0489dd487d561a194d7fae615b68a625b53f5624426b03c82f3d1fb85b226783",
+      "executable": false
+    },
+    "src/site/landing/parts.ts": {
+      "sha256": "d3e3fc65cab9aef1783422080ba2053ab298a119574457916b35e356a15f7d17",
+      "executable": false
+    },
+    "src/site/landing/records.ts": {
+      "sha256": "279f196fc3ec91c18521c3c811a6551e8bfd29dfe4279425cbf7d83267b52afa",
+      "executable": false
+    },
+    "src/site/landing/sections/closing.ts": {
+      "sha256": "51623d9b2fd3f7a15797b80d8e044bdd8137983f105a63cd5da6e77d7b522470",
+      "executable": false
+    },
+    "src/site/landing/sections/compliance.ts": {
+      "sha256": "d2a6fa65af99fd2f7e311f5137ac4f632f26eeff7b23f6cae4298b373e838a7c",
+      "executable": false
+    },
+    "src/site/landing/sections/cooler.ts": {
+      "sha256": "d762ade0be1a7812c7ca3c031a26a130f7ab12e8af4af7b46bf357a3b69f7930",
+      "executable": false
+    },
+    "src/site/landing/sections/diagnosis.ts": {
+      "sha256": "2c8d4762d4959fc156461fdfdf946bc36b0511904b7f12a4d43155ee2f9bec3a",
+      "executable": false
+    },
+    "src/site/landing/sections/first-shift.ts": {
+      "sha256": "63514742b3d3442c0909b07dc318bdead510f67e8b289275f52aeff37c6f2336",
+      "executable": false
+    },
+    "src/site/landing/sections/follow-up.ts": {
+      "sha256": "69f3a10958d0b086c24bbb6f2787a20702c94f027487f55c3687c0ecedafc654",
+      "executable": false
+    },
+    "src/site/landing/sections/interlude.ts": {
+      "sha256": "95e0a79a8f91f56cf1b3d71fafb105a797c54923241bd96bdfca934eb8151fa4",
+      "executable": false
+    },
+    "src/site/landing/sections/month.ts": {
+      "sha256": "35a3dabfeba3ae93a274bb887a25bdccff41bd5aa584e19fdc4cd460c43aaec0",
+      "executable": false
+    },
+    "src/site/landing/sections/move-in.ts": {
+      "sha256": "fe19b35ad725b9f4507a1938f2ac51a67e36125d1e2e6613a950bd09f8efc399",
+      "executable": false
+    },
+    "src/site/landing/sections/practical.ts": {
+      "sha256": "2e2c177855918ac0f8eca4ab20d03f5f545dc1e21be467622e0375ed601e608d",
+      "executable": false
+    },
+    "src/site/landing/sections/redraft.ts": {
+      "sha256": "01a4524e8ddb37f2c4db0dd212f93fd909e7ff81b50dfc29604af60c0d84a494",
       "executable": false
     },
     "src/site/pages.ts": {
@@ -2268,6 +2528,22 @@
     },
     "src/site/shell.ts": {
       "sha256": "323e6fd245f0c10f9d8705dd9723bb735e47d9fed3a03c9854a1ece9ed08056c",
+      "executable": false
+    },
+    "src/site/styles/base.css": {
+      "sha256": "de90e68cc483a896de01ccce60ffd298fa31e348d5745b56d3cd3f66647f6ba5",
+      "executable": false
+    },
+    "src/site/styles/docs.css": {
+      "sha256": "b6966a7528d03eaacbb7474dcc4efc15e67c1a2a7dfbbca0483c1e94ba6a35c4",
+      "executable": false
+    },
+    "src/site/styles/hero.css": {
+      "sha256": "347bd139ecef64c70d1477111bc1bf2d5e7095b81461d510517da58475d04e06",
+      "executable": false
+    },
+    "src/site/styles/sections.css": {
+      "sha256": "4c316b6f1d7e7cf5b5c1013b0fe9b6b5a5144d395e828bbe39474f811ab37345",
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
@@ -2320,6 +2596,10 @@
     },
     "tests/runtime.mjs": {
       "sha256": "73979bc819ef806b560658e2079f0a1b081eb82de8fcfb20574624c10db30a2b",
+      "executable": false
+    },
+    "tests/site/site.test.mjs": {
+      "sha256": "a5644ef97fbedea2d7009ea68b4e6a75d0414390c56a865e2a0c8606c7b134d9",
       "executable": false
     },
     "tsconfig.json": {
