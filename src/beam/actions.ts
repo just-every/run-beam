@@ -3,6 +3,7 @@
 // transport and credential restrictions in http.ts and agent-credentials.ts.
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
+import { decideAcknowledgment, requestAcknowledgments } from './acknowledgments'
 import { decide, propose } from './agent-work'
 import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, revisePath } from './assignments'
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
@@ -29,6 +30,8 @@ export const actions: Record<string, Handler> = {
   'team.members': (env, actor, input) => setTeamMembers(env, actor, input),
   'source.create': (env, actor, input) => createSource(env, actor, input),
   'source.version': (env, actor, input) => addSourceVersion(env, actor, input),
+  'acknowledgment.request': (env, actor, input) => requestAcknowledgments(env, actor, input),
+  'acknowledgment.decide': (env, actor, input) => decideAcknowledgment(env, actor, input),
   'course.create': (env, actor, input) => createCourse(env, actor, input),
   'course.details': (env, actor, input) => saveDetails(env, actor, input),
   'course.lesson': (env, actor, input) => saveLesson(env, actor, input),

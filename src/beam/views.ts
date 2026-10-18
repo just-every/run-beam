@@ -1,6 +1,7 @@
 // Read models served at GET /api/beam/... and rendered by the pages.
 import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
+import { acknowledgmentList, acknowledgmentView } from './acknowledgments'
 import { listProposals, proposalDetail } from './agent-work'
 import { listPaths } from './assignments'
 import { courseDetail, listCourses, revisionDetail } from './courses'
@@ -23,6 +24,8 @@ export const views: Record<string, View> = {
   people: (env, actor, request) => people(env, request, actor),
   members: async (env) => await all(env, 'SELECT id, name FROM beam_members ORDER BY name'),
   sources: (env, actor) => listSources(env, actor),
+  acknowledgments: (env, actor) => acknowledgmentList(env, actor),
+  acknowledgment: (env, actor, _request, id) => acknowledgmentView(env, actor, id),
   courses: async (env, actor) => { requireRole(actor, 'author', 'reviewer', 'manager', 'assessor'); return await listCourses(env) },
   course: (env, actor, _request, id) => courseDetail(env, actor, id),
   compare: (env, actor, request) => { const query = new URL(request.url).searchParams; return compareRevisions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
@@ -46,7 +49,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
-  [/^me$/, 'me'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
+  [/^me$/, 'me'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
   [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'],

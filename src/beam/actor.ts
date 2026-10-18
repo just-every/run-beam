@@ -10,6 +10,8 @@ export type Role = typeof ROLES[number]
 export interface Actor {
   id: string
   sessionId: string
+  /** How this session signed in: native (emailed link), oidc, password, dev or review; agent for a preparation credential. */
+  sessionKind: string
   email: string
   name: string
   /** The business's name, once the owner has set it up. */
@@ -32,7 +34,7 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   if (!member) throw new BeamError('not_a_member', 403)
   const roles = new Set((await all<{ role: Role }>(env, 'SELECT role FROM beam_member_roles WHERE member_id = ?', member.id)).map(row => row.role))
   if (owner) ROLES.forEach(role => roles.add(role))
-  return { id: member.id, sessionId: session.id, email, name: member.name, business: member.business ?? null, owner, agent, roles }
+  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles }
 }
 
 export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {

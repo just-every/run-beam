@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 2 | 47 | 77 | 126 |
-| All | 22 | 47 | 77 | 146 |
+| Target and push further | 3 | 47 | 76 | 126 |
+| All | 23 | 47 | 76 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -549,7 +549,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `LEARN-007` | Map skills and recommend personal learning paths | target | partial | `src/beam/plans.ts`, `src/beam/assignments.ts`, `tests/beam/agent-flows.mjs` | Approved targeted plans and role paths exist; skill taxonomy and personalized recommendation generation are absent. |
 | `LEARN-008` | Answer learning questions from permitted company sources | target | missing |  | Embedded retrieval, company-source search/tutor and expert handoff are absent. |
 | `LEARN-009` | Coach through reviewed text and voice roleplay | target | partial | `src/beam/practice.ts`, `tests/beam/agent-flows.mjs` | Reviewed branching text practice exists; interactive model coaching, voice and consented recordings are absent. |
-| `LEARN-010` | Collect policy acknowledgments and signatures | target | missing |  | Acknowledgment/signature workflow and evidence packages are absent. |
+| `LEARN-010` | Collect policy acknowledgments and signatures | target | done | `src/beam/acknowledgments.ts`, `src/beam/ui/acknowledgments.ts`, `migrations/core/0020_beam_acknowledgments.sql`, `tests/beam/flows.mjs` (LEARN-010) |  |
 | `LEARN-011` | Make every learning route accessible | target | partial | `src/beam/ui/html.ts`, `src/beam/ui/learner.ts`, `tests/beam/journey.mjs` | Semantic server forms and responsive journeys exist; accessibility audit, accommodations and package equivalence are unproven. |
 | `LEARN-012` | Deliver lessons through workplace messaging and SMS | target | missing |  | Messaging/SMS/WhatsApp lesson delivery, consent lifecycle and reply assessment are absent. |
 | `LEARN-013` | Recognize learning without implying competence | target | missing |  | Badges, levels, labelled opt-in activity leaderboards, learning challenges and privacy-controlled recognition are absent. |

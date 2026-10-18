@@ -447,6 +447,54 @@ try {
     assert.equal((await h.api(`assignments/${assigned}`, people.lee)).assignment.status, 'completed')
   })
 
+  await check('LEARN-010', async () => {
+    const policyV1 = 'Phone use policy v1\n\nPhones stay in lockers during treatments.\n'
+    const policy = await h.api('source.create', people.author, { title: 'Phone use policy', licence: 'owned', licenceEvidence: 'Written by the practice manager.', reviewer: ids.reviewer, provenance: 'Policy binder', file: file('phones.txt', policyV1) })
+    await h.api('acknowledgment.request', people.sam, { source: policy.id, kind: 'acknowledgment', learners: [ids.sam] }, 403)
+    const asked = await h.api('acknowledgment.request', people.manager, { source: policy.id, kind: 'acknowledgment', learners: [ids.sam] })
+    const signing = await h.api('acknowledgment.request', people.manager, { source: policy.id, kind: 'signature', learners: [ids.lee] })
+    assert.deepEqual([asked.sourceVersion, asked.created.length, signing.created.length], [policy.versionId, 1, 1])
+    const [samAck] = asked.created, [leeAck] = signing.created
+    const completionsBefore = (await h.api('records/me', people.sam)).completions
+    // Signing needs the document opened first, then an explicit statement of intent.
+    await h.api('acknowledgment.decide', people.sam, { acknowledgment: samAck, decision: 'sign', agree: 'yes' }, 409)
+    const opened = await h.raw(`/app/acknowledgments/${samAck}/document`, { cookie: people.sam })
+    assert.equal(sha(Buffer.from(await opened.arrayBuffer())), sha(policyV1))
+    await h.api('acknowledgment.decide', people.sam, { acknowledgment: samAck, decision: 'sign' }, 400)
+    const signed = await h.submit('acknowledgment.decide', people.sam, { acknowledgment: samAck, decision: 'sign', agree: 'yes' }, `/app/acknowledgments/${samAck}`)
+    assert.equal(signed.searchParams.get('notice'), 'Saved.')
+    await h.api('acknowledgment.decide', people.sam, { acknowledgment: samAck, decision: 'decline', reason: 'Changed my mind' }, 409)
+    const samView = await h.api(`acknowledgments/${samAck}`, people.sam)
+    assert.deepEqual([samView.state, samView.sourceVersion, samView.identityMethod, samView.document.sha256], ['signed', policy.versionId, 'emailed sign-in link', sha(policyV1)])
+    assert.ok(samView.viewedAt && samView.decidedAt >= samView.viewedAt)
+    assert.match(samView.intent, /read and understood “Phone use policy” version 1/)
+    // An electronic signature must be the signer's own name; Lee declines instead.
+    await h.raw(`/app/acknowledgments/${leeAck}/document`, { cookie: people.lee })
+    await h.api('acknowledgment.decide', people.lee, { acknowledgment: leeAck, decision: 'sign', agree: 'yes', signature: 'Sam Lee' }, 400)
+    await h.api('acknowledgment.decide', people.lee, { acknowledgment: leeAck, decision: 'decline', reason: 'I need the on-call exception explained first.' })
+    await h.api(`acknowledgments/${samAck}`, people.lee, undefined, 404)
+    assert.equal((await h.raw(`/app/acknowledgments/${samAck}/evidence`, { cookie: people.lee })).status, 404)
+    const managed = (await h.api('acknowledgments', people.manager)).managed.filter(row => row.source === policy.id)
+    assert.deepEqual(managed.map(row => [row.learnerName, row.kind, row.state]).sort(), [['Lee Park', 'signature', 'declined'], ['Sam Lee', 'acknowledgment', 'signed']])
+    assert.equal(managed.find(row => row.state === 'declined').declineReason, 'I need the on-call exception explained first.')
+    // Downloadable evidence names the exact document, intent, signer, time and identity method.
+    const evidence = await h.raw(`/app/acknowledgments/${samAck}/evidence`, { cookie: people.manager })
+    assert.match(evidence.headers.get('content-disposition'), /attachment/)
+    const record = await evidence.text()
+    for (const part of [`Document SHA-256: ${sha(policyV1)}`, 'Person: Sam Lee <sam@example.test>', 'Identity method: emailed sign-in link', 'Intent: I have read and understood']) assert.ok(record.includes(part), part)
+    // An acknowledgment is not assessed learning.
+    assert.deepEqual((await h.api('records/me', people.sam)).completions, completionsBefore)
+    // A revised policy asks again separately; the earlier decisions stay as they were.
+    const v2 = await h.api('source.version', people.author, { source: policy.id, provenance: 'Revised for on-call staff', file: file('phones.txt', 'Phone use policy v2\n\nOn-call staff keep phones on silent.\n') })
+    const samMine = (await h.api('acknowledgments', people.sam)).mine.filter(row => row.source === policy.id)
+    assert.deepEqual(samMine.map(row => [row.versionNumber, row.state]), [[2, 'open'], [1, 'signed']])
+    assert.deepEqual([samMine[0].sourceVersion, samMine[0].previous, samMine[0].kind], [v2.id, samAck, 'acknowledgment'])
+    const leeMine = (await h.api('acknowledgments', people.lee)).mine.filter(row => row.source === policy.id)
+    assert.deepEqual(leeMine.map(row => [row.versionNumber, row.kind, row.state]), [[2, 'signature', 'open'], [1, 'signature', 'declined']])
+    assert.ok((await (await h.raw('/app/learning', { cookie: people.sam })).text()).includes(`/app/acknowledgments/${samMine[0].id}`))
+    assert.ok((await (await h.raw(`/app/acknowledgments/${samAck}/evidence`, { cookie: people.sam })).text()).includes(`Document SHA-256: ${sha(policyV1)}`))
+  })
+
   await agentFlows({ h, check, people, ids, publish })
 } finally {
   await h.close()

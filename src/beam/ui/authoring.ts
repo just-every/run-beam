@@ -7,6 +7,10 @@ import { BeamError } from '../core'
 import { business, memberNames, membersWithRole } from '../people'
 import { listSources } from '../sources'
 import { compareForm } from './history'
+import { acknowledgmentList } from '../acknowledgments'
+import { isManager } from '../actor'
+import { all } from '../core'
+import { sourceAcknowledgments } from './acknowledgments'
 import { agentName, area, backLink, bytes, card, checks, field, fileField, form, h, hidden, lessonText, page, rows, select, when } from './html'
 
 const LICENCES: Record<string, string> = { owned: 'owned', licensed: 'licensed to the business', permission: 'used with written permission' }
@@ -16,13 +20,14 @@ const KINDS: Record<string, string> = { 'application/pdf': 'PDF', 'text/plain': 
 const fileKind = (mediaType: string) => KINDS[mediaType] ?? (mediaType.split('/')[1]?.split(/[.+;-]/)[0]?.toUpperCase() || 'File')
 
 export async function sourcesPage(env: Bindings, actor: Actor, url: URL) {
-  const [sources, reviewers, names] = await Promise.all([listSources(env, actor), membersWithRole(env, 'reviewer'), memberNames(env)])
+  const [sources, reviewers, names, acknowledgments, teams] = await Promise.all([listSources(env, actor), membersWithRole(env, 'reviewer'), memberNames(env), acknowledgmentList(env, actor), isManager(actor) ? all(env, 'SELECT id, name FROM beam_teams ORDER BY name') : []])
+  const people = [...names].map(([value, label]) => ({ value, label }))
   const zone = (await business(env))!.timezone
   const canAuthor = actor.owner || actor.roles.has('author')
   const body = h`<h1>Source library</h1><p class="lede">Owned procedures and media that lessons are built from. Each version is kept unchanged with its provenance.</p>
 ${sources.length ? '' : h`<p class="card muted">No sources yet.</p>`}
 ${sources.map(source => card(source.title, h`<p class="muted">License: ${LICENCES[source.licence] ?? source.licence} — ${source.licenceEvidence}<br>Responsible reviewer: ${names.get(source.reviewer)}</p>${rows(source.versions.map((version: any) => ({ title: h`Version ${version.number}: <a href="/app/files/source/${version.id}">${version.filename}</a>`, meta: `${fileKind(version.mediaType)}, ${bytes(version.size)}, uploaded ${when(version.uploadedAt, zone)} by ${names.get(version.uploadedBy)} — ${version.provenance}` })))}
-${source.versions.length > 1 ? h`<p><a href="/app/sources/${source.id}/compare">Compare versions</a></p>` : ''}${canAuthor ? h`<details><summary>Upload a new version</summary>${form('source.version', '/app/sources', [hidden('source', source.id), fileField('File', 'file', { required: true }), field('Where this version came from', 'provenance')], 'Upload version', { multipart: true })}</details>` : ''}`))}
+${source.versions.length > 1 ? h`<p><a href="/app/sources/${source.id}/compare">Compare versions</a></p>` : ''}${sourceAcknowledgments(actor, source.id, acknowledgments.managed, people, teams.map(team => ({ value: team.id, label: team.name })), zone)}${canAuthor ? h`<details><summary>Upload a new version</summary>${form('source.version', '/app/sources', [hidden('source', source.id), fileField('File', 'file', { required: true }), field('Where this version came from', 'provenance')], 'Upload version', { multipart: true })}</details>` : ''}`))}
 ${canAuthor ? h`<section class="card settings"><h2>Add a source</h2>${form('source.create', '/app/sources', [field('Title', 'title'), fileField('File', 'file', { required: true }), select('License', 'licence', [{ value: 'owned', label: 'Owned by the business' }, { value: 'licensed', label: 'Licensed to the business' }, { value: 'permission', label: 'Used with written permission' }]), area('License evidence', 'licenceEvidence'), field('Where it came from', 'provenance'), select('Responsible reviewer', 'reviewer', reviewers.map(member => ({ value: member.id, label: member.name })))], 'Add source', { multipart: true })}</section>` : ''}`
   return page('Sources', actor, body, { current: '/app/sources', url })
 }

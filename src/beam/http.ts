@@ -3,6 +3,7 @@
 // member first; private data is never served to a signed-out request.
 import { runtimeBindings, type Bindings } from '../auth.server'
 import { AuthError, safeReturnTo } from '../modules/operator-auth/index.mjs'
+import { acknowledgmentDocument, acknowledgmentEvidence } from './acknowledgments'
 import { issueAgentCredential, requireAgentScope } from './agent-credentials'
 import { actions } from './actions'
 import { currentActor, isManager, type Actor } from './actor'
@@ -14,6 +15,7 @@ import { business } from './people'
 import { sourceFile } from './sources'
 import { coursePage, coursesPage, revisionPage, sourcesPage } from './ui/authoring'
 import { revisionComparePage, sourceComparePage } from './ui/history'
+import { acknowledgmentPage } from './ui/acknowledgments'
 import { certificatePage, dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
 import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
 import { managePage } from './ui/compliance'
@@ -109,6 +111,9 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/people') return peoplePage(env, actor, request, url)
   if (path === '/app/sources') return sourcesPage(env, actor, url)
   if (path === '/app/courses') return coursesPage(env, actor, url)
+  if ((match = path.match(/^\/app\/acknowledgments\/([\w-]+)$/))) return acknowledgmentPage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/acknowledgments\/([\w-]+)\/document$/))) return acknowledgmentDocument(env, actor, match[1], url.searchParams.has('download'))
+  if ((match = path.match(/^\/app\/acknowledgments\/([\w-]+)\/evidence$/))) return acknowledgmentEvidence(env, actor, match[1])
   if ((match = path.match(/^\/app\/courses\/([\w-]+)$/))) return coursePage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/courses\/([\w-]+)\/compare$/))) return revisionComparePage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/sources\/([\w-]+)\/compare$/))) return sourceComparePage(env, actor, match[1], url)
