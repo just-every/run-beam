@@ -8,5 +8,5 @@ export const identity: EditionIdentity = {
   purpose: '{deployment} teaches your own procedures: reviewed course revisions, assignments, quizzes, assessor sign-off and the record of who completed which revision.',
   tagline: 'Free, open source training for your own procedures: reviewed courses, assignments, quizzes and revision-bound completion records. MIT licensed.',
   signInPath: '/signin', runSite: 'https://run-beam.com', installedHome: 'lobby',
-  theme: '/rer-theme.css', mark: '/brand/mark.svg', band: '/site/run-floor.webp', fonts: '/site/fonts.css', accentColor: branding.primaryColor,
+  theme: '/rer-theme.css', mark: '/brand/mark.svg', band: '/site/run-band-1536.webp', fonts: '/site/fonts.css', accentColor: branding.primaryColor,
 }

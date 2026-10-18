@@ -1,5 +1,6 @@
 // 02 · One month at Sierra Lakes Produce: Beam's own two-lane shift calendar, six week columns on one grid, Rafael's
-// hire, the DP-7 procedure and Tomás Vega's overdue follow-up in its own slim row. At phone width it is an agenda.
+// hire, the DP-7 procedure and Tomás Vega's overdue follow-up in its own slim row, its chip spanning Oct 19 and Oct 26
+// in two lines. Below 1280 it is an agenda.
 import { h, type Html } from '../../../beam/ui/html'
 import { glyph } from '../../icons'
 import { sections } from '../copy'
@@ -29,7 +30,7 @@ function grid(): Html {
   return h`<div class="month-grid" role="table" aria-label="Sierra Lakes Produce, Sep 29 to Nov 2, by week">
 <div class="mg-row mg-head" role="row"><span class="mg-lab" role="columnheader"><span class="sr">Lane</span></span>${weeks.map(week => h`<div class="mg-cell" role="columnheader"><span class="mg-week">${week.label}</span>${marker(week)}</div>`)}</div>
 <div class="mg-row mg-hire" role="row"><div class="mg-lab" role="rowheader"><span class="mg-kind">Hire</span><span class="mg-avatar">${rafael.initials}</span><span class="mg-name">${rafael.name}</span></div>${hire.map(list => h`<ul class="mg-cell" role="cell">${list.map(chip)}</ul>`)}</div>
-<div class="mg-row mg-follow" role="row"><div class="mg-lab" role="rowheader"><span class="mg-kind">Follow-up</span><span class="mg-name">Tomás Vega<span class="mg-sub">Fresno night shift</span></span></div>${weeks.map((_, index) => h`<div class="mg-cell" role="cell">${index === followUpWeek ? exception() : ''}</div>`)}</div>
+<div class="mg-row mg-follow" role="row"><div class="mg-lab" role="rowheader"><span class="mg-kind">Follow-up</span><span class="mg-name">Tomás Vega<span class="mg-sub">Fresno night shift</span></span></div>${weeks.map((_, index) => index === followUpWeek ? h`<div class="mg-cell mg-span" role="cell" aria-colspan="2">${exception()}</div>` : index === followUpWeek + 1 ? '' : h`<div class="mg-cell" role="cell"></div>`)}</div>
 <div class="mg-row mg-proc" role="row"><div class="mg-lab" role="rowheader"><span class="mg-kind">Procedure</span><span class="mg-tag">DP-7</span><span class="mg-name">Joliet dock doors</span></div>${procedure.map(list => h`<ul class="mg-cell" role="cell">${list.map(chip)}</ul>`)}</div>
 </div>`
 }
