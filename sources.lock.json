@@ -188,7 +188,7 @@
       "executable": false
     },
     "DEMO.md": {
-      "sha256": "6b194bef4273c3175775e3f8b46eca8f10ebdc770572f613a52804b9a3a133d3",
+      "sha256": "2d569ad38f95b8c5c1cf581301097d50f18bac852d858d1e44fe8e61ae927061",
       "executable": false
     },
     "deploy-demo.json": {
@@ -2572,7 +2572,7 @@
       "executable": false
     },
     "tests/beam/journey.mjs": {
-      "sha256": "829715a0facb375b2a9b20c69f3da7c8ac925c63798a8bce60378e73bccfa46b",
+      "sha256": "1ad63d3bfc9720bd82ba5431b44d4ca2efa23453915237cfeb9e9fade9f65114",
       "executable": false
     },
     "tests/beam/regression-agent.mjs": {
