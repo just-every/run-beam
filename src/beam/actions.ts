@@ -41,20 +41,27 @@ import { decideCertificate, saveRequirement, uploadCertificate } from './externa
 import { correctCertificate, createLink, revokeLink, saveTemplate, setCourseTemplate } from './certificates'
 import { replaceReviewer, setCourseAuthors, setSelfReview } from './course-access'
 import { importBank, previewBank } from './bank-import'
+import { excludeFromAudience, includeInAudience, previewAudience, saveAudience, setAudienceState, syncAudience, syncAudiences } from './audiences'
 import { editDirectory, importRoster, resolveConflict as resolveRosterConflict, saveDirectoryField } from './directory'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
 type Handler = (env: Bindings, actor: Actor, input: Input, request: Request) => Promise<unknown>
+
+/** AUTO-001: a roster change (directory, import, resolved conflict, team members) synchronizes the active audiences. */
+const synced = (handler: Handler): Handler => async (env, actor, input, request) => {
+  const result = await handler(env, actor, input, request)
+  return { ...result as object, audiences: await syncAudiences(env, actor) }
+}
 
 export const actions: Record<string, Handler> = {
   'business.configure': (env, actor, input) => configureBusiness(env, actor, input),
   'person.invite': (env, actor, input, request) => invitePerson(env, request, actor, input),
   'person.roles': (env, actor, input) => setRoles(env, actor, input),
   'person.access': (env, actor, input, request) => setAccess(env, request, actor, input),
-  'person.directory': (env, actor, input, request) => editDirectory(env, request, actor, input),
+  'person.directory': synced((env, actor, input, request) => editDirectory(env, request, actor, input)),
   'person.field': (env, actor, input) => saveDirectoryField(env, actor, input),
-  'people.import': (env, actor, input, request) => importRoster(env, request, actor, input),
-  'people.conflict': (env, actor, input, request) => resolveRosterConflict(env, request, actor, input),
+  'people.import': synced((env, actor, input, request) => importRoster(env, request, actor, input)),
+  'people.conflict': synced((env, actor, input, request) => resolveRosterConflict(env, request, actor, input)),
   'team.create': (env, actor, input) => createTeam(env, actor, input),
   'external.requirement': (env, actor, input) => saveRequirement(env, actor, input),
   'external.upload': (env, actor, input) => uploadCertificate(env, actor, input),
@@ -64,7 +71,7 @@ export const actions: Record<string, Handler> = {
   'certificate.correct': (env, actor, input) => correctCertificate(env, actor, input),
   'certificate.link': (env, actor, input) => createLink(env, actor, input),
   'certificate.unlink': (env, actor, input) => revokeLink(env, actor, input),
-  'team.members': (env, actor, input) => setTeamMembers(env, actor, input),
+  'team.members': synced((env, actor, input) => setTeamMembers(env, actor, input)),
   'team.managers': (env, actor, input) => setTeamManagers(env, actor, input),
   'team.coverage': (env, actor, input) => grantCoverage(env, actor, input),
   'team.coverage.end': (env, actor, input) => endCoverage(env, actor, input),
@@ -105,6 +112,12 @@ export const actions: Record<string, Handler> = {
   'automation.preview': (env, actor, input) => previewRule(env, actor, input),
   'automation.state': (env, actor, input) => setRuleState(env, actor, input),
   'automation.replay': (env, actor, input) => replayRule(env, actor, input),
+  'audience.save': (env, actor, input) => saveAudience(env, actor, input),
+  'audience.preview': (env, actor, input) => previewAudience(env, actor, input),
+  'audience.state': (env, actor, input) => setAudienceState(env, actor, input),
+  'audience.sync': (env, actor, input) => syncAudience(env, actor, input),
+  'audience.exclude': (env, actor, input) => excludeFromAudience(env, actor, input),
+  'audience.include': (env, actor, input) => includeInAudience(env, actor, input),
   'auditor.grant': (env, actor, input) => grantAuditor(env, actor, input),
   'auditor.revoke': (env, actor, input) => revokeAuditor(env, actor, input),
   'role.save': (env, actor, input) => saveRole(env, actor, input),

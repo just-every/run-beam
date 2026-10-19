@@ -21,7 +21,7 @@ export const CATEGORIES: Record<string, { label: string; prefixes: string[] }> =
   access: { label: 'Access and roles', prefixes: ['person.', 'admin.', 'role.', 'auditor.', 'team.', 'unit.', 'course.authors', 'course.reviewer', 'course.selfreview', 'access.', 'agent.issue', 'business.', 'view.'] },
   content: { label: 'Content and publication', prefixes: ['course.', 'revision.', 'source.', 'proposal.', 'notice.', 'scenario.', 'acknowledgment.'] },
   due: { label: 'Due dates', prefixes: ['assignment.due'] },
-  enrollment: { label: 'Enrollment', prefixes: ['assignment.', 'path.', 'attempt.grant', 'accommodation.'] },
+  enrollment: { label: 'Enrollment', prefixes: ['assignment.', 'path.', 'attempt.grant', 'accommodation.', 'audience.'] },
   evidence: { label: 'Evidence and results', prefixes: ['completion.', 'offline.', 'practical.', 'quiz.', 'lesson.', 'import.', 'history.'] },
   agent: { label: 'Agent work', prefixes: ['agent.', 'questions.', 'reminder.'] },
   automatic: { label: 'Automatic outcomes', prefixes: ['quiz.expire'] },
