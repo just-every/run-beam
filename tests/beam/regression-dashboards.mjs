@@ -11,6 +11,7 @@ async function dashboards({ h, cookies, ids, course, lessons }) {
   const api = async (role, path, body, status = 200) => {
     const response = await h.raw('/api/beam/' + path, {cookie: cookies[role], body})
     assert.equal(response.status, status, 'Beam action: ' + path.replace(/key=[a-f0-9]+/g, 'key=[redacted]'))
+    if (path === 'dashboard.link' || path.includes('?key=')) assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
     return response.json()
   }
   const html = async (path, role) => {
@@ -47,6 +48,9 @@ async function dashboards({ h, cookies, ids, course, lessons }) {
   await api('manager', 'dashboard.create', { ...selection, fields: ['practical'] }, 400)
   await api('manager', 'dashboard.create', { ...selection, fields: [] }, 400)
   const created = await api('manager', 'dashboard.create', selection), id = created.id
+  const foreignOrigin = {cookie: cookies.owner, origin: 'https://other.example.test', 'content-type': 'application/json'}
+  assert.equal((await h.fetch('/api/beam/dashboard.create', {method: 'POST', headers: foreignOrigin, body: JSON.stringify(selection)})).status, 403)
+  assert.equal((await h.fetch('/app/dashboards/link', {method: 'POST', headers: foreignOrigin, body: JSON.stringify({dashboard: id, viewer: ids.manager, expiresAt: new Date(Date.now() + 86_400_000).toISOString()})})).status, 403)
   const named = await api('manager', 'dashboard.share', { dashboard: id, viewer: ids.dashboardAdmin })
   await api('manager', 'dashboard.share', { dashboard: id, viewer: ids.learner }, 403)
   await api('manager', 'dashboard.share', { dashboard: id, viewer: ids.dashboardOutside }, 403)
@@ -101,6 +105,7 @@ async function dashboards({ h, cookies, ids, course, lessons }) {
   assert.equal((await h.raw(`/api/beam/${apiLink}`)).status, 401)
   const unsigned = await html(link.url)
   assert.equal(unsigned.status, 401)
+  assert.equal(unsigned.headers.get('referrer-policy'), 'no-referrer')
   assert.ok(!unsigned.text.includes(key), 'sign-in guidance never forwards the restricted token')
   const narrowHtml = await html(link.url, 'dashboardAdmin')
   const narrowCsv = await html(`/app/dashboards/${narrow.id}.csv?key=${key}`, 'dashboardAdmin')
@@ -113,7 +118,9 @@ async function dashboards({ h, cookies, ids, course, lessons }) {
   assert.ok(!JSON.stringify(audit).includes(key), 'audit never retains the reusable link')
   await h.db.prepare('UPDATE beam_dashboard_shares SET expires_at = ? WHERE id = ?').bind(Date.now() - 1, link.id).run()
   await api('dashboardAdmin', apiLink, undefined, 404)
-  assert.equal((await html(link.url, 'dashboardAdmin')).status, 404)
+  const expiredHtml = await html(link.url, 'dashboardAdmin')
+  assert.equal(expiredHtml.status, 404)
+  assert.equal(expiredHtml.headers.get('referrer-policy'), 'no-referrer')
   assert.equal((await html(`/app/dashboards/${narrow.id}.csv?key=${key}`, 'dashboardAdmin')).status, 404)
   const revoked = await api('owner', 'dashboard.link', { dashboard: narrow.id, viewer: ids.dashboardAdmin, expiresAt })
   await api('owner', 'dashboard.share.revoke', { share: revoked.id })

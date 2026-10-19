@@ -60,6 +60,19 @@ function failure(error: unknown): { code: string; status: number; detail?: unkno
 }
 
 export async function beamResponse(request: Request, original: Bindings): Promise<Response | null> {
+  const response = await beamDoorResponse(request, original), url = new URL(request.url)
+  const restricted = url.pathname === '/api/beam/dashboard.link' ||
+    url.pathname.startsWith('/api/beam/dashboards/') && url.searchParams.has('key') ||
+    url.pathname.startsWith('/app/dashboards/') && (url.searchParams.has('key') || url.pathname.endsWith('.csv') || url.pathname === '/app/dashboards/link')
+  if (!response || !restricted) return response
+  // Guard refusals and sign-in guidance too, including immutable redirects.
+  const guarded = new Response(response.body, response)
+  guarded.headers.set('referrer-policy', 'no-referrer')
+  guarded.headers.set('cache-control', 'no-store')
+  return guarded
+}
+
+async function beamDoorResponse(request: Request, original: Bindings): Promise<Response | null> {
   const env = runtimeBindings(original)
   const url = new URL(request.url)
   const api = url.pathname.startsWith('/api/beam/')
