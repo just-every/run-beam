@@ -26,12 +26,14 @@ const preparer = (actor: Actor) => actor.owner || ['author', 'reviewer', 'manage
 const manager = (actor: Actor) => actor.owner || actor.roles.has('manager')
 // A learning administrator (ORG-002) opens People, Courses and Reports for their units.
 const administrator = (actor: Actor) => actor.adminUnits.length > 0
+// A course's own author (ORG-003) opens Courses for those courses.
+const courseAuthor = (actor: Actor) => actor.authorOf.length > 0
 type NavItem = { href: string; label: string; icon: IconName; show: (actor: Actor) => boolean; count?: (shell: Shell) => number }
 const LEARNING: NavItem = { href: '/app/learning', label: 'My learning', icon: 'home', show: () => true }
 const NAV: NavItem[] = [
   { href: '/app/manage', label: 'Manage', icon: 'document', show: manager },
   { href: '/app/people', label: 'People', icon: 'people', show: actor => manager(actor) || administrator(actor), count: shell => shell.people },
-  { href: '/app/courses', label: 'Courses', icon: 'book', show: actor => preparer(actor) || administrator(actor) },
+  { href: '/app/courses', label: 'Courses', icon: 'book', show: actor => preparer(actor) || administrator(actor) || courseAuthor(actor) },
   { href: '/app/paths', label: 'Paths', icon: 'route', show: manager },
   { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },

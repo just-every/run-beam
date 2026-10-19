@@ -30,8 +30,8 @@ export const views: Record<string, View> = {
   acknowledgment: (env, actor, _request, id) => acknowledgmentView(env, actor, id),
   courses: async (env, actor) => {
     if (actor.owner || ['author', 'reviewer', 'manager', 'assessor'].some(role => actor.roles.has(role as never))) return await listCourses(env)
-    insist(actor.adminUnits.length, 'forbidden', 403)
-    return await listCourses(env, actor.adminUnits)
+    insist(actor.adminUnits.length || actor.authorOf.length, 'forbidden', 403)
+    return await listCourses(env, { units: actor.adminUnits, courses: actor.authorOf })
   },
   course: (env, actor, _request, id) => courseDetail(env, actor, id),
   compare: (env, actor, request) => { const query = new URL(request.url).searchParams; return compareRevisions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },

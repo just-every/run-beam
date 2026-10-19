@@ -14,6 +14,12 @@ Set the **Days to complete a reassignment**, add a note if you like, and press *
 
 To send it back instead, write **What needs changing** and press **Return to author**. Earlier completions stay bound to the revision they were made against.
 
+## Authors, reviewer handovers and self-review
+
+A course's page has **Authors and reviewer**. The owner, or the learning administrator of the course's business unit, ticks **Course authors** to let someone write that one course and send it for review without the author role; they see no other course, no people administration and no learner evidence. **Replace the reviewer** hands the course to a new named reviewer with a reason; the handover is listed there and every earlier decision keeps the reviewer who made it.
+
+Nobody decides their own revision unless the owner presses **Allow self-review** on that course. Then the person who submitted it may decide it (a business unit's learning administrator can be the named reviewer for this), and the revision is labelled **self-reviewed** in the course's history. **Turn self-review off** refuses it again.
+
 ## When a source changes
 
 When an author uploads a new version of a source, every course whose published lessons cite the earlier version shows **Source changed** to its reviewer, naming the old and new version numbers. Read the change and record your decision:

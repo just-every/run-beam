@@ -6,6 +6,7 @@ import { reassignAfterPublish } from './assignments'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { newCourseUnit, requireCourseRole } from './units'
+import { courseAccess } from './course-access'
 
 export interface Lesson { id: string; title: string; body: string; sources: string[] }
 export interface Question { id: string; prompt: string; choices: string[]; correct: number[] }
@@ -164,15 +165,20 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
 }
 
 export async function decideRevision(env: Bindings, actor: Actor, input: Input) {
-  const revision = await one(env, 'SELECT r.*, c.reviewer_id, c.published_revision_id FROM beam_course_revisions r JOIN beam_courses c ON c.id = r.course_id WHERE r.id = ?', input.text('revision'))
+  const revision = await one(env, 'SELECT r.*, c.reviewer_id, c.published_revision_id, c.unit_id, c.self_review FROM beam_course_revisions r JOIN beam_courses c ON c.id = r.course_id WHERE r.id = ?', input.text('revision'))
   insist(revision, 'revision_not_found', 404)
-  insist(actor.owner || (actor.roles.has('reviewer') && revision.reviewer_id === actor.id), 'named_reviewer_required', 403)
+  // ORG-003: the named reviewer holds the reviewer role, or, where the owner allows self-review, administers the
+  // course's unit. Deciding one's own submission needs that allowance (the owner's own is always allowed), and is recorded.
+  const named = revision.reviewer_id === actor.id && (actor.roles.has('reviewer') || (revision.self_review === 1 && actor.adminUnits.includes(revision.unit_id)))
+  insist(actor.owner || named, 'named_reviewer_required', 403)
+  const self = revision.submitted_by === actor.id ? 1 : 0
+  insist(!self || actor.owner || revision.self_review === 1, 'self_review_not_allowed', 403)
   insist(revision.state === 'in_review', 'revision_not_in_review', 409)
   const decision = input.text('decision')
   const note = input.text('note', { max: 2000, optional: true })
   if (decision === 'return') {
     insist(note, 'note_required')
-    await commit(env, [stmt(env, "UPDATE beam_course_revisions SET state = 'returned', reviewed_by = ?, reviewed_at = ?, review_note = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note, revision.id)], { actor: actor.id, action: 'revision.return', subject: revision.id, detail: { note } })
+    await commit(env, [stmt(env, "UPDATE beam_course_revisions SET state = 'returned', reviewed_by = ?, reviewed_at = ?, review_note = ?, self_reviewed = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note, self, revision.id)], { actor: actor.id, action: 'revision.return', subject: revision.id, detail: { note } })
     return { id: revision.id, state: 'returned' }
   }
   insist(decision === 'publish', 'invalid_decision')
@@ -181,20 +187,21 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
   const dueDays = input.integer('dueDays', { min: 1, max: 365, optional: true }) ?? 14
   await commit(env, [
     stmt(env, "UPDATE beam_course_revisions SET state = 'superseded' WHERE course_id = ? AND state = 'published'", revision.course_id),
-    stmt(env, "UPDATE beam_course_revisions SET state = 'published', reviewed_by = ?, reviewed_at = ?, review_note = ?, reassignment = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note || null, reassignment, revision.id),
+    stmt(env, "UPDATE beam_course_revisions SET state = 'published', reviewed_by = ?, reviewed_at = ?, review_note = ?, reassignment = ?, self_reviewed = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note || null, reassignment, self, revision.id),
     stmt(env, 'UPDATE beam_courses SET published_revision_id = ? WHERE id = ?', revision.id, revision.course_id),
-  ], { actor: actor.id, action: 'revision.publish', subject: revision.id, detail: { reassignment, previous: revision.published_revision_id } })
+  ], { actor: actor.id, action: 'revision.publish', subject: revision.id, detail: { reassignment, previous: revision.published_revision_id, selfReviewed: self === 1 } })
   const reassigned = revision.published_revision_id ? await reassignAfterPublish(env, actor, revision.course_id, revision.id, reassignment, dueDays) : 0
   return { id: revision.id, state: 'published', reassigned }
 }
 
-/** Every course, or only those in the given units (a learning administrator's catalog, ORG-002). */
-export async function listCourses(env: Bindings, units: string[] | null = null) {
-  const scope = units && JSON.stringify(units)
+/** Every course, or only those in the given units (a learning administrator's catalog, ORG-002) and the given
+ * courses (a course's own author, ORG-003). */
+export async function listCourses(env: Bindings, within: { units: string[]; courses?: string[] } | null = null) {
+  const units = within && JSON.stringify(within.units), courses = within && JSON.stringify(within.courses ?? [])
   return await all(env, `SELECT c.id, c.title, c.unit_id AS unit, c.reviewer_id AS reviewer, c.draft_version AS draftVersion, c.published_revision_id AS publishedRevision,
     (SELECT number FROM beam_course_revisions WHERE id = c.published_revision_id) AS publishedNumber,
     (SELECT COUNT(*) FROM beam_course_revisions WHERE course_id = c.id AND state = 'in_review') AS inReview
-    FROM beam_courses c WHERE (? IS NULL OR c.unit_id IN (SELECT value FROM json_each(?))) ORDER BY c.title`, scope, scope)
+    FROM beam_courses c WHERE (? IS NULL OR c.unit_id IN (SELECT value FROM json_each(?)) OR c.id IN (SELECT value FROM json_each(?))) ORDER BY c.title`, units, units, courses)
 }
 
 export async function revisionDetail(env: Bindings, id: string) {
@@ -208,8 +215,8 @@ export async function revisionDetail(env: Bindings, id: string) {
 export async function courseDetail(env: Bindings, actor: Actor, id: string) {
   await requireCourseRole(env, actor, id, 'author', 'reviewer', 'manager')
   const course = await loadCourse(env, id)
-  const revisions = await all(env, 'SELECT id, number, title, state, submitted_by AS submittedBy, submitted_at AS submittedAt, reviewed_by AS reviewedBy, reviewed_at AS reviewedAt, review_note AS reviewNote, reassignment FROM beam_course_revisions WHERE course_id = ? ORDER BY number DESC', id)
+  const revisions = await all(env, 'SELECT id, number, title, state, submitted_by AS submittedBy, submitted_at AS submittedAt, reviewed_by AS reviewedBy, reviewed_at AS reviewedAt, review_note AS reviewNote, reassignment, self_reviewed AS selfReviewed FROM beam_course_revisions WHERE course_id = ? ORDER BY number DESC', id)
   const notices = await all(env, 'SELECT n.*, s.title AS source_title, pv.number AS previous_number, nv.number AS new_number FROM beam_source_notices n JOIN beam_sources s ON s.id = n.source_id JOIN beam_source_versions pv ON pv.id = n.previous_version_id JOIN beam_source_versions nv ON nv.id = n.new_version_id WHERE n.course_id = ? ORDER BY n.created_at DESC', id)
   const proposals = await all(env, 'SELECT id, base_draft_version AS baseDraftVersion, input_version_ids AS inputs, prepared_by AS preparedBy, agent, summary, draft_json AS draft, passages_json AS passages, missing_json AS missing, state, decided_by AS decidedBy, created_at AS createdAt FROM beam_proposals WHERE course_id = ? ORDER BY created_at DESC', id)
-  return { id: course.id, title: course.title, unit: course.unit_id ?? null, reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft, publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
+  return { id: course.id, title: course.title, unit: course.unit_id ?? null, selfReview: course.self_review === 1, ...await courseAccess(env, id), reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft, publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
 }

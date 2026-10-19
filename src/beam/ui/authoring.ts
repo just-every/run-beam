@@ -14,6 +14,7 @@ import { sourceAcknowledgments } from './acknowledgments'
 import { agentName, area, backLink, bytes, card, checks, field, fileField, form, h, hidden, lessonText, page, rows, select, when } from './html'
 import { accessRule } from '../access'
 import { describeRule, windowForm } from './access'
+import { courseAccessCard } from './course-access'
 
 const LICENCES: Record<string, string> = { owned: 'owned', licensed: 'licensed to the business', permission: 'used with written permission' }
 const STATES: Record<string, string> = { draft: 'draft', in_review: 'in review', published: 'published', superseded: 'superseded', returned: 'returned' }
@@ -38,8 +39,8 @@ const staff = (actor: Actor) => actor.owner || ['author', 'reviewer', 'manager']
 
 export async function coursesPage(env: Bindings, actor: Actor, url: URL) {
   // A learning administrator sees and creates only their units' courses (ORG-002).
-  if (!staff(actor)) insist(actor.adminUnits.length, 'forbidden', 403)
-  const [courses, reviewers, units] = await Promise.all([listCourses(env, staff(actor) ? null : actor.adminUnits), membersWithRole(env, 'reviewer'), all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name')])
+  if (!staff(actor)) insist(actor.adminUnits.length || actor.authorOf.length, 'forbidden', 403)
+  const [courses, reviewers, units] = await Promise.all([listCourses(env, staff(actor) ? null : { units: actor.adminUnits, courses: actor.authorOf }), membersWithRole(env, 'reviewer'), all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name')])
   const author = actor.owner || actor.roles.has('author')
   const unitOptions = units.filter(unit => author || actor.adminUnits.includes(unit.id)).map(unit => ({ value: unit.id, label: unit.name }))
   const body = h`<h1>Courses</h1>${card('Course list', courses.length ? rows(courses.map(course => ({ title: course.title, meta: `${course.publishedNumber ? `published revision ${course.publishedNumber}` : 'not published'}${course.inReview ? ' · revision in review' : ''}`, href: `/app/courses/${course.id}` }))) : h`<p class="muted">No courses yet.</p>`)}
@@ -53,7 +54,7 @@ export async function coursePage(env: Bindings, actor: Actor, id: string, url: U
   const [sources, names, assessors, window, units] = await Promise.all([staff(actor) ? listSources(env, actor) : [], memberNames(env), membersWithRole(env, 'assessor'), accessRule(env, 'course', id), actor.owner ? all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name') : []])
   const zone = (await business(env))!.timezone
   const versions = sources.flatMap(source => source.versions.map((version: any) => ({ value: version.id, label: `${source.title} v${version.number}` })))
-  const author = actor.owner || actor.roles.has('author') || actor.adminUnits.includes(course.unit)
+  const author = actor.owner || actor.roles.has('author') || actor.adminUnits.includes(course.unit) || actor.authorOf.includes(id)
   const draft = course.draft
   const base = [hidden('course', id), hidden('draftVersion', course.draftVersion)]
   const back = `/app/courses/${id}`
@@ -67,19 +68,20 @@ ${course.proposals.filter((proposal: any) => proposal.state === 'open').map((pro
 <section class="card"><h2>Quiz</h2>${draft.questions.map((question, index) => h`<details><summary>${index + 1}. ${question.prompt}</summary>${author ? h`${questionForm(question)}${form('course.question.remove', back, [...base, hidden('question', question.id)], 'Remove question', { secondary: true })}` : ''}</details>`)}${author ? h`<h3>Add a question</h3>${questionForm()}` : ''}</section>
 ${author ? h`<section class="card"><h2>Assessment rules</h2>${form('course.assessment', back, [...base, field('Pass mark (%)', 'passPercent', { type: 'number', value: draft.passPercent ?? '', required: false }), field('Quiz attempts allowed', 'maxAttempts', { type: 'number', value: draft.maxAttempts ?? '', required: false }), field('Time limit in minutes (leave empty for none)', 'timeLimitMinutes', { type: 'number', value: draft.timeLimitMinutes ?? '', required: false }), area('Practical assessment instructions (leave empty for none)', 'practicalInstructions', draft.practical?.instructions ?? '', false), select('Named assessor', 'assessor', assessors.map(member => ({ value: member.id, label: member.name })), draft.practical?.assessor ?? '', { required: false, blank: 'None' })], 'Save rules')}</section>
 <section class="card"><h2>Send for review</h2><p>Freezes this draft as a new revision for ${names.get(course.reviewer)} to publish or return.</p>${form('course.submit', back, base, 'Submit for review')}</section>` : ''}
+${await courseAccessCard(env, actor, course, names, zone)}
 ${actor.owner && units.length ? card('Business unit', form('course.unit', back, [hidden('course', id), select('Business unit', 'unit', units.map(unit => ({ value: unit.id, label: unit.name })), course.unit ?? '', { required: false, blank: 'No unit' })], 'Save unit')) : ''}
 ${card('Access window', h`<p>${describeRule(window)} A path’s window, or one set on an assignment, takes precedence; each new assignment takes its window when it is created.</p>${actor.owner ? windowForm('access.rule', back, [hidden('scope', 'course'), hidden('target', id)], window, 'Save window') : ''}`)}
-${card('Revisions', course.revisions.length ? h`${rows(course.revisions.map((revision: any) => ({ title: h`<a href="/app/revisions/${revision.id}">Revision ${revision.number}</a>`, meta: `${state(revision.state)}, submitted ${when(revision.submittedAt, zone)} by ${names.get(revision.submittedBy)}${revision.reviewNote ? ` · note: ${revision.reviewNote}` : ''}`, aside: author ? form('course.restore', back, [...base, hidden('revision', revision.id)], 'Restore into draft', { secondary: true }) : '' })))}${course.revisions.length > 1 ? h`<h3>Compare revisions</h3>${compareForm(id, course.revisions)}` : ''}` : h`<p class="muted">No revisions yet.</p>`)}`
+${card('Revisions', course.revisions.length ? h`${rows(course.revisions.map((revision: any) => ({ title: h`<a href="/app/revisions/${revision.id}">Revision ${revision.number}</a>`, meta: `${state(revision.state)}, submitted ${when(revision.submittedAt, zone)} by ${names.get(revision.submittedBy)}${revision.reviewedBy ? ` · decided by ${names.get(revision.reviewedBy)}${revision.selfReviewed ? ' (self-reviewed)' : ''}` : ''}${revision.reviewNote ? ` · note: ${revision.reviewNote}` : ''}`, aside: author ? form('course.restore', back, [...base, hidden('revision', revision.id)], 'Restore into draft', { secondary: true }) : '' })))}${course.revisions.length > 1 ? h`<h3>Compare revisions</h3>${compareForm(id, course.revisions)}` : ''}` : h`<p class="muted">No revisions yet.</p>`)}`
   return page(course.title, actor, body, { current: '/app/courses', url })
 }
 
 export async function revisionPage(env: Bindings, actor: Actor, id: string, url: URL) {
-  if (!staff(actor)) insist(actor.adminUnits.length, 'forbidden', 403)
+  if (!staff(actor)) insist(actor.adminUnits.length || actor.authorOf.length, 'forbidden', 403)
   const detail = await revisionDetail(env, id)
   const course = await courseDetail(env, actor, detail.revision.course_id).catch(() => { throw new BeamError('not_found', 404) })
   const names = await memberNames(env)
   const reviewer = actor.owner || course.reviewer === actor.id
-  const body = h`${backLink(`/app/courses/${course.id}`, course.title)}<h1>${detail.revision.title} — revision ${detail.revision.number}</h1><p class="subtitle">${state(detail.revision.state)} · submitted by ${names.get(detail.revision.submitted_by)}</p>
+  const body = h`${backLink(`/app/courses/${course.id}`, course.title)}<h1>${detail.revision.title} — revision ${detail.revision.number}</h1><p class="subtitle">${state(detail.revision.state)} · submitted by ${names.get(detail.revision.submitted_by)}${detail.revision.reviewed_by ? ` · decided by ${names.get(detail.revision.reviewed_by)}${detail.revision.self_reviewed ? ' (self-reviewed)' : ''}` : ''}</p>
 ${detail.lessons.map(lesson => h`<section class="card"><h2>${lesson.position + 1}. ${lesson.title}</h2>${lessonText(lesson.body)}</section>`)}
 ${detail.assessment ? h`<section class="card"><h2>Assessment</h2>${detail.assessment.questions.length ? h`<p>Quiz: ${detail.assessment.questions.length} ${detail.assessment.questions.length === 1 ? 'question' : 'questions'}, pass at ${detail.assessment.pass_percent}%${detail.assessment.max_attempts ? `, ${detail.assessment.max_attempts} ${detail.assessment.max_attempts === 1 ? 'attempt' : 'attempts'}` : ''}${detail.assessment.time_limit_minutes ? `, ${detail.assessment.time_limit_minutes} minutes` : ''}.</p><ol>${detail.assessment.questions.map(question => h`<li>${question.prompt}<ul>${question.choices.map((choice, index) => h`<li>${choice}${question.correct.includes(index) ? ' ✓' : ''}</li>`)}</ul></li>`)}</ol>` : ''}${detail.assessment.practical_instructions ? h`<p>Practical, assessed by ${names.get(detail.assessment.assessor_id)}:</p>${lessonText(detail.assessment.practical_instructions)}` : ''}</section>` : ''}
 ${detail.revision.state === 'in_review' && reviewer ? h`<section class="card"><h2>Review</h2>${form('revision.decide', `/app/revisions/${id}`, [hidden('revision', id), hidden('decision', 'publish'), select('When published', 'reassignment', [{ value: 'none', label: 'Keep current assignments on their revision' }, { value: 'open', label: 'Move open assignments to this revision' }, { value: 'everyone', label: 'Also reassign everyone who completed an earlier revision' }]), field('Days to complete a reassignment', 'dueDays', { type: 'number', value: 14 }), area('Note', 'note', '', false)], 'Publish this revision')}${form('revision.decide', `/app/revisions/${id}`, [hidden('revision', id), hidden('decision', 'return'), area('What needs changing', 'note')], 'Return to author', { secondary: true })}<p class="muted">Earlier completions stay bound to the revision they were made against.</p></section>` : ''}`

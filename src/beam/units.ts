@@ -13,7 +13,7 @@ import { addDays, zonedInstant } from './time'
 /** SQL: the members of every team in the units listed by a JSON array parameter. */
 export const UNIT_MEMBERS = 'SELECT tm.member_id FROM beam_team_members tm JOIN beam_teams ut ON ut.id = tm.team_id WHERE ut.unit_id IN (SELECT value FROM json_each(?))'
 
-const outside = (actor: Actor) => actor.adminUnits.length ? 'outside_your_units' : 'forbidden'
+const outside = (actor: Actor) => actor.adminUnits.length ? 'outside_your_units' : actor.authorOf.length ? 'outside_your_courses' : 'forbidden'
 
 export async function learnerInUnits(env: Bindings, actor: Actor, learner: string) {
   return actor.adminUnits.length > 0 && !!await one(env, `SELECT 1 WHERE ? IN (${UNIT_MEMBERS})`, learner, JSON.stringify(actor.adminUnits))
@@ -23,9 +23,11 @@ async function courseInUnits(env: Bindings, actor: Actor, course: string) {
   return actor.adminUnits.length > 0 && !!await one(env, 'SELECT 1 FROM beam_courses WHERE id = ? AND unit_id IN (SELECT value FROM json_each(?))', course, JSON.stringify(actor.adminUnits))
 }
 
-/** The owner and the given roles reach every course; a learning administrator only their units' courses. */
+/** The owner and the given roles reach every course; a learning administrator only their units' courses, and a
+ * course's own author (ORG-003) only that course where authors are allowed. */
 export async function requireCourseRole(env: Bindings, actor: Actor, course: string, ...roles: Role[]) {
   if (actor.owner || roles.some(role => actor.roles.has(role))) return
+  if (roles.includes('author') && actor.authorOf.includes(course)) return
   insist(await courseInUnits(env, actor, course), outside(actor), 403)
 }
 

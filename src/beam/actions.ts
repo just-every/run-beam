@@ -20,6 +20,7 @@ import { recordOffline } from './records'
 import { resetAssignment } from './resets'
 import { grantAccommodation } from './timing'
 import { addSourceVersion, createSource } from './sources'
+import { replaceReviewer, setCourseAuthors, setSelfReview } from './course-access'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
 type Handler = (env: Bindings, actor: Actor, input: Input, request: Request) => Promise<unknown>
@@ -34,6 +35,9 @@ export const actions: Record<string, Handler> = {
   'unit.create': (env, actor, input) => createUnit(env, actor, input),
   'unit.teams': (env, actor, input) => setUnitTeams(env, actor, input),
   'course.unit': (env, actor, input) => setCourseUnit(env, actor, input),
+  'course.authors': (env, actor, input) => setCourseAuthors(env, actor, input),
+  'course.reviewer': (env, actor, input) => replaceReviewer(env, actor, input),
+  'course.selfreview': (env, actor, input) => setSelfReview(env, actor, input),
   'admin.grant': (env, actor, input) => grantAdministration(env, actor, input),
   'admin.revoke': (env, actor, input) => revokeAdministration(env, actor, input),
   'source.create': (env, actor, input) => createSource(env, actor, input),

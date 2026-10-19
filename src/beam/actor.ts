@@ -21,6 +21,8 @@ export interface Actor {
   roles: Set<Role>
   /** ORG-002: the business units this person administers under an active grant, read on every request. */
   adminUnits: string[]
+  /** ORG-003: the courses this person may author without the author role. */
+  authorOf: string[]
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
   shell?: { people: number; waiting: number; now: number; zone: string }
 }
@@ -38,7 +40,8 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   if (owner) ROLES.forEach(role => roles.add(role))
   // An agent credential never carries administration; the owner already holds every authority.
   const adminUnits = agent || owner ? [] : (await all<{ unit_id: string }>(env, 'SELECT DISTINCT unit_id FROM beam_admin_grants WHERE member_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) ORDER BY unit_id', member.id, now())).map(row => row.unit_id)
-  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits }
+  const authorOf = (await all<{ course_id: string }>(env, 'SELECT course_id FROM beam_course_authors WHERE member_id = ? ORDER BY course_id', member.id)).map(row => row.course_id)
+  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf }
 }
 
 export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {
