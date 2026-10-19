@@ -176,9 +176,8 @@ export async function questionBankCheck(f) {
 
   // The survey: optional, nameless, once per assignment, never a completion; results only from three answers, staff only.
   const learners = [['learner', assignment]]
-  for (const name of ['surveyone', 'surveytwo']) {
-    ids[name] = (await api('owner', 'person.invite', { email: `${name}@example.test`, name, roles: ['learner'] })).id
-    cookies[name] = await h.signIn(`${name}@example.test`, { requested: true })
+  // Two more of the fixture's people take the course (inviting new people would spend the invitation rate limit).
+  for (const name of ['author', 'other']) {
     const [own] = (await api('owner', 'assignment.create', { course: c.id, learners: [ids[name]], dueDate: '2030-10-01' })).created
     assert.equal((await api(name, 'survey.answer', { assignment: own, [`s_${published.questions[0].id}`]: '5' }, 409)).error, 'lessons_incomplete')
     for (const lesson of (await api(name, `assignments/${own}`)).lessons) await api(name, 'lesson.complete', { assignment: own, lesson: lesson.id })
@@ -193,7 +192,7 @@ export async function questionBankCheck(f) {
   assert.equal((await api('learner', 'survey.answer', { assignment, [`s_${rating.id}`]: '1' }, 409)).error, 'already_responded')
   const results = await api('author', `revisions/${revision}/survey`)
   assert.deepEqual([results.hidden, results.answers, results.questions[0].ratings, results.questions[1].texts.length], [null, 3, [0, 0, 1, 1, 1], 3])
-  assert.ok(!JSON.stringify(results).includes(ids.learner) && !JSON.stringify(results).includes('surveyone'))
+  assert.ok(![ids.learner, ids.author, ids.other].some(id => JSON.stringify(results).includes(id)))
   for (const [name, own] of learners.slice(1)) {
     const view = await api(name, `assignments/${own}`)
     assert.deepEqual([view.survey.answered, view.assignment.status, view.completion], [true, 'open', null])
