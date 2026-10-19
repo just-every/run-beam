@@ -11,6 +11,7 @@ import { DAY, addDays, localDate, validTimezone, zonedInstant } from './time'
 import { requireCourseRole } from './units'
 import { inScope, permits, requireLearnerScope, requireTeamScope, teamScope } from './scope'
 import { followOn } from './automation'
+import { computeDues, dueRules, DUE_TIME, type Anchor } from './due-rules'
 
 export interface NewAssignment {
   learner: string
@@ -24,6 +25,9 @@ export interface NewAssignment {
   renewalDays?: number | null
   /** A moved assignment keeps its window; otherwise the path's or course's rule sets it at enrolment (AUTO-009). */
   access?: Window
+  /** AUTO-003: the path rule a prerequisite completion re-applies. */
+  dueAnchor?: Anchor
+  dueDays?: number
 }
 
 /** Inserts assignments bound to each course's published revision; an open one for the same learner and course is kept.
@@ -40,7 +44,7 @@ export async function insertAssignments(env: Bindings, actor: Actor, items: NewA
     const id = newId(), at = now()
     const window = item.access ?? await enrolmentWindow(env, item.course, item.pathRevision, at)
     const [result] = await env.DB.batch([
-      stmt(env, "INSERT OR IGNORE INTO beam_assignments (id, learner_id, course_id, course_revision_id, path_revision_id, prerequisite_course_id, renewal_days, due_date, due_time, timezone, due_at, status, reason, assigned_by, assigned_at, access_opens_at, access_closes_at, access_rule) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)", id, item.learner, item.course, course.published_revision_id, item.pathRevision ?? null, item.prerequisite ?? null, item.renewalDays ?? null, item.dueDate, item.dueTime, item.timezone, dueAt, item.reason, actor.id, at, window.opensAt, window.closesAt, window.rule),
+      stmt(env, "INSERT OR IGNORE INTO beam_assignments (id, learner_id, course_id, course_revision_id, path_revision_id, prerequisite_course_id, renewal_days, due_date, due_time, timezone, due_at, status, reason, assigned_by, assigned_at, access_opens_at, access_closes_at, access_rule, due_anchor, due_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?)", id, item.learner, item.course, course.published_revision_id, item.pathRevision ?? null, item.prerequisite ?? null, item.renewalDays ?? null, item.dueDate, item.dueTime, item.timezone, dueAt, item.reason, actor.id, at, window.opensAt, window.closesAt, window.rule, item.dueAnchor ?? null, item.dueDays ?? null),
       stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, id, JSON.stringify(item)),
     ])
     ;(result.meta.changes === 1 ? created : kept).push(result.meta.changes === 1 ? id : `${item.learner}:${item.course}`)
@@ -97,13 +101,14 @@ export async function revisePath(env: Bindings, actor: Actor, input: Input) {
   const prerequisites = input.list('prerequisites', { keepEmpty: true })
   const dueDays = input.list('dueDays', { keepEmpty: true })
   const renewalDays = input.list('renewalDays', { keepEmpty: true })
-  const requirements = courses.map((course, index) => ({ course, prerequisite: prerequisites[index] || null, dueDays: dueDays[index] ?? '', renewalDays: renewalDays[index] || null })).filter(requirement => requirement.course)
+  const rule = dueRules(input)
+  const requirements = courses.map((course, index) => ({ course, prerequisite: prerequisites[index] || null, dueDays: dueDays[index] ?? '', renewalDays: renewalDays[index] || null, ...rule(index, prerequisites[index] || null) })).filter(requirement => requirement.course)
   insist(requirements.length > 0, 'requirements_required')
   const included = new Set(requirements.map(requirement => requirement.course))
   insist(included.size === requirements.length, 'duplicate_requirement')
   for (const requirement of requirements) {
     insist(await one(env, 'SELECT 1 FROM beam_courses WHERE id = ?', requirement.course), 'course_not_found', 404)
-    insist(/^\d{1,3}$/.test(requirement.dueDays) && Number(requirement.dueDays) >= 1, 'invalid_due_days')
+    insist(requirement.anchor === 'fixed' || (/^\d{1,3}$/.test(requirement.dueDays) && Number(requirement.dueDays) >= 1), 'invalid_due_days')
     insist(requirement.renewalDays === null || (/^\d{1,4}$/.test(requirement.renewalDays) && Number(requirement.renewalDays) >= 1), 'invalid_renewal_days')
     insist(requirement.prerequisite === null || (requirement.prerequisite !== requirement.course && included.has(requirement.prerequisite)), 'invalid_prerequisite')
   }
@@ -111,22 +116,34 @@ export async function revisePath(env: Bindings, actor: Actor, input: Input) {
   const id = newId(), number = (latest?.number ?? 0) + 1
   await commit(env, [
     stmt(env, 'INSERT INTO beam_path_revisions (id, path_id, number, created_by, created_at) VALUES (?, ?, ?, ?, ?)', id, path.id, number, actor.id, now()),
-    ...requirements.map((requirement, position) => stmt(env, 'INSERT INTO beam_path_requirements (path_revision_id, position, course_id, prerequisite_course_id, due_days, renewal_days) VALUES (?, ?, ?, ?, ?, ?)', id, position, requirement.course, requirement.prerequisite, Number(requirement.dueDays), requirement.renewalDays === null ? null : Number(requirement.renewalDays))),
+    ...requirements.map((requirement, position) => stmt(env, 'INSERT INTO beam_path_requirements (path_revision_id, position, course_id, prerequisite_course_id, due_days, renewal_days, due_anchor, due_on) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, position, requirement.course, requirement.prerequisite, requirement.anchor === 'fixed' ? 0 : Number(requirement.dueDays), requirement.renewalDays === null ? null : Number(requirement.renewalDays), requirement.anchor, requirement.dueOn)),
     stmt(env, 'UPDATE beam_paths SET current_revision_id = ? WHERE id = ?', id, path.id),
   ], { actor, action: 'path.revise', subject: path.id, detail: { number, requirements } })
   return { id, number }
 }
 
-export async function assignPath(env: Bindings, actor: Actor, input: Input) {
+async function pathDues(env: Bindings, actor: Actor, input: Input) {
   requireRole(actor, 'manager')
-  const business = await requireBusiness(env)
   const path = await one(env, 'SELECT * FROM beam_paths WHERE id = ?', input.text('path'))
   insist(path?.current_revision_id, 'path_not_ready', 409)
   requireTeamScope(actor, path.team_id)
-  const requirements = await all(env, 'SELECT * FROM beam_path_requirements WHERE path_revision_id = ? ORDER BY position', path.current_revision_id)
   const learners = (await all<{ member_id: string }>(env, 'SELECT member_id FROM beam_team_members WHERE team_id = ?', path.team_id)).map(row => row.member_id)
-  const today = localDate(now(), business.timezone)
-  return await insertAssignments(env, actor, learners.flatMap(learner => requirements.map(requirement => ({ learner, course: requirement.course_id, dueDate: addDays(today, requirement.due_days), dueTime: '17:00', timezone: business.timezone, reason: 'path', pathRevision: path.current_revision_id, prerequisite: requirement.prerequisite_course_id, renewalDays: requirement.renewal_days }))), 'assignment.path')
+  return { path, ...await computeDues(env, path.current_revision_id, learners) }
+}
+
+/** AUTO-003: the due dates assigning the path now would set, for every member of its team; nothing is written. */
+export async function previewPath(env: Bindings, actor: Actor, input: Input) {
+  const { path, dues } = await pathDues(env, actor, input)
+  return { path: path.id, revision: path.current_revision_id, dues }
+}
+
+export async function assignPath(env: Bindings, actor: Actor, input: Input) {
+  const { path, requirements, dues } = await pathDues(env, actor, input)
+  const items = dues.filter(due => due.dueDate).map(due => {
+    const requirement = requirements.find(item => item.course_id === due.course)!
+    return { learner: due.learner, course: due.course, dueDate: due.dueDate!, dueTime: DUE_TIME, timezone: due.timezone, reason: 'path', pathRevision: path.current_revision_id, prerequisite: requirement.prerequisite_course_id, renewalDays: requirement.renewal_days, dueAnchor: requirement.due_anchor, dueDays: requirement.due_days }
+  })
+  return { ...await insertAssignments(env, actor, items, 'assignment.path'), skipped: dues.filter(due => due.skipped).map(due => ({ learner: due.learner, course: due.course, reason: due.skipped })) }
 }
 
 /** Role paths of the teams this person manages (all of them for the owner). */
@@ -134,7 +151,7 @@ export async function listPaths(env: Bindings, actor: Actor) {
   const teams = teamScope(actor)
   const paths = await all(env, 'SELECT p.id, p.name, p.team_id AS team, p.current_revision_id AS revision, r.number FROM beam_paths p LEFT JOIN beam_path_revisions r ON r.id = p.current_revision_id WHERE (? IS NULL OR p.team_id IN (SELECT value FROM json_each(?))) ORDER BY p.name', teams, teams)
   for (const path of paths) path.access = await accessRule(env, 'path', path.id)
-  for (const path of paths) path.requirements = path.revision ? await all(env, 'SELECT course_id AS course, prerequisite_course_id AS prerequisite, due_days AS dueDays, renewal_days AS renewalDays FROM beam_path_requirements WHERE path_revision_id = ? ORDER BY position', path.revision) : []
+  for (const path of paths) path.requirements = path.revision ? await all(env, 'SELECT course_id AS course, prerequisite_course_id AS prerequisite, due_days AS dueDays, renewal_days AS renewalDays, due_anchor AS dueAnchor, due_on AS dueOn FROM beam_path_requirements WHERE path_revision_id = ? ORDER BY position', path.revision) : []
   return paths
 }
 

@@ -8,9 +8,9 @@ Every assignment names the course revision that was published when it was made.
 
 ## Role paths
 
-A role path lists the courses a team needs, in order. Open **Paths**, use **New path** to name it and pick its team, then **Edit requirements**: for each course, choose an optional **Prerequisite**, the **Days to complete** and how often to **Renew every (days)**. **Save as new revision** keeps earlier assignments on the path revision they came from.
+A role path lists the courses a team needs, in order. Open **Paths**, use **New path** to name it and pick its team, then **Edit requirements**: for each course, choose an optional **Prerequisite**, when it is **Due** (a number of days after enrollment, the person's hire date, their transfer date or completing the prerequisite, or on a fixed date) and how often to **Renew every (days)**. **Save as new revision** keeps earlier assignments on the path revision they came from, with their dates.
 
-**Assign to the team** gives every member of the team the path's courses. A course behind a prerequisite stays locked until the prerequisite is complete.
+**Due dates if assigned now** lists every member's dates before anything is assigned. Dates are due at 5 pm in the person's own time zone (their directory **Time zone**, otherwise the business's), so a daylight-saving change never moves the local hour. **Assign to the team** gives every member of the team the path's courses; someone without the hire or transfer date a course is due after is left out and named. A course behind a prerequisite stays locked until the prerequisite is complete; when it is, the course becomes due its days after that completion.
 
 ## The queues
 

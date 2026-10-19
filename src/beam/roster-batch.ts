@@ -82,7 +82,7 @@ async function plan(env: Bindings, actor: Actor, context: Context, cells: string
     if (values.employment === 'terminated') errors.push('not_employed')
     return { ...base, action: errors.length ? 'error' : 'create', errors, invite: !errors.length && context.invite && !!values.email, changes: [] }
   }
-  const current: Record<string, unknown> = { employeeId: target.employee_id, name: target.name, email: target.email, mobile: target.mobile, employment: target.employment, hireDate: target.hire_date, transferDate: target.transfer_date, preferredName: target.preferred_name, language: target.language, jobRole: target.job_role, department: target.department, location: target.location }
+  const current: Record<string, unknown> = { employeeId: target.employee_id, name: target.name, email: target.email, mobile: target.mobile, employment: target.employment, hireDate: target.hire_date, transferDate: target.transfer_date, preferredName: target.preferred_name, language: target.language, jobRole: target.job_role, department: target.department, location: target.location, timeZone: target.time_zone }
   const stored = JSON.parse(target.custom_json) as Record<string, string>
   const changes = Object.entries(values).filter(([name, value]) => name !== 'custom' && value !== current[name]).map(([name]) => name)
   for (const [field, value] of Object.entries(values.custom ?? {})) if ((stored[field] ?? null) !== value) changes.push(`custom:${field}`)

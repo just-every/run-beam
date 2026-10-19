@@ -7,7 +7,7 @@ import { extendAccess, setAccessRule, setAssignmentWindow } from './access'
 import { decideAcknowledgment, requestAcknowledgments } from './acknowledgments'
 import { decide, propose } from './agent-work'
 import { answerSurvey } from './survey'
-import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
+import { assignCourse, assignPath, assignRenewals, previewPath, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
 import { previewRule, replayRule, saveRule, setRuleState } from './automation'
@@ -159,6 +159,7 @@ export const actions: Record<string, Handler> = {
   'path.create': (env, actor, input) => createPath(env, actor, input),
   'path.revise': (env, actor, input) => revisePath(env, actor, input),
   'path.assign': (env, actor, input) => assignPath(env, actor, input),
+  'path.preview': (env, actor, input) => previewPath(env, actor, input),
   'assignment.create': (env, actor, input) => assignCourse(env, actor, input),
   'assignment.cancel': (env, actor, input) => cancelAssignment(env, actor, input),
   'assignment.renewals': (env, actor, input) => assignRenewals(env, actor, input),

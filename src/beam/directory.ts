@@ -11,19 +11,19 @@ import { requireOwner, type Actor } from './actor'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
-import { localDate } from './time'
+import { localDate, validTimezone } from './time'
 
 export const EMPLOYMENT = ['active', 'leave', 'terminated'] as const
 type Employment = typeof EMPLOYMENT[number]
 /** The fields a manager reads for people in their own teams. */
 const MANAGER_FIELDS = ['employeeId', 'name', 'preferredName', 'email', 'language', 'employment', 'manager', 'jobRole', 'department', 'location'] as const
-const TEXT_FIELDS = { preferredName: 'preferred_name', mobile: 'mobile', language: 'language', jobRole: 'job_role', department: 'department', location: 'location' } as const
+const TEXT_FIELDS = { preferredName: 'preferred_name', mobile: 'mobile', language: 'language', jobRole: 'job_role', department: 'department', location: 'location', timeZone: 'time_zone' } as const
 type TextField = keyof typeof TEXT_FIELDS
-const LABELS: Record<string, string> = { employeeId: 'employee id', name: 'name', preferredName: 'preferred name', email: 'work email', mobile: 'mobile number', language: 'preferred language', employment: 'employment state', manager: 'manager', jobRole: 'role', department: 'department', location: 'location', hireDate: 'hire date', transferDate: 'transfer date' }
+const LABELS: Record<string, string> = { employeeId: 'employee id', name: 'name', preferredName: 'preferred name', email: 'work email', mobile: 'mobile number', language: 'preferred language', employment: 'employment state', manager: 'manager', jobRole: 'role', department: 'department', location: 'location', hireDate: 'hire date', transferDate: 'transfer date', timeZone: 'time zone' }
 
-export interface Person { id: string; name: string; email: string | null; operator_id: string | null; employee_id: string | null; preferred_name: string | null; mobile: string | null; language: string | null; employment: Employment; manager_id: string | null; job_role: string | null; department: string | null; location: string | null; hire_date: string | null; transfer_date: string | null; custom_json: string; username: string | null }
+export interface Person { id: string; name: string; email: string | null; operator_id: string | null; employee_id: string | null; preferred_name: string | null; mobile: string | null; language: string | null; employment: Employment; manager_id: string | null; job_role: string | null; department: string | null; location: string | null; hire_date: string | null; transfer_date: string | null; custom_json: string; username: string | null; time_zone: string | null }
 /** One person's directory values, as an edit or a roster row gives them; absent keys stay as they are. */
-export interface Values { employeeId?: string | null; name?: string; email?: string | null; mobile?: string | null; employment?: Employment; manager?: string | null; hireDate?: string | null; transferDate?: string | null; custom?: Record<string, string | null>; preferredName?: string | null; language?: string | null; jobRole?: string | null; department?: string | null; location?: string | null }
+export interface Values { employeeId?: string | null; name?: string; email?: string | null; mobile?: string | null; employment?: Employment; manager?: string | null; hireDate?: string | null; transferDate?: string | null; custom?: Record<string, string | null>; preferredName?: string | null; language?: string | null; jobRole?: string | null; department?: string | null; location?: string | null; timeZone?: string | null }
 
 export async function directoryFields(env: Bindings) {
   return await all<{ id: string; label: string; managersRead: number }>(env, 'SELECT id, label, managers_read AS managersRead FROM beam_directory_fields ORDER BY label')
@@ -70,7 +70,7 @@ export async function personDirectory(env: Bindings, actor: Actor, memberId: str
   const record: Row = {
     id: person.id, employeeId: person.employee_id, name: person.name, preferredName: person.preferred_name, email: person.email, mobile: person.mobile, language: person.language,
     employment: person.employment, manager: manager && { id: manager.id, name: manager.name, employeeId: manager.employee_id }, jobRole: person.job_role, department: person.department,
-    location: person.location, hireDate: person.hire_date, transferDate: person.transfer_date, username: person.username,
+    location: person.location, hireDate: person.hire_date, transferDate: person.transfer_date, username: person.username, timeZone: person.time_zone,
     custom: fields.filter(field => access === 'full' || field.managersRead).map(field => ({ id: field.id, label: field.label, value: custom[field.id] ?? null })),
   }
   if (access === 'manager') for (const key of Object.keys(record)) if (!['id', 'custom', ...MANAGER_FIELDS].includes(key)) delete record[key]
@@ -119,6 +119,7 @@ export function check(values: Values) {
   if (values.employment !== undefined) insist((EMPLOYMENT as readonly string[]).includes(values.employment), 'invalid_employment')
   if (values.hireDate) insist(validDate(values.hireDate), 'invalid_hire_date')
   if (values.transferDate) insist(validDate(values.transferDate), 'invalid_transfer_date')
+  if (values.timeZone) insist(validTimezone(values.timeZone), 'invalid_timezone')
   if (values.mobile) insist(/^\+?[0-9 ().-]{7,30}$/.test(values.mobile) && values.mobile.replace(/\D/g, '').length >= 7, 'invalid_mobile')
   if (values.employeeId !== undefined && values.employeeId !== null) insist(/^[\w.-]{1,40}$/.test(values.employeeId), 'invalid_employee_id')
 }
@@ -135,7 +136,7 @@ export async function applyValues(env: Bindings, request: Request, actor: Actor,
     insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', values.manager), 'manager_not_found', 404)
   }
   if (values.email) insist(!await one(env, 'SELECT 1 FROM beam_members WHERE email = ? AND id <> ?', values.email, person.id), 'email_in_use', 409, { email: values.email })
-  const current: Record<string, unknown> = { employeeId: person.employee_id, name: person.name, email: person.email, mobile: person.mobile, employment: person.employment, manager: person.manager_id, hireDate: person.hire_date, transferDate: person.transfer_date, preferredName: person.preferred_name, language: person.language, jobRole: person.job_role, department: person.department, location: person.location }
+  const current: Record<string, unknown> = { employeeId: person.employee_id, name: person.name, email: person.email, mobile: person.mobile, employment: person.employment, manager: person.manager_id, hireDate: person.hire_date, transferDate: person.transfer_date, preferredName: person.preferred_name, language: person.language, jobRole: person.job_role, department: person.department, location: person.location, timeZone: person.time_zone }
   if (values.transferDate === undefined && (['jobRole', 'department', 'location'] as const).some(key => values[key] !== undefined && current[key] !== null && values[key] !== current[key]))
     values.transferDate = localDate(now(), (await requireBusiness(env)).timezone)
   const changed = Object.keys(values).filter(key => key !== 'custom' && (values as Record<string, unknown>)[key] !== current[key])
@@ -144,8 +145,8 @@ export async function applyValues(env: Bindings, request: Request, actor: Actor,
   for (const [id, value] of Object.entries(values.custom ?? {})) if (value === null) delete custom[id]; else custom[id] = value
   if (!changed.length && !customChanged.length) return { id: person.id, action: null, changed: [] as string[], customFields: [] as string[] }
   const next = { ...current, ...values } as Record<string, any>
-  const statements = [stmt(env, `UPDATE beam_members SET employee_id = ?, name = ?, email = ?, mobile = ?, employment = ?, manager_id = ?, hire_date = ?, transfer_date = ?, preferred_name = ?, language = ?, job_role = ?, department = ?, location = ?, custom_json = ? WHERE id = ?`,
-    next.employeeId, next.name, next.email, next.mobile, next.employment, next.manager, next.hireDate, next.transferDate, next.preferredName, next.language, next.jobRole, next.department, next.location, JSON.stringify(custom), person.id)]
+  const statements = [stmt(env, `UPDATE beam_members SET employee_id = ?, name = ?, email = ?, mobile = ?, employment = ?, manager_id = ?, hire_date = ?, transfer_date = ?, preferred_name = ?, language = ?, job_role = ?, department = ?, location = ?, time_zone = ?, custom_json = ? WHERE id = ?`,
+    next.employeeId, next.name, next.email, next.mobile, next.employment, next.manager, next.hireDate, next.transferDate, next.preferredName, next.language, next.jobRole, next.department, next.location, next.timeZone, JSON.stringify(custom), person.id)]
   // Field names only, plus the employee id, the email and the employment move: never a mobile number or custom value.
   const detail: Row = { employeeId: next.employeeId, fields: changed.map(key => LABELS[key]), customFields: customChanged }
   if (changed.includes('email')) detail.email = { from: person.email, to: next.email }
@@ -186,7 +187,7 @@ export function parseCsv(text: string): string[][] {
 /** Roster columns (header names, any case and spacing); custom fields are columns named by their label. */
 export const COLUMNS: Record<string, keyof Values | 'managerEmployeeId' | 'team' | 'username'> = {
   employeeid: 'employeeId', name: 'name', preferredname: 'preferredName', email: 'email', workemail: 'email', mobile: 'mobile', mobilenumber: 'mobile', language: 'language', preferredlanguage: 'language',
-  employment: 'employment', employmentstate: 'employment', status: 'employment', manageremployeeid: 'managerEmployeeId', role: 'jobRole', jobrole: 'jobRole', department: 'department', location: 'location', hiredate: 'hireDate', transferdate: 'transferDate', team: 'team', username: 'username', login: 'username',
+  employment: 'employment', employmentstate: 'employment', status: 'employment', manageremployeeid: 'managerEmployeeId', role: 'jobRole', jobrole: 'jobRole', department: 'department', location: 'location', hiredate: 'hireDate', transferdate: 'transferDate', timezone: 'timeZone', team: 'team', username: 'username', login: 'username',
 }
 export const key = (header: string) => header.toLowerCase().replace(/[^a-z]/g, '')
 

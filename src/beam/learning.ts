@@ -20,6 +20,7 @@ import { sharesFile } from './auditors'
 import { dueExceptions } from './assignments'
 import { assignmentExceptions } from './exceptions'
 import { followOn } from './automation'
+import { prerequisiteCompleted } from './due-rules'
 import { surveyState } from './survey'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
@@ -390,6 +391,7 @@ export async function recordCompletion(env: Bindings, actor: Actor, item: { assi
     // LEARN-002: the certificate keeps the template its course names now.
     stmt(env, 'INSERT INTO beam_certificates (id, completion_id, number, issuer, issued_at, expires_at, template_id) VALUES (?, ?, ?, ?, ?, ?, (SELECT certificate_template_id FROM beam_courses WHERE id = ?))', certificate.id, id, certificate.number, business.name, now(), expires, item.course),
   ], { actor, action: 'completion.record', subject: id, detail: { ...item, certificate: certificate.number } })
+  await prerequisiteCompleted(env, item.learner, item.course, at, actor.id)
   await followOn(env, 'completion', { completion: id })
   return { id, certificate: certificate.id, expiresAt: expires }
 }

@@ -29,7 +29,7 @@ export async function directoryCard(env: Bindings, actor: Actor, memberId: strin
   let view: Awaited<ReturnType<typeof personDirectory>>
   try { view = await personDirectory(env, actor, memberId) } catch { return '' }
   const person = view.person as Record<string, any>
-  const items: [string, unknown][] = [['Employee ID', person.employeeId], ['Preferred name', person.preferredName], ['Work email', person.email], ['Mobile', person.mobile], ['Preferred language', person.language], ['Employment', person.employment && EMPLOYMENT_LABELS[person.employment]], ['Manager', person.manager?.name], ['Role', person.jobRole], ['Department', person.department], ['Location', person.location], ['Hire date', person.hireDate], ['Transfer date', person.transferDate], ['Username', person.username],
+  const items: [string, unknown][] = [['Employee ID', person.employeeId], ['Preferred name', person.preferredName], ['Work email', person.email], ['Mobile', person.mobile], ['Preferred language', person.language], ['Employment', person.employment && EMPLOYMENT_LABELS[person.employment]], ['Manager', person.manager?.name], ['Role', person.jobRole], ['Department', person.department], ['Location', person.location], ['Hire date', person.hireDate], ['Transfer date', person.transferDate], ['Username', person.username], ['Time zone', person.timeZone],
     ...(person.custom as { label: string; value: string | null }[]).map(item => [item.label, item.value] as [string, unknown])]
   const shown = items.filter(([label]) => label === 'Manager' ? 'manager' in person : label in LABEL_KEYS ? LABEL_KEYS[label] in person : true)
   const signIn = 'signIn' in view && view.signIn && !view.signIn.matches ? h`<p class="muted">Signs in as ${view.signIn.email}. Only they can change their sign-in email, after verifying the new address in their account settings.</p>` : ''
@@ -38,7 +38,7 @@ export async function directoryCard(env: Bindings, actor: Actor, memberId: strin
   return card('Directory', h`<dl class="facts">${shown.map(([label, value]) => h`<dt>${label}</dt><dd>${show(value)}</dd>`)}</dl>${signIn}${editor}${history}`)
 }
 
-const LABEL_KEYS: Record<string, string> = { 'Employee ID': 'employeeId', 'Preferred name': 'preferredName', 'Work email': 'email', Mobile: 'mobile', 'Preferred language': 'language', Employment: 'employment', Role: 'jobRole', Department: 'department', Location: 'location', 'Hire date': 'hireDate', 'Transfer date': 'transferDate', Username: 'username' }
+const LABEL_KEYS: Record<string, string> = { 'Employee ID': 'employeeId', 'Preferred name': 'preferredName', 'Work email': 'email', Mobile: 'mobile', 'Preferred language': 'language', Employment: 'employment', Role: 'jobRole', Department: 'department', Location: 'location', 'Hire date': 'hireDate', 'Transfer date': 'transferDate', Username: 'username', 'Time zone': 'timeZone' }
 
 function describe(event: { action: string; detail: Record<string, any> }) {
   const detail = event.detail
@@ -58,6 +58,6 @@ async function editForm(env: Bindings, memberId: string, person: Record<string, 
   const text = (label: string, name: string, value: unknown, type = 'text') => h`${hidden(`${name}Sent`, 'yes')}${field(label, name, { value: value ?? '', required: false, type })}`
   return h`<details><summary>Edit directory</summary>${form('person.directory', `/app/records/${memberId}`, [hidden('member', memberId), field('Name', 'name', { value: person.name }), text('Employee ID', 'employeeId', person.employeeId), text('Preferred name', 'preferredName', person.preferredName), text('Work email', 'email', person.email, 'email'), text('Mobile number', 'mobile', person.mobile, 'tel'), text('Preferred language', 'language', person.language),
     select('Employment', 'employment', EMPLOYMENT.map(value => ({ value, label: EMPLOYMENT_LABELS[value] })), person.employment), hidden('managerSent', 'yes'), select('Manager', 'manager', everyone.map(row => ({ value: row.id, label: row.name })), person.manager?.id ?? '', { required: false, blank: 'None' }),
-    text('Role', 'jobRole', person.jobRole), text('Department', 'department', person.department), text('Location', 'location', person.location), text('Hire date', 'hireDate', person.hireDate, 'date'), text('Transfer date', 'transferDate', person.transferDate, 'date'),
+    text('Role', 'jobRole', person.jobRole), text('Department', 'department', person.department), text('Location', 'location', person.location), text('Hire date', 'hireDate', person.hireDate, 'date'), text('Transfer date', 'transferDate', person.transferDate, 'date'), text('Time zone (IANA, e.g. America/Chicago)', 'timeZone', person.timeZone),
     ...fields.map(item => text(item.label, `custom_${item.id}`, (person.custom as { id: string; value: string | null }[]).find(entry => entry.id === item.id)?.value))], 'Save directory')}</details>`
 }

@@ -5,6 +5,7 @@ import { ROLES, isManager, requireOwner, requireRole, type Actor } from '../acto
 import { listPaths } from '../assignments'
 import { listCourses } from '../courses'
 import { all } from '../core'
+import { computeDues } from '../due-rules'
 import { attemptDetail } from '../learning'
 import { business, memberNames, people } from '../people'
 import { queues } from '../records'
@@ -25,6 +26,10 @@ import { EMPLOYMENT_LABELS, directoryCards } from './directory'
 const ROLE_LABELS: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
 const roleOptions = ROLES.map(role => ({ value: role, label: ROLE_LABELS[role] }))
 const days = (value: number | string) => `${value} ${Number(value) === 1 ? 'day' : 'days'}`
+
+const ANCHOR_OPTIONS = [{ value: 'enrollment', label: 'Days after enrollment' }, { value: 'hire', label: 'Days after the hire date' }, { value: 'transfer', label: 'Days after the transfer date' }, { value: 'prerequisite', label: 'Days after completing the prerequisite' }, { value: 'fixed', label: 'On a fixed date' }]
+const SKIPPED: Record<string, string> = { no_hire_date: 'no hire date in the directory', no_transfer_date: 'no transfer date in the directory' }
+const ANCHOR_TEXT: Record<string, string> = { enrollment: 'enrollment', hire: 'the hire date', transfer: 'the transfer date', prerequisite: 'completing the prerequisite' }
 
 export async function businessPage(env: Bindings, actor: Actor, url: URL) {
   requireOwner(actor)
@@ -78,11 +83,18 @@ export async function pathsPage(env: Bindings, actor: Actor, url: URL) {
   // A retired course stays named on the paths that hold it but is not offered for new requirements (AUTHOR-005).
   const courseOptions = courses.filter(course => !course.retiredAt).map(course => ({ value: course.id, label: course.title }))
   const title = (id: string | null) => courses.find(course => course.id === id)?.title ?? ''
-  const requirementRows = (path: any) => [...path.requirements, ...Array(3).fill({ course: '', prerequisite: '', dueDays: 14, renewalDays: '' })].map((requirement: any, index: number) => h`<fieldset><legend>Requirement ${index + 1}</legend>${select('Course', 'courses', courseOptions, requirement.course, { required: false, blank: '—' })}${select('Prerequisite', 'prerequisites', courseOptions, requirement.prerequisite ?? '', { required: false, blank: 'None' })}${field('Days to complete', 'dueDays', { type: 'number', value: requirement.dueDays, required: false })}${field('Renew every (days)', 'renewalDays', { type: 'number', value: requirement.renewalDays ?? '', required: false })}</fieldset>`)
+  // AUTO-003: the due dates assigning each path now would set, computed without writing anything.
+  const previews = new Map<string, unknown>()
+  for (const path of paths.filter(item => item.revision)) {
+    const members = (await all<{ member_id: string }>(env, 'SELECT member_id FROM beam_team_members WHERE team_id = ?', path.team)).map(row => row.member_id)
+    const { dues } = await computeDues(env, path.revision, members)
+    previews.set(path.id, dues.length ? h`<details><summary>Due dates if assigned now</summary>${rows(dues.slice(0, 300).map(due => ({ title: `${due.name}: ${title(due.course)}`, meta: due.dueAt ? `due ${when(due.dueAt, due.timezone, due.timezone)} (${due.timezone})` : `not assigned: ${SKIPPED[due.skipped!] ?? due.skipped}` })))}</details>` : '')
+  }
+  const requirementRows = (path: any) => [...path.requirements, ...Array(3).fill({ course: '', prerequisite: '', dueDays: 14, renewalDays: '' })].map((requirement: any, index: number) => h`<fieldset><legend>Requirement ${index + 1}</legend>${select('Course', 'courses', courseOptions, requirement.course, { required: false, blank: '—' })}${select('Prerequisite', 'prerequisites', courseOptions, requirement.prerequisite ?? '', { required: false, blank: 'None' })}${select('Due', 'dueAnchors', ANCHOR_OPTIONS, requirement.dueAnchor ?? 'enrollment')}${field('Days after it', 'dueDays', { type: 'number', value: requirement.dueAnchor === 'fixed' ? '' : requirement.dueDays, required: false })}${field('Fixed due date', 'dueOn', { type: 'date', value: requirement.dueOn ?? '', required: false, hint: 'Only when due on a fixed date.' })}${field('Renew every (days)', 'renewalDays', { type: 'number', value: requirement.renewalDays ?? '', required: false })}</fieldset>`)
   const body = h`<h1>Role paths</h1><p class="lede">A path lists the courses a team needs, in order, with prerequisites and renewal intervals. Saving creates a new path revision; earlier assignments keep theirs. A course with scheduled sessions makes the path blended: its learners choose a session under Sessions once its prerequisite is complete.</p>
-${paths.map(path => card(path.name, h`<p class="muted">Team: ${teams.find(team => team.id === path.team)?.name} · ${path.number ? `revision ${path.number}` : 'no requirements yet'}</p>${path.requirements.length ? h`<ol class="rows numbered">${path.requirements.map((requirement: any) => h`<li class="row"><span class="row-text"><span class="row-title">${title(requirement.course)}</span><span class="row-meta">${days(requirement.dueDays)} to complete${requirement.prerequisite ? `, after ${title(requirement.prerequisite)}` : ''}${requirement.renewalDays ? `, renew every ${days(requirement.renewalDays)}` : ''}${sessionOptions.get(requirement.course) ? h`, <a href="/app/sessions">${sessionOptions.get(requirement.course)} scheduled ${sessionOptions.get(requirement.course) === 1 ? 'session' : 'sessions'}</a>` : ''}</span></span></li>`)}</ol>` : ''}
+${paths.map(path => card(path.name, h`<p class="muted">Team: ${teams.find(team => team.id === path.team)?.name} · ${path.number ? `revision ${path.number}` : 'no requirements yet'}</p>${path.requirements.length ? h`<ol class="rows numbered">${path.requirements.map((requirement: any) => h`<li class="row"><span class="row-text"><span class="row-title">${title(requirement.course)}</span><span class="row-meta">${requirement.dueAnchor === 'fixed' ? `due ${requirement.dueOn}` : `due ${days(requirement.dueDays)} after ${ANCHOR_TEXT[requirement.dueAnchor ?? 'enrollment']}`}${requirement.prerequisite ? `, after ${title(requirement.prerequisite)}` : ''}${requirement.renewalDays ? `, renew every ${days(requirement.renewalDays)}` : ''}${sessionOptions.get(requirement.course) ? h`, <a href="/app/sessions">${sessionOptions.get(requirement.course)} scheduled ${sessionOptions.get(requirement.course) === 1 ? 'session' : 'sessions'}</a>` : ''}</span></span></li>`)}</ol>` : ''}
 <p class="muted">Access window: ${describeRule(path.access)}</p>${actor.owner ? h`<details><summary>Set the access window</summary>${windowForm('access.rule', '/app/paths', [hidden('scope', 'path'), hidden('target', path.id)], path.access, 'Save window')}</details>` : ''}
-${path.number ? form('path.assign', '/app/paths', [hidden('path', path.id)], 'Assign to the team') : ''}<details><summary>Edit requirements</summary>${form('path.revise', '/app/paths', [hidden('path', path.id), requirementRows(path)], 'Save as new revision')}</details>`))}
+${path.number ? h`${previews.get(path.id)}${form('path.assign', '/app/paths', [hidden('path', path.id)], 'Assign to the team')}` : ''}<details><summary>Edit requirements</summary>${form('path.revise', '/app/paths', [hidden('path', path.id), requirementRows(path)], 'Save as new revision')}</details>`))}
 ${card('New path', form('path.create', '/app/paths', [field('Name', 'name'), select('Team', 'team', teams.map(team => ({ value: team.id, label: team.name })))], 'Create path'))}`
   return page('Paths', actor, body, { current: '/app/paths', url })
 }
