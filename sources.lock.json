@@ -406,6 +406,10 @@
       "sha256": "be6215d16e0e22a36b5fc0c71229d0c765f5a8839037e7437c2d2b0431b891e3",
       "executable": false
     },
+    "migrations/core/0034_beam_automation.sql": {
+      "sha256": "45561fe75f16285c669b153a80e401f4ae8198e9e4d4dee23071c711512325d0",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "714a1ee9ff4fcfdda67fce5b33206dd2b74d27149dd33de2daab276d2cae7c85",
       "executable": false
@@ -906,6 +910,10 @@
       "sha256": "19fa6db5c04e797e7d431b03dcd16bff5cac40b91f38d07c3d528350dfa9837d",
       "executable": false
     },
+    "src/beam/automation.ts": {
+      "sha256": "0b6de11a7898f8fb363929274ddf7617424d341add40a5105aadeeda5c690fb7",
+      "executable": false
+    },
     "src/beam/compliance.ts": {
       "sha256": "21af16cc9a8ed8f87cecad029df3f8bd9394f0808ad6e974541d78c449fea984",
       "executable": false
@@ -1052,6 +1060,10 @@
     },
     "src/beam/ui/authoring.ts": {
       "sha256": "76fa36e6bdf2675bf5e6465ed2925cab2076e18bfa393ef9ff9c5d3ce7193fb2",
+      "executable": false
+    },
+    "src/beam/ui/automation.ts": {
+      "sha256": "54c2193aa4cb859a419088c65d55c415d7c1ae76219d52609d3209d4e7831617",
       "executable": false
     },
     "src/beam/ui/compliance.ts": {
@@ -2864,6 +2876,10 @@
     },
     "tests/beam/regression-audit.mjs": {
       "sha256": "d7ffd6be36c22e1dec1630a88820db3f6fb03502355e3363099baeb01867e228",
+      "executable": false
+    },
+    "tests/beam/regression-automation.mjs": {
+      "sha256": "dcd5cc72301fc52e0e9707cb4eb8f5243ebf7f1b3ad105f55bd2f1909d271b35",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
