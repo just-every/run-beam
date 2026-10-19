@@ -11,6 +11,7 @@ import { memberNames } from './people'
 import { assignmentPlan, processChange, reminderDrafts } from './plans'
 import { scenarioKind } from './practice'
 import { questionPlanKind } from './questions'
+import { interventionKind } from './interventions'
 
 export interface Kind {
   label: string
@@ -20,8 +21,9 @@ export interface Kind {
   validate(env: Bindings, actor: Actor, payload: unknown): Promise<unknown>
   /** Refuses a person who may not decide this proposal. */
   mayDecide(env: Bindings, actor: Actor, payload: any): Promise<void>
-  /** Applies an approved payload; refuses with 409 when its inputs changed since preparation. */
-  apply(env: Bindings, actor: Actor, proposal: { id: string; payload: any }): Promise<unknown>
+  /** Applies an approved payload, with the decider's selection where the kind offers one; refuses with 409 when its
+   * inputs changed since preparation. */
+  apply(env: Bindings, actor: Actor, proposal: { id: string; payload: any }, selection?: Input): Promise<unknown>
 }
 
 export const KINDS: Record<string, Kind> = {
@@ -30,6 +32,7 @@ export const KINDS: Record<string, Kind> = {
   scenario: scenarioKind,
   question_plan: questionPlanKind,
   process_change: processChange,
+  intervention: interventionKind,
 }
 
 const INPUTS: Record<string, { sql: string; label: (row: any) => string }> = {
@@ -38,6 +41,7 @@ const INPUTS: Record<string, { sql: string; label: (row: any) => string }> = {
   path_revision: { sql: 'SELECT p.name, r.number FROM beam_path_revisions r JOIN beam_paths p ON p.id = r.path_id WHERE r.id = ?', label: row => `${row.name} path revision ${row.number}` },
   assignment: { sql: 'SELECT c.title, m.name FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_members m ON m.id = a.learner_id WHERE a.id = ?', label: row => `${row.name}'s ${row.title} assignment` },
   question_plan: { sql: 'SELECT title FROM beam_question_plans WHERE id = ?', label: row => `Question plan “${row.title}”` },
+  diagnosis: { sql: 'SELECT title, reviewed_at FROM beam_diagnoses WHERE id = ?', label: row => `${row.reviewed_at ? 'Reviewed' : 'Unreviewed'} diagnosis “${row.title}”` },
 }
 
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item)
@@ -101,7 +105,7 @@ export async function decide(env: Bindings, actor: Actor, input: Input) {
   insist(claim.meta.changes === 1, 'proposal_decided', 409)
   let result: unknown = null
   if (state === 'approved') {
-    try { result = await kind.apply(env, actor, { id: row.id, payload }) }
+    try { result = await kind.apply(env, actor, { id: row.id, payload }, input) }
     catch (error) {
       await env.DB.prepare("UPDATE beam_agent_proposals SET state = 'waiting', decided_by = NULL, decided_at = NULL, decision_note = NULL WHERE id = ?").bind(row.id).run()
       throw error

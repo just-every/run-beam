@@ -11,6 +11,7 @@ import { answerSurvey } from './survey'
 import { decideReview, runUpkeepNow, saveUpkeep } from './upkeep'
 import { createSkill, mapCourse, mapRole, recordDiagnostic, reviewSkill, setGoals, setPersonalization } from './skills'
 import { approvePath } from './recommendations'
+import { recordDiagnosis, reviewDiagnosis } from './interventions'
 import { assignCourse, assignPath, assignRenewals, previewPath, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
@@ -191,6 +192,8 @@ export const actions: Record<string, Handler> = {
   'skill.personalization': (env, actor, input) => setPersonalization(env, actor, input),
   'skill.diagnostic': (env, actor, input) => recordDiagnostic(env, actor, input),
   'skill.path.approve': (env, actor, input) => approvePath(env, actor, input),
+  'diagnosis.record': (env, actor, input) => recordDiagnosis(env, actor, input),
+  'diagnosis.review': (env, actor, input) => reviewDiagnosis(env, actor, input),
   'path.create': (env, actor, input) => createPath(env, actor, input),
   'path.revise': (env, actor, input) => revisePath(env, actor, input),
   'path.assign': (env, actor, input) => assignPath(env, actor, input),

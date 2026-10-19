@@ -142,7 +142,7 @@ refused if the draft changed meanwhile, and it never publishes anything. Add
 Other prepared work goes to `POST /api/beam/agent.propose` with `{ kind, title,
 agent, inputs: [{ type, id }], reasons: ["..."], excluded: [{ item, reason }],
 payload }`. Input types are `source_version`, `course_revision`,
-`path_revision`, `assignment` and `question_plan`. Kinds and payloads:
+`path_revision`, `assignment`, `question_plan` and `diagnosis` (a reviewed AGENT-003 diagnosis; list them at `/api/beam/diagnoses`). Kinds and payloads:
 
 - `assignment_plan` (manager): `{ items: [{ learner, course, courseRevision,
   dueDate, dueTime, timezone }] }`, naming each course's current published
@@ -154,6 +154,7 @@ payload }`. Input types are `source_version`, `course_revision`,
   without names, only after closing with at least three answers. Never rank or
   judge people from them.
 - `process_change` (manager): `{ summary, change, questionPlan? }`.
+- `intervention` (manager): `{ diagnosis, recommended, options: [{ id, kind, summary, expectedBenefit, people, paidMinutesPerPerson, course?, courseRevision?, dueDate?, dueTime?, timezone? }] }` from a reviewed diagnosis, with kinds `clarification`, `practice`, `assessor_session`, `cohort_assignment`, `process_change` and one `broad_course` covering everyone in the diagnosed role for comparison; never recommend the broad course. The manager decides with `option` and `people`.
 - `scenario` (author): `{ course, courseRevision, title, rubric, steps: [{ id,
   situation, choices: [{ label, feedback, next, sources }] }] }`, citing only
   sources the revision's lessons cite. The course's named reviewer deploys it.

@@ -7,7 +7,7 @@ import { listProposals } from '../agent-work'
 import { all } from '../core'
 import { memberNames } from '../people'
 import { formatDay, formatInstant, zonedInstant } from '../time'
-import { agentName, area, h, hidden, page, when, type Html } from './html'
+import { agentName, area, checks, h, hidden, page, select, when, type Html } from './html'
 
 const TABS = [['waiting', 'Waiting'], ['approved', 'Approved'], ['declined', 'Declined']] as const
 
@@ -19,6 +19,7 @@ function preview(proposal: any, names: Map<string, string>, labels: Map<string, 
     case 'reminders': return table(['Person', 'Course', 'Message'], p.items.map((item: any) => [names.get(assignments.get(item.assignment)?.learner_id), assignments.get(item.assignment)?.title, item.message]))
     case 'scenario': return h`<p>${labels.get(p.courseRevision)} · ${p.steps.length} ${p.steps.length === 1 ? 'step' : 'steps'}</p><details><summary>Rubric and steps</summary><p><strong>Rubric.</strong> ${p.rubric}</p><ol>${p.steps.map((step: any) => h`<li><p>${step.situation}</p><ul>${step.choices.map((choice: any) => h`<li>${choice.label} — <span class="muted">${choice.feedback}</span></li>`)}</ul></li>`)}</ol></details>`
     case 'question_plan': return h`<p><strong>Purpose.</strong> ${p.purpose}</p><ol>${p.questions.map((question: string) => h`<li>${question}</li>`)}</ol><p class="muted">Asks ${p.participants.map((member: string) => names.get(member)).join(', ')} · closes ${formatDay(p.closesOn)}. Answers are optional and shown without names.</p>`
+    case 'intervention': return h`<p class="muted">Diagnosed role: ${p.role}. Recommended: ${p.options.find((option: any) => option.id === p.recommended)?.summary}.</p>${table(['Option', 'Kind', 'Expected benefit', 'People', 'Paid time'], p.options.map((option: any) => [h`${option.id === p.recommended ? h`<strong>${option.summary}</strong>` : option.summary}${option.courseRevision ? h`<br><span class="muted">${labels.get(option.courseRevision) ?? ''}</span>` : ''}`, option.kind.replace('_', ' '), option.expectedBenefit, option.people.map((person: string) => names.get(person)).join(', ') || '—', `${option.paidMinutesPerPerson} min each, ${option.totalPaidMinutes} min in all`]))}`
     case 'process_change': return h`<p><strong>${p.summary}</strong></p><p>${p.change}</p><p class="muted">Approving records the decision; changing the procedure is still done by a person.</p>`
   }
   return h``
@@ -56,13 +57,16 @@ ${proposals.length || drafts.length ? '' : h`<p class="card">${state === 'waitin
 ${proposals.map(proposal => h`<article class="card proposal" aria-labelledby="p-${proposal.id}">
 <div class="proposal-who"><span class="tag">${proposal.label}</span><h2 id="p-${proposal.id}">${proposal.title}</h2><p class="muted">Prepared by ${by(proposal)}${proposal.inputs.length ? h`<br>from: ${proposal.inputs.map((input: any) => input.label).join(', ')}` : ''}</p></div>
 <div class="proposal-why"><h3>Reasons</h3><ul>${proposal.reasons.map((reason: string) => h`<li>${reason}</li>`)}</ul>${proposal.excluded.length ? h`<h3>Excluded</h3><ul>${proposal.excluded.map((item: any) => h`<li>${item.item} — ${item.reason}</li>`)}</ul>` : ''}</div>
-<div class="proposal-what"><h3>Preview (will ${proposal.kind === 'process_change' ? 'record' : 'create'})</h3>${preview(proposal, names, labels, assignments, zone)}${proposal.state !== 'waiting' ? decided(proposal, zone) : proposal.canDecide ? decisionForm(proposal) : h`<p class="muted">Waiting for a decision.</p>`}</div>
+<div class="proposal-what"><h3>Preview (will ${proposal.kind === 'process_change' ? 'record' : 'create'})</h3>${preview(proposal, names, labels, assignments, zone)}${proposal.state !== 'waiting' ? decided(proposal, zone) : proposal.canDecide ? decisionForm(proposal, names) : h`<p class="muted">Waiting for a decision.</p>`}</div>
 </article>`)}
 ${drafts.map(draft => h`<article class="card proposal" aria-labelledby="d-${draft.id}"><div class="proposal-who"><span class="tag">Course draft</span><h2 id="d-${draft.id}">${draft.title}</h2><p class="muted">Prepared by ${names.get(draft.preparedBy)}${draft.agent ? `'s agent (${agentName(draft.agent)})` : ''}</p></div><div class="proposal-why"><h3>Summary</h3><p>${draft.summary}</p></div><div class="proposal-what"><p><a class="button" href="/app/courses/${draft.course}">Review on the course page</a></p></div></article>`)}`
   return page('Agent work', actor, body, { current: '/app/agent', url })
 }
 
-function decisionForm(proposal: any): Html {
-  const fields = [hidden('proposal', proposal.id), hidden('sha256', proposal.sha256), area('Note (optional)', 'note', '', false)]
+function decisionForm(proposal: any, names: Map<string, string>): Html {
+  const p = proposal.payload
+  // AGENT-003: the manager chooses the option and its people; the broad course is chosen only here, never by default.
+  const choose = proposal.kind === 'intervention' ? [select('Option to apply', 'option', p.options.map((option: any) => ({ value: option.id, label: `${option.summary} (${option.kind.replace('_', ' ')})` })), p.recommended), checks('People to include (none ticked: everyone the option names)', 'people', [...new Set(p.options.flatMap((option: any) => option.people))].map((person: any) => ({ value: person, label: names.get(person) ?? person })))] : []
+  const fields = [hidden('proposal', proposal.id), hidden('sha256', proposal.sha256), ...choose, area('Note (optional)', 'note', '', false)]
   return h`<form method="post" action="/app/do/agent.decide" class="decide-form">${hidden('returnTo', '/app/agent')}${fields}<div class="actions"><button type="submit" name="decision" value="approve">Approve</button><button type="submit" name="decision" value="decline" class="secondary">Decline</button></div></form>`
 }

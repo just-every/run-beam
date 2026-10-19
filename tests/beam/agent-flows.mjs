@@ -259,4 +259,45 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     for (const hidden of [ids.sam, ids.lee, 'Sam', 'The alarm is still armed.', 'Too tired at close.', 'Mornings are busy.']) assert.ok(!opening.includes(hidden), hidden)
     assert.ok(!JSON.stringify(view).includes(ids.sam) && !JSON.stringify(view).includes('The log location is unclear.'))
   })
+
+  // AGENT-003: from a reviewed diagnosis of one role, the agent sets a minimal intervention beside the broad course;
+  // the manager applies only the chosen option and people, and the decision keeps its lineage.
+  await check('AGENT-003', async () => {
+    const agent = await agentOf(people.manager)
+    for (const person of [ids.sam, ids.lee]) await h.api('person.directory', people.owner, { member: person, jobRole: 'Front desk' })
+    const diagnosis = (await h.api('diagnosis.record', people.manager, { title: 'Fridge log missed at opening', finding: 'Sam skipped the fridge log on 4 of 10 openings; Lee logged every one.', jobRole: 'Front desk', evidence: 'Opening checklists, 1-14 October' })).id
+    const refresher = await h.api('course.create', people.author, { title: 'Fridge log refresher', reviewer: ids.reviewer })
+    await publish((await h.api('course.submit', people.author, { course: refresher.id, draftVersion: (await h.api('course.lesson', people.author, { course: refresher.id, draftVersion: refresher.draftVersion, title: 'The log', body: 'Log the fridge temperature before opening.', sources: [] })).draftVersion })).id)
+    const current = async id => (await h.api(`courses/${id}`, people.manager)).publishedRevision
+    const due = { dueDate: '2030-07-01', dueTime: '17:00', timezone: 'UTC' }
+    const options = [
+      { id: 'refresher', kind: 'cohort_assignment', summary: 'Five-minute fridge log refresher for Sam', expectedBenefit: 'Sam logs the fridge at every opening', people: [ids.sam], paidMinutesPerPerson: 5, course: refresher.id, courseRevision: await current(refresher.id), ...due },
+      { id: 'log-by-fridge', kind: 'process_change', summary: 'Keep the log on the fridge door', expectedBenefit: 'Nobody has to fetch the log', people: [], paidMinutesPerPerson: 0 },
+      { id: 'everyone', kind: 'broad_course', summary: 'Retake Opening the clinic for the whole front desk', expectedBenefit: 'Everyone revisits every opening step', people: [ids.lee, ids.sam].sort(), paidMinutesPerPerson: 45, course: ids.opening, courseRevision: await current(ids.opening), ...due },
+    ]
+    const proposal = payload => ({ kind: 'intervention', title: 'Fridge log at opening', agent: 'claude-code', inputs: [{ type: 'diagnosis', id: diagnosis }], reasons: ['Only Sam misses the log; Lee does not.'], excluded: [{ item: 'Lee', reason: 'Logged every opening' }], payload })
+    // Only a reviewed diagnosis, reviewed by someone else, can be the input.
+    await agent('agent.propose', proposal({ diagnosis, options, recommended: 'refresher' }), 409)
+    await h.api('diagnosis.review', people.manager, { diagnosis }, 403)
+    await h.api('diagnosis.review', people.reviewer, { diagnosis })
+    // The broad course is a compared alternative, never the recommendation, and covers the whole role.
+    assert.equal((await agent('agent.propose', proposal({ diagnosis, options, recommended: 'everyone' }), 400)).error, 'broad_training_not_recommendable')
+    assert.equal((await agent('agent.propose', proposal({ diagnosis, options: options.slice(0, 2), recommended: 'refresher' }), 400)).error, 'broad_alternative_required')
+    assert.equal((await agent('agent.propose', proposal({ diagnosis, options: [{ ...options[0], people: [ids.author] }, ...options.slice(1)], recommended: 'refresher' }), 400)).error, 'person_outside_diagnosed_role')
+    const made = await agent('agent.propose', proposal({ diagnosis, options, recommended: 'refresher' }))
+    const detail = await h.api(`proposals/${made.id}`, people.manager)
+    assert.deepEqual(detail.payload.options.map(option => [option.id, option.totalPaidMinutes, option.roles]), [['refresher', 5, ['Front desk']], ['log-by-fridge', 0, ['Front desk']], ['everyone', 90, ['Front desk']]])
+    assert.ok((await pageOf('/app/agent', people.manager)).includes('name="option"'), 'the manager chooses the option on Agent work')
+    // A changed payload is refused; the manager applies only the chosen option to the chosen people.
+    await h.api('agent.decide', people.manager, { proposal: made.id, decision: 'approve', sha256: '0'.repeat(64), option: 'refresher' }, 409)
+    await agent('agent.decide', { proposal: made.id, decision: 'approve', sha256: made.sha256 }, 403)
+    const applied = await h.api('agent.decide', people.manager, { proposal: made.id, decision: 'approve', sha256: made.sha256, option: 'refresher', people: [ids.sam], note: 'Start with the refresher.' })
+    assert.deepEqual([applied.result.diagnosis, applied.result.option, applied.result.people, applied.result.assignments.length, applied.result.totalPaidMinutes], [diagnosis, 'refresher', [ids.sam], 1, 5])
+    const assigned = async cookie => (await h.api('records/me', cookie)).assignments.filter(row => row.course === refresher.id).length
+    assert.deepEqual([await assigned(people.sam), await assigned(people.lee)], [1, 0])
+    // Lineage: the decision names the reviewed diagnosis, the payload digest, the decider and the result.
+    const lineage = await h.api(`proposals/${made.id}`, people.manager)
+    assert.deepEqual([lineage.inputs.map(item => item.label), lineage.state, lineage.decidedBy, lineage.note, lineage.result.option], [['Reviewed diagnosis “Fridge log missed at opening”'], 'approved', ids.manager, 'Start with the refresher.', 'refresher'])
+    assert.ok((await h.api('audit?q=agent.approve', people.owner)).events.some(event => event.subject === made.id && event.detail.sha256 === made.sha256))
+  })
 }
