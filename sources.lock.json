@@ -178,7 +178,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "69777d52c73485d6d00a6a440cd0e0d45040d52530e1c86866e345f593e0ebad",
+      "sha256": "79c6789ffb3014fc98683657f5b8cc5cfe442dd9669affe019008dc51dc7aeaa",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -198,7 +198,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "be34506b397e1e38248deeb780f91519feb4714e1595f12dd7995efc2a726d21",
+      "sha256": "21abc0303b17631e9aa0e971fe022527f37bdf2d9ead3b692313d51aab9c8c17",
       "executable": false
     },
     "DEMO.md": {
@@ -230,7 +230,7 @@
       "executable": false
     },
     "docs/courses.md": {
-      "sha256": "c721ee813ec7fca1ae247fdc1ad1d188651f8e5d2575598b6550184899e98b1f",
+      "sha256": "ccaa899a7a3e551a0fa804ad7b3c58c9c1b47de1d192f19252ac3de4beae61ce",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -425,8 +425,12 @@
       "sha256": "ff53ef2a934458b5f3e74a0c837e8b104458efba9f92ef343925a9c5196c2cc2",
       "executable": false
     },
+    "public/beam-match.js": {
+      "sha256": "06bef804468134cbe5f46ca70179ec9ec590f9658e143e3b6fa4d106c462feac",
+      "executable": false
+    },
     "public/beam.css": {
-      "sha256": "6ece6b994a93dd74f739c52be65ca6e731ce64a40eaae9e6ef7daec6bd46736e",
+      "sha256": "7cc98ee579746a68100645c405f2f0aad0cdf6b960848bb2c831f53cd08626c0",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1046,7 +1050,7 @@
       "executable": false
     },
     "src/beam/ui/html.ts": {
-      "sha256": "48e6c0db4b20a3d4ee4c8ef39a8a8d18b016b0579cbfe874145fdb90f41b0a40",
+      "sha256": "942b256a9b385859453acefc1ee317b97bddd13550460045f08ab70fe2e5f800",
       "executable": false
     },
     "src/beam/ui/icons.ts": {
@@ -1054,7 +1058,7 @@
       "executable": false
     },
     "src/beam/ui/learner.ts": {
-      "sha256": "61081e6eb162a3f5067b05852033456ffab520338eaa1b6a5ae66b5c50dd483c",
+      "sha256": "41f5cbe1ee9d85dd0102bc4d90ed9b9ccb0516c4806c736846fe981507cda2f9",
       "executable": false
     },
     "src/beam/ui/managing.ts": {
@@ -1078,7 +1082,7 @@
       "executable": false
     },
     "src/beam/ui/timing.ts": {
-      "sha256": "8a168e7f53c72f33e6a335f7175189d0e4cf5a8caafafab37fa6140679424180",
+      "sha256": "660b0884be5be5b68ca34350d49c7f8376ad754d6d9df7f912edbeb073f78b8a",
       "executable": false
     },
     "src/beam/ui/units.ts": {
@@ -2842,7 +2846,7 @@
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
-      "sha256": "14bc2f6bc03d97e418176cc5e31dc72a7b7dbeeb76a933927f623bea32f182f2",
+      "sha256": "77f0ae4dd64890511b9d46f707ceae2dc97fc723f62155e59207ede1b2bcd9d1",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {

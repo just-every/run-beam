@@ -17,7 +17,8 @@ export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {})
   const options = question.kind === 'order' || question.kind === 'match' ? question.options.map(option => ({ value: String(option.index), label: option.label })) : []
   const chosen = (part: number) => typeof given[part] === 'number' && given[part] !== -1 ? String(given[part]) : ''
   if (question.kind === 'order') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(put the items in order)</span></legend>${Array.from({ length: question.positions }, (_, part) => select(`Position ${part + 1}`, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
-  if (question.kind === 'match') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(match each item)</span></legend>${question.lefts.map((left, part) => select(left, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
+  // Matching also takes drag-and-drop where scripts run (public/beam-match.js); the selects stay the door.
+  if (question.kind === 'match') return h`<fieldset data-match><legend>${n + 1}. ${question.prompt} <span class="muted">(match each item)</span></legend>${question.lefts.map((left, part) => h`<div class="match-pair">${select(left, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' })}</div>`)}</fieldset>`
   return h`<fieldset><legend>${n + 1}. ${question.prompt}${question.multiple ? h` <span class="muted">(choose all that apply)</span>` : ''}</legend>${question.choices.map((choice, index) => h`<label class="check"><input type="${question.multiple ? 'checkbox' : 'radio'}" name="q_${question.id}" value="${index}"${(given as number[]).includes(index) ? h` checked` : ''}> ${choice}</label>`)}</fieldset>`
 })
 

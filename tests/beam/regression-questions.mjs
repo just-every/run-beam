@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 
 // LEARN-015: an author publishes a fill-in-the-blank, an ordering and a matching question through the form and JSON
-// doors; the learner's page shows a labelled control for every blank, position and pair without the answers; an
-// attempt with accepted variants and one wrong order scores 2 of 3, an all-correct attempt 3 of 3, and each attempt
-// keeps its responses, per-question result and scoring rule.
+// doors; the learner's page shows a labelled control for every blank, position and pair without the answers; in a
+// real browser the learner types the blanks, picks the order and drags the matching answers onto their items, and
+// that attempt (accepted variants, one wrong order) scores 2 of 3; an all-correct attempt scores 3 of 3, and each
+// attempt keeps its responses, per-question result and scoring rule. BEAM_PLAYWRIGHT may name a newer Playwright
+// module for local runs.
 export async function questionTypesCheck(f) {
   const { api, h, cookies, ids, publish } = f
   const c = await api('author', 'course.create', { title: 'Kitchen hygiene check', reviewer: ids.reviewer })
@@ -34,9 +36,35 @@ export async function questionTypesCheck(f) {
   const page = await (await h.raw(`/app/learn/${assignment}/quiz`, { cookie: cookies.learner })).text()
   assert.ok(page.includes('Blank 2') && page.includes('Position 4') && page.includes(`name="q_${match.id}_2"`) && !page.includes('minus 18'))
 
-  // Accepted variants (case and end spaces ignored) and a correct matching, with two ordering steps swapped: 2 of 3.
-  const wrongOrder = await h.submit('quiz.submit', cookies.learner, { assignment, [`q_${blank.id}_0`]: 'FIVE', [`q_${blank.id}_1`]: '  Minus 18 ', [`q_${order.id}_0`]: item('Scrape'), [`q_${order.id}_1`]: item('Rinse'), [`q_${order.id}_2`]: item('Wash'), [`q_${order.id}_3`]: item('Sanitize'), [`q_${match.id}_0`]: food('Raw meat'), [`q_${match.id}_1`]: food('Salad'), [`q_${match.id}_2`]: food('Fish') }, `/app/learn/${assignment}`)
-  assert.equal(wrongOrder.searchParams.get('error'), null)
+  // In a browser: accepted variants typed (case and end spaces ignored), two ordering steps swapped, and the matching
+  // answers dragged onto their items: 2 of 3.
+  assert.ok(page.includes('/beam-match.js') && page.includes('data-match'))
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT || '@playwright/test')
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    const signedIn = async viewport => {
+      const context = await browser.newContext({ viewport, ignoreHTTPSErrors: true })
+      await context.addCookies(cookies.learner.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: h.origin })))
+      const opened = await context.newPage()
+      await opened.goto(`${h.origin}/app/learn/${assignment}/quiz`)
+      return opened
+    }
+    // On a phone, tapping an answer and then an item pairs them.
+    const phone = await signedIn({ width: 390, height: 844 })
+    await phone.locator('.drag-chip', { hasText: 'Fish' }).click()
+    await phone.locator('.match-pair').nth(2).locator('label').click()
+    assert.equal(await phone.inputValue(`[name="q_${match.id}_2"]`), food('Fish'))
+    const tab = await signedIn({ width: 1440, height: 1800 })
+    await tab.fill(`[name="q_${blank.id}_0"]`, 'FIVE')
+    await tab.fill(`[name="q_${blank.id}_1"]`, '  Minus 18 ')
+    for (const [position, label] of ['Scrape', 'Rinse', 'Wash', 'Sanitize'].entries()) await tab.selectOption(`[name="q_${order.id}_${position}"]`, item(label))
+    for (const [part, label] of ['Raw meat', 'Salad', 'Fish'].entries()) await tab.locator('.drag-chip', { hasText: label }).dragTo(tab.locator('.match-pair').nth(part))
+    assert.deepEqual(await Promise.all([0, 1, 2].map(part => tab.inputValue(`[name="q_${match.id}_${part}"]`))), [food('Raw meat'), food('Salad'), food('Fish')])
+    assert.equal(await tab.locator('.drag-chip.used').count(), 3)
+    await Promise.all([tab.waitForURL(`**/app/learn/${assignment}?**`), tab.click('button[type="submit"]')])
+  } finally {
+    await browser.close()
+  }
   const first = (await api('learner', `assignments/${assignment}`)).attempts.at(-1)
   const firstDetail = await api('learner', `attempts/${first.id}`)
   assert.deepEqual([firstDetail.score, firstDetail.maxScore, firstDetail.passed], [2, 3, 0])

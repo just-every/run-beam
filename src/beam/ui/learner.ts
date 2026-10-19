@@ -117,13 +117,15 @@ export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL
   const quiz = view.quiz, zone = (await business(env))!.timezone
   const intro = h`<p class="subtitle">Pass mark ${quiz.passPercent}%. ${quiz.attemptsLeft} attempt${quiz.attemptsLeft === 1 ? '' : 's'} left. Each question scores only when every choice, blank, position or pair is right.</p>`
   const back = backLink(`/app/learn/${id}`, view.assignment.courseTitle)
+  // LEARN-015: matching questions add their drag-and-drop layer.
+  const matching = quiz.questions.some(question => question.kind === 'match') ? ['/beam-match.js'] : []
   // LEARN-018: a timed quiz starts on the server; while it runs the page counts down to the server's deadline.
   if (quiz.timeLimitMinutes) {
     const running = !!quiz.session && view.assignment.status === 'open' && !quiz.passed
-    return page('Timed quiz', actor, h`${back}<h1>Timed quiz</h1>${intro}${running ? timedQuiz(id, quiz, zone, Date.now()) : timedStart(id, quiz)}`, { current: '/app/learning', url, script: running ? '/beam-countdown.js' : undefined })
+    return page('Timed quiz', actor, h`${back}<h1>Timed quiz</h1>${intro}${running ? timedQuiz(id, quiz, zone, Date.now()) : timedStart(id, quiz)}`, { current: '/app/learning', url, script: running ? ['/beam-countdown.js', ...matching] : undefined })
   }
   const body = h`${back}<h1>Quiz</h1>${intro}<div class="card narrow">${form('quiz.submit', `/app/learn/${id}`, [hidden('assignment', id), questionFields(quiz)], 'Submit answers')}</div>`
-  return page('Quiz', actor, body, { current: '/app/learning', url })
+  return page('Quiz', actor, body, { current: '/app/learning', url, script: matching })
 }
 
 export async function practicalPage(env: Bindings, actor: Actor, id: string, url: URL) {

@@ -435,3 +435,10 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
   .card { box-shadow: none; }
   .certificate { border: 1px solid var(--line); }
 }
+/* LEARN-015: the matching drag-and-drop layer over its selects (public/beam-match.js). */
+.drag-bank { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.drag-chip { padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--white); cursor: grab; user-select: none; }
+.drag-chip.picked { border-color: var(--navy); box-shadow: 0 0 0 2px var(--navy); }
+.drag-chip.used { opacity: .5; }
+.match-pair.drag-target { padding: 4px 8px; margin: 0 -8px; border-radius: var(--radius-control); }
+.match-pair.drag-target.over { background: var(--line); }
