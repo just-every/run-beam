@@ -4,11 +4,13 @@ const queued = await queuedEntrypoint(import.meta.url, 'test:flows'); if (queued
 // the built Worker with real local D1 and R2. Mail is captured at the Resend edge.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { courseListCsv, courseReport, pdf, procedureV1, procedureV2 } from './fixtures.mjs'
+import { pdf, procedureV1, procedureV2 } from './fixtures.mjs'
 import { file, harness } from './harness.mjs'
 import { agentFlows } from './agent-flows.mjs'
+import { importFlows, importTrust } from './import-flows.mjs'
 
-const h = await harness()
+const trust = importTrust()
+const h = await harness({bindings: trust.bindings})
 const sha = value => createHash('sha256').update(value).digest('hex')
 const check = async (id, run) => { await run(); console.log(`${id} passed`) }
 const people = {}, ids = {}
@@ -328,62 +330,7 @@ try {
     assert.ok(!(await h.api('queues', people.reviewer)).notices.length)
   })
 
-  await check('BEAM-15', async () => {
-    const report = courseReport({ learnerEmail: 'sam@example.test' })
-    const upload = { courseList: file('courses.csv', courseListCsv), report1: file('course-101.xlsx', report), report1Course: '101', dateFormat: 'DMY', map_101: ids.opening }
-    await h.api('import.preview', people.manager, upload, 403)
-    const preview = await h.api('import.preview', people.owner, upload)
-    assert.deepEqual((await h.api('history', people.owner)), [], 'a preview writes nothing')
-    assert.equal(preview.completions, 3)
-    assert.deepEqual(preview.identities.matched.map(row => row.email), ['sam@example.test'])
-    assert.deepEqual(preview.identities.unresolved.map(row => row.email), ['jo.former@example.test'])
-    assert.equal(preview.duplicates.length, 1)
-    assert.ok(preview.attention.some(row => row.reason.includes('31/31/2025')))
-    assert.ok(preview.gaps.some(gap => gap.includes('(102)')))
-    assert.deepEqual(preview.courses.map(row => [row.sourceId, row.mappedTo]), [['101', ids.opening], ['102', null]])
-    await h.api('import.apply', people.owner, { ...upload, fingerprint: 'f'.repeat(64) }, 409)
-    const applied = await h.api('import.apply', people.owner, { ...upload, fingerprint: preview.fingerprint })
-    assert.equal(applied.state, 'completed')
-    const history = await h.api('history', people.owner)
-    assert.equal(history.length, 5)
-    const completions = history.filter(row => row.kind === 'completion')
-    assert.deepEqual(completions.map(row => [row.email, row.completedOn]).sort(), [['jo.former@example.test', '2025-03-24'], ['sam@example.test', '2024-02-02'], ['sam@example.test', '2025-03-14']])
-    assert.ok(completions.every(row => row.historical && row.source === 'TalentLMS'))
-    // Imported history is labelled evidence and completes nothing current.
-    const sam = await h.api('records/me', people.sam)
-    assert.equal(sam.history.length, 2)
-    assert.equal(sam.completions.length, 1)
-    // The same export again adds no rows.
-    const again = await h.api('import.preview', people.owner, upload)
-    await h.api('import.apply', people.owner, { ...upload, fingerprint: again.fingerprint })
-    assert.equal((await h.api('history', people.owner)).length, 5)
-    const jobs = await h.api('imports', people.owner)
-    assert.equal(jobs.length, 2)
-    const undoAll = async () => { for (const job of new Set((await h.api('imports', people.owner)).filter(job => job.state === 'completed').map(job => job.id))) await h.api('import.job', people.owner, { job, action: 'undo' }) }
-    // After Undo, the owner can review the same files and apply them again.
-    await undoAll()
-    assert.equal((await h.api('history', people.owner)).length, 0)
-    const reviewedAgain = await h.api('import.preview', people.owner, upload)
-    assert.equal((await h.api('import.apply', people.owner, { ...upload, fingerprint: reviewedAgain.fingerprint })).state, 'completed')
-    assert.equal((await h.api('history', people.owner)).length, 5)
-    // Jo joins after the import. The preview names the records imported earlier with other details, and apply refuses
-    // them before creating any job; undoing the earlier import is the way to bring them across again.
-    await h.api('person.invite', people.owner, { email: 'jo.former@example.test', name: 'Jo Former', roles: ['learner'] })
-    const joined = await h.api('import.preview', people.owner, upload)
-    assert.deepEqual(joined.identities.unresolved, [])
-    assert.ok(joined.changed.length > 0)
-    const imports = (await h.api('imports', people.owner)).length
-    await h.api('import.apply', people.owner, { ...upload, fingerprint: joined.fingerprint }, 409)
-    assert.equal((await h.api('imports', people.owner)).length, imports, 'a refused apply leaves no job behind')
-    // A manager reviews Jo's record after import; undoing the import keeps that decision.
-    const jo = (await h.api('history', people.owner)).find(row => row.email === 'jo.former@example.test')
-    await h.api('history.accept', people.manager, { history: jo.id, note: 'Matches our 2025 paper records.' })
-    await undoAll()
-    const left = await h.api('history', people.owner)
-    assert.deepEqual(left.map(row => row.id), [jo.id])
-    assert.equal(left[0].accepted.note, 'Matches our 2025 paper records.')
-    assert.ok((await h.api('imports', people.owner)).some(job => job.retained.some(item => item.target === jo.id && item.reason === 'edited')))
-  })
+  await check('BEAM-15', async () => importFlows({h, people, ids, trust}))
 
   await check('AUTHOR-004', async () => {
     const course = await h.api('course.create', people.author, { title: 'Closing the clinic', summary: 'How we close.', reviewer: ids.reviewer })

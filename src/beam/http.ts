@@ -19,7 +19,8 @@ import { acknowledgmentPage } from './ui/acknowledgments'
 import { dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
 import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
 import { managePage } from './ui/compliance'
-import { importPage, previewPage } from './ui/movein'
+import { importBrowserResponse } from './movein/browser'
+import { importPage, previewPage, importProgressPage } from './ui/movein'
 import { bankFileResponse, bankPreviewPage } from './ui/bank'
 import { agentPage } from './ui/agent'
 import { evidencePage } from './ui/evidence'
@@ -134,8 +135,11 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
 
 async function pageResponse(env: Bindings, actor: Actor, request: Request, url: URL): Promise<Response> {
   const path = url.pathname
+  if (path === '/app/import/client.js' && request.method === 'GET') return importBrowserResponse()
   if (request.method === 'POST') {
-    if (path === '/app/import/preview') return await previewPage(env, actor, await Input.from(request), url)
+    if (path === '/app/import/preview') return await previewPage(env, actor, await Input.from(request), url, request)
+    const importAction = path.match(/^\/app\/import\/(apply|reconcile|undo)$/)?.[1]
+    if (importAction) return await importProgressPage(env, actor, await Input.from(request), url, request, importAction)
     const bank = path.match(/^\/app\/courses\/([\w-]+)\/bank\/preview$/)?.[1]
     if (bank) { const input = await Input.from(request); insist(input.text('course') === bank, 'invalid_course'); return await bankPreviewPage(env, actor, bank, input, url) }
     const name = path.match(/^\/app\/do\/([\w.]+)$/)?.[1]

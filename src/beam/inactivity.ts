@@ -12,7 +12,7 @@ import type { Input } from './input'
 import { changeAccess, requireBusiness } from './people'
 import { DAY, calendarDays } from './time'
 
-interface Policy { inactiveDays: number; noticeDays: number; excludedTeams: string[]; excludedRoles: string[]; version: number; previewedVersion: number | null; enabled: boolean }
+export interface Policy { inactiveDays: number; noticeDays: number; excludedTeams: string[]; excludedRoles: string[]; version: number; previewedVersion: number | null; enabled: boolean }
 
 export async function inactivityPolicy(env: Bindings): Promise<Policy | null> {
   const row = await one(env, 'SELECT * FROM beam_inactivity_policy WHERE id = 1')
@@ -28,14 +28,14 @@ export async function savePolicy(env: Bindings, actor: Actor, input: Input) {
   const version = ((await inactivityPolicy(env))?.version ?? 0) + 1
   await commit(env, [stmt(env, `INSERT INTO beam_inactivity_policy (id, inactive_days, notice_days, excluded_teams, excluded_roles, version, previewed_version, enabled, updated_by, updated_at) VALUES (1, ?, ?, ?, ?, ?, NULL, 0, ?, ?)
     ON CONFLICT(id) DO UPDATE SET inactive_days = excluded.inactive_days, notice_days = excluded.notice_days, excluded_teams = excluded.excluded_teams, excluded_roles = excluded.excluded_roles, version = excluded.version, previewed_version = NULL, enabled = 0, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
-    inactiveDays, noticeDays, JSON.stringify(excludedTeams), JSON.stringify(excludedRoles), version, actor.id, now())], { actor, action: 'inactivity.policy', subject: 'policy', detail: { version, inactiveDays, noticeDays, excludedTeams, excludedRoles } })
+    inactiveDays, noticeDays, JSON.stringify(excludedTeams), JSON.stringify(excludedRoles), version, actor.id, now()), stmt(env, "UPDATE oa_policy_approvals SET revoked_at = ?, revoke_reason = 'superseded_by_change' WHERE policy_id = 'beam-inactivity' AND revoked_at IS NULL", now())], { actor, action: 'inactivity.policy', subject: 'policy', detail: { version, inactiveDays, noticeDays, excludedTeams, excludedRoles } })
   return { version }
 }
 
 /** Everyone with an active sign-in account and their last sign-in (or, never signed in, when the account began). */
 async function people(env: Bindings, policy: Policy) {
   const at = now(), zone = (await requireBusiness(env)).timezone
-  const rows = await all(env, `SELECT m.id, m.name, o.role = 'owner' AS owner, COALESCE((SELECT MAX(s.created_at) FROM oa_sessions s WHERE s.operator_id = o.id), o.created_at) AS lastSignInAt,
+  const rows = await all(env, `SELECT m.id, m.name, o.role = 'owner' AS owner, COALESCE(o.last_signin_at, o.created_at) AS lastSignInAt,
       (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles,
       (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams,
       EXISTS (SELECT 1 FROM beam_attempts t JOIN beam_assessment_revisions s ON s.id = t.assessment_revision_id WHERE s.assessor_id = m.id AND t.state = 'awaiting_review' AND t.reset_id IS NULL) AS assessing,
@@ -85,24 +85,36 @@ export async function setPolicyEnabled(env: Bindings, actor: Actor, input: Input
   insist(policy, 'policy_not_set', 409)
   const enabled = input.text('enabled') === 'true'
   insist(!enabled || policy.previewedVersion === policy.version, 'preview_required', 409)
-  await commit(env, [stmt(env, 'UPDATE beam_inactivity_policy SET enabled = ? WHERE id = 1', enabled ? 1 : 0)], { actor, action: enabled ? 'inactivity.enable' : 'inactivity.disable', subject: 'policy', detail: { version: policy.version } })
+  await commit(env, [stmt(env, 'UPDATE beam_inactivity_policy SET enabled = ? WHERE id = 1', enabled ? 1 : 0), ...(!enabled ? [stmt(env, "UPDATE oa_policy_approvals SET revoked_at = ?, revoke_reason = 'owner_disabled' WHERE policy_id = 'beam-inactivity' AND revoked_at IS NULL", now())] : [])], { actor, action: enabled ? 'inactivity.enable' : 'inactivity.disable', subject: 'policy', detail: { version: policy.version } })
   return { enabled }
 }
 
-/** The job, run by the owner: every step is keyed to an open notice, so a second run finds nothing left to do. */
+/** Manual work uses the ordinary owner's session; cron supplies Base's bounded capability. */
 export async function runPolicy(env: Bindings, actor: Actor, _input: Input, request: Request) {
   requireOwner(actor)
+  return runInactivity(env, actor, async notice => {
+    await changeAccess(env, request, actor, notice.member, 'inactive', { rule: 'inactivity', notice: notice.id })
+  })
+}
+
+export async function runInactivity(env: Bindings, actor: Actor | string, remove: (notice: Row) => Promise<void>, limit = Number.POSITIVE_INFINITY) {
   const policy = await inactivityPolicy(env)
   insist(policy?.enabled, 'policy_not_enabled', 409)
   const work = await plan(env, policy), at = now()
   for (const notice of work.cancel) await commit(env, [stmt(env, "UPDATE beam_inactivity_notices SET state = 'cancelled', closed_at = ?, close_reason = ? WHERE id = ? AND state = 'open'", at, notice.reason, notice.id)], { actor, action: 'inactivity.cancel', subject: notice.member, detail: { notice: notice.id, reason: notice.reason, version: policy.version } })
   for (const person of work.notify) await commit(env, [stmt(env, "INSERT OR IGNORE INTO beam_inactivity_notices (id, member_id, policy_version, last_sign_in_at, noticed_at, deactivate_at, state) VALUES (?, ?, ?, ?, ?, ?, 'open')", newId(), person.id, policy.version, person.lastSignInAt, at, at + policy.noticeDays * DAY)],
     { actor, action: 'inactivity.notice', subject: person.id, detail: { version: policy.version, inactiveDays: policy.inactiveDays, noticeDays: policy.noticeDays, idleDays: person.idleDays, lastSignInAt: person.lastSignInAt } })
-  for (const notice of work.deactivate) {
-    await changeAccess(env, request, actor, notice.member, 'inactive', { rule: 'inactivity', version: policy.version, notice: notice.id, lastSignInAt: notice.lastSignInAt })
+  const deactivated: string[] = []
+  for (const notice of work.deactivate.slice(0, limit)) {
+    // Recheck current sign-ins, team/role exclusions, blockers and assessor work before each removal.
+    const current = await inactivityPolicy(env)
+    insist(current?.enabled && current.version === policy.version, 'policy_changed', 409)
+    if (!(await plan(env, current)).deactivate.some(item => item.id === notice.id)) continue
+    await remove(notice)
     await commit(env, [stmt(env, "UPDATE beam_inactivity_notices SET state = 'deactivated', closed_at = ?, close_reason = 'notice ran out' WHERE id = ? AND state = 'open'", at, notice.id)], { actor, action: 'inactivity.deactivate', subject: notice.member, detail: { notice: notice.id, version: policy.version, inactiveDays: policy.inactiveDays, noticeDays: policy.noticeDays, lastSignInAt: notice.lastSignInAt } })
+    deactivated.push(notice.member)
   }
-  return { version: policy.version, noticed: work.notify.map(person => person.id), cancelled: work.cancel.map(notice => notice.member), deactivated: work.deactivate.map(notice => notice.member) }
+  return { version: policy.version, noticed: work.notify.map(person => person.id), cancelled: work.cancel.map(notice => notice.member), deactivated }
 }
 
 /** The owner's view: the policy, its notices (open and closed) and, when asked, the preview. */

@@ -1,5 +1,6 @@
 // Bounded readers for the two table formats incumbent LMS reports use:
 // RFC 4180 CSV and Office Open XML workbooks (.xlsx, a ZIP of XML parts).
+import { inflateRawSync } from 'node:zlib'
 import { insist } from '../core'
 
 export type Table = { name: string; rows: string[][] }
@@ -31,25 +32,14 @@ export function readCsv(bytes: Uint8Array, name = 'csv'): Table {
 
 const UNZIPPED_LIMIT = 50_000_000
 
-async function inflate(data: Uint8Array, expected: number): Promise<Uint8Array> {
-  const stream = new Blob([data as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
-  const reader = stream.getReader(), chunks: Uint8Array[] = []
-  let size = 0
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    size += value.length
-    insist(size <= expected && size <= UNZIPPED_LIMIT, 'xlsx_entry_size')
-    chunks.push(value)
-  }
-  insist(size === expected, 'xlsx_entry_size')
-  const out = new Uint8Array(size)
-  let offset = 0
-  for (const chunk of chunks) { out.set(chunk, offset); offset += chunk.length }
+function inflate(data: Uint8Array, expected: number): Uint8Array {
+  insist(expected > 0 && expected <= UNZIPPED_LIMIT, 'xlsx_entry_size')
+  const out = inflateRawSync(data, { maxOutputLength: expected })
+  insist(out.length === expected, 'xlsx_entry_size')
   return out
 }
 
-async function unzip(bytes: Uint8Array): Promise<Map<string, () => Promise<Uint8Array>>> {
+function unzip(bytes: Uint8Array): Map<string, () => Uint8Array> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let end = -1
   for (let index = bytes.length - 22; index >= Math.max(0, bytes.length - 65_557); index--) if (view.getUint32(index, true) === 0x06054b50) { end = index; break }
@@ -57,7 +47,7 @@ async function unzip(bytes: Uint8Array): Promise<Map<string, () => Promise<Uint8
   const count = view.getUint16(end + 10, true)
   let pointer = view.getUint32(end + 16, true)
   insist(count <= 2000, 'xlsx_too_many_entries')
-  const entries = new Map<string, () => Promise<Uint8Array>>()
+  const entries = new Map<string, () => Uint8Array>()
   let declared = 0
   for (let entry = 0; entry < count; entry++) {
     insist(pointer + 46 <= bytes.length && view.getUint32(pointer, true) === 0x02014b50, 'xlsx_corrupt')
@@ -71,7 +61,7 @@ async function unzip(bytes: Uint8Array): Promise<Map<string, () => Promise<Uint8
     insist(start + compressed <= bytes.length, 'xlsx_corrupt')
     const data = bytes.slice(start, start + compressed)
     insist(method === 0 || method === 8, 'xlsx_compression')
-    entries.set(name, async () => method === 0 ? (insist(compressed === size, 'xlsx_corrupt'), data) : inflate(data, size))
+    entries.set(name, () => method === 0 ? (insist(compressed === size, 'xlsx_corrupt'), data) : inflate(data, size))
     pointer += 46 + nameLength + extra + comment
   }
   return entries
@@ -88,19 +78,19 @@ function columnIndex(reference: string): number {
 }
 
 /** Every sheet of a workbook as rows of cell text. Numeric cells keep their stored value. */
-export async function readXlsx(bytes: Uint8Array): Promise<Table[]> {
-  const entries = await unzip(bytes)
-  const text = async (name: string) => { const entry = entries.get(name); return entry ? new TextDecoder().decode(await entry()) : null }
-  const workbook = await text('xl/workbook.xml')
+export function readXlsx(bytes: Uint8Array): Table[] {
+  const entries = unzip(bytes)
+  const text = (name: string) => { const entry = entries.get(name); return entry ? new TextDecoder().decode(entry()) : null }
+  const workbook = text('xl/workbook.xml')
   insist(workbook, 'xlsx_no_workbook')
-  const relations = new Map([...(await text('xl/_rels/workbook.xml.rels') ?? '').matchAll(/<Relationship\b[^>]*>/g)].map(match => [attribute(match[0], 'Id'), attribute(match[0], 'Target')]))
-  const shared = [...(await text('xl/sharedStrings.xml') ?? '').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(match => texts(match[1]))
+  const relations = new Map([...(text('xl/_rels/workbook.xml.rels') ?? '').matchAll(/<Relationship\b[^>]*>/g)].map(match => [attribute(match[0], 'Id'), attribute(match[0], 'Target')]))
+  const shared = [...(text('xl/sharedStrings.xml') ?? '').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(match => texts(match[1]))
   const tables: Table[] = []
   for (const sheet of workbook.matchAll(/<sheet\b[^>]*>/g)) {
     const target = relations.get(attribute(sheet[0], 'r:id'))
     insist(target, 'xlsx_sheet_missing')
     const path = target.startsWith('/') ? target.slice(1) : `xl/${target}`
-    const xml = await text(path)
+    const xml = text(path)
     insist(xml, 'xlsx_sheet_missing')
     const rows: string[][] = []
     for (const row of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {

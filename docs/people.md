@@ -65,7 +65,11 @@ After a [restore from a backup](/docs/backup), staff show **Needs an invitation*
 
 ## Inactive accounts
 
-The owner sets an inactivity policy at the foot of **People**: how many days without a sign-in make someone inactive, how long their notice lasts, and which teams and roles are protected (the owner, assessors with evidence waiting and anyone with an open blocker or exception always are). Save it, press **Preview this policy** to see who would get a notice or lose access, then **Switch on**. **Run now** gives notices (shown on the person's My learning; no email is sent), cancels them for anyone who signed in since, and removes access when a notice runs out. Training records stay, and restoring access lets the person sign in again by emailed link.
+The owner sets an inactivity policy at the foot of **People**: 30–730 calendar days without a sign-in in the business time zone, 7–60 elapsed 24-hour days of notice, and protected teams and roles. The owner, assessors with evidence waiting and anyone with an open blocker or exception are always protected. Save, **Preview this policy**, then **Switch on**. The preview lists planned notices, removals and protected people; it changes no access. **Run now** performs the reviewed policy using your current owner session.
+
+For unattended work, review **Daily automatic run** and its complete definition and SHA-256, then **Approve daily automatic run** from an ordinary, recently authenticated owner sign-in. Development and review sessions cannot delegate scheduled authority. The Worker runs at 08:00 UTC, removes at most 100 accounts per tick and admits runs at least 23 hours apart so a tick's processing time does not skip the following day. Notices and cancellations use the same rule. The standing approval survives signing out; **Revoke automatic authority** stops it, and any policy change needs a fresh preview, enable and approval. The history shows outcomes and refusals, with older records available through the linked JSON history. There are no provider calls or hidden retries.
+
+Notices appear on **My learning** only; no email is sent. A new sign-in or protection cancels a notice. When the notice expires, Base removes access and ends sessions; completions, certificates and evidence stay. **Restore access** allows a fresh sign-in; old sessions remain ended. Base retains the last sign-in even after old sessions are deleted. On upgrade, accounts with unknown history receive a conservative fresh inactivity window.
 
 ## Announcements
 

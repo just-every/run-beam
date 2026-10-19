@@ -49,7 +49,10 @@
           "deploy-demo.json",
           "tests/runtime.mjs",
           "migrations/core/0052_beam_automation_controls.sql",
-          "migrations/core/0053_beam_notification_rules.sql"
+          "migrations/core/0053_beam_notification_rules.sql",
+          "migrations/core/0054_import_kit_door.sql",
+          "migrations/core/0055_scheduled_policy.sql",
+          "migrations/core/0056_last_signin.sql"
         ]
       }
     },
@@ -70,7 +73,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "398bdd222401a60ac2d0732454f6a947b3033029",
+          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
           "path": ".",
           "paths": [
             "foundation/runtime",
@@ -94,7 +97,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "398bdd222401a60ac2d0732454f6a947b3033029",
+          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
           "path": "modules/import-kit",
           "paths": [
             "src",
@@ -117,7 +120,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "398bdd222401a60ac2d0732454f6a947b3033029",
+          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
           "path": "export",
           "paths": [
             "HOMEPAGE-VARIANTS.md",

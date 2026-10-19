@@ -1,29 +1,27 @@
-Beam can bring your training records across from TalentLMS so you can run both side by side. Course content moves separately: rebuild lessons from your own source documents.
+Beam brings TalentLMS course lists and course-report history into the employer's own installation. Imported history never satisfies a current assignment and course content still needs rebuilding from owned source documents.
 
-## What you need from TalentLMS
+## Upload and review
 
-- The **course list** as a CSV file.
-- A **course report** (.xlsx) for each course whose history you want, with its users overview and, if available, its timeline.
+Open **Move in** as the owner. Choose a course-list CSV and up to three report XLSX files on the screen (the API accepts five), their TalentLMS course IDs and optional replacement Beam courses, and the source date order. **Preview import** uploads the original files in bounded parts through Base's operator import door; JavaScript is required for that upload. Only this page permits the same-origin static uploader script and same-origin chunk connections under CSP; inline, eval and external scripts or connections remain forbidden. Planning retains originals and a review plan but writes no native training records.
 
-## Preview
+Review the source/effect counts, rejections, explained omissions and differences. **Apply reviewed import** approves that exact fingerprint. If there is more work, **Continue reviewed import** applies the next bounded part. A changed or stale plan must be reviewed again; no hidden retry loop applies it.
 
-Open **Move in** (the owner sees it in the top bar). Under **1. Preview**, choose the **Course list (.csv)**, then up to three course reports, each with its **TalentLMS course ID**. Say how **Dates in these files** are written, and press **Preview import**.
+The original bundle is JSON containing `courseList: {filename, base64}`, `reports: [{course, file: {filename, base64}}]`, `dateFormat` (`DMY`, `MDY` or `YMD`) and `mappings` keyed by TalentLMS course ID. The CSV/XLSX originals stay inside the retained bundle. Employee matches and course mappings are included in the reviewed interpretation. Unknown people remain explicitly unresolved history. Duplicate completion rows and non-completion events remain explained omissions.
 
-The preview is a dry run: nothing has been written. It shows:
+## Reconcile, catch up and undo
 
-- **Summary**: courses in the list, historical completions, people not matched, duplicates and rows needing attention.
-- **People**: who matched a Beam member by email, and who will be kept as unresolved history.
-- **Duplicates**, **Needs attention** and **Gaps**, each naming the file, sheet and row.
-- **Course mapping**: link each TalentLMS course to the Beam course that replaces it, then **Preview again with this mapping**.
+**Check native records** compares the imported records with their retained sources. A manager can mark a history row reviewed; undo preserves that later decision. **Undo this import** uses bounded parts too. Import history identifies owner approvals and approvals made through Business separately.
 
-## Apply and undo
+Choose **Update the previous TalentLMS import with this export** to plan a catch-up against the same lineage. Review the differences before applying. Catch-up replaces only unchanged imported records; later native reviews or edits are protected and reported. No import grants sign-in access, publishes a course or sends a message.
 
-Under **2. Apply**, **Apply import** applies exactly the preview you reviewed. If the files or your people changed in the meantime, Beam asks you to preview again.
+## Business imports
 
-Imported completions are labeled **TalentLMS history**. They show on each person's record but never complete a current assignment. A manager can **Mark reviewed** any of them with a note.
+Owner imports and Business use the same upload → plan → reviewed fingerprint → apply → reconcile → undo pipeline. Business imports start disabled and require the installation's configured trusted claim key ring. Enable or disable them on **Move in**. Revoked key IDs stay revoked after re-enabling, and the owner's own history and undo remain available while Business is off.
 
-**Undo this import** removes what the import added, except records a manager reviewed afterwards, which are kept. You can then preview and apply the same files again.
+## Custody and erasure
 
-## When someone joins after an import
+The installation archive retains import custody along with native history. Custody includes upload chunks, retained plans, approvals, namespace/destination bindings and failed-apply facts. Beam's employee-erasure door is still an OPS-003 gap: it must cover these records and every erase path before it ships, while retaining permanent settings and revoked signing keys.
 
-If you invite a person after importing their history as unresolved, the next preview lists their rows under **Imported earlier with other details**, and apply refuses that preview. Undo the earlier import, then preview and apply the files again to bring their history across matched to them.
+## Imports from before the shared door
+
+These remain labeled **Legacy owner import**, with original files, fingerprints, principal bindings and review decisions unchanged. No Business approval is invented. The current owner can undo them while Business is off, one bounded step per click. Interrupted old imports can only be discarded; they cannot resume forward. The original undo policy still protects later native edits.

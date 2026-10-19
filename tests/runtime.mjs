@@ -23,14 +23,14 @@ async function freePort() {
   return port
 }
 
-export async function emittedWorker() {
+export async function emittedWorker({ bindings = {} } = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'beam-worker-'))
   const server = join(root, 'dist/server')
   const config = JSON.parse(await readFile(join(server, 'wrangler.json'), 'utf8'))
   const port = await freePort()
   const origin = `https://127.0.0.1:${port}`
   const secret = () => randomBytes(32).toString('base64url')
-  const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret() }
+  const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret(), ...bindings }
   const mails = []
   const options = convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
@@ -73,5 +73,5 @@ export async function emittedWorker() {
   /** The Worker's D1, for checks that move an assignment's clock (AUTO-009), and its D1 and R2 together for the
    * installation archive `rer export` writes (BEAM-16); everything else goes through the doors. */
   const db = await mf.getD1Database('DB'), files = await mf.getR2Bucket('FILES')
-  return { origin, vars, mails, fetch, linkFor, close, db, files }
+  return { origin, vars, mails, fetch, linkFor, close, db, files, scheduled: () => mf.getWorker().then(worker => worker.scheduled({ cron: '0 8 * * *', scheduledTime: Date.now() })) }
 }

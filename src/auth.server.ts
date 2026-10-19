@@ -5,6 +5,7 @@ import { fontDocumentResponse } from './base/font-response'
 import { createOperatorAuth, createAuthHandler, createSignInHandler, defaultRolePolicy, devGate, devNotFound, isActiveOperator, type AuthConfig, type RolePolicy } from './modules/operator-auth/index.mjs'
 import { operatorMail } from './mail.server.mjs'
 import branding from './branding.json'
+import type { ScheduledPolicy } from './modules/operator-auth/scheduled/index.mjs'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
@@ -54,8 +55,8 @@ const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePoli
  || (input.action === 'operators:invite' && input.role === 'member' && isActiveOperator(input.actor)
   && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.operator_id = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.id, Date.now()).first())
 
-export function operatorAuth(env: Bindings) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), rolePolicy: rolePolicy(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+export function operatorAuth(env: Bindings, scheduledPolicies?: () => ScheduledPolicy[], scheduledGuard?: RolePolicy) {
+ return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), scheduledPolicies, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
@@ -84,6 +85,10 @@ export async function authResponse(request: Request, original: Bindings): Promis
  if (url.pathname === '/auth/invite') {
   const session = await operatorAuth(env).getSession(request)
   if (session && session.operator.role !== 'owner') return Response.json({ error: 'forbidden' }, { status: 403 })
+ }
+ if (url.pathname === '/auth/policies' || url.pathname === '/auth/policy-runs' || url.pathname.startsWith('/auth/policy/')) {
+  const { inactivityAuth } = await import('./beam/inactivity-scheduled')
+  return createAuthHandler(await inactivityAuth(env))(request)
  }
  if (url.pathname.startsWith('/auth/')) return fontDocumentResponse(await createAuthHandler(operatorAuth(env))(request))
  if (url.pathname === '/setup' || url.pathname === '/app' || url.pathname.startsWith('/app/')) {

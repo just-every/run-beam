@@ -72,7 +72,7 @@ ${await unitsCard(env, actor, list.members, list.teams)}
 ${await rolesCard(env, actor, list.members, list.teams)}
 ${await auditorsCard(env, actor, list.members, list.teams)}
 ${await instructorsCard(env, actor, list.members as { id: string; name: string }[])}
-${await inactivityCard(env, actor, list.teams as { id: string; name: string }[], zone)}`
+${await inactivityCard(env, actor, list.teams as { id: string; name: string }[], zone, request)}`
   return page('People', actor, body, { current: '/app/people', url, wide: true })
 }
 

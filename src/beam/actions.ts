@@ -14,6 +14,7 @@ import { saveNotification, setNotificationEnabled, testNotification } from './no
 import { replayNotifications } from './notification-delivery'
 import { approveAutomation, saveAutomationPolicy } from './automation-policy'
 import { previewRule, replayRule, saveRule, setRuleState } from './automation'
+import { approvePolicy, revokePolicy } from './inactivity-scheduled'
 import { previewPolicy, runPolicy, savePolicy, setPolicyEnabled } from './inactivity'
 import { cancelSession, rescheduleSession, scheduleSession, setSeats, updateSession } from './live'
 import { acceptOffer, leave, register } from './registrations'
@@ -32,7 +33,8 @@ import { restoreRevision } from './history'
 import type { Input } from './input'
 import { completeLesson, decidePractical, gradeQuiz, saveQuizAnswers, startQuiz, submitPractical, submitQuiz } from './learning'
 import { decideNotice, decideProposal, proposeDraft } from './maintenance'
-import { acceptHistory, applyImport, importAction, previewImport } from './movein/talentlms'
+import { acceptHistory } from './movein/talentlms'
+import { saveImportSettings } from './movein/door'
 import { configureBusiness, createTeam, invitePerson, setAccess, setRoles, setTeamMembers } from './people'
 import { choosePractice, restartPractice } from './practice'
 import { answerQuestions, closeQuestions, declineQuestions } from './questions'
@@ -122,6 +124,8 @@ export const actions: Record<string, Handler> = {
   'inactivity.policy': (env, actor, input) => savePolicy(env, actor, input),
   'inactivity.preview': (env, actor) => previewPolicy(env, actor),
   'inactivity.enable': (env, actor, input) => setPolicyEnabled(env, actor, input),
+  'inactivity.approve': (env, actor, input, request) => approvePolicy(env, actor, input, request),
+  'inactivity.revoke': (env, actor, input, request) => revokePolicy(env, actor, input, request),
   'inactivity.run': (env, actor, input, request) => runPolicy(env, actor, input, request),
   'automation.preview': (env, actor, input) => previewRule(env, actor, input),
   'automation.state': (env, actor, input) => setRuleState(env, actor, input),
@@ -198,9 +202,7 @@ export const actions: Record<string, Handler> = {
   'quiz.grade': (env, actor, input) => gradeQuiz(env, actor, input),
   'survey.answer': (env, actor, input) => answerSurvey(env, actor, input),
   'offline.record': (env, actor, input) => recordOffline(env, actor, input),
-  'import.preview': (env, actor, input) => previewImport(env, actor, input),
-  'import.apply': (env, actor, input) => applyImport(env, actor, input),
-  'import.job': (env, actor, input) => importAction(env, actor, input),
+  'import.settings': (env, actor, input) => saveImportSettings(env, actor, input),
   'history.accept': (env, actor, input) => acceptHistory(env, actor, input),
   'agent.propose': (env, actor, input) => propose(env, actor, input),
   'agent.decide': (env, actor, input) => decide(env, actor, input),

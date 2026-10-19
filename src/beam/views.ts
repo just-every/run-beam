@@ -9,7 +9,8 @@ import { surveyResults } from './survey'
 import { BeamError, all, insist, one } from './core'
 import { compareRevisions, compareSourceVersions } from './history'
 import { assignmentView, attemptDetail } from './learning'
-import { importJobs, importedHistory } from './movein/talentlms'
+import { importedHistory } from './movein/talentlms'
+import { importJobs, importSettings } from './movein/door'
 import { business, people } from './people'
 import { directoryFields, openConflicts, personDirectory } from './directory'
 import { reminderMessages } from './plans'
@@ -82,6 +83,7 @@ export const views: Record<string, View> = {
   certificate: (env, actor, _request, id) => certificateRecord(env, actor, id),
   'certificate-templates': async (env, actor) => { insist(actor.owner || actor.grants.certificates, 'forbidden', 403); return await templates(env) },
   imports: (env, actor) => importJobs(env, actor),
+  'import-settings': (env, actor) => importSettings(env, actor),
   history: (env, actor) => importedHistory(env, actor),
   messages: (env, actor) => reminderMessages(env, actor),
   report: (env, actor, request) => trainingReport(env, actor, reportFilters(new URL(request.url))),
@@ -115,7 +117,7 @@ const ROUTES: [RegExp, string][] = [
   [/^automation-controls$/, 'automation-controls'],
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^directory$/, 'directory-fields'], [/^directory\/([\w-]+)$/, 'directory'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
-  [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
+  [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^import-settings$/, 'import-settings'], [/^history$/, 'history'],
   [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^audiences$/, 'audiences'], [/^roster-batches$/, 'roster-batches'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'], [/^recognition$/, 'recognition'], [/^discussions\/([\w-]+)$/, 'discussions'], [/^discussion-notices$/, 'discussion-notices'],
 ]
 

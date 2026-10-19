@@ -11,6 +11,8 @@ import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { beamResponse } from './beam/http'
 import { seedDemo } from './demo'
+import { scheduledInactivity } from './beam/inactivity-scheduled'
+import { beamImportDoor } from './beam/movein/door'
 
 const api = new Hono<{ Bindings: Bindings }>()
 api.get('/health', (context) => context.json({ status: 'ok', ...deploymentHealth(context.env) }))
@@ -24,7 +26,10 @@ function noTransform(response: Response): Response {
 }
 
 export default withDemo({
+  async scheduled(_controller, env) { await scheduledInactivity(runtimeBindings(env)) },
   async fetch(request, env, execution) {
+    const imported = await beamImportDoor(request, runtimeBindings(env))
+    if (imported) return imported
     // Authorization is exclusively Beam's scoped agent door. Never allow a
     // co-present human cookie to turn a bearer request into a form/auth action.
     if (request.headers.has('authorization') && !new URL(request.url).pathname.startsWith('/api/beam/')) {
