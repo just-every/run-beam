@@ -454,6 +454,10 @@
       "sha256": "0492135a8152bf43d74f6ab1ddc7c32ad5dbf76109ea9404136bd58332dda764",
       "executable": false
     },
+    "migrations/core/0046_beam_directory.sql": {
+      "sha256": "9b7f1ec56589a3636dc8b5ba4889e6c70bf3742063abaef073c35a524b33c642",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "714a1ee9ff4fcfdda67fce5b33206dd2b74d27149dd33de2daab276d2cae7c85",
       "executable": false
@@ -994,6 +998,10 @@
       "sha256": "21c6b74dc229091559abaf39dad453b9e504dd30adfa863f08ebb7c100efb9f9",
       "executable": false
     },
+    "src/beam/directory.ts": {
+      "sha256": "24e55dfb237d0c2fb98b86a511f234ce76df94bdad1f210ab1b02f4d105c771c",
+      "executable": false
+    },
     "src/beam/estate.ts": {
       "sha256": "e414e55851c68f4e372a4005e07f1d731293292c71a0da29e895d2cdcc23ac98",
       "executable": false
@@ -1188,6 +1196,10 @@
     },
     "src/beam/ui/course-access.ts": {
       "sha256": "9129e601f299811b679a609427fd1e14c6b2313a7669656d3e55a15d5a1a28a3",
+      "executable": false
+    },
+    "src/beam/ui/directory.ts": {
+      "sha256": "2ec44822d03bb3f188c1d7ae32c7693579c2bf1a0acdfb0f8bb54770fe0eed86",
       "executable": false
     },
     "src/beam/ui/drawings.ts": {
@@ -3028,6 +3040,10 @@
     },
     "tests/beam/regression-collab.mjs": {
       "sha256": "97a8b70d82eaa8e62a0c6a5e300bf3666064b1fa923c962d23364cfe88b66673",
+      "executable": false
+    },
+    "tests/beam/regression-directory.mjs": {
+      "sha256": "5a3dfc4b7053a429d9e18530800a51020482c9225a2d23a173241e354ae3f477",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
