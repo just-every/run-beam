@@ -78,7 +78,7 @@ export async function restoreJourney({ root, target, port }) {
     // Archives carry no sign-in accounts. Restoring a learner's access sends them an ordinary invitation;
     // until they accept it from their mailbox (a hosted installation's mail) they cannot sign in.
     const learner = learners.find(member => member.email.startsWith('learner@'))
-    const restore = new URLSearchParams({ returnTo: '/app/people', email: learner.email, status: 'active' })
+    const restore = new URLSearchParams({ returnTo: '/app/people', member: learner.id, status: 'active' })
     const restored = await fetch(`${origin}/app/do/person.access`, { method: 'POST', redirect: 'manual', headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' }, body: restore })
     assert.equal(restored.status, 303)
     assert.equal(new URL(restored.headers.get('location'), origin).searchParams.get('error'), null, 'restoring access is accepted')

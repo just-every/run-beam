@@ -13,7 +13,7 @@ async function personaMembers(env: Bindings) {
   await env.DB.batch(Object.entries(PERSONA_ROLES).flatMap(([as, persona]) => {
     const email = `${as}@dev.localhost`
     return [
-      env.DB.prepare("INSERT OR IGNORE INTO beam_members (id, email, name, created_at) SELECT lower(hex(randomblob(16))), email, ?, ? FROM oa_operators WHERE email = ?").bind(persona.name, Date.now(), email),
+      env.DB.prepare("INSERT OR IGNORE INTO beam_members (id, email, name, created_at, operator_id) SELECT lower(hex(randomblob(16))), email, ?, ?, id FROM oa_operators WHERE email = ?").bind(persona.name, Date.now(), email),
       ...persona.roles.map(role => env.DB.prepare('INSERT OR IGNORE INTO beam_member_roles (member_id, role) SELECT id, ? FROM beam_members WHERE email = ?').bind(role, email)),
     ]
   }))

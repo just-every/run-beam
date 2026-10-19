@@ -52,7 +52,7 @@ export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, 
 // they sent stops admitting once their grant ends, because Base checks the issuer again when it is used.
 const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePolicy(input)
  || (input.action === 'operators:invite' && input.role === 'member' && isActiveOperator(input.actor)
-  && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.email = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.email.toLowerCase(), Date.now()).first())
+  && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.operator_id = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.id, Date.now()).first())
 
 export function operatorAuth(env: Bindings) {
  return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), rolePolicy: rolePolicy(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })

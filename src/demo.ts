@@ -92,7 +92,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   // A demo owner arrives with a placeholder name; the business's lead has her own.
   const generic = (name: string | null) => !name || name.trim().toLowerCase() === 'owner'
   const ownerName = generic(owner.display_name) ? OWNER_NAME : owner.display_name
-  await q('INSERT INTO beam_members (id, email, name, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO NOTHING', id('a0', 0), ownerEmail, ownerName, at(-900)).run()
+  await q('INSERT INTO beam_members (id, email, name, created_at, operator_id) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO NOTHING', id('a0', 0), ownerEmail, ownerName, at(-900), owner.id).run()
   await q("UPDATE beam_members SET name = ? WHERE email = ? AND (name = '' OR lower(name) = 'owner')", ownerName, ownerEmail).run()
   if (generic(owner.display_name)) await q('UPDATE oa_operators SET display_name = ? WHERE id = ?', ownerName, owner.id).run()
   const ownerMember = (await q('SELECT id FROM beam_members WHERE email = ?', ownerEmail).first<{ id: string }>())!.id
@@ -112,7 +112,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   const joined = (index: number) => at(-880 + (index % 40) * 20)
   statements.push(
     ...inserts(db, 'INSERT OR IGNORE INTO oa_operators (id, email, display_name, role, status, created_at)', people.map((row, index) => [row.operator, emailOf(row.person as Exclude<Person, 'owner'>), nameOf(row.person as Exclude<Person, 'owner'>), 'member', row.former ? 'inactive' : 'active', joined(index)])),
-    ...inserts(db, 'INSERT OR IGNORE INTO beam_members (id, email, name, created_at)', people.map((row, index) => [member(row.person), emailOf(row.person as Exclude<Person, 'owner'>), nameOf(row.person as Exclude<Person, 'owner'>), joined(index)])),
+    ...inserts(db, 'INSERT OR IGNORE INTO beam_members (id, email, name, created_at, operator_id)', people.map((row, index) => [member(row.person), emailOf(row.person as Exclude<Person, 'owner'>), nameOf(row.person as Exclude<Person, 'owner'>), joined(index), row.operator])),
     ...inserts(db, 'INSERT OR IGNORE INTO beam_member_roles (member_id, role)', people.flatMap(row => row.roles.map(role => [member(row.person), role]))),
   )
   const sites = Object.keys(SITES) as Site[]

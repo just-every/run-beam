@@ -19,7 +19,7 @@ async function requireViewable(env: Bindings, viewer: Actor, learner: string) {
   const member = await one<{ id: string; email: string; name: string }>(env, 'SELECT id, email, name FROM beam_members WHERE id = ?', learner)
   insist(member, 'person_not_found', 404)
   insist(member.id !== viewer.id, 'cannot_view_yourself', 403)
-  insist(!await one(env, "SELECT 1 FROM oa_operators WHERE lower(email) = ? AND role = 'owner'", member.email), 'cannot_view_owner', 403)
+  insist(!await one(env, "SELECT 1 FROM oa_operators o JOIN beam_members m ON m.operator_id = o.id WHERE m.id = ? AND o.role = 'owner'", member.id), 'cannot_view_owner', 403)
   const at = now()
   const administrator = await one(env, `SELECT 1 FROM beam_admin_grants WHERE member_id = ?1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?2)
     UNION SELECT 1 FROM beam_custom_role_grants WHERE member_id = ?1 AND revoked_at IS NULL`, learner, at)

@@ -2,7 +2,7 @@
 import { operatorAuth, type Bindings } from '../auth.server'
 import { normalizeEmail } from '../modules/operator-auth/index.mjs'
 import { ROLES, ensureMember, requireOwner, type Actor, type Permission, type Role } from './actor'
-import { all, commit, insist, newId, now, one, stmt } from './core'
+import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { validTimezone } from './time'
 import { teamManagers } from './managers'
@@ -59,57 +59,60 @@ export async function invitePerson(env: Bindings, request: Request, actor: Actor
   insist(actor.owner || roles.every(role => role === 'learner'), 'owner_required', 403)
   // A member restored from an archive has no sign-in account (archives never carry them): the owner inviting them
   // again gives them one and keeps their restored roles, teams and records. An administrator invites only new people.
-  const existing = await one(env, 'SELECT 1 FROM beam_members WHERE email = ?', email)
-  insist(!existing || (actor.owner && !await operatorFor(env, request, email)), 'already_member', 409)
+  const existing = await one<{ id: string }>(env, 'SELECT id FROM beam_members WHERE email = ?', email)
+  insist(!existing || (actor.owner && !await accountOf(env, existing.id)), 'already_member', 409)
   await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: '/app' })
   const member = await ensureMember(env, email, name, roles)
   await commit(env, teams.map(team => stmt(env, 'INSERT OR IGNORE INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member.id)), { actor, action: 'person.invite', subject: member.id, detail: { email, roles, teams } })
   return { id: member.id, email, roles, teams }
 }
 
-async function operatorFor(env: Bindings, request: Request, email: string) {
-  return (await operatorAuth(env).listOperators(request)).find(candidate => candidate.email.toLowerCase() === email)
+/** The person's sign-in account (ORG-001: linked by account id), if it still exists. */
+async function accountOf(env: Bindings, memberId: string) {
+  return await one<{ id: string; role: string; status: string }>(env, 'SELECT o.id, o.role, o.status FROM oa_operators o JOIN beam_members m ON m.operator_id = o.id WHERE m.id = ?', memberId)
 }
 
-async function memberByEmail(env: Bindings, value: string) {
-  const member = await one<{ id: string; email: string; name: string }>(env, 'SELECT id, email, name FROM beam_members WHERE email = ?', normalizeEmail(value))
+async function memberById(env: Bindings, id: string) {
+  const member = await one<{ id: string; email: string | null; name: string }>(env, 'SELECT id, email, name FROM beam_members WHERE id = ?', id)
   insist(member, 'person_not_found', 404)
   return member
 }
 
 export async function setRoles(env: Bindings, actor: Actor, input: Input) {
   requireOwner(actor)
-  const member = await memberByEmail(env, input.text('email', { max: 254 }))
+  const member = await memberById(env, input.text('member', { max: 64 }))
   insist(member.id !== actor.id, 'owner_roles_fixed')
   const roles = roleList(input)
   await commit(env, [stmt(env, 'DELETE FROM beam_member_roles WHERE member_id = ?', member.id), ...roles.map(role => stmt(env, 'INSERT INTO beam_member_roles (member_id, role) VALUES (?, ?)', member.id, role))], { actor, action: 'person.roles', subject: member.id, detail: { roles } })
-  return { email: member.email, roles }
+  return { id: member.id, roles }
 }
 
 export async function setAccess(env: Bindings, request: Request, actor: Actor, input: Input) {
   const status = input.text('status')
   insist(status === 'active' || status === 'inactive', 'invalid_status')
-  return await changeAccess(env, request, actor, input.text('email', { max: 254 }), status)
+  return await changeAccess(env, request, actor, input.text('member', { max: 64 }), status)
 }
 
 /** The owner removes or restores one person's access through Base: removal ends their sessions; evidence stays. */
-export async function changeAccess(env: Bindings, request: Request, actor: Actor, email: string, status: 'active' | 'inactive', detail?: unknown) {
+export async function changeAccess(env: Bindings, request: Request, actor: Actor, memberId: string, status: 'active' | 'inactive', detail?: unknown) {
   requireOwner(actor)
-  const member = await memberByEmail(env, email)
+  const member = await memberById(env, memberId)
   const auth = operatorAuth(env)
-  const operator = await operatorFor(env, request, member.email)
+  const operator = await accountOf(env, member.id)
   if (!operator && status === 'active') {
-    // Restored from an archive without a sign-in account: restoring access sends an ordinary invitation.
+    // No sign-in account yet (restored from an archive, or added from a roster): restoring access sends an ordinary
+    // invitation to the work email. Someone without one signs in under ORG-011, which Beam does not offer yet.
+    insist(member.email, 'no_work_email', 409)
     await auth.invite(request, { email: member.email, displayName: member.name, role: 'member', returnTo: '/app' })
-    await commit(env, [], { actor, action: 'person.reinvite', subject: member.id })
-    return { email: member.email, status: 'invited' }
+    await commit(env, [stmt(env, 'UPDATE beam_members SET operator_id = (SELECT id FROM oa_operators WHERE lower(email) = ?) WHERE id = ?', member.email, member.id)], { actor, action: 'person.reinvite', subject: member.id })
+    return { id: member.id, email: member.email, status: 'invited' }
   }
   insist(operator, 'person_not_found', 404)
   insist(operator.role !== 'owner', 'owner_access_fixed')
   await auth.setOperatorStatus(request, operator.id, status)
   if (status === 'inactive') for (const session of await auth.listSessions(request, operator.id)) if (session.active) await auth.revokeSession(request, session.id)
   await commit(env, [], { actor, action: `person.${status}`, subject: member.id, detail })
-  return { email: member.email, status }
+  return { id: member.id, email: member.email, status }
 }
 
 /** The owner creates teams and names their managers (ORG-004); a team's managers act only for its members. */
@@ -138,11 +141,16 @@ export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) 
 export async function people(env: Bindings, request: Request, actor: Actor, ...permissions: Permission[]) {
   const reach: Permission[] = permissions.length ? permissions : ['people']
   const scope = learnerScope(actor, ...reach), teams = teamScope(actor, ...reach)
-  const members = await all(env, `SELECT m.id, m.email, m.name, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
+  const members = await all(env, `SELECT m.id, m.email, m.name, m.employee_id AS employeeId, m.employment, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
     WHERE ${IN_SCOPE('m.id')} ORDER BY m.name`, scope, scope)
-  const statuses = actor.owner ? new Map((await operatorAuth(env).listOperators(request)).map(operator => [operator.email.toLowerCase(), operator])) : new Map()
+  const statuses = actor.owner ? new Map((await operatorAuth(env).listOperators(request)).map(operator => [operator.id, operator])) : new Map()
+  const links = new Map((await all<{ id: string; operator_id: string | null }>(env, 'SELECT id, operator_id FROM beam_members')).map(row => [row.id, row.operator_id]))
+  const account = (member: Row) => statuses.get(links.get(member.id))
+  // ORG-001: People lists the employee id and employment state beside the name for the owner, managers and learning
+  // administrators; a custom role keeps the name, email, roles and teams only.
+  const directory = actor.owner || actor.managedTeams.length > 0 || actor.adminUnits.length > 0
   return {
-    members: members.map(member => ({ id: member.id, email: member.email, name: member.name, roles: statuses.get(member.email)?.role === 'owner' ? [...ROLES] : JSON.parse(member.roles), teams: JSON.parse(member.teams), status: statuses.get(member.email)?.status ?? null, owner: statuses.get(member.email)?.role === 'owner' })),
+    members: members.map(member => ({ id: member.id, email: member.email, name: member.name, ...(directory ? { employeeId: member.employeeId, employment: member.employment } : {}), roles: account(member)?.role === 'owner' ? [...ROLES] : JSON.parse(member.roles), teams: JSON.parse(member.teams), status: account(member)?.status ?? null, owner: account(member)?.role === 'owner' })),
     teams: await all(env, `SELECT id, name, unit_id AS unit FROM beam_teams WHERE ${IN_SCOPE('id')} ORDER BY name`, teams, teams),
     managers: await teamManagers(env, actor.teams),
   }
@@ -154,6 +162,5 @@ export async function memberNames(env: Bindings): Promise<Map<string, string>> {
 }
 
 export async function membersWithRole(env: Bindings, role: Role) {
-  const owner = await one<{ email: string }>(env, "SELECT email FROM oa_operators WHERE role = 'owner'")
-  return await all<{ id: string; name: string; email: string }>(env, 'SELECT DISTINCT m.id, m.name, m.email FROM beam_members m LEFT JOIN beam_member_roles r ON r.member_id = m.id WHERE r.role = ? OR m.email = ? ORDER BY m.name', role, owner?.email ?? '')
+  return await all<{ id: string; name: string; email: string | null }>(env, "SELECT DISTINCT m.id, m.name, m.email FROM beam_members m LEFT JOIN beam_member_roles r ON r.member_id = m.id WHERE r.role = ? OR m.operator_id IN (SELECT id FROM oa_operators WHERE role = 'owner') ORDER BY m.name", role)
 }

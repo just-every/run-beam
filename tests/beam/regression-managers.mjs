@@ -184,7 +184,7 @@ export async function auditorCheck(f) {
   await api('audrey', 'practical.decide', { attempt: second.id, decision: 'rejected', note: 'x' }, 403)
   await api('audrey', 'offline.record', { course: c.id, revision: c.revision, learners: [ids.learner], heldOn: day(0), instructor: 'x', location: 'x', attestation: 'x' }, 403)
   await api('audrey', 'assignment.create', { course: c.id, learners: [ids.learner], dueDate: '2030-10-01' }, 403)
-  await api('audrey', 'person.roles', { email: 'learner@example.test', roles: ['manager'] }, 403)
+  await api('audrey', 'person.roles', { member: ids.learner, roles: ['manager'] }, 403)
   await api('audrey', 'access.rule', { scope: 'course', target: c.id, kind: 'none' }, 403)
   // After the end, nothing: the list, the file and the certificate.
   await new Promise(resolve => setTimeout(resolve, expiresAt - Date.now() + 300))

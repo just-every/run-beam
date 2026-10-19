@@ -24,7 +24,7 @@ async function signingKey(env: Bindings) {
 async function liveSession(env: Bindings, id: string) {
   // Dev/review sessions depend on request-local admission. They cannot mint or
   // back delegations: use an ordinary email-link or OIDC sign-in instead.
-  return one<{ id: string; expiresAt: number; email: string; name: string; role: string }>(env, `SELECT s.id, s.expires_at AS expiresAt, o.email, o.display_name AS name, o.role
+  return one<{ id: string; expiresAt: number; operatorId: string; email: string; name: string; role: string }>(env, `SELECT s.id, s.expires_at AS expiresAt, o.id AS operatorId, o.email, o.display_name AS name, o.role
     FROM oa_sessions s JOIN oa_operators o ON o.id = s.operator_id
     WHERE s.id = ? AND s.revoked_at IS NULL AND s.expires_at > ?
       AND s.kind IN ('native', 'oidc') AND o.status = 'active' AND s.operator_version = o.version`, id, now())
@@ -60,7 +60,7 @@ export async function delegatedSession(env: Bindings, request: Request) {
   insist(claim && typeof claim.session === 'string' && Number.isSafeInteger(claim.expiresAt) && claim.expiresAt! > now() && claim.origin === env.AUTH_ORIGIN, 'invalid_agent_credential', 401)
   const session = await liveSession(env, claim.session)
   insist(session && claim.expiresAt! <= session.expiresAt, 'invalid_agent_credential', 401)
-  return { id: session.id, operator: { email: session.email, displayName: session.name, role: session.role } }
+  return { id: session.id, operator: { id: session.operatorId, email: session.email, displayName: session.name, role: session.role } }
 }
 
 export function requireAgentScope(actor: Actor, path: string, method: string) {

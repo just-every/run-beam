@@ -12,7 +12,7 @@ export type Role = typeof ROLES[number]
 export const PERMISSIONS = ['courses', 'people', 'enrollment', 'reports', 'live_sessions', 'certificates', 'integrations', 'notifications'] as const
 export type Permission = typeof PERMISSIONS[number]
 /** Where one permission reaches: its teams (and their members) and its business units. */
-export interface Reach { teams: string[]; units: string[]; learners: string[] }
+export interface Reach { teams: string[]; units: string[]; locations: string[]; learners: string[] }
 
 export interface Actor {
   id: string
@@ -51,8 +51,8 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   if (!session) return null
   const email = session.operator.email.toLowerCase()
   const owner = session.operator.role === 'owner'
-  let member = await one<{ id: string; name: string; business?: string | null }>(env, 'SELECT id, name, (SELECT name FROM beam_business WHERE singleton = 1) AS business FROM beam_members WHERE email = ?', email)
-  if (!member && owner) member = await ensureMember(env, email, session.operator.displayName, [...ROLES])
+  let member = await linkedMember(env, session.operator.id, email)
+  if (!member && owner) { await ensureMember(env, email, session.operator.displayName, [...ROLES]); member = await linkedMember(env, session.operator.id, email) }
   if (!member) throw new BeamError('not_a_member', 403)
   const roles = new Set((await all<{ role: Role }>(env, 'SELECT role FROM beam_member_roles WHERE member_id = ?', member.id)).map(row => row.role))
   if (owner) ROLES.forEach(role => roles.add(role))
@@ -70,18 +70,32 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
 
 /** The permissions of every custom role this member holds, merged, each with the teams, units and people it reaches. */
 async function customGrants(env: Bindings, memberId: string) {
-  const held = await all<{ permissions: string; teams: string; units: string }>(env, 'SELECT r.permissions, r.teams, r.units FROM beam_custom_role_grants g JOIN beam_custom_roles r ON r.id = g.role_id WHERE g.member_id = ? AND g.revoked_at IS NULL', memberId)
+  const held = await all<{ permissions: string; teams: string; units: string; locations: string }>(env, 'SELECT r.permissions, r.teams, r.units, r.locations FROM beam_custom_role_grants g JOIN beam_custom_roles r ON r.id = g.role_id WHERE g.member_id = ? AND g.revoked_at IS NULL', memberId)
   const grants: Partial<Record<Permission, Reach>> = {}
   for (const role of held) for (const permission of JSON.parse(role.permissions) as Permission[]) {
-    const reach = grants[permission] ??= { teams: [], units: [], learners: [] }
+    const reach = grants[permission] ??= { teams: [], units: [], locations: [], learners: [] }
     reach.units = [...new Set([...reach.units, ...JSON.parse(role.units)])]
     const teams = (await all<{ id: string }>(env, 'SELECT id FROM beam_teams WHERE id IN (SELECT value FROM json_each(?)) OR unit_id IN (SELECT value FROM json_each(?))', role.teams, role.units)).map(row => row.id)
     reach.teams = [...new Set([...reach.teams, ...teams])]
+    reach.locations = [...new Set([...reach.locations, ...JSON.parse(role.locations)])]
   }
-  for (const reach of Object.values(grants)) reach.learners = (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(reach.teams))).map(row => row.member_id)
+  // ORG-001: a role limited to locations reaches the people whose directory location is one of them.
+  for (const reach of Object.values(grants)) reach.learners = (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?)) UNION SELECT id FROM beam_members WHERE location IN (SELECT value FROM json_each(?))', JSON.stringify(reach.teams), JSON.stringify(reach.locations))).map(row => row.member_id)
   return grants
 }
 
+/** ORG-001: a sign-in account reaches its Beam member by account id, so a work email change keeps the same person. An
+ * account not yet linked (a first sign-in after an invitation, or after an archive restore, which carries no accounts)
+ * links to the member whose work email it signed in with, if that member has no live account of its own. */
+async function linkedMember(env: Bindings, operatorId: string, email: string) {
+  const select = 'SELECT id, name, (SELECT name FROM beam_business WHERE singleton = 1) AS business FROM beam_members'
+  const linked = await one<{ id: string; name: string; business?: string | null }>(env, `${select} WHERE operator_id = ?`, operatorId)
+  if (linked) return linked
+  await env.DB.prepare('UPDATE beam_members SET operator_id = ? WHERE email = ? AND (operator_id IS NULL OR operator_id NOT IN (SELECT id FROM oa_operators)) AND NOT EXISTS (SELECT 1 FROM beam_members WHERE operator_id = ?)').bind(operatorId, email, operatorId).run()
+  return await one<{ id: string; name: string; business?: string | null }>(env, `${select} WHERE operator_id = ?`, operatorId)
+}
+
+/** A member for this work email (created with these roles when new), linked to the email's sign-in account if it has one. */
 export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {
   const existing = await one<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_members WHERE email = ?', email)
   if (existing) return existing
@@ -89,6 +103,7 @@ export async function ensureMember(env: Bindings, email: string, name: string, r
   await env.DB.batch([
     stmt(env, 'INSERT INTO beam_members (id, email, name, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO NOTHING', id, email, name, now()),
     ...roles.map(role => stmt(env, 'INSERT OR IGNORE INTO beam_member_roles (member_id, role) SELECT id, ? FROM beam_members WHERE email = ?', role, email)),
+    stmt(env, 'UPDATE beam_members SET operator_id = (SELECT id FROM oa_operators WHERE lower(email) = ?) WHERE email = ? AND (operator_id IS NULL OR operator_id NOT IN (SELECT id FROM oa_operators))', email, email),
   ])
   return (await one<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_members WHERE email = ?', email))!
 }

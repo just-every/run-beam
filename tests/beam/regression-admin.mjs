@@ -157,7 +157,7 @@ export async function courseScopeCheck(f) {
   await api('expert', 'course.create', { title: 'Mine', reviewer: ids.reviewer }, 403)
   for (const role of ['expert', 'reviewer']) {
     await api(role, 'people', undefined, 403)
-    await api(role, 'person.roles', { email: 'learner@example.test', roles: ['manager'] }, 403)
+    await api(role, 'person.roles', { member: ids.learner, roles: ['manager'] }, 403)
     await api(role, `records/${ids.learner}`, undefined, 404)
     await api(role, 'report', undefined, 403)
     assert.equal((await page(evidence, role)).status, 404)

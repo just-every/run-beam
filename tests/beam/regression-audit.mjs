@@ -19,7 +19,7 @@ export async function auditCheck(f) {
   // An access revocation through the People form.
   ids.leaver = (await api('owner', 'person.invite', { email: 'leaver@example.test', name: 'Lee Leaver', roles: ['learner'] })).id
   cookies.leaver = await h.signIn('leaver@example.test', { requested: true })
-  assert.equal((await h.submit('person.access', cookies.owner, { email: 'leaver@example.test', status: 'inactive' }, '/app/people')).searchParams.get('error'), null)
+  assert.equal((await h.submit('person.access', cookies.owner, { member: ids.leaver, status: 'inactive' }, '/app/people')).searchParams.get('error'), null)
   const revocation = await find('category=access&q=Lee%20Leaver', 'person.inactive')
   assert.deepEqual([revocation.subject, revocation.actor], [ids.leaver, ids.owner])
 

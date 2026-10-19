@@ -7,7 +7,7 @@ export async function agentCheck(f) {
   const result = { cookiePublication: await request('/api/beam/revision.decide', { role: 'reviewer', body: { revision, decision: 'publish' } }) }
   assert.equal(result.cookiePublication.status, 403)
   assert.equal((await request('/app/do/revision.decide', { role: 'reviewer', body: { revision, decision: 'publish' } })).status, 403)
-  await api('owner', 'person.roles', { email: 'other@example.test', roles: ['assessor', 'reviewer'] })
+  await api('owner', 'person.roles', { member: ids.other, roles: ['assessor', 'reviewer'] })
   const wrongReviewer = await h.submit('revision.decide', cookies.other, { revision, decision: 'publish' })
   assert.ok(wrongReviewer.searchParams.get('error'))
   assert.equal((await api('reviewer', `revisions/${revision}`)).revision.state, 'in_review')
@@ -61,7 +61,7 @@ export async function agentCheck(f) {
   assert.equal((await api('reviewer', `courses/${c.id}`)).publishedRevision, c.revision)
   result.preparation = { sourceRead: true, draftEdit: edited.status, staleProposalDenied: true, freshProposalAccepted: true, publishedRevisionUnchanged: true }
   // Roles are read again for the same token; it never gains manager capabilities.
-  await api('owner', 'person.roles', { email: 'reviewer@example.test', roles: ['learner'] })
+  await api('owner', 'person.roles', { member: ids.reviewer, roles: ['learner'] })
   assert.deepEqual((await agent('me')).data.roles, ['learner'])
   const revokedHuman = await h.submit('revision.decide', cookies.reviewer, { revision, decision: 'publish' })
   assert.ok(revokedHuman.searchParams.get('error'))
@@ -69,7 +69,7 @@ export async function agentCheck(f) {
   result.revokedHumanReviewerRefused = true
   assert.equal((await agent(`courses/${c.id}`)).status, 403)
   assert.equal((await agent('proposal.create', proposal)).status, 403)
-  await api('owner', 'person.roles', { email: 'reviewer@example.test', roles: ['reviewer', 'author'] })
+  await api('owner', 'person.roles', { member: ids.reviewer, roles: ['reviewer', 'author'] })
   assert.equal((await agent(`courses/${c.id}`)).status, 200)
   const short = await issue('author', 1)
   await new Promise(resolve => setTimeout(resolve, 1100))
@@ -78,9 +78,9 @@ export async function agentCheck(f) {
   assert.equal((await request('/auth/signout', { role: 'author', body: {} })).status, 204)
   assert.equal((await request('/api/beam/me', { token: signout, role: 'owner' })).status, 401)
   cookies.author = await h.signIn('author@example.test')
-  await api('owner', 'person.access', { email: 'reviewer@example.test', status: 'inactive' })
+  await api('owner', 'person.access', { member: ids.reviewer, status: 'inactive' })
   assert.equal((await agent('me')).status, 401)
-  await api('owner', 'person.access', { email: 'reviewer@example.test', status: 'active' })
+  await api('owner', 'person.access', { member: ids.reviewer, status: 'active' })
   assert.equal((await agent('me')).status, 401)
   cookies.reviewer = await h.signIn('reviewer@example.test')
   await publish(revision)

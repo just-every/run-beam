@@ -217,7 +217,7 @@ async function calendarResponse(env: Bindings, actor: Actor, id: string) {
 // Active people for the rail and the footer, and the proposals this person can decide.
 async function shellFacts(env: Bindings, actor: Actor) {
   const [people, zone, waiting] = await Promise.all([
-    one<{ n: number }>(env, "SELECT COUNT(*) AS n FROM beam_members m WHERE EXISTS (SELECT 1 FROM oa_operators o WHERE lower(o.email) = m.email AND o.status = 'active')"),
+    one<{ n: number }>(env, "SELECT COUNT(*) AS n FROM beam_members m WHERE EXISTS (SELECT 1 FROM oa_operators o WHERE o.id = m.operator_id AND o.status = 'active')"),
     business(env).then(value => value!.timezone),
     actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never)) ? listProposals(env, actor).then(list => list.filter(item => item.canDecide).length) : 0,
   ])

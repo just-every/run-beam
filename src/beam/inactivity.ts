@@ -35,18 +35,18 @@ export async function savePolicy(env: Bindings, actor: Actor, input: Input) {
 /** Everyone with an active sign-in account and their last sign-in (or, never signed in, when the account began). */
 async function people(env: Bindings, policy: Policy) {
   const at = now(), zone = (await requireBusiness(env)).timezone
-  const rows = await all(env, `SELECT m.id, m.name, m.email, o.role = 'owner' AS owner, COALESCE((SELECT MAX(s.created_at) FROM oa_sessions s WHERE s.operator_id = o.id), o.created_at) AS lastSignInAt,
+  const rows = await all(env, `SELECT m.id, m.name, o.role = 'owner' AS owner, COALESCE((SELECT MAX(s.created_at) FROM oa_sessions s WHERE s.operator_id = o.id), o.created_at) AS lastSignInAt,
       (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles,
       (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams,
       EXISTS (SELECT 1 FROM beam_attempts t JOIN beam_assessment_revisions s ON s.id = t.assessment_revision_id WHERE s.assessor_id = m.id AND t.state = 'awaiting_review' AND t.reset_id IS NULL) AS assessing,
       EXISTS (SELECT 1 FROM beam_blockers b JOIN beam_assignments a ON a.id = b.assignment_id WHERE b.learner_id = m.id AND b.state = 'open' AND a.status = 'open')
         OR EXISTS (SELECT 1 FROM beam_exceptions e JOIN beam_assignments a ON a.id = e.assignment_id WHERE a.learner_id = m.id AND a.status = 'open' AND e.ends_at > ?) AS excepted
-    FROM beam_members m JOIN oa_operators o ON lower(o.email) = m.email WHERE o.status = 'active' ORDER BY m.name`, at)
+    FROM beam_members m JOIN oa_operators o ON o.id = m.operator_id WHERE o.status = 'active' ORDER BY m.name`, at)
   return rows.map(row => {
     const roles: string[] = JSON.parse(row.roles), teams: string[] = JSON.parse(row.teams)
     const protectedBy = row.owner ? 'owner' : row.assessing ? 'evidence waiting for them as assessor' : row.excepted ? 'open blocker or exception'
       : teams.some(team => policy.excludedTeams.includes(team)) ? 'protected team' : roles.some(role => policy.excludedRoles.includes(role)) ? 'protected role' : null
-    return { id: row.id as string, name: row.name as string, email: row.email as string, lastSignInAt: row.lastSignInAt as number, idleDays: calendarDays(row.lastSignInAt, at, zone), protectedBy }
+    return { id: row.id as string, name: row.name as string, lastSignInAt: row.lastSignInAt as number, idleDays: calendarDays(row.lastSignInAt, at, zone), protectedBy }
   })
 }
 
@@ -63,7 +63,7 @@ export async function plan(env: Bindings, policy: Policy) {
     if (person.protectedBy) { protectedPeople.push(person); if (notice) cancel.push({ ...notice, reason: person.protectedBy }); continue }
     if (notice) {
       if (person.lastSignInAt > notice.noticedAt) cancel.push({ ...notice, reason: 'signed in' })
-      else if (notice.deactivateAt <= at) deactivate.push({ ...notice, email: person.email })
+      else if (notice.deactivateAt <= at) deactivate.push(notice)
     } else if (person.idleDays >= policy.inactiveDays) notify.push(person)
   }
   return { notify, cancel, deactivate, protected: protectedPeople, open }
@@ -99,7 +99,7 @@ export async function runPolicy(env: Bindings, actor: Actor, _input: Input, requ
   for (const person of work.notify) await commit(env, [stmt(env, "INSERT OR IGNORE INTO beam_inactivity_notices (id, member_id, policy_version, last_sign_in_at, noticed_at, deactivate_at, state) VALUES (?, ?, ?, ?, ?, ?, 'open')", newId(), person.id, policy.version, person.lastSignInAt, at, at + policy.noticeDays * DAY)],
     { actor, action: 'inactivity.notice', subject: person.id, detail: { version: policy.version, inactiveDays: policy.inactiveDays, noticeDays: policy.noticeDays, idleDays: person.idleDays, lastSignInAt: person.lastSignInAt } })
   for (const notice of work.deactivate) {
-    await changeAccess(env, request, actor, notice.email, 'inactive', { rule: 'inactivity', version: policy.version, notice: notice.id, lastSignInAt: notice.lastSignInAt })
+    await changeAccess(env, request, actor, notice.member, 'inactive', { rule: 'inactivity', version: policy.version, notice: notice.id, lastSignInAt: notice.lastSignInAt })
     await commit(env, [stmt(env, "UPDATE beam_inactivity_notices SET state = 'deactivated', closed_at = ?, close_reason = 'notice ran out' WHERE id = ? AND state = 'open'", at, notice.id)], { actor, action: 'inactivity.deactivate', subject: notice.member, detail: { notice: notice.id, version: policy.version, inactiveDays: policy.inactiveDays, noticeDays: policy.noticeDays, lastSignInAt: notice.lastSignInAt } })
   }
   return { version: policy.version, noticed: work.notify.map(person => person.id), cancelled: work.cancel.map(notice => notice.member), deactivated: work.deactivate.map(notice => notice.member) }

@@ -12,7 +12,7 @@ async function assessor(f) {
   for (const role of ['assessor', 'manager', 'learner']) assert.ok((await reads(role)).every(r => r.status === 200))
   assert.ok((await reads('other')).every(r => r.status === 404))
   await api('other', 'practical.decide', { attempt: pending.id, decision: 'accepted', note: 'Not named' }, 403)
-  await api('owner', 'person.roles', { email: 'assessor@example.test', roles: ['learner'] })
+  await api('owner', 'person.roles', { member: ids.assessor, roles: ['learner'] })
   const roles = (await api('assessor', 'me')).roles
   assert.deepEqual(roles, ['learner'])
   const revokedReads = await reads('assessor')
@@ -27,7 +27,7 @@ async function assessor(f) {
     assert.ok(form.searchParams.get('error')); assert.equal(json.status, 403)
     assert.equal(attempt.state, 'awaiting_review'); assert.equal(after.assignment.status, 'open'); assert.equal(after.completion, null); assert.equal(completions.length, 0)
   }
-  await api('owner', 'person.roles', { email: 'assessor@example.test', roles: ['assessor', 'learner'] })
+  await api('owner', 'person.roles', { member: ids.assessor, roles: ['assessor', 'learner'] })
   {
     const accepted = await api('assessor', 'practical.decide', { attempt: pending.id, decision: 'accepted', note: 'Role restored; observed demonstration' })
     assert.ok(accepted.completion)

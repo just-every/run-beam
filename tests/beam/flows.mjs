@@ -53,9 +53,9 @@ try {
     await h.api('team.members', people.owner, { team: leads, members: [ids.author] })
     await h.api('team.managers', people.owner, { team: leads, members: [ids.manager] })
     // Removing access ends the person's sessions; restoring it needs a fresh sign-in.
-    await h.api('person.access', people.owner, { email: 'lee@example.test', status: 'inactive' })
+    await h.api('person.access', people.owner, { member: ids.lee, status: 'inactive' })
     await h.api('me', people.lee, undefined, 401)
-    await h.api('person.access', people.owner, { email: 'lee@example.test', status: 'active' })
+    await h.api('person.access', people.owner, { member: ids.lee, status: 'active' })
     await h.api('me', people.lee, undefined, 401)
     people.lee = await h.signIn('lee@example.test')
     await h.api('me', people.lee)

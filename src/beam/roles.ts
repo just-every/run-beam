@@ -15,22 +15,23 @@ export async function saveRole(env: Bindings, actor: Actor, input: Input) {
   const name = input.text('name', { max: 80 })
   const permissions = [...new Set(input.list('permissions'))]
   insist(permissions.length > 0 && permissions.every(permission => (PERMISSIONS as readonly string[]).includes(permission)), 'invalid_permissions')
-  const teams = [...new Set(input.list('teams'))], units = [...new Set(input.list('units'))]
-  insist(teams.length + units.length > 0, 'scope_required')
+  const teams = [...new Set(input.list('teams'))], units = [...new Set(input.list('units'))], locations = [...new Set(input.list('locations'))]
+  insist(teams.length + units.length + locations.length > 0, 'scope_required')
+  insist(locations.every(location => location.length <= 80), 'too_long_locations')
   for (const team of teams) insist(await one(env, 'SELECT 1 FROM beam_teams WHERE id = ?', team), 'team_not_found', 404)
   for (const unit of units) insist(await one(env, 'SELECT 1 FROM beam_units WHERE id = ?', unit), 'unit_not_found', 404)
   const existing = input.text('role', { optional: true })
-  const at = now(), detail = { name, permissions, teams, units }
+  const at = now(), detail = { name, permissions, teams, units, locations }
   if (existing) {
-    const before = await one(env, 'SELECT name, permissions, teams, units FROM beam_custom_roles WHERE id = ?', existing)
+    const before = await one(env, 'SELECT name, permissions, teams, units, locations FROM beam_custom_roles WHERE id = ?', existing)
     insist(before, 'role_not_found', 404)
-    await commit(env, [stmt(env, 'UPDATE beam_custom_roles SET name = ?, permissions = ?, teams = ?, units = ?, updated_by = ?, updated_at = ? WHERE id = ?', name, JSON.stringify(permissions), JSON.stringify(teams), JSON.stringify(units), actor.id, at, existing)],
-      { actor, action: 'role.change', subject: existing, detail: { ...detail, before: { name: before.name, permissions: JSON.parse(before.permissions), teams: JSON.parse(before.teams), units: JSON.parse(before.units) } } })
+    await commit(env, [stmt(env, 'UPDATE beam_custom_roles SET name = ?, permissions = ?, teams = ?, units = ?, locations = ?, updated_by = ?, updated_at = ? WHERE id = ?', name, JSON.stringify(permissions), JSON.stringify(teams), JSON.stringify(units), JSON.stringify(locations), actor.id, at, existing)],
+      { actor, action: 'role.change', subject: existing, detail: { ...detail, before: { name: before.name, permissions: JSON.parse(before.permissions), teams: JSON.parse(before.teams), units: JSON.parse(before.units), locations: JSON.parse(before.locations) } } })
     return { id: existing, ...detail }
   }
   insist(!await one(env, 'SELECT 1 FROM beam_custom_roles WHERE name = ?', name), 'role_exists', 409)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_custom_roles (id, name, permissions, teams, units, created_by, created_at, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', id, name, JSON.stringify(permissions), JSON.stringify(teams), JSON.stringify(units), actor.id, at, actor.id, at)],
+  await commit(env, [stmt(env, 'INSERT INTO beam_custom_roles (id, name, permissions, teams, units, locations, created_by, created_at, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', id, name, JSON.stringify(permissions), JSON.stringify(teams), JSON.stringify(units), JSON.stringify(locations), actor.id, at, actor.id, at)],
     { actor, action: 'role.create', subject: id, detail })
   return { id, ...detail }
 }
@@ -61,7 +62,7 @@ export async function revokeRole(env: Bindings, actor: Actor, input: Input) {
 /** The owner's roles with their holders, or the roles this person holds. */
 export async function rolesView(env: Bindings, actor: Actor) {
   const mine = actor.owner ? null : actor.id
-  const roles = await all(env, 'SELECT id, name, permissions, teams, units, updated_at AS updatedAt FROM beam_custom_roles r WHERE ? IS NULL OR EXISTS (SELECT 1 FROM beam_custom_role_grants g WHERE g.role_id = r.id AND g.member_id = ? AND g.revoked_at IS NULL) ORDER BY name', mine, mine)
+  const roles = await all(env, 'SELECT id, name, permissions, teams, units, locations, updated_at AS updatedAt FROM beam_custom_roles r WHERE ? IS NULL OR EXISTS (SELECT 1 FROM beam_custom_role_grants g WHERE g.role_id = r.id AND g.member_id = ? AND g.revoked_at IS NULL) ORDER BY name', mine, mine)
   const grants = await all(env, 'SELECT g.id, g.role_id AS role, g.member_id AS member, m.name AS memberName, g.granted_at AS grantedAt, g.revoked_at AS revokedAt FROM beam_custom_role_grants g JOIN beam_members m ON m.id = g.member_id WHERE (? IS NULL OR g.member_id = ?) ORDER BY g.granted_at, g.rowid', mine, mine)
-  return { permissions: PERMISSIONS, roles: roles.map(role => ({ ...role, permissions: JSON.parse(role.permissions), teams: JSON.parse(role.teams), units: JSON.parse(role.units), holders: grants.filter(grant => grant.role === role.id && !grant.revokedAt) }) as Row), grants }
+  return { permissions: PERMISSIONS, roles: roles.map(role => ({ ...role, permissions: JSON.parse(role.permissions), teams: JSON.parse(role.teams), units: JSON.parse(role.units), locations: JSON.parse(role.locations), holders: grants.filter(grant => grant.role === role.id && !grant.revokedAt) }) as Row), grants }
 }

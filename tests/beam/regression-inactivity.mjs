@@ -49,7 +49,7 @@ export async function inactivityCheck(f) {
   assert.deepEqual([removed.action, removed.detail.version, removed.detail.inactiveDays], ['inactivity.deactivate', 1, 90])
 
   // Recovery: the owner restores access; the old sessions stay ended and a fresh emailed sign-in works.
-  await api('owner', 'person.access', { email: 'author@example.test', status: 'active' })
+  await api('owner', 'person.access', { member: ids.author, status: 'active' })
   assert.equal((await h.raw('/api/beam/me', { cookie: fresh })).status, 401)
   assert.equal((await h.api('me', await h.signIn('author@example.test'))).id, ids.author)
 }

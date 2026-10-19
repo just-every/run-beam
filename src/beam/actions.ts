@@ -40,6 +40,7 @@ import { addSourceVersion, createSource } from './sources'
 import { decideCertificate, saveRequirement, uploadCertificate } from './external'
 import { correctCertificate, createLink, revokeLink, saveTemplate, setCourseTemplate } from './certificates'
 import { replaceReviewer, setCourseAuthors, setSelfReview } from './course-access'
+import { editDirectory, importRoster, resolveConflict as resolveRosterConflict, saveDirectoryField } from './directory'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
 type Handler = (env: Bindings, actor: Actor, input: Input, request: Request) => Promise<unknown>
@@ -49,6 +50,10 @@ export const actions: Record<string, Handler> = {
   'person.invite': (env, actor, input, request) => invitePerson(env, request, actor, input),
   'person.roles': (env, actor, input) => setRoles(env, actor, input),
   'person.access': (env, actor, input, request) => setAccess(env, request, actor, input),
+  'person.directory': (env, actor, input, request) => editDirectory(env, request, actor, input),
+  'person.field': (env, actor, input) => saveDirectoryField(env, actor, input),
+  'people.import': (env, actor, input, request) => importRoster(env, request, actor, input),
+  'people.conflict': (env, actor, input, request) => resolveRosterConflict(env, request, actor, input),
   'team.create': (env, actor, input) => createTeam(env, actor, input),
   'external.requirement': (env, actor, input) => saveRequirement(env, actor, input),
   'external.upload': (env, actor, input) => uploadCertificate(env, actor, input),
