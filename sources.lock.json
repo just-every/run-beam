@@ -3112,7 +3112,7 @@
       "executable": false
     },
     "tests/beam/regression-automation.mjs": {
-      "sha256": "ae5f9499063a285fa2249ee4537669fd6b5468d1b307fa5dd79b7f738471f34e",
+      "sha256": "08ce66c40c09d7ee2e4be5bb326c167ddb7852ba63901430515e6c1b13afd5cf",
       "executable": false
     },
     "tests/beam/regression-bank.mjs": {

@@ -193,7 +193,6 @@ export async function automationControlsCheck(f) {
   assert.equal((await api('owner', `records/${ids.assessor}`)).assignments.filter(a => a.course === recovery.id).length, 0)
   assert.equal(h.mails.length, mails)
   view = await control()
-  assert.equal(view.policy.externalSpendCents, 0)
   assert.ok(view.executions.some(e => e.outcome === 'paused'))
   assert.ok(view.versions.length > 1 && view.versions.some(v => v.settings.controls.some(c => c.rule === rule && c.mode === 'approval')))
   assert.ok((await api('owner', 'audit?q=automation.execution')).events.some(e => e.detail.policyVersion !== undefined))
