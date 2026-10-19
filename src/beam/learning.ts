@@ -1,6 +1,7 @@
 // Flows 6-9: learners resume lessons, take deterministic quizzes and submit
 // practical evidence; completion is recorded only when every requirement of the
 // exact assigned revision is met, and is bound to that revision.
+import { completionNotifications } from './notification-delivery'
 import { ATTEMPT_CHAIN, MOVE_CHAIN, countingAssignment, movesOf } from './moves'
 import { attendanceRecords, keepsRoster } from './attendance'
 import type { Bindings } from '../auth.server'
@@ -388,10 +389,12 @@ export async function recordCompletion(env: Bindings, actor: Actor, item: { assi
   await commit(env, [
     stmt(env, 'INSERT INTO beam_completions (id, assignment_id, learner_id, course_id, course_revision_id, assessment_revision_id, method, evidence_json, completed_at, expires_at, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', id, item.assignment, item.learner, item.course, item.revision, item.assessmentRevision, item.method, JSON.stringify(item.evidence), at, expires, actor.id),
     ...(item.assignment ? [stmt(env, "UPDATE beam_assignments SET status = 'completed' WHERE id = ? AND status = 'open'", item.assignment)] : []),
+    stmt(env, 'INSERT INTO beam_notification_events(completion_id,at) VALUES(?,?)', id, now()),
     // LEARN-002: the certificate keeps the template its course names now.
     stmt(env, 'INSERT INTO beam_certificates (id, completion_id, number, issuer, issued_at, expires_at, template_id) VALUES (?, ?, ?, ?, ?, ?, (SELECT certificate_template_id FROM beam_courses WHERE id = ?))', certificate.id, id, certificate.number, business.name, now(), expires, item.course),
   ], { actor, action: 'completion.record', subject: id, detail: { ...item, certificate: certificate.number } })
   await prerequisiteCompleted(env, item.learner, item.course, at, actor.id)
   await followOn(env, 'completion', { completion: id })
+  await completionNotifications(env, id)
   return { id, certificate: certificate.id, expiresAt: expires }
 }

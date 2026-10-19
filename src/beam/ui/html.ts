@@ -39,6 +39,7 @@ const NAV: NavItem[] = [
   { href: '/app/automation', label: 'Automation', icon: 'route', show: actor => actor.owner || administrator(actor) },
   { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
+  { href: '/app/notifications', label: 'Notification rules', icon: 'bell', show: actor => actor.owner },
   { href: '/app/announcements', label: 'Announcements', icon: 'bell', show: actor => manager(actor) || administrator(actor) },
   { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) || !!actor.grants.reports },
   LEARNING,

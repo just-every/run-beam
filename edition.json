@@ -48,7 +48,8 @@
           "src/demo-records.ts",
           "deploy-demo.json",
           "tests/runtime.mjs",
-          "migrations/core/0052_beam_automation_controls.sql"
+          "migrations/core/0052_beam_automation_controls.sql",
+          "migrations/core/0053_beam_notification_rules.sql"
         ]
       }
     },

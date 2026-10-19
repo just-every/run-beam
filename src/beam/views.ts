@@ -26,6 +26,8 @@ import { requireOwner } from './actor'
 import { auditFilters, auditLog } from './audit'
 import { announcements } from './announcements'
 import { transcript } from './transcript'
+import { notificationRulesView } from './notification-rules'
+import { notificationInbox } from './notification-delivery'
 import { automationControlView } from './automation-policy'
 import { automationView } from './automation'
 import { audiencesView } from './audiences'
@@ -46,6 +48,8 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  notifications: (env, actor) => notificationInbox(env, actor),
+  'notification-rules': (env, actor) => notificationRulesView(env, actor),
   'automation-controls': (env, actor) => automationControlView(env, actor),
   me: async (env, actor) => ({ id: actor.id, email: actor.email, name: actor.name, owner: actor.owner, roles: [...actor.roles], adminUnits: actor.adminUnits, permissions: Object.keys(actor.grants), business: await business(env) }),
   units: (env, actor) => unitsView(env, actor),
@@ -107,6 +111,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
+  [/^notifications$/, 'notifications'], [/^notification-rules$/, 'notification-rules'],
   [/^automation-controls$/, 'automation-controls'],
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^directory$/, 'directory-fields'], [/^directory\/([\w-]+)$/, 'directory'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
