@@ -3075,7 +3075,7 @@
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
-      "sha256": "00c9d6c83c218bed5b54e8fc80a30d539d85eaec1298ab3e9dd1f052bdcfaf54",
+      "sha256": "fc20ba8bc7e8e1561e480d693a26d1eb1b19d5ae5722e627e5a93cd31aed5a22",
       "executable": false
     },
     "tests/beam/regression-seats.mjs": {
