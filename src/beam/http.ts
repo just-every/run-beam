@@ -28,6 +28,9 @@ import { auditCsvResponse, auditPage } from './ui/audit'
 import { announcementsPage } from './ui/announcements'
 import { automationPage } from './ui/automation'
 import { catalogPage } from './ui/catalog'
+import { sessionsPage } from './ui/live'
+import { sessionCalendar } from './ics'
+import { sessionForCalendar } from './live'
 import { transcriptCsvResponse, transcriptPage, transcriptXlsxResponse } from './ui/transcript'
 import { describeError, page, h } from './ui/html'
 import { route } from './views'
@@ -180,6 +183,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/announcements' && (isManager(actor) || actor.adminUnits.length)) return announcementsPage(env, actor, url)
   if (path === '/app/automation') return automationPage(env, actor, url)
   if (path === '/app/catalog') return catalogPage(env, actor, url)
+  if (path === '/app/sessions') return sessionsPage(env, actor, url)
+  if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/calendar\.ics$/))) return calendarResponse(env, actor, match[1])
   if (path === '/app/audit.csv') return auditCsvResponse(env, actor, url)
   if (path === '/app/agent') return agentPage(env, actor, url, (await business(env))!.timezone)
   if ((match = path.match(/^\/app\/practice\/([\w-]+)$/))) return practicePage(env, actor, match[1], url)
@@ -187,6 +192,13 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/files\/source\/([\w-]+)$/))) return sourceFile(env, actor, match[1], url.searchParams.has('download'))
   if ((match = path.match(/^\/app\/files\/attachment\/([\w-]+)$/))) return attachmentFile(env, actor, match[1])
   throw new BeamError('not_found', 404)
+}
+
+// LIVE-001: a session's calendar file for its learners, instructor and schedulers.
+async function calendarResponse(env: Bindings, actor: Actor, id: string) {
+  const { session, cancelled } = await sessionForCalendar(env, actor, id)
+  const body = sessionCalendar(session, cancelled, (await business(env))!.name, new URL(env.AUTH_ORIGIN).host)
+  return new Response(body, { headers: { 'content-type': 'text/calendar; charset=utf-8', 'content-disposition': `attachment; filename="session-${id}.ics"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
 }
 
 // Active people for the rail and the footer, and the proposals this person can decide.

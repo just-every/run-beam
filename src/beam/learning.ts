@@ -26,7 +26,7 @@ export async function loadAssignment(env: Bindings, actor: Actor, id: string, { 
   return assignment
 }
 
-async function prerequisiteMet(env: Bindings, assignment: any) {
+export async function prerequisiteMet(env: Bindings, assignment: any) {
   if (!assignment.prerequisite_course_id) return true
   return !!await one(env, 'SELECT 1 FROM beam_completions WHERE learner_id = ? AND course_id = ? AND (expires_at IS NULL OR expires_at > ?)', assignment.learner_id, assignment.prerequisite_course_id, now())
 }

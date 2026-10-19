@@ -32,3 +32,9 @@ Every completion issues a numbered certificate from your business, naming the co
 Open **Catalog** to find courses offered to you. Search, or narrow by subject, skill, role, language and how long a course takes. **Enroll** starts an open course straight away; a course that needs approval has **Request enrollment**, and your manager approves or declines it. Work someone assigned you is required; courses you chose are optional, due in 90 days, and **Withdraw** leaves one while keeping your progress on record. Favorites and saved searches are yours alone.
 
 Whoever manages a course's catalog details sets how it is offered under **Catalog enrollment** on the course page: only by assignment, open to anyone it is offered to, or on approval, for everyone or chosen teams.
+
+## Sessions
+
+Some courses meet in a classroom or online. Open **Sessions** to see the sessions of courses assigned to you and **Choose this session**; if the course comes after another one on your path, finish that one first. You hold one session per course: **Switch to this session** moves you, and **Leave session** gives up your place. Your agenda lists each meeting at the session's own local time, where it is, who leads it and what to bring, and tells you when a session is moved, changed or cancelled. **Add to calendar (.ics)** downloads the session for your calendar program; after a change, download it again and your calendar updates the same events. Beam does not email invitations yet.
+
+The owner and learning administrators schedule sessions on the same page: a classroom location or a join link, the instructor, materials, and one meeting or a daily or weekly series at the same local time, which stays at that time across daylight-saving changes.
