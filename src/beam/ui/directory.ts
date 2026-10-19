@@ -4,7 +4,8 @@ import type { Bindings } from '../../auth.server'
 import type { Actor } from '../actor'
 import { all } from '../core'
 import { EMPLOYMENT, directoryFields, openConflicts, personDirectory } from '../directory'
-import { card, checks, field, fileField, form, h, hidden, rows, select, when } from './html'
+import { card, checks, field, form, h, hidden, rows, select, when } from './html'
+import { batchCards } from './roster-batch'
 
 export const EMPLOYMENT_LABELS: Record<string, string> = { active: 'Active', leave: 'On leave', terminated: 'Left' }
 const REASONS: Record<string, string> = { employee_id_and_email_differ: 'its employee id belongs to one person and its email to another', email_has_other_employee_id: 'its email belongs to someone with another employee id' }
@@ -12,8 +13,7 @@ const REASONS: Record<string, string> = { employee_id_and_email_differ: 'its emp
 export async function directoryCards(env: Bindings, actor: Actor) {
   if (actor.agent || (!actor.owner && !actor.adminUnits.length)) return ''
   const [fields, conflicts] = await Promise.all([directoryFields(env), openConflicts(env, actor)])
-  const columns = ['Employee ID', 'Name', 'Preferred name', 'Email', 'Mobile', 'Language', 'Employment', 'Manager employee ID', 'Role', 'Department', 'Location', 'Hire date', 'Transfer date', 'Team', ...fields.map(field => field.label)]
-  return h`${card('Import a roster', h`<p class="muted">A CSV file with a header row. Each row needs an employee ID and a name; rows are matched by employee ID. Columns: ${columns.join(', ')}. Employment is active, leave or terminated; hire and transfer dates are YYYY-MM-DD (a changed role, department or location without a transfer date is a transfer today). New people join as learners and are not sent an invitation. A row whose employee ID and email belong to different people changes nothing and waits below.</p>${form('people.import', '/app/people', [fileField('Roster CSV', 'file', { required: true, accept: '.csv,text/csv' })], 'Import roster', { multipart: true })}`)}
+  return h`${await batchCards(env, actor)}
 ${conflicts.length ? card('Roster conflicts', rows(conflicts.map(conflict => ({
     title: `${conflict.name} (employee ID ${conflict.employeeId})`,
     meta: `Held because ${REASONS[conflict.reason]}: ${conflict.holderName ? `${conflict.holderName} holds the ID` : 'nobody holds the ID'}; ${conflict.otherName}${conflict.otherEmployeeId ? ` (employee ID ${conflict.otherEmployeeId})` : ''} has ${conflict.email}.`,
@@ -29,7 +29,7 @@ export async function directoryCard(env: Bindings, actor: Actor, memberId: strin
   let view: Awaited<ReturnType<typeof personDirectory>>
   try { view = await personDirectory(env, actor, memberId) } catch { return '' }
   const person = view.person as Record<string, any>
-  const items: [string, unknown][] = [['Employee ID', person.employeeId], ['Preferred name', person.preferredName], ['Work email', person.email], ['Mobile', person.mobile], ['Preferred language', person.language], ['Employment', person.employment && EMPLOYMENT_LABELS[person.employment]], ['Manager', person.manager?.name], ['Role', person.jobRole], ['Department', person.department], ['Location', person.location], ['Hire date', person.hireDate], ['Transfer date', person.transferDate],
+  const items: [string, unknown][] = [['Employee ID', person.employeeId], ['Preferred name', person.preferredName], ['Work email', person.email], ['Mobile', person.mobile], ['Preferred language', person.language], ['Employment', person.employment && EMPLOYMENT_LABELS[person.employment]], ['Manager', person.manager?.name], ['Role', person.jobRole], ['Department', person.department], ['Location', person.location], ['Hire date', person.hireDate], ['Transfer date', person.transferDate], ['Username', person.username],
     ...(person.custom as { label: string; value: string | null }[]).map(item => [item.label, item.value] as [string, unknown])]
   const shown = items.filter(([label]) => label === 'Manager' ? 'manager' in person : label in LABEL_KEYS ? LABEL_KEYS[label] in person : true)
   const signIn = 'signIn' in view && view.signIn && !view.signIn.matches ? h`<p class="muted">Signs in as ${view.signIn.email}. Only they can change their sign-in email, after verifying the new address in their account settings.</p>` : ''
@@ -38,7 +38,7 @@ export async function directoryCard(env: Bindings, actor: Actor, memberId: strin
   return card('Directory', h`<dl class="facts">${shown.map(([label, value]) => h`<dt>${label}</dt><dd>${show(value)}</dd>`)}</dl>${signIn}${editor}${history}`)
 }
 
-const LABEL_KEYS: Record<string, string> = { 'Employee ID': 'employeeId', 'Preferred name': 'preferredName', 'Work email': 'email', Mobile: 'mobile', 'Preferred language': 'language', Employment: 'employment', Role: 'jobRole', Department: 'department', Location: 'location', 'Hire date': 'hireDate', 'Transfer date': 'transferDate' }
+const LABEL_KEYS: Record<string, string> = { 'Employee ID': 'employeeId', 'Preferred name': 'preferredName', 'Work email': 'email', Mobile: 'mobile', 'Preferred language': 'language', Employment: 'employment', Role: 'jobRole', Department: 'department', Location: 'location', 'Hire date': 'hireDate', 'Transfer date': 'transferDate', Username: 'username' }
 
 function describe(event: { action: string; detail: Record<string, any> }) {
   const detail = event.detail

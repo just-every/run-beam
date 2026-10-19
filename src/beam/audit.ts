@@ -18,7 +18,7 @@ import { addDays, zonedInstant } from './time'
 
 /** Action prefixes behind each search category; an event belongs to the first category whose prefix it starts with. */
 export const CATEGORIES: Record<string, { label: string; prefixes: string[] }> = {
-  access: { label: 'Access and roles', prefixes: ['person.', 'admin.', 'role.', 'auditor.', 'team.', 'unit.', 'course.authors', 'course.reviewer', 'course.selfreview', 'access.', 'agent.issue', 'business.', 'view.'] },
+  access: { label: 'Access and roles', prefixes: ['person.', 'roster.', 'admin.', 'role.', 'auditor.', 'team.', 'unit.', 'course.authors', 'course.reviewer', 'course.selfreview', 'access.', 'agent.issue', 'business.', 'view.'] },
   content: { label: 'Content and publication', prefixes: ['course.', 'revision.', 'source.', 'proposal.', 'notice.', 'scenario.', 'acknowledgment.'] },
   due: { label: 'Due dates', prefixes: ['assignment.due'] },
   enrollment: { label: 'Enrollment', prefixes: ['assignment.', 'path.', 'attempt.grant', 'accommodation.', 'audience.'] },

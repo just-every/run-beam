@@ -18,6 +18,21 @@ Open **People** and use **Invite a staff member**: enter their **Name** and **Em
 
 To change someone's roles later, open their roles in the **People** table, tick the ones they need and press **Save roles**.
 
+## Import a roster
+
+Under **Import a roster** on **People**, upload a CSV or XLSX file with a header row; each row needs a work email or an
+employee ID. Beam matches columns by name (Employee ID, Name, Email, Username or Login, Mobile, Employment, Manager
+employee ID, Role, Department, Location, Hire date, Transfer date, Team and your directory fields); open **Column
+mapping** to change any of them and **Preview again**. The preview changes nothing and sends nothing: it lists each row
+as an addition (with an invitation when you chose to invite new people who have an email), an update, a transfer, a
+deactivation (employment terminated or inactive), no change, a conflict to hold, or a row that will not apply and why
+(no email and no employee ID, an email, employee ID or username repeated in the file, an unknown manager or team).
+People missing from the file stay as they are unless the owner chooses to deactivate them. Choose the rows and **Apply
+the selected rows**: Beam applies 50 rows at a time and you **Continue applying** until it is done; each row shows its
+outcome, and applying again never repeats a change or an invitation. Base sends at most 30 invitations from one address
+in 15 minutes, so a large file's later invitations wait and go out when you continue later. People without an email
+keep their username and mobile number and are never emailed.
+
 ## Teams
 
 Teams group people who need the same training, such as a front desk. As the owner, add one under **Teams** with **Add team**, then open it and tick its **Members**. You can assign a course to a whole team, and a [role path](/docs/assign#role-paths) belongs to one team.

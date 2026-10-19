@@ -42,6 +42,7 @@ import { correctCertificate, createLink, revokeLink, saveTemplate, setCourseTemp
 import { replaceReviewer, setCourseAuthors, setSelfReview } from './course-access'
 import { importBank, previewBank } from './bank-import'
 import { excludeFromAudience, includeInAudience, previewAudience, saveAudience, setAudienceState, syncAudience, syncAudiences } from './audiences'
+import { applyBatch, previewBatch } from './roster-batch'
 import { editDirectory, importRoster, resolveConflict as resolveRosterConflict, saveDirectoryField } from './directory'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
@@ -61,6 +62,8 @@ export const actions: Record<string, Handler> = {
   'person.directory': synced((env, actor, input, request) => editDirectory(env, request, actor, input)),
   'person.field': (env, actor, input) => saveDirectoryField(env, actor, input),
   'people.import': synced((env, actor, input, request) => importRoster(env, request, actor, input)),
+  'people.batch.preview': (env, actor, input) => previewBatch(env, actor, input),
+  'people.batch.apply': synced((env, actor, input, request) => applyBatch(env, request, actor, input)),
   'people.conflict': synced((env, actor, input, request) => resolveRosterConflict(env, request, actor, input)),
   'team.create': (env, actor, input) => createTeam(env, actor, input),
   'external.requirement': (env, actor, input) => saveRequirement(env, actor, input),

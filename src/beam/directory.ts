@@ -21,9 +21,9 @@ const TEXT_FIELDS = { preferredName: 'preferred_name', mobile: 'mobile', languag
 type TextField = keyof typeof TEXT_FIELDS
 const LABELS: Record<string, string> = { employeeId: 'employee id', name: 'name', preferredName: 'preferred name', email: 'work email', mobile: 'mobile number', language: 'preferred language', employment: 'employment state', manager: 'manager', jobRole: 'role', department: 'department', location: 'location', hireDate: 'hire date', transferDate: 'transfer date' }
 
-interface Person { id: string; name: string; email: string | null; operator_id: string | null; employee_id: string | null; preferred_name: string | null; mobile: string | null; language: string | null; employment: Employment; manager_id: string | null; job_role: string | null; department: string | null; location: string | null; hire_date: string | null; transfer_date: string | null; custom_json: string }
+export interface Person { id: string; name: string; email: string | null; operator_id: string | null; employee_id: string | null; preferred_name: string | null; mobile: string | null; language: string | null; employment: Employment; manager_id: string | null; job_role: string | null; department: string | null; location: string | null; hire_date: string | null; transfer_date: string | null; custom_json: string; username: string | null }
 /** One person's directory values, as an edit or a roster row gives them; absent keys stay as they are. */
-interface Values { employeeId?: string | null; name?: string; email?: string | null; mobile?: string | null; employment?: Employment; manager?: string | null; hireDate?: string | null; transferDate?: string | null; custom?: Record<string, string | null>; preferredName?: string | null; language?: string | null; jobRole?: string | null; department?: string | null; location?: string | null }
+export interface Values { employeeId?: string | null; name?: string; email?: string | null; mobile?: string | null; employment?: Employment; manager?: string | null; hireDate?: string | null; transferDate?: string | null; custom?: Record<string, string | null>; preferredName?: string | null; language?: string | null; jobRole?: string | null; department?: string | null; location?: string | null }
 
 export async function directoryFields(env: Bindings) {
   return await all<{ id: string; label: string; managersRead: number }>(env, 'SELECT id, label, managers_read AS managersRead FROM beam_directory_fields ORDER BY label')
@@ -49,11 +49,11 @@ async function readAccess(env: Bindings, actor: Actor, memberId: string): Promis
   return 'none'
 }
 
-const administers = async (env: Bindings, actor: Actor, memberId: string) => actor.adminUnits.length > 0 && !actor.agent
+export const administers = async (env: Bindings, actor: Actor, memberId: string) => actor.adminUnits.length > 0 && !actor.agent
   && !!await one(env, 'SELECT 1 FROM beam_team_members tm JOIN beam_teams t ON t.id = tm.team_id WHERE tm.member_id = ? AND t.unit_id IN (SELECT value FROM json_each(?))', memberId, JSON.stringify(actor.adminUnits))
 
 /** Edits: the owner, or a learning administrator for people in their units' teams; never the person themself or an agent. */
-async function requireEditor(env: Bindings, actor: Actor, memberId: string) {
+export async function requireEditor(env: Bindings, actor: Actor, memberId: string) {
   insist(!actor.agent && !actor.viewAs, 'forbidden', 403)
   insist(actor.owner || await administers(env, actor, memberId), actor.adminUnits.length ? 'outside_your_units' : 'owner_required', 403)
 }
@@ -70,7 +70,7 @@ export async function personDirectory(env: Bindings, actor: Actor, memberId: str
   const record: Row = {
     id: person.id, employeeId: person.employee_id, name: person.name, preferredName: person.preferred_name, email: person.email, mobile: person.mobile, language: person.language,
     employment: person.employment, manager: manager && { id: manager.id, name: manager.name, employeeId: manager.employee_id }, jobRole: person.job_role, department: person.department,
-    location: person.location, hireDate: person.hire_date, transferDate: person.transfer_date,
+    location: person.location, hireDate: person.hire_date, transferDate: person.transfer_date, username: person.username,
     custom: fields.filter(field => access === 'full' || field.managersRead).map(field => ({ id: field.id, label: field.label, value: custom[field.id] ?? null })),
   }
   if (access === 'manager') for (const key of Object.keys(record)) if (!['id', 'custom', ...MANAGER_FIELDS].includes(key)) delete record[key]
@@ -114,7 +114,7 @@ export async function editDirectory(env: Bindings, request: Request, actor: Acto
   return await applyValues(env, request, actor, person, values)
 }
 
-function check(values: Values) {
+export function check(values: Values) {
   if (values.email !== undefined && values.email !== null) { values.email = normalizeEmail(values.email); insist(values.email, 'invalid_email') }
   if (values.employment !== undefined) insist((EMPLOYMENT as readonly string[]).includes(values.employment), 'invalid_employment')
   if (values.hireDate) insist(validDate(values.hireDate), 'invalid_hire_date')
@@ -127,7 +127,7 @@ function check(values: Values) {
  * unused re-sends it to the new address; for someone who has signed in, only the directory email changes. A change of
  * a role, department or location the person already had is a transfer (AUTO-001): unless the edit or row gives a
  * transfer date, it is today in the business time zone. */
-async function applyValues(env: Bindings, request: Request, actor: Actor, person: Person, given: Values) {
+export async function applyValues(env: Bindings, request: Request, actor: Actor, person: Person, given: Values) {
   const values = Object.fromEntries(Object.entries(given).filter(([, value]) => value !== undefined)) as Values
   check(values)
   if (values.manager) {
@@ -184,11 +184,11 @@ export function parseCsv(text: string): string[][] {
 }
 
 /** Roster columns (header names, any case and spacing); custom fields are columns named by their label. */
-const COLUMNS: Record<string, keyof Values | 'managerEmployeeId' | 'team'> = {
+export const COLUMNS: Record<string, keyof Values | 'managerEmployeeId' | 'team' | 'username'> = {
   employeeid: 'employeeId', name: 'name', preferredname: 'preferredName', email: 'email', workemail: 'email', mobile: 'mobile', mobilenumber: 'mobile', language: 'language', preferredlanguage: 'language',
-  employment: 'employment', employmentstate: 'employment', status: 'employment', manageremployeeid: 'managerEmployeeId', role: 'jobRole', jobrole: 'jobRole', department: 'department', location: 'location', hiredate: 'hireDate', transferdate: 'transferDate', team: 'team',
+  employment: 'employment', employmentstate: 'employment', status: 'employment', manageremployeeid: 'managerEmployeeId', role: 'jobRole', jobrole: 'jobRole', department: 'department', location: 'location', hiredate: 'hireDate', transferdate: 'transferDate', team: 'team', username: 'username', login: 'username',
 }
-const key = (header: string) => header.toLowerCase().replace(/[^a-z]/g, '')
+export const key = (header: string) => header.toLowerCase().replace(/[^a-z]/g, '')
 
 /** People › Import a roster: a CSV with an employee id on every row. Rows are matched by employee id; a new id with no
  * email or an unused email adds a person (a learner, no invitation sent); a known id updates that person (a leaver
@@ -218,6 +218,7 @@ export async function importRoster(env: Bindings, request: Request, actor: Actor
         if (!column || !value) return
         if (column === 'managerEmployeeId') managerEmployeeId = value
         else if (column === 'team') teamName = value
+        else if (column === 'username') return
         else if (column === 'employment') values.employment = value.toLowerCase() as Employment
         else if (column in LABELS) (values as Record<string, unknown>)[column] = value
         else custom[column] = value
@@ -232,10 +233,7 @@ export async function importRoster(env: Bindings, request: Request, actor: Actor
       const byEmail = values.email ? await one<Person>(env, 'SELECT * FROM beam_members WHERE email = ?', values.email) : null
       const other = byEmail && byEmail.id !== holder?.id && (holder || byEmail.employee_id) ? byEmail : null
       if (other) {
-        const conflict = { id: newId(), employeeId: values.employeeId, holder: holder?.id ?? null, other: other.id, reason: holder ? 'employee_id_and_email_differ' : 'email_has_other_employee_id', line }
-        await commit(env, [stmt(env, 'INSERT INTO beam_directory_conflicts (id, employee_id, holder_id, other_id, row_json, reason, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', conflict.id, values.employeeId, conflict.holder, other.id, JSON.stringify({ values, managerEmployeeId, team: team?.id ?? null }), conflict.reason, actor.id, now())],
-          { actor, action: 'person.conflict', subject: conflict.holder ?? other.id, detail: { employeeId: values.employeeId, reason: conflict.reason, other: other.id } })
-        result.conflicts.push(conflict)
+        result.conflicts.push(await holdConflict(env, actor, { values: values as Values & { employeeId: string }, managerEmployeeId, team: team?.id ?? null, holder: holder?.id ?? null, other: other.id, line }))
         continue
       }
       const target = holder ?? byEmail
@@ -266,9 +264,18 @@ export async function importRoster(env: Bindings, request: Request, actor: Actor
   return result
 }
 
+/** Holds a row whose employee id and email belong to two different people (or whose email belongs to someone with
+ * another employee id) for the owner or a unit administrator to resolve; nothing is merged. */
+export async function holdConflict(env: Bindings, actor: Actor, row: { values: Values & { employeeId: string }; managerEmployeeId: string; team: string | null; holder: string | null; other: string; line: number }) {
+  const conflict = { id: newId(), employeeId: row.values.employeeId, holder: row.holder, other: row.other, reason: row.holder ? 'employee_id_and_email_differ' : 'email_has_other_employee_id', line: row.line }
+  await commit(env, [stmt(env, 'INSERT INTO beam_directory_conflicts (id, employee_id, holder_id, other_id, row_json, reason, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', conflict.id, row.values.employeeId, row.holder, row.other, JSON.stringify({ values: row.values, managerEmployeeId: row.managerEmployeeId, team: row.team }), conflict.reason, actor.id, now())],
+    { actor, action: 'person.conflict', subject: row.holder ?? row.other, detail: { employeeId: row.values.employeeId, reason: conflict.reason, other: row.other } })
+  return conflict
+}
+
 /** A new person from a roster row: a learner in the row's team, with no invitation sent. A learning administrator adds
  * people only into their units' teams. */
-async function addPerson(env: Bindings, request: Request, actor: Actor, values: Values, team: { id: string; unit_id: string | null } | undefined) {
+export async function addPerson(env: Bindings, request: Request, actor: Actor, values: Values, team: { id: string; unit_id: string | null } | undefined) {
   insist(actor.owner || (team && actor.adminUnits.includes(team.unit_id ?? '')), 'outside_your_units', 403)
   const id = newId()
   await env.DB.batch([stmt(env, 'INSERT INTO beam_members (id, email, name, created_at) VALUES (?, ?, ?, ?)', id, values.email ?? null, values.name, now()), stmt(env, "INSERT INTO beam_member_roles (member_id, role) VALUES (?, 'learner')", id),
@@ -278,7 +285,7 @@ async function addPerson(env: Bindings, request: Request, actor: Actor, values: 
   return id
 }
 
-async function joinTeam(env: Bindings, actor: Actor, memberId: string, team: { id: string; unit_id: string | null }) {
+export async function joinTeam(env: Bindings, actor: Actor, memberId: string, team: { id: string; unit_id: string | null }) {
   insist(actor.owner || actor.adminUnits.includes(team.unit_id ?? ''), 'outside_your_units', 403)
   if (await one(env, 'SELECT 1 FROM beam_team_members WHERE team_id = ? AND member_id = ?', team.id, memberId)) return
   await commit(env, [stmt(env, 'INSERT INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team.id, memberId)], { actor, action: 'team.join', subject: team.id, detail: { member: memberId } })

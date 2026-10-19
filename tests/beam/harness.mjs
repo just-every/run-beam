@@ -40,7 +40,7 @@ export async function harness() {
     return confirmed.headers.getSetCookie().map(line => line.split(';')[0]).join('; ')
   }
 
-  return { origin, vars, fetch, raw, api, submit, signIn, close, db, files }
+  return { origin, vars, mails, fetch, raw, api, submit, signIn, close, db, files }
 }
 
 export const file = (filename, content, type = 'application/octet-stream') => ({ filename, base64: Buffer.from(content).toString('base64'), type })
