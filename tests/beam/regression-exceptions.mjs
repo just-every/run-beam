@@ -8,10 +8,10 @@ export async function exceptionsCheck(f) {
   const page = async (path, role) => { const response = await h.raw(path, { cookie: cookies[role] }); return { status: response.status, text: await response.text() } }
   const day = offset => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10)
   const error = async (action, role, fields, returnTo) => (await h.submit(action, cookies[role], fields, returnTo)).searchParams.get('error')
-  ids.outsider = (await api('owner', 'person.invite', { email: 'outsider@example.test', name: 'Outside Manager', roles: ['manager'] })).id
-  cookies.outsider = await h.signIn('outsider@example.test', { requested: true })
+  ids.floorboss = (await api('owner', 'person.invite', { email: 'floorboss@example.test', name: 'Outside Manager', roles: ['manager'] })).id
+  cookies.floorboss = await h.signIn('floorboss@example.test', { requested: true })
   const other = (await api('owner', 'team.create', { name: 'Other floor' })).id
-  await api('owner', 'team.managers', { team: other, members: [ids.outsider] })
+  await api('owner', 'team.managers', { team: other, members: [ids.floorboss] })
 
   const lockout = await course('Lockout refresher'), ladders = await course('Ladder safety')
   const overdue = c => api('manager', 'assignment.create', { course: c.id, learners: [ids.learner], dueDate: '2026-01-05', dueTime: '17:00', timezone: 'UTC' }).then(result => result.created[0])
@@ -29,12 +29,12 @@ export async function exceptionsCheck(f) {
   const blocker = (await api('manager', 'queues')).blockers.find(item => item.assignment === a)
   assert.deepEqual([blocker.kind, blocker.note, blocker.learner], ['leave', 'Medical leave until next week', ids.learner])
   assert.ok((await page('/app/manage', 'manager')).text.includes('Blocker: Leave or time off'))
-  assert.ok(!(await api('outsider', 'queues')).blockers.length)
+  assert.ok(!(await api('floorboss', 'queues')).blockers.length)
 
   // Only within policy: the learner, a manager of another team, an end past the policy's limit or already passed, and a
   // manager's exemption once the owner's policy says managers may not exempt, are each refused.
   assert.equal((await api('learner', 'exception.grant', { assignment: a, kind: 'deferral', endsOn: day(7), reason: 'Self' }, 403)).error, 'forbidden')
-  assert.equal((await api('outsider', 'exception.grant', { assignment: a, kind: 'exemption', endsOn: day(7), reason: 'Not mine' }, 403)).error, 'learner_outside_your_team')
+  assert.equal((await api('floorboss', 'exception.grant', { assignment: a, kind: 'exemption', endsOn: day(7), reason: 'Not mine' }, 403)).error, 'learner_outside_your_team')
   assert.equal(await error('exception.policy', 'manager', { maxDeferralDays: '30', maxExemptionDays: '365' }, '/app/business'), 'owner_required')
   assert.ok((await page('/app/business', 'owner')).text.includes('Deferrals and exemptions'))
   assert.equal(await error('exception.policy', 'owner', { maxDeferralDays: '30', maxExemptionDays: '365' }, '/app/business'), null)
@@ -71,7 +71,7 @@ export async function exceptionsCheck(f) {
   // blocker on it is declined with a reason and nothing else changes.
   await api('learner', 'blocker.report', { assignment: b, kind: 'content', note: 'Step 3 shows the wrong ladder' })
   const contentBlocker = (await api('learner', `assignments/${b}`)).blockers[0]
-  await api('outsider', 'blocker.decline', { blocker: contentBlocker.id, reason: 'Not mine' }, 403)
+  await api('floorboss', 'blocker.decline', { blocker: contentBlocker.id, reason: 'Not mine' }, 403)
   await api('manager', 'blocker.decline', { blocker: contentBlocker.id, reason: 'The reviewer checked step 3: it is right' })
   await api('owner', 'exception.grant', { assignment: b, kind: 'exemption', endsOn: day(200), reason: 'Works at ground level only this season' })
   const exempt = await row(b)

@@ -2871,7 +2871,7 @@
       "executable": false
     },
     "tests/beam/regression-exceptions.mjs": {
-      "sha256": "06a35a2c6e0704caa134f40456e0c36850648710bdcdfd7fa3024ba694524813",
+      "sha256": "c439cafb4fdffabc10929b334efd8b0e7da92e7fdedbfdae7d04f79e0f6ebddf",
       "executable": false
     },
     "tests/beam/regression-fixture.mjs": {
