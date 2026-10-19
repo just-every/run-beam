@@ -13,7 +13,7 @@ import { assignmentView } from '../learning'
 import { acknowledgmentList } from '../acknowledgments'
 import { acknowledgmentCard } from './acknowledgments'
 import { reminderMessages } from '../plans'
-import { permits } from '../scope'
+import { manages, permits } from '../scope'
 import { blockerCard, exceptionCard, exceptionNotice } from './exceptions'
 import { scenariosFor } from '../practice'
 import { myQuestions } from '../questions'
@@ -156,8 +156,9 @@ export async function recordPage(env: Bindings, actor: Actor, memberId: string, 
   const record = await learnerRecord(env, actor, memberId)
   const zone = (await business(env))!.timezone
   const extraTime = actor.owner || actor.roles.has('manager') ? accommodationCard(memberId, await accommodations(env, memberId), await listCourses(env) as { id: string; title: string }[], zone) : ''
-  // ORG-012: anyone who may manage this person can open their pages read-only; the server refuses the rest.
-  const viewAs = memberId !== actor.id && !actor.viewAs ? h`<form method="post" action="/app/view/start">${hidden('learner', memberId)}${hidden('returnTo', `/app/records/${memberId}`)}<button type="submit" class="secondary">View as ${record.member.name}</button></form>` : ''
+  // ORG-012: the owner, their manager or their unit's learning administrator can open their pages read-only (not a custom
+  // role); the server refuses the rest.
+  const viewAs = memberId !== actor.id && !actor.viewAs && manages(actor, memberId) ? h`<form method="post" action="/app/view/start">${hidden('learner', memberId)}${hidden('returnTo', `/app/records/${memberId}`)}<button type="submit" class="secondary">View as ${record.member.name}</button></form>` : ''
   const body = h`${backLink('/app/manage', 'Manage')}<h1>${record.member.name}</h1><p class="subtitle">${record.member.email} · <a href="/app/records/${memberId}/transcript">Transcript</a></p>${viewAs}
 <section class="card table-card" aria-labelledby="assignments"><h2 class="card-title table-title" id="assignments">Assignments</h2>${record.assignments.length ? h`<div class="table-wrap"><table class="stacked"><thead><tr><th scope="col">Course</th><th scope="col">Revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th></tr></thead><tbody>${record.assignments.map(row => h`<tr><td>${cellLabel('Course')}<a href="/app/learn/${row.id}">${row.courseTitle}</a></td><td>${cellLabel('Revision')}${row.revisionNumber}</td><td class="cell-status">${cellLabel('Status')}${pill(row.state, statusLabel(row))}</td><td>${cellLabel('Due')}${when(row.dueAt, row.timezone, zone)}</td><td>${cellLabel('Lessons')}${row.lessonsDone} of ${row.lessonsTotal}</td></tr>`)}</tbody></table></div>` : h`<p class="muted table-empty">Nothing assigned.</p>`}</section>
 ${card('Completions', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} revision ${row.revisionNumber}`, meta: h`Completed ${formatDate(row.completedAt, zone)} (${METHOD[row.method] ?? row.method}) · <a href="/app/certificates/${row.certificate}">certificate</a>` }))) : h`<p class="muted">No completions yet.</p>`)}

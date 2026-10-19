@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 
-// ORG-012: a learning administrator opens "View as" for a learner in their unit and sees that learner's pages as they
-// do, read-only: writes, evidence downloads and non-learner pages are refused, progress does not move, and the session
+// ORG-012: a learning administrator opens "View as" for a learner in their unit and sees that learner's pages and
+// notices as they do (never their own replies), read-only: writes, evidence downloads and non-learner pages are refused, progress does not move, and the session
 // is in Audit with how long it lasted. Another unit's learner, the owner and another administrator are refused; a
-// manager views only their own team; a view ends on exit, after 15 minutes, or when the viewer's authority ends.
+// manager views only their own team and a custom role views nobody; a view ends on exit, after 15 minutes, or when the viewer's authority ends.
 export async function viewAsCheck(f) {
   const { api, h, cookies, ids, course } = f
   const MINUTE = 60_000
@@ -28,6 +28,11 @@ export async function viewAsCheck(f) {
   const record = await api('learner', 'records/me')
   const certificate = record.completions.find(row => row.course === done.id).certificate
   const before = await api('learner', `assignments/${pending}`)
+  // Notices: an announcement the learner replied to, and a course due tomorrow that reminds them.
+  const notice = await api('manager', 'announcement.send', { audience: `team:${ids.team}`, title: 'Fire drill Friday', body: 'Meet at the north gate at 10.' })
+  await api('learner', 'announcement.reply', { announcement: notice.id, body: 'Private reply about my knee' })
+  const soon = await course('Viewed due-soon course')
+  const [dueSoon] = (await api('manager', 'assignment.create', { course: soon.id, learners: [ids.learner], dueDate: new Date(Date.now() + 86_400_000).toISOString().slice(0, 10) })).created
   const learnerEvents = (await api('owner', `audit?actor=${ids.learner}`)).events.length
 
   // The view: the learner's pages and reads, as the learner sees them, under a banner naming whose view it is.
@@ -39,6 +44,13 @@ export async function viewAsCheck(f) {
   const overview = await (await raw(`/app/learn/${completed}`, viewing)).text()
   assert.ok(overview.includes('Completed') && overview.includes(`/app/certificates/${certificate}`))
   assert.equal((await raw(`/app/certificates/${certificate}`, viewing)).status, 200)
+  // Their notices show as they see them (due reminders and announcements), never their own replies.
+  assert.ok(home.includes('Reminders') && home.includes('Viewed due-soon course') && home.includes('Fire drill Friday') && home.includes('Meet at the north gate at 10.') && !home.includes('Private reply about my knee'))
+  assert.ok((await h.api('reminders', viewing)).some(row => row.id === dueSoon))
+  const notices = await h.api('announcements', viewing)
+  assert.deepEqual(notices.received.find(row => row.id === notice.id).replies, [])
+  assert.ok(!JSON.stringify(notices).includes('Private reply about my knee'))
+  assert.equal((await api('learner', 'announcements')).received.find(row => row.id === notice.id).replies.length, 1)
 
   // Read-only: every write and form is refused, as are evidence files, policy documents, practice, anonymous questions
   // and pages beyond the learner's own; nothing moved.
@@ -66,6 +78,14 @@ export async function viewAsCheck(f) {
   assert.equal((await api('viewer', 'view.start', { learner: ids.admin }, 403)).error, 'cannot_view_administrator')
   assert.equal((await api('viewer', 'view.start', { learner: ids.viewer }, 403)).error, 'cannot_view_yourself')
   assert.equal((await api('learner', 'view.start', { learner: ids.other }, 403)).error, 'forbidden')
+  // A custom role (ORG-010), even with the people permission over the learner's team, opens no view and sees no button.
+  ids.pia = (await api('owner', 'person.invite', { email: 'pia@example.test', name: 'Pia People', roles: ['learner'] })).id
+  cookies.pia = await h.signIn('pia@example.test', { requested: true })
+  await api('owner', 'role.save', { name: 'People coordinator', permissions: ['people'], teams: [ids.team] })
+  await api('owner', 'role.grant', { role: (await api('owner', 'roles')).roles.find(row => row.name === 'People coordinator').id, member: ids.pia })
+  const piaRecord = await h.raw(`/app/records/${ids.learner}`, { cookie: cookies.pia })
+  assert.ok(piaRecord.status === 200 && !(await piaRecord.text()).includes('View as'))
+  assert.equal((await api('pia', 'view.start', { learner: ids.learner }, 403)).error, 'forbidden')
   // A manager views their own team's learner only.
   await api('manager', 'view.start', { learner: ids.learner })
   const loner = (await api('owner', 'person.invite', { email: 'loner@example.test', name: 'Lone Learner', roles: ['learner'] })).id

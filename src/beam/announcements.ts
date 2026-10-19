@@ -58,7 +58,8 @@ export async function announcements(env: Bindings, actor: Actor) {
   const replies = await all(env, `SELECT p.id, p.announcement_id AS announcement, p.body, p.sent_at AS sentAt, m.name AS learnerName FROM beam_announcement_replies p JOIN beam_announcements a ON a.id = p.announcement_id
     JOIN beam_members m ON m.id = p.learner_id WHERE a.sender_id = ? ORDER BY p.sent_at`, actor.id)
   return {
-    received: received.map(row => ({ ...row, replies: mine.filter(reply => reply.announcement === row.id) }) as Row),
+    // A read-only view (ORG-012) shows the announcements, never the learner's own replies.
+    received: received.map(row => ({ ...row, replies: actor.viewAs ? [] : mine.filter(reply => reply.announcement === row.id) }) as Row),
     sent: sent.map(row => ({ ...row, replies: replies.filter(reply => reply.announcement === row.id) }) as Row),
   }
 }

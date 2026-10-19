@@ -1,5 +1,5 @@
-// ORG-012: "View as". The owner, a learning administrator (ORG-002), a custom role with the people permission (ORG-010)
-// or a manager for their own team opens one learner's pages exactly as that learner sees them, read-only. The view
+// ORG-012: "View as". The owner, a learning administrator (ORG-002) for their units or a manager for their own team
+// (never a custom role, ORG-010) opens one learner's pages exactly as that learner sees them, read-only. The view
 // rides on the viewer's own sign-in plus a session cookie naming the view; on every request the view is checked again
 // (open, not past its 15 minutes, viewer still holding authority over the learner) and the request runs as the learner
 // with only the learner role. http.ts refuses every write, form, evidence download and non-learner page while it
@@ -24,7 +24,8 @@ async function requireViewable(env: Bindings, viewer: Actor, learner: string) {
   const administrator = await one(env, `SELECT 1 FROM beam_admin_grants WHERE member_id = ?1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?2)
     UNION SELECT 1 FROM beam_custom_role_grants WHERE member_id = ?1 AND revoked_at IS NULL`, learner, at)
   insist(!administrator, 'cannot_view_administrator', 403)
-  requireLearnerScope(viewer, learner, 'people')
+  // Manager or administrator authority only: a custom role's people permission does not open a view.
+  requireLearnerScope(viewer, learner)
   return member
 }
 
@@ -74,7 +75,8 @@ export async function exitView(env: Bindings, request: Request, actor: Actor) {
 export const viewCookie = (env: Bindings, value: string | null) =>
   `${COOKIE}=${value ?? ''}; Path=/; HttpOnly; SameSite=Strict${env.AUTH_ORIGIN.startsWith('https:') ? '; Secure' : ''}; Max-Age=${value ? VIEW_MINUTES * 60 : 0}`
 
-/** While viewing: the learner's own pages and reads only. Evidence files, policy documents (opening one records it as
+/** While viewing: the learner's own pages and reads only, with their notices (due reminders, approved reminder messages
+ * and announcements, never their own replies). Evidence files, policy documents (opening one records it as
  * viewed), practice runs and anonymous questions stay closed. */
 export const VIEW_PAGES = /^\/app(\/learning|\/learn\/[\w-]+(\/lessons\/[\w-]+|\/quiz|\/practical)?|\/attempts\/[\w-]+|\/certificates\/[\w-]+|\/acknowledgments\/[\w-]+)?$/
-export const VIEW_READS = /^(me|records\/me|assignments\/[\w-]+|attempts\/[\w-]+|certificates\/[\w-]+|acknowledgments|acknowledgments\/[\w-]+|reminders)$/
+export const VIEW_READS = /^(me|records\/me|assignments\/[\w-]+|attempts\/[\w-]+|certificates\/[\w-]+|acknowledgments|acknowledgments\/[\w-]+|reminders|messages|announcements)$/
