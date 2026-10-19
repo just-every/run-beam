@@ -74,7 +74,10 @@ async function offline(f) {
 }
 
 async function renewal(f) {
-  const { api, course, ids, view, offline } = f
+  const { api, course, ids, view } = f
+  // Keep all attestations on one current day: an expired fixed date makes the next renewal overdue after 17:00 UTC.
+  const heldOn = new Date().toISOString().slice(0, 10)
+  const offline = (...args) => ({ ...f.offline(...args), heldOn })
   const prerequisite = await course('Renewal prerequisite'), c = await course('Recurring procedure')
   await api('manager', 'offline.record', offline(prerequisite))
   const team = await f.team('Renewing team', [ids.learner])

@@ -53,7 +53,7 @@ export async function beamImportDoor(request: Request, original: Bindings): Prom
     try { publicKeys = JSON.parse(env.RER_OWNER_CLAIM_PUBLIC_KEYS) } catch { return notFound() }
     return createImportDoorHandler({...runtime, source, installationId: importInstallationId,
       claim: {issuer: env.RER_OWNER_CLAIM_ISSUER, installationId: env.RER_OWNER_CLAIM_INSTALLATION_ID,
-        appOrigin: env.AUTH_ORIGIN, expectedEmail: env.OWNER_EMAIL, publicKeys}})(request)
+        appOrigin: env.RER_OWNER_CLAIM_APP_ORIGIN ?? env.AUTH_ORIGIN, expectedEmail: env.OWNER_EMAIL, publicKeys}})(request)
   }
   if (request.headers.has('authorization')) return Response.json({error: 'owner_required'}, {status: 401})
   const listed = await source(request.headers.get('X-Import-Source') ?? '')

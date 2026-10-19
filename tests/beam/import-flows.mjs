@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import {createHash, generateKeyPairSync, randomUUID, sign} from 'node:crypto'
 import {courseListCsv, courseReport, workbook} from './fixtures.mjs'
-import {file} from './harness.mjs'
+import {file, harness} from './harness.mjs'
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 export function importTrust() {
@@ -191,4 +191,17 @@ export async function importFlows({h, people, ids, trust}) {
   assert.deepEqual(left.map(row => row.id), [jo.id])
   assert.equal(left[0].accepted.note, 'Matches our 2025 paper records.')
   assert.ok((await h.api('imports', people.owner)).some(job => job.retained.some(item => item.target === jo.id && item.reason === 'edited')))
+  const provisioned = await harness({bindings: {...trust.bindings, RER_IMPORT_DOOR: 'on'}})
+  try {
+    assert.equal((await provisioned.raw('/auth/bootstrap', {body: {token: provisioned.vars.SETUP_TOKEN, displayName: 'Provisioned owner'}})).status, 303)
+    let cookie = await provisioned.signIn(provisioned.vars.OWNER_EMAIL)
+    assert.equal((await provisioned.api('import-settings', cookie)).enabled, true)
+    await provisioned.api('import.settings', cookie, {enabled: false, revokeKey: 'business-a'})
+    // An initialized claim and later session starts never reopen a door the owner disabled.
+    await provisioned.raw('/auth/bootstrap', {body: {token: provisioned.vars.SETUP_TOKEN, displayName: 'Same owner'}})
+    cookie = await provisioned.signIn(provisioned.vars.OWNER_EMAIL)
+    assert.deepEqual((await provisioned.api('import-settings', cookie)).revokedKeys, ['business-a'])
+    assert.equal((await provisioned.api('import-settings', cookie)).enabled, false)
+  } finally { await provisioned.close() }
+
 }

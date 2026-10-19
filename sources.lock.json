@@ -204,7 +204,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "86837bc338cc98e36ff0a86d9449d791091b0ac48816003a7f644aa834557e2a",
+      "sha256": "9ca909b549c10e7d7681ff1af8bf71f7827fbc80e79d6f5603c2400f8fb7fb5b",
       "executable": false
     },
     "DEMO.md": {
@@ -248,7 +248,7 @@
       "executable": false
     },
     "docs/move-in.md": {
-      "sha256": "afdcd4b24f873c59e1a27904841640d412b8a1b5539bb01f26420970ddd73c5e",
+      "sha256": "4e0756b30cce88314baf685a7313457e0797cc411a09a867326e739aa0c66fa4",
       "executable": false
     },
     "docs/people.md": {
@@ -864,7 +864,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "4be8f3011231b7ad0429ae6c35cf881f2443871b44dd8b7f1650892a5527ab0e",
+      "sha256": "9088ed0ea452ed406d64a1e63fd5792a5b487dd36854c7893c7743b999fe17f0",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -1144,11 +1144,15 @@
       "executable": false
     },
     "src/beam/movein/door.ts": {
-      "sha256": "ebda77af7baf43fdd029028cfabb6f949c3451f53400e4fbae2a4836711ff83f",
+      "sha256": "0694e741916560dcf79b8a0cb2cc3e5831107cf2e629eb83e90591468c256d66",
       "executable": false
     },
     "src/beam/movein/legacy.ts": {
       "sha256": "9531c6acdc03254f5684ec674a872657c016a916fe61da5a851960ecaf64e390",
+      "executable": false
+    },
+    "src/beam/movein/provision.ts": {
+      "sha256": "365f8f8b4eea56aee7839b408fd486c6a7d1bcc6939fb0d5cb26bb3f0c4cb2bb",
       "executable": false
     },
     "src/beam/movein/source.ts": {
@@ -3200,7 +3204,7 @@
       "executable": false
     },
     "tests/beam/import-flows.mjs": {
-      "sha256": "0355d0dbff3ac9e22b5829943cbe6d8964ab58981b07da493bff4bc762950957",
+      "sha256": "6c84c5f27e0c5699d976796cb9991d896aa7627da12bb3f9ed18393d2d8c9007",
       "executable": false
     },
     "tests/beam/journey.mjs": {
@@ -3284,7 +3288,7 @@
       "executable": false
     },
     "tests/beam/regression-learning.mjs": {
-      "sha256": "70a60feccd741776561de7febcb22353d5a042d4e567ef0f165bcb1518169e87",
+      "sha256": "63df06ea4aaccdc9b7649683ca36cf0d33f6360dd4a1edc464007957265c04e7",
       "executable": false
     },
     "tests/beam/regression-live.mjs": {

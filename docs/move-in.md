@@ -16,7 +16,7 @@ Choose **Update the previous TalentLMS import with this export** to plan a catch
 
 ## Business imports
 
-Owner imports and Business use the same upload → plan → reviewed fingerprint → apply → reconcile → undo pipeline. Business imports start disabled and require the installation's configured trusted claim key ring. Enable or disable them on **Move in**. Revoked key IDs stay revoked after re-enabling, and the owner's own history and undo remain available while Business is off.
+Owner imports and Business use the same upload → plan → reviewed fingerprint → apply → reconcile → undo pipeline. Self-hosted Business imports start disabled and require the installation's configured trusted claim key ring. Enable or disable them on **Move in**. On a Business-provisioned installation, RER's server-owned `RER_IMPORT_DOOR=on` approval enables the door after the first owner claim. Later owner paths heal a missed enable step; none reopens a door the owner disabled. Grant and signed-claim verification share the configured RER claim app origin and key ring. Revoked key IDs stay revoked after re-enabling, and the owner's own history and undo remain available while Business is off.
 
 ## Custody and erasure
 
