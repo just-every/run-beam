@@ -7,19 +7,20 @@ import type { Bindings } from '../auth.server'
 import { accessView, requireAccess } from './access'
 import { isManager, requireRole, type Actor } from './actor'
 import { revisionDetail, type Question } from './courses'
-import { SCORING_RULE, presentQuestion, type Answer } from './question-types'
+import { SCORING_RULE, drawQuestions, presentQuestion, weightOf, type Answer } from './question-types'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import { serve, store } from './files'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { resetHistory } from './resets'
-import { type Accommodation, accommodationFor, closeSession, deadlineFor, extraMinutes, openSession, refuseLate, savedAnswers, score, selectionsFrom, upsertAnswers } from './timing'
+import { AWAITING_GRADING, type Accommodation, accommodationFor, closeSession, deadlineFor, extraMinutes, openSession, refuseLate, responseRows, retryDecision, savedAnswers, score, selectionsFrom, sessionQuestions, tally, upsertAnswers } from './timing'
 import { DAY } from './time'
 import { inScope, manages } from './scope'
 import { sharesFile } from './auditors'
 import { dueExceptions } from './assignments'
 import { assignmentExceptions } from './exceptions'
 import { followOn } from './automation'
+import { surveyState } from './survey'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
   const assignment = await one(env, 'SELECT a.*, c.title AS course_title FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.id = ?', id)
@@ -49,6 +50,8 @@ async function progress(env: Bindings, assignment: any) {
     lessonsComplete: content.lessons.every(lesson => done.has(lesson.id)),
     quizRequired: !!assessment && assessment.questions.length > 0,
     quizPassed: quizAttempts.some(attempt => attempt.passed === 1),
+    // LEARN-001: a quiz attempt with written answers waits for the named assessor before another can start.
+    quizGrading: quizAttempts.some(attempt => attempt.state === 'awaiting_review'),
     quizAttemptsLeft: Math.max(0, allowed - quizAttempts.length),
     practicalRequired: !!assessment?.practical_instructions,
     practicalAccepted: attempts.some(attempt => attempt.kind === 'practical' && attempt.state === 'accepted'),
@@ -65,6 +68,12 @@ export async function attendanceState(env: Bindings, assignment: string, percent
   if (percent === null) return { required: null, met: true, record: null }
   const record = await one(env, `${MOVE_CHAIN} SELECT t.id, t.session_id AS session, t.status, t.minutes, t.decision, s.minutes * s.meetings AS scheduled FROM beam_attendance t JOIN beam_sessions s ON s.id = t.session_id WHERE t.assignment_id IN (SELECT id FROM chain) AND t.superseded_at IS NULL ORDER BY t.recorded_at DESC LIMIT 1`, assignment)
   return { required: percent, record, met: !!record && record.decision === 'complete' && record.minutes * 100 >= percent * record.scheduled }
+}
+
+/** LEARN-001: the questions the next quiz attempt asks, drawn from the revision's bank for this assignment and attempt
+ * number (question-types.ts drawQuestions), so the same attempt always shows the same questions. */
+export function nextQuestions(assignment: Row, assessment: Row & { questions: Question[] }, number: number) {
+  return drawQuestions(assessment.questions, { draw: assessment.draw_count ?? null, shuffle: assessment.shuffle === 1 }, `${assignment.id}:${number}`)
 }
 
 /** LEARN-018: a timed attempt past its deadline is closed at the deadline and scored from its saved answers. */
@@ -92,6 +101,9 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
   const state = await progress(env, assignment)
   const timed = state.quizRequired ? await timedView(env, assignment, state.content.assessment!) : null
   const learner = assignment.learner_id === actor.id
+  const assessment = state.content.assessment
+  const session = timed?.session ? await openSession(env, assignment.id) : null
+  const asked = !state.quizRequired ? [] : session ? sessionQuestions(session, assessment!.questions) : nextQuestions(assignment, assessment!, state.nextNumber('quiz'))
   const completion = await one(env, 'SELECT c.*, k.id AS certificate FROM beam_completions c LEFT JOIN beam_certificates k ON k.completion_id = c.id WHERE c.assignment_id = ?', id)
   // Outside the access window (AUTO-009) the lesson text and quiz questions are not served; records stay readable.
   const access = await accessView(env, assignment), launchable = access.state === 'open'
@@ -103,8 +115,9 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     lessons: state.content.lessons.map(lesson => launchable ? { ...lesson, completed: state.done.has(lesson.id) } : { id: lesson.id, position: lesson.position, title: lesson.title, completed: state.done.has(lesson.id) }),
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
-    quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: (launchable ? state.content.assessment!.questions : []).map(presentQuestion), ...timed! } : null,
+    quiz: state.quizRequired ? { passPercent: assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, grading: state.quizGrading, bank: assessment!.questions.length, draw: assessment!.draw_count ?? null, shuffle: assessment!.shuffle === 1, feedback: assessment!.feedback ?? 'attempt', points: asked.reduce((sum, question) => sum + weightOf(question), 0), questions: (launchable ? asked : []).map(presentQuestion), ...timed! } : null,
     attendance: state.attendance.required === null ? null : { percent: state.attendance.required, met: state.attendance.met, record: state.attendance.record },
+    survey: await surveyState(env, assignment.id, state.content.survey),
     practical: state.practicalRequired ? { instructions: state.content.assessment!.practical_instructions, assessor: state.content.assessment!.assessor_id, accepted: state.practicalAccepted, pending: state.practicalPending } : null,
     attempts: learner || isManager(actor) ? state.attempts : [],
     // LIVE-003: attendance records and their amendments, like attempts, for the learner and their managers.
@@ -169,7 +182,8 @@ export async function startQuiz(env: Bindings, actor: Actor, input: Input) {
   const accommodation = await accommodationFor(env, assignment.learner_id, assignment.course_id)
   const extra = extraMinutes(assessment.time_limit_minutes, accommodation)
   const id = newId(), at = now(), deadline = deadlineFor(at, assessment.time_limit_minutes, extra)
-  await commit(env, [stmt(env, 'INSERT INTO beam_quiz_sessions (id, assignment_id, assessment_revision_id, started_at, deadline, time_limit_minutes, extra_minutes, accommodation_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, assignment.id, assessment.id, at, deadline, assessment.time_limit_minutes, extra, accommodation ? JSON.stringify(accommodation) : null)],
+  const asked = nextQuestions(assignment, assessment, state.nextNumber('quiz')).map(question => question.id)
+  await commit(env, [stmt(env, 'INSERT INTO beam_quiz_sessions (id, assignment_id, assessment_revision_id, started_at, deadline, time_limit_minutes, extra_minutes, accommodation_json, question_ids_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', id, assignment.id, assessment.id, at, deadline, assessment.time_limit_minutes, extra, accommodation ? JSON.stringify(accommodation) : null, JSON.stringify(asked))],
     { actor, action: 'quiz.start', subject: id, detail: { assignment: assignment.id, timeLimitMinutes: assessment.time_limit_minutes, extraMinutes: extra, accommodation: accommodation?.id ?? null, deadline } })
   return { id, startedAt: at, deadline, resumed: false }
 }
@@ -179,7 +193,7 @@ export async function saveQuizAnswers(env: Bindings, actor: Actor, input: Input)
   const assignment = await learnerAssignment(env, actor, input)
   const state = await quizState(env, assignment)
   const session = await openSession(env, assignment.id) ?? await refuseLate(env, assignment.id)
-  const selections = selectionsFrom(state.content.assessment!.questions, input, { onlyPresent: true })
+  const selections = selectionsFrom(sessionQuestions(session, state.content.assessment!.questions), input, { onlyPresent: true })
   const at = now()
   insist(at < session.deadline, 'time_expired', 409, { closedAt: session.deadline })
   if (selections.size) await env.DB.batch(upsertAnswers(env, session.id, selections, at))
@@ -191,6 +205,7 @@ async function quizState(env: Bindings, assignment: Row) {
   insist(state.quizRequired, 'no_quiz', 409)
   insist(state.lessonsComplete, 'lessons_incomplete', 409)
   insist(!state.quizPassed, 'quiz_already_passed', 409)
+  insist(!state.quizGrading, 'attempt_awaiting_grading', 409)
   insist(state.quizAttemptsLeft > 0, 'no_attempts_remaining', 409)
   return state
 }
@@ -202,31 +217,58 @@ export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
   if (assessment.time_limit_minutes) {
     // A timed attempt scores what was saved into it, with these last answers saved first while time remains.
     const session = await openSession(env, assignment.id) ?? await refuseLate(env, assignment.id)
-    const selections = selectionsFrom(assessment.questions, input, { onlyPresent: true })
+    const selections = selectionsFrom(sessionQuestions(session, assessment.questions), input, { onlyPresent: true })
     const at = now()
     insist(at < session.deadline, 'time_expired', 409, { closedAt: session.deadline })
     if (selections.size) await env.DB.batch(upsertAnswers(env, session.id, selections, at))
     const closed = await closeSession(env, session, assessment.questions, assessment.pass_percent, state.quizAttemptsLeft, 'submitted', at, actor.id)
     insist(closed, 'time_expired', 409)
-    if (!closed.passed) await followOn(env, 'failure', { assignment: assignment.id })
+    if (!closed.passed && !closed.pending) await followOn(env, 'failure', { assignment: assignment.id })
     return { ...closed, completion: await tryComplete(env, actor, assignment.id) }
   }
-  const responses = score(assessment.questions, selectionsFrom(assessment.questions, input))
-  const points = responses.filter(response => response.correct).length
-  const percent = Math.floor(points * 100 / responses.length)
-  const passed = percent >= assessment.pass_percent
   const number = state.nextNumber('quiz')
-  const left = state.quizAttemptsLeft - 1
-  const decision = passed ? 'passed' : left > 0 ? `retry allowed: ${left} attempt${left === 1 ? '' : 's'} remaining` : 'no attempts remaining: a manager may grant another attempt'
+  const asked = nextQuestions(assignment, assessment, number)
+  const responses = score(asked, selectionsFrom(asked, input))
+  const { points, max, percent, passed, pending } = tally(responses, assessment.pass_percent)
+  const decision = pending ? AWAITING_GRADING : retryDecision(passed, state.quizAttemptsLeft - 1)
   const id = newId()
   await commit(env, [
-    stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?, ?, ?, ?, 'scored')", id, assignment.id, assessment.id, number, now(), points, responses.length, passed ? 1 : 0, `${SCORING_RULE}; pass at ${assessment.pass_percent}%`, decision),
-    ...responses.map(response => stmt(env, 'INSERT INTO beam_responses (attempt_id, question_id, answer_json, correct) VALUES (?, ?, ?, ?)', id, response.question, JSON.stringify(response.selected), response.correct ? 1 : 0)),
-  ], { actor, action: 'quiz.attempt', subject: id, detail: { assignment: assignment.id, points, of: responses.length, passed } })
+    stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state, question_ids_json) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?, ?, ?, ?, ?, ?)", id, assignment.id, assessment.id, number, now(), points, max, pending ? null : passed ? 1 : 0, `${SCORING_RULE}; pass at ${assessment.pass_percent}%`, decision, pending ? 'awaiting_review' : 'scored', JSON.stringify(asked.map(question => question.id))),
+    ...responseRows(env, id, responses),
+  ], { actor, action: 'quiz.attempt', subject: id, detail: { assignment: assignment.id, points, of: max, passed, pending } })
   const completion = await tryComplete(env, actor, assignment.id)
   // AUTO-005: an attempt that leaves no attempts runs the course's failure rules; it never becomes a pass.
-  if (!passed) await followOn(env, 'failure', { assignment: assignment.id })
-  return { id, number, score: points, maxScore: responses.length, percent, passed, retryDecision: decision, completion }
+  if (!passed && !pending) await followOn(env, 'failure', { assignment: assignment.id })
+  return { id, number, score: points, maxScore: max, percent, passed, pending, retryDecision: decision, completion }
+}
+
+/** LEARN-001: the named assessor of the attempt's revision grades its written answers, awarding each from 0 to its
+ * weight with a note; the attempt is then scored like any other and may complete the course. */
+export async function gradeQuiz(env: Bindings, actor: Actor, input: Input) {
+  requireRole(actor, 'assessor')
+  const attempt = await loadAttempt(env, input.text('attempt'))
+  insist(attempt && attempt.kind === 'quiz', 'not_found', 404)
+  insist(attempt.assessor_id === actor.id, 'named_assessor_required', 403)
+  insist(attempt.learner_id !== actor.id, 'self_assessment_refused', 403)
+  insist(!attempt.reset_id, 'attempt_closed_by_reset', 409)
+  insist(attempt.state === 'awaiting_review', 'attempt_decided', 409)
+  const responses = await all<{ question_id: string; weight: number; points: number | null }>(env, 'SELECT question_id, weight, points FROM beam_responses WHERE attempt_id = ?', attempt.id)
+  const graded = responses.map(response => response.points !== null ? response : { ...response, points: input.integer(`points_${response.question_id}`, { min: 0, max: response.weight })!, awarded: true })
+  const note = input.text('note', { max: 2000 })
+  const assignment = (await one(env, 'SELECT * FROM beam_assignments WHERE id = ?', attempt.assignment_id))!
+  const counting = await countingAssignment(env, attempt.assignment_id)
+  const assessment = (await one<{ pass_percent: number }>(env, 'SELECT pass_percent FROM beam_assessment_revisions WHERE id = ?', attempt.assessment_revision_id))!
+  const { points, max, passed } = tally(graded, assessment.pass_percent)
+  const state = await progress(env, counting ? (await one(env, 'SELECT * FROM beam_assignments WHERE id = ?', counting))! : assignment)
+  const decision = retryDecision(passed, state.quizAttemptsLeft)
+  await commit(env, [
+    ...graded.filter(response => 'awarded' in response).map(response => stmt(env, 'UPDATE beam_responses SET points = ?, correct = ? WHERE attempt_id = ? AND question_id = ?', response.points, response.points === response.weight ? 1 : 0, attempt.id, response.question_id)),
+    stmt(env, 'INSERT INTO beam_quiz_gradings (attempt_id, assessor_id, note, graded_at) VALUES (?, ?, ?, ?)', attempt.id, actor.id, note, now()),
+    stmt(env, "UPDATE beam_attempts SET state = 'scored', score = ?, max_score = ?, passed = ?, retry_decision = ? WHERE id = ? AND state = 'awaiting_review'", points, max, passed ? 1 : 0, decision, attempt.id),
+  ], { actor, action: 'quiz.grade', subject: attempt.id, detail: { points, of: max, passed, note } })
+  const completion = counting ? await tryComplete(env, actor, counting) : null
+  if (!passed) await followOn(env, 'failure', { assignment: attempt.assignment_id })
+  return { id: attempt.id, score: points, maxScore: max, passed, retryDecision: decision, completion }
 }
 
 export async function submitPractical(env: Bindings, actor: Actor, input: Input) {
@@ -273,15 +315,34 @@ export async function decidePractical(env: Bindings, actor: Actor, input: Input)
   return { id: attempt.id, decision, completion }
 }
 
-/** One attempt: its learner, managers, and the named assessor of a practical attempt. Everyone else gets 404. */
+/** One attempt: its learner, managers, and the named assessor of a practical attempt or of written answers. Everyone else
+ * gets 404. LEARN-001: the learner sees which questions were right as the revision's feedback timing allows (with each
+ * attempt; once they passed or have no attempts left; or never, score only); managers and the assessor always do. */
 export async function attemptDetail(env: Bindings, actor: Actor, id: string) {
   const attempt = await loadAttempt(env, id)
-  const allowed = attempt && (attempt.learner_id === actor.id || (isManager(actor) && inScope(actor, attempt.learner_id)) || (attempt.kind === 'practical' && actor.roles.has('assessor') && attempt.assessor_id === actor.id))
+  const graded = attempt && actor.roles.has('assessor') && attempt.assessor_id === actor.id && (attempt.kind === 'practical' || attempt.state === 'awaiting_review' || !!await one(env, 'SELECT 1 FROM beam_quiz_gradings WHERE attempt_id = ?', id))
+  const allowed = attempt && (attempt.learner_id === actor.id || (isManager(actor) && inScope(actor, attempt.learner_id)) || graded)
   if (!allowed) throw new BeamError('not_found', 404)
-  const responses = await all(env, 'SELECT question_id AS question, answer_json AS answer, correct FROM beam_responses WHERE attempt_id = ?', id)
+  const rows = await all(env, 'SELECT question_id AS question, answer_json AS answer, correct, weight, points FROM beam_responses WHERE attempt_id = ?', id)
+  const order: string[] = attempt.question_ids_json ? JSON.parse(attempt.question_ids_json) : rows.map(row => row.question)
+  const bank = new Map(((await revisionDetail(env, (await one(env, 'SELECT course_revision_id FROM beam_assessment_revisions WHERE id = ?', attempt.assessment_revision_id))!.course_revision_id)).assessment?.questions ?? []).map(question => [question.id, question]))
+  const learnerOnly = attempt.learner_id === actor.id && !isManager(actor)
+  const feedback = learnerOnly ? await feedbackShown(env, attempt) : true
+  const responses = order.map(question => rows.find(row => row.question === question)).filter(Boolean).map(row => ({ question: row!.question, prompt: bank.get(row!.question)?.prompt ?? '', kind: bank.get(row!.question)?.kind ?? 'choice', answer: JSON.parse(row!.answer), weight: row!.weight, ...(feedback ? { correct: row!.correct, points: row!.points } : {}) }))
   const decision = await one(env, 'SELECT assessor_id AS assessor, decision, note, decided_at AS decidedAt FROM beam_review_decisions WHERE attempt_id = ?', id)
-  return { id, assignment: attempt.assignment_id, learner: attempt.learner_id, kind: attempt.kind, number: attempt.number, score: attempt.score, maxScore: attempt.max_score, passed: attempt.passed, scoringRule: attempt.scoring_rule, retryDecision: attempt.retry_decision, state: attempt.state, evidence: attempt.evidence_text, attachment: attempt.attachment_id, reset: attempt.reset_id ? await one(env, 'SELECT r.id, r.reason, r.reset_at AS resetAt, r.reset_by AS resetBy FROM beam_assignment_resets r WHERE r.id = ?', attempt.reset_id) : null, responses: responses.map(response => ({ ...response, answer: JSON.parse(response.answer) })), decision,
+    ?? await one(env, "SELECT assessor_id AS assessor, 'graded' AS decision, note, graded_at AS decidedAt FROM beam_quiz_gradings WHERE attempt_id = ?", id)
+  return { id, assignment: attempt.assignment_id, learner: attempt.learner_id, kind: attempt.kind, number: attempt.number, score: attempt.score, maxScore: attempt.max_score, passed: attempt.passed, scoringRule: attempt.scoring_rule, retryDecision: attempt.retry_decision, state: attempt.state, evidence: attempt.evidence_text, attachment: attempt.attachment_id, reset: attempt.reset_id ? await one(env, 'SELECT r.id, r.reason, r.reset_at AS resetAt, r.reset_by AS resetBy FROM beam_assignment_resets r WHERE r.id = ?', attempt.reset_id) : null, responses, feedback: feedback ? 'shown' : 'withheld', assessor: attempt.assessor_id, decision,
     timing: attempt.time_limit_minutes ? { timeLimitMinutes: attempt.time_limit_minutes, extraMinutes: attempt.extra_minutes, accommodation: attempt.accommodation_json ? JSON.parse(attempt.accommodation_json) : null, startedAt: attempt.started_at, closedAt: attempt.closed_at, closeReason: attempt.close_reason } : null }
+}
+
+/** Whether the learner may see which questions of this attempt were right, under its revision's feedback timing. */
+async function feedbackShown(env: Bindings, attempt: Row) {
+  const timing = (await one<{ feedback: string }>(env, 'SELECT feedback FROM beam_assessment_revisions WHERE id = ?', attempt.assessment_revision_id))?.feedback ?? 'attempt'
+  if (timing === 'attempt') return true
+  if (timing === 'score') return false
+  const counting = await countingAssignment(env, attempt.assignment_id) ?? attempt.assignment_id
+  const state = await progress(env, (await one(env, 'SELECT * FROM beam_assignments WHERE id = ?', counting))!)
+  return state.quizPassed || (state.quizAttemptsLeft === 0 && !state.quizGrading)
 }
 
 export async function attachmentFile(env: Bindings, actor: Actor, id: string) {

@@ -5,6 +5,7 @@ import { acknowledgmentList, acknowledgmentView } from './acknowledgments'
 import { listProposals, proposalDetail } from './agent-work'
 import { listPaths } from './assignments'
 import { courseDetail, listCourses, revisionDetail } from './courses'
+import { surveyResults } from './survey'
 import { BeamError, all, insist, one } from './core'
 import { compareRevisions, compareSourceVersions } from './history'
 import { assignmentView, attemptDetail } from './learning'
@@ -57,6 +58,7 @@ export const views: Record<string, View> = {
   course: (env, actor, _request, id) => courseDetail(env, actor, id),
   compare: (env, actor, request) => { const query = new URL(request.url).searchParams; return compareRevisions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
   'source-compare': (env, actor, request) => { const query = new URL(request.url).searchParams; return compareSourceVersions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
+  survey: async (env, actor, _request, id) => await surveyResults(env, actor, id),
   revision: async (env, actor, _request, id) => { await requireCourseRole(env, actor, (await one<{ course_id: string }>(env, 'SELECT course_id FROM beam_course_revisions WHERE id = ?', id))?.course_id ?? '', 'author', 'reviewer', 'manager'); return await revisionDetail(env, id) },
   paths: async (env, actor) => { requireRole(actor, 'manager'); return await listPaths(env, actor) },
   assignment: (env, actor, _request, id) => assignmentView(env, actor, id),
@@ -94,7 +96,7 @@ const ROUTES: [RegExp, string][] = [
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
-  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'],
+  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'],
 ]
 
 export function route(path: string): { view: View; id: string } {

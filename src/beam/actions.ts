@@ -6,6 +6,7 @@ import type { Actor } from './actor'
 import { extendAccess, setAccessRule, setAssignmentWindow } from './access'
 import { decideAcknowledgment, requestAcknowledgments } from './acknowledgments'
 import { decide, propose } from './agent-work'
+import { answerSurvey } from './survey'
 import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
@@ -23,10 +24,10 @@ import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
 import { replyToAnnouncement, sendAnnouncement } from './announcements'
 import { archiveCourse, cloneCourse, reinstateCourse, retagCourses, retireCourse, setCatalog } from './estate'
-import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveAttendance, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
+import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveAttendance, saveDetails, saveLesson, saveQuestion, saveSurvey, submitForReview } from './courses'
 import { restoreRevision } from './history'
 import type { Input } from './input'
-import { completeLesson, decidePractical, saveQuizAnswers, startQuiz, submitPractical, submitQuiz } from './learning'
+import { completeLesson, decidePractical, gradeQuiz, saveQuizAnswers, startQuiz, submitPractical, submitQuiz } from './learning'
 import { decideNotice, decideProposal, proposeDraft } from './maintenance'
 import { acceptHistory, applyImport, importAction, previewImport } from './movein/talentlms'
 import { configureBusiness, createTeam, invitePerson, setAccess, setRoles, setTeamMembers } from './people'
@@ -124,6 +125,7 @@ export const actions: Record<string, Handler> = {
   'course.question.remove': (env, actor, input) => removeQuestion(env, actor, input),
   'course.assessment': (env, actor, input) => saveAssessment(env, actor, input),
   'course.attendance': (env, actor, input) => saveAttendance(env, actor, input),
+  'course.survey': (env, actor, input) => saveSurvey(env, actor, input),
   'course.submit': (env, actor, input) => submitForReview(env, actor, input),
   'course.restore': (env, actor, input) => restoreRevision(env, actor, input),
   'revision.decide': (env, actor, input) => decideRevision(env, actor, input),
@@ -157,6 +159,8 @@ export const actions: Record<string, Handler> = {
   'quiz.submit': (env, actor, input) => submitQuiz(env, actor, input),
   'practical.submit': (env, actor, input) => submitPractical(env, actor, input),
   'practical.decide': (env, actor, input) => decidePractical(env, actor, input),
+  'quiz.grade': (env, actor, input) => gradeQuiz(env, actor, input),
+  'survey.answer': (env, actor, input) => answerSurvey(env, actor, input),
   'offline.record': (env, actor, input) => recordOffline(env, actor, input),
   'import.preview': (env, actor, input) => previewImport(env, actor, input),
   'import.apply': (env, actor, input) => applyImport(env, actor, input),

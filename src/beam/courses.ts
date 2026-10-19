@@ -23,9 +23,23 @@ export interface Draft {
   practical: { instructions: string; assessor: string } | null
   /** LIVE-003: the share (1-100%) of a session's scheduled minutes a learner must attend; older drafts have none. */
   attendancePercent?: number | null
+  /** LEARN-001: `questions` is the course's bank; each attempt asks `drawCount` of them at random (null: all), in a
+   * shuffled order when `shuffle` is set. */
+  drawCount?: number | null
+  shuffle?: boolean
+  /** When learners see which questions they got right: with each attempt, only once they passed or have no attempts
+   * left, or never (score only). */
+  feedback?: Feedback
+  /** The named assessor of written answers when there is no practical (a practical's assessor grades both). */
+  assessor?: string | null
+  /** The satisfaction survey: never part of passing or completion. */
+  survey?: SurveyQuestion[]
 }
+export type Feedback = 'attempt' | 'final' | 'score'
+export const FEEDBACK: Feedback[] = ['attempt', 'final', 'score']
+export interface SurveyQuestion { id: string; kind: 'rating' | 'text'; prompt: string }
 
-export const emptyDraft = (title: string, summary: string): Draft => ({ title, summary, lessons: [], questions: [], passPercent: null, maxAttempts: null, timeLimitMinutes: null, practical: null, attendancePercent: null })
+export const emptyDraft = (title: string, summary: string): Draft => ({ title, summary, lessons: [], questions: [], passPercent: null, maxAttempts: null, timeLimitMinutes: null, practical: null, attendancePercent: null, drawCount: null, shuffle: false, feedback: 'attempt', assessor: null, survey: [] })
 
 export async function createCourse(env: Bindings, actor: Actor, input: Input) {
   const unit = await newCourseUnit(env, actor, input)
@@ -67,13 +81,24 @@ export async function normaliseDraft(env: Bindings, value: unknown): Promise<Dra
   insist(timeLimitMinutes === null || (Number.isInteger(timeLimitMinutes) && timeLimitMinutes >= 1 && timeLimitMinutes <= 600), 'invalid_time_limit_minutes')
   const attendancePercent = draft.attendancePercent === null || draft.attendancePercent === undefined ? null : draft.attendancePercent
   insist(attendancePercent === null || (Number.isInteger(attendancePercent) && attendancePercent >= 1 && attendancePercent <= 100), 'invalid_attendance_percent')
+  const drawCount = draft.drawCount === null || draft.drawCount === undefined ? null : draft.drawCount
+  insist(drawCount === null || (Number.isInteger(drawCount) && drawCount >= 1 && drawCount <= 60), 'invalid_draw_count')
+  const feedback = draft.feedback ?? 'attempt'
+  insist(FEEDBACK.includes(feedback), 'invalid_feedback')
+  const assessor = draft.assessor || null
+  insist(assessor === null || (typeof assessor === 'string' && await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', assessor)), 'assessor_not_found', 404)
+  insist(draft.survey === undefined || (Array.isArray(draft.survey) && draft.survey.length <= 10), 'invalid_survey')
+  const survey = (draft.survey ?? []).map(item => {
+    insist(item && (item.kind === 'rating' || item.kind === 'text') && typeof item.prompt === 'string' && item.prompt.trim() && item.prompt.length <= 500, 'invalid_survey')
+    return { id: typeof item.id === 'string' && item.id ? item.id : newId(), kind: item.kind, prompt: item.prompt.trim() }
+  })
   let practical: Draft['practical'] = null
   if (draft.practical) {
     insist(typeof draft.practical.instructions === 'string' && draft.practical.instructions.trim() && draft.practical.instructions.length <= 5000 && typeof draft.practical.assessor === 'string', 'invalid_practical')
     insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', draft.practical.assessor), 'assessor_not_found', 404)
     practical = { instructions: draft.practical.instructions.trim(), assessor: draft.practical.assessor }
   }
-  return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent }
+  return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent, drawCount, shuffle: draft.shuffle === true, feedback, assessor: practical ? null : assessor, survey }
 }
 
 export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}, version?: number) {
@@ -169,7 +194,24 @@ export const saveAssessment = (env: Bindings, actor: Actor, input: Input) => edi
   draft.maxAttempts = input.integer('maxAttempts', { min: 1, max: 20, optional: true })
   draft.timeLimitMinutes = input.integer('timeLimitMinutes', { min: 1, max: 600, optional: true })
   const instructions = input.text('practicalInstructions', { max: 5000, optional: true })
+  const assessor = input.text('assessor', { optional: true }) || null
   draft.practical = instructions ? { instructions, assessor: input.text('assessor') } : null
+  draft.assessor = assessor
+  // LEARN-001: the bank's draw, its order and when learners see which answers were right.
+  draft.drawCount = input.integer('drawCount', { min: 1, max: 60, optional: true })
+  draft.shuffle = input.has('shuffle')
+  draft.feedback = (input.text('feedback', { optional: true }) || 'attempt') as Feedback
+})
+
+/** LEARN-001: the satisfaction survey, one question per line; a line starting `rating:` asks for a 1-5 rating. */
+export const saveSurvey = (env: Bindings, actor: Actor, input: Input) => editDraft(env, actor, input, 'course.survey', draft => {
+  const lines = (input.text('survey', { max: 6000, optional: true }) ?? '').split('\n').map(line => line.trim()).filter(Boolean)
+  const earlier = new Map((draft.survey ?? []).map(item => [`${item.kind}:${item.prompt}`, item.id]))
+  draft.survey = lines.map(line => {
+    const rating = /^rating:/i.test(line), prompt = rating ? line.slice(7).trim() : line
+    const kind = rating ? 'rating' as const : 'text' as const
+    return { id: earlier.get(`${kind}:${prompt}`) ?? newId(), kind, prompt }
+  })
 })
 
 /** LIVE-003: the revision requires attending a session of the course, reviewed and published with it. */
@@ -184,14 +226,19 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   const draft = await normaliseDraft(env, course.draft)
   insist(draft.lessons.length > 0, 'lessons_required')
   insist(draft.questions.length === 0 || (draft.passPercent !== null && draft.maxAttempts !== null), 'quiz_rules_required')
+  insist(!draft.drawCount || draft.drawCount <= draft.questions.length, 'draw_exceeds_bank')
+  insist(!draft.drawCount || draft.drawCount >= draft.questions.filter(question => question.always).length, 'draw_below_always_asked')
+  // One named assessor grades written answers and practical evidence alike.
+  const assessor = draft.practical?.assessor ?? draft.assessor ?? null
+  insist(!draft.questions.some(question => question.kind === 'text') || assessor, 'assessor_required')
   insist(!await one(env, "SELECT 1 FROM beam_course_revisions WHERE course_id = ? AND state = 'in_review'", course.id), 'revision_in_review', 409)
   const latest = await one<{ number: number }>(env, 'SELECT MAX(number) AS number FROM beam_course_revisions WHERE course_id = ?', course.id)
   const id = newId(), number = (latest?.number ?? 0) + 1
   const assessed = draft.questions.length > 0 || draft.practical
   await commit(env, [
-    stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at, attendance_percent) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now(), draft.attendancePercent ?? null),
+    stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at, attendance_percent, survey_json) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?, ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now(), draft.attendancePercent ?? null, draft.survey?.length ? JSON.stringify(draft.survey) : null),
     ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids) VALUES (?, ?, ?, ?, ?, ?)', newId(), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources))),
-    ...(assessed ? [stmt(env, 'INSERT INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', newId(), id, JSON.stringify(draft.questions), draft.passPercent, draft.maxAttempts, draft.questions.length ? draft.timeLimitMinutes ?? null : null, draft.practical?.instructions ?? null, draft.practical?.assessor ?? null)] : []),
+    ...(assessed ? [stmt(env, 'INSERT INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id, draw_count, shuffle, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', newId(), id, JSON.stringify(draft.questions), draft.passPercent, draft.maxAttempts, draft.questions.length ? draft.timeLimitMinutes ?? null : null, draft.practical?.instructions ?? null, assessor, draft.questions.length ? draft.drawCount ?? null : null, draft.shuffle ? 1 : 0, draft.feedback ?? 'attempt')] : []),
   ], { actor, action: 'revision.submit', subject: id, detail: { course: course.id, number, draftVersion: course.draft_version } })
   return { id, number }
 }
@@ -244,7 +291,7 @@ export async function revisionDetail(env: Bindings, id: string) {
   if (!revision) throw new BeamError('revision_not_found', 404)
   const lessons = (await all(env, 'SELECT id, position, title, body, source_version_ids FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', id)).map(lesson => ({ id: lesson.id, position: lesson.position, title: lesson.title, body: lesson.body, sources: JSON.parse(lesson.source_version_ids) as string[] }))
   const assessment = await one(env, 'SELECT * FROM beam_assessment_revisions WHERE course_revision_id = ?', id)
-  return { revision, lessons, assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
+  return { revision, lessons, survey: revision.survey_json ? JSON.parse(revision.survey_json) as SurveyQuestion[] : [], assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
 }
 
 export async function courseDetail(env: Bindings, actor: Actor, id: string) {

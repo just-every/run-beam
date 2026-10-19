@@ -2,7 +2,7 @@
 // the time facts on an attempt, and a manager's extra-time accommodations.
 import type { Accommodation } from '../timing'
 import type { Answer, PresentedQuestion } from '../question-types'
-import { card, field, form, h, hidden, rows, select, when, type Html } from './html'
+import { area, card, field, form, h, hidden, rows, select, when, type Html } from './html'
 
 export const accommodationLabel = (row: Pick<Accommodation, 'kind' | 'amount' | 'course'>, courseTitle?: string) =>
   `${row.kind === 'percent' ? `${row.amount}% extra time` : `${row.amount} extra ${row.amount === 1 ? 'minute' : 'minutes'}`} ${row.course ? `on ${courseTitle ?? 'this course'}` : 'on every timed assessment'}`
@@ -13,6 +13,8 @@ interface Quiz { passPercent: number; attemptsLeft: number; timeLimitMinutes?: n
  * keyboard and screen reader on any screen (LEARN-015, LEARN-011). */
 export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {}) => quiz.questions.map((question, n) => {
   const given = answers[question.id] ?? []
+  // LEARN-001: a written answer goes to the named assessor.
+  if (question.kind === 'text') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(written answer, ${question.points} ${question.points === 1 ? 'point' : 'points'}, graded by the assessor)</span></legend>${area('Your answer', `q_${question.id}`, typeof given[0] === 'string' ? given[0] : '', false)}</fieldset>`
   if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(fill in ${question.blanks === 1 ? 'the blank' : question.blanks === 2 ? 'both blanks' : `all ${question.blanks} blanks`})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(`Blank ${part + 1}`, `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
   const options = question.kind === 'order' || question.kind === 'match' ? question.options.map(option => ({ value: String(option.index), label: option.label })) : []
   const chosen = (part: number) => typeof given[part] === 'number' && given[part] !== -1 ? String(given[part]) : ''

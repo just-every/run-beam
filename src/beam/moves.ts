@@ -26,7 +26,7 @@ export async function countingAssignment(env: Bindings, assignment: string) {
 }
 
 const lessonKey = (lesson: Row) => JSON.stringify([lesson.title, lesson.body, JSON.parse(lesson.source_version_ids)])
-const ASSESSMENT = 'SELECT questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id FROM beam_assessment_revisions WHERE course_revision_id = ?'
+const ASSESSMENT = 'SELECT questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id, draw_count, shuffle, feedback FROM beam_assessment_revisions WHERE course_revision_id = ?'
 
 /** What moving from one revision to another keeps: lessons matched by identical content, and the assessment's fate. */
 async function compare(env: Bindings, from: string, to: string) {

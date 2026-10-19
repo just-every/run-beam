@@ -8,7 +8,7 @@
 import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
 import type { Question } from './courses'
-import { SCORING_RULE, answerFrom, answered, isCorrect, type Answer } from './question-types'
+import { SCORING_RULE, answerFrom, answered, isCorrect, weightOf, type Answer } from './question-types'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { withinTeam } from './resets'
@@ -62,45 +62,69 @@ export function selectionsFrom(questions: Question[], input: Input, { onlyPresen
   return selections
 }
 
-/** A question scores one point only when its whole answer is right (LEARN-015, BEAM-07); an unanswered question scores none. */
-export function score(questions: Question[], selections: Map<string, Answer>) {
+export interface Scored { question: string; selected: Answer; correct: boolean; weight: number; points: number | null }
+
+/** A question earns its weight only when its whole answer is right (LEARN-015, BEAM-07, LEARN-001); an unanswered
+ * question scores none. A written answer waits for the named assessor (points null), unless it was left empty. */
+export function score(questions: Question[], selections: Map<string, Answer>): Scored[] {
   return questions.map(question => {
     const selected = selections.get(question.id) ?? []
-    return { question: question.id, selected, correct: isCorrect(question, selections.get(question.id)) }
+    const correct = isCorrect(question, selections.get(question.id)), weight = weightOf(question)
+    const pending = question.kind === 'text' && typeof selected[0] === 'string' && selected[0].trim() !== ''
+    return { question: question.id, selected, correct, weight, points: pending ? null : correct ? weight : 0 }
   })
 }
+
+/** Points earned and possible, the percent (rounded down) and whether a written answer still waits for grading. */
+export function tally(responses: Pick<Scored, 'points' | 'weight'>[], passPercent: number) {
+  const points = responses.reduce((sum, response) => sum + (response.points ?? 0), 0), max = responses.reduce((sum, response) => sum + response.weight, 0)
+  const percent = max ? Math.floor(points * 100 / max) : 0, pending = responses.some(response => response.points === null)
+  return { points, max, percent, pending, passed: !pending && percent >= passPercent }
+}
+
+export const retryDecision = (passed: boolean, left: number) => passed ? 'passed' : left > 0 ? `retry allowed: ${left} attempt${left === 1 ? '' : 's'} remaining` : 'no attempts remaining: a manager may grant another attempt'
+export const AWAITING_GRADING = 'awaiting the named assessor’s grading of the written answers'
+
+/** Each response with its weight and the points it earned (null until a written answer is graded). */
+export const responseRows = (env: Bindings, attempt: string, responses: Scored[], guarded = false) => responses.map(response => stmt(env, `INSERT INTO beam_responses (attempt_id, question_id, answer_json, correct, weight, points) SELECT ?, ?, ?, ?, ?, ?${guarded ? ' WHERE EXISTS (SELECT 1 FROM beam_attempts WHERE id = ?)' : ''}`, attempt, response.question, JSON.stringify(response.selected), response.correct ? 1 : 0, response.weight, response.points, ...(guarded ? [attempt] : [])))
 
 export function upsertAnswers(env: Bindings, sessionId: string, selections: Map<string, Answer>, at: number) {
   return [...selections].map(([question, selected]) => stmt(env, 'INSERT INTO beam_quiz_session_answers (session_id, question_id, answer_json, saved_at) VALUES (?, ?, ?, ?) ON CONFLICT (session_id, question_id) DO UPDATE SET answer_json = excluded.answer_json, saved_at = excluded.saved_at', sessionId, question, JSON.stringify(selected), at))
 }
 
+/** The questions a timed session asks: those drawn when it started (LEARN-001), else the whole bank. */
+export const sessionQuestions = (session: Row, bank: Question[]) => {
+  if (!session.question_ids_json) return bank
+  const byId = new Map(bank.map(question => [question.id, question]))
+  return (JSON.parse(session.question_ids_json) as string[]).map(id => byId.get(id)!).filter(Boolean)
+}
+
 /** Closes an open session at `at` (its deadline when it expired) and writes its scored attempt from the saved answers. */
-export async function closeSession(env: Bindings, session: Row, questions: Question[], passPercent: number, attemptsLeft: number, reason: 'submitted' | 'expired', at: number, actor: string) {
+export async function closeSession(env: Bindings, session: Row, bank: Question[], passPercent: number, attemptsLeft: number, reason: 'submitted' | 'expired', at: number, actor: string) {
+  const questions = sessionQuestions(session, bank)
   const responses = score(questions, await savedAnswers(env, session.id))
-  const points = responses.filter(response => response.correct).length
-  const percent = Math.floor(points * 100 / responses.length)
-  const passed = percent >= passPercent
+  const { points, max, percent, passed, pending } = tally(responses, passPercent)
   const recorded = await one<{ n: number }>(env, "SELECT COUNT(*) AS n FROM beam_attempts WHERE assignment_id = ? AND kind = 'quiz'", session.assignment_id)
   const number = (recorded?.n ?? 0) + 1
   const left = attemptsLeft - 1
-  const decision = passed ? 'passed' : left > 0 ? `retry allowed: ${left} attempt${left === 1 ? '' : 's'} remaining` : 'no attempts remaining: a manager may grant another attempt'
+  const decision = pending ? AWAITING_GRADING : retryDecision(passed, left)
   const id = newId()
   const rule = `${SCORING_RULE}; pass at ${passPercent}%; time limit ${session.time_limit_minutes} minutes${session.extra_minutes ? ` plus ${session.extra_minutes} minutes extra time` : ''}; only answers saved before the limit count`
   // The attempt is written first, only while the session is open; a concurrent closer's attempt number collides and loses.
   const statements = [
-    stmt(env, `INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state, started_at, closed_at, close_reason, time_limit_minutes, extra_minutes, accommodation_json)
-      SELECT ?, ?, ?, 'quiz', ?, ?, ?, ?, ?, ?, ?, 'scored', ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM beam_quiz_sessions WHERE id = ? AND closed_at IS NULL)`,
-      id, session.assignment_id, session.assessment_revision_id, number, at, points, responses.length, passed ? 1 : 0, rule, decision, session.started_at, at, reason, session.time_limit_minutes, session.extra_minutes, session.accommodation_json, session.id),
+    stmt(env, `INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state, started_at, closed_at, close_reason, time_limit_minutes, extra_minutes, accommodation_json, question_ids_json)
+      SELECT ?, ?, ?, 'quiz', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM beam_quiz_sessions WHERE id = ? AND closed_at IS NULL)`,
+      id, session.assignment_id, session.assessment_revision_id, number, at, points, max, pending ? null : passed ? 1 : 0, rule, decision, pending ? 'awaiting_review' : 'scored', session.started_at, at, reason, session.time_limit_minutes, session.extra_minutes, session.accommodation_json, JSON.stringify(questions.map(question => question.id)), session.id),
     stmt(env, 'UPDATE beam_quiz_sessions SET closed_at = ?, close_reason = ?, attempt_id = ? WHERE id = ? AND closed_at IS NULL AND EXISTS (SELECT 1 FROM beam_attempts WHERE id = ?)', at, reason, id, session.id, id),
-    ...responses.map(response => stmt(env, 'INSERT INTO beam_responses (attempt_id, question_id, answer_json, correct) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM beam_attempts WHERE id = ?)', id, response.question, JSON.stringify(response.selected), response.correct ? 1 : 0, id)),
-    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM beam_attempts WHERE id = ?)', now(), actor, reason === 'expired' ? 'quiz.expire' : 'quiz.attempt', id, JSON.stringify({ assignment: session.assignment_id, session: session.id, points, of: responses.length, passed, closedAt: at }), id),
+    ...responseRows(env, id, responses, true),
+    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM beam_attempts WHERE id = ?)', now(), actor, reason === 'expired' ? 'quiz.expire' : 'quiz.attempt', id, JSON.stringify({ assignment: session.assignment_id, session: session.id, points, of: max, passed, pending, closedAt: at }), id),
   ]
   const claimed = await env.DB.batch(statements).catch(async error => {
     if (await one(env, 'SELECT 1 FROM beam_quiz_sessions WHERE id = ? AND closed_at IS NOT NULL', session.id)) return null
     throw error
   })
   if (!claimed || claimed[0].meta.changes !== 1) return null
-  return { id, number, score: points, maxScore: responses.length, percent, passed, retryDecision: decision }
+  return { id, number, score: points, maxScore: max, percent, passed, pending, retryDecision: decision }
 }
 
 /** A timed answer or submission after the deadline: refused, naming when the attempt closed. */
