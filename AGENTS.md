@@ -127,7 +127,7 @@ even with a human cookie. Reads are `GET /api/beam/me`, `/api/beam/people`,
 `/api/beam/certificates/:id`, `/api/beam/imports`, `/api/beam/history`,
 `/api/beam/compare?from=REV&to=REV` (two revisions of one course),
 `/api/beam/source-compare?from=VER&to=VER` (two versions of one source),
-`/api/beam/acknowledgments`, `/api/beam/acknowledgments/:id` `/api/beam/units` (the owner's units and administrator grants, or a learning administrator's own) `/api/beam/roles` (custom roles with their holders, or the roles you hold), `/api/beam/auditors` (the owner's auditor grants), `/api/beam/evidence` (an auditor's shared evidence) and `/api/beam/audit?q=&category=&actor=&from=&to=` (the owner's audit search; CSV at `/app/audit.csv`). Writes are `POST /api/beam/ACTION` with a JSON body and
+`/api/beam/acknowledgments`, `/api/beam/acknowledgments/:id` `/api/beam/units` (the owner's units and administrator grants, or a learning administrator's own) `/api/beam/roles` (custom roles with their holders, or the roles you hold), `/api/beam/auditors` (the owner's auditor grants), `/api/beam/evidence` (an auditor's shared evidence) and `/api/beam/audit?q=&category=&actor=&from=&to=` (the audit search: everything for the owner, their slice for a learning administrator or auditor; CSV at `/app/audit.csv`). Writes are `POST /api/beam/ACTION` with a JSON body and
 an `Origin` header equal to the app origin; the human action names are the keys of
 `src/beam/actions.ts`, subject to publication restrictions above. A timed quiz is `quiz.start`, then `quiz.save` and `quiz.submit` before the deadline it returns. Files go as `{ "filename": "...", "base64": "..." }`.
 

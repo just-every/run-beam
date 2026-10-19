@@ -1,12 +1,15 @@
 // OPS-001: the decision audit. Every audited write (core.ts commit and the
 // guarded inserts beside it) is one append-only row: who, when, what, the exact
 // inputs, and the route (a person's session or an agent's preparation
-// credential). The owner, acting as admin, searches and exports it; a
-// correction is a new event that explains an earlier one, never an edit. No door
+// credential). The owner, acting as admin, searches and exports all of it; a
+// learning administrator the events about their units, an auditor those about
+// the completions shared with them. Only the owner appends a correction, a new
+// event that explains an earlier one, never an edit. No door
 // updates or deletes a row. Anonymous answers are recorded without the person
 // (actor 'respondent', no content) and practice runs are never audited.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
+import { SHARED } from './auditors'
 import { all, commit, insist, one } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
@@ -41,9 +44,10 @@ const like = (text: string) => `%${text.replace(/[\\%_]/g, char => `\\${char}`)}
 /** Events matching the filters, newest first (at most 1000), each with the corrections appended to it. From and to are
  * whole days in the business's time zone, both inclusive. */
 export async function auditLog(env: Bindings, actor: Actor, filters: AuditFilters) {
-  requireOwner(actor)
+  insist(actor.owner || actor.adminUnits.length || actor.auditor, 'forbidden', 403)
   const zone = (await requireBusiness(env)).timezone
   const where: string[] = [], binds: unknown[] = []
+  if (!actor.owner) { const scope = readerScope(actor); where.push(scope.sql); binds.push(...scope.binds) }
   if (filters.q) { where.push("(a.action LIKE ? ESCAPE '\\' OR a.subject LIKE ? ESCAPE '\\' OR a.detail LIKE ? ESCAPE '\\' OR m.name LIKE ? ESCAPE '\\' OR m.email LIKE ? ESCAPE '\\' OR s.name LIKE ? ESCAPE '\\' OR s.email LIKE ? ESCAPE '\\')"); binds.push(...Array(7).fill(like(filters.q))) }
   if (filters.category) {
     const category = CATEGORIES[filters.category]
@@ -74,6 +78,24 @@ export async function auditLog(env: Bindings, actor: Actor, filters: AuditFilter
       }
     }),
   }
+}
+
+/** A non-owner reader's events. A learning administrator: those whose subject is one of their units' teams, courses or
+ * people, or those people's assignments, attempts and completions. An auditor: the recording of each completion their
+ * grant shares. Both together see either. */
+function readerScope(actor: Actor) {
+  const parts: string[] = [], binds: unknown[] = []
+  if (actor.adminUnits.length) {
+    const units = JSON.stringify(actor.adminUnits)
+    const teams = 'SELECT id FROM beam_teams WHERE unit_id IN (SELECT value FROM json_each(?))'
+    const people = `SELECT member_id FROM beam_team_members WHERE team_id IN (${teams})`
+    parts.push(`a.subject IN (${teams})`, 'a.subject IN (SELECT id FROM beam_courses WHERE unit_id IN (SELECT value FROM json_each(?)))', `a.subject IN (${people})`,
+      `a.subject IN (SELECT id FROM beam_assignments WHERE learner_id IN (${people}))`, `a.subject IN (SELECT id FROM beam_completions WHERE learner_id IN (${people}))`,
+      `a.subject IN (SELECT t.id FROM beam_attempts t JOIN beam_assignments s ON s.id = t.assignment_id WHERE s.learner_id IN (${people}))`)
+    binds.push(units, units, units, units, units, units)
+  }
+  if (actor.auditor) { parts.push(`(a.action = 'completion.record' AND a.subject IN (${SHARED}))`); binds.push(actor.id, Date.now()) }
+  return { sql: `(${parts.join(' OR ')})`, binds }
 }
 
 /** The owner appends an explanation to an event; the event itself never changes. */

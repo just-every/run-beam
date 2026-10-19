@@ -29,7 +29,7 @@ export async function auditPage(env: Bindings, actor: Actor, url: URL) {
 <td>${cellLabel('Who')}${event.actorName}${event.via ? h`<br><span class="muted">through an agent’s preparation credential delegated by ${event.via.delegatedBy}</span>` : ''}</td>
 <td>${cellLabel('What')}<code>${event.action}</code><br><span class="muted">${event.subjectName ? `${event.subjectName} · ` : ''}${event.subject}</span>${event.automatic ? h`<br><span class="muted">Automatic: ${event.automatic}</span>` : ''}
 ${event.corrections.map(correction => h`<p class="flash" role="note">Correction ${when(correction.at, log.zone)} by ${correction.by}: ${correction.explanation}</p>`)}
-<details><summary>Add a correction</summary>${form('audit.correct', returnTo, [hidden('event', event.id), area('Explanation', 'explanation')], 'Add correction', { secondary: true })}</details></td>
+${actor.owner ? h`<details><summary>Add a correction</summary>${form('audit.correct', returnTo, [hidden('event', event.id), area('Explanation', 'explanation')], 'Add correction', { secondary: true })}</details>` : ''}</td>
 <td>${cellLabel('Inputs')}<code class="wrap">${JSON.stringify(event.detail)}</code></td>
 </tr>`) : h`<tr><td colspan="4" class="muted">No events match this search.</td></tr>`}</tbody></table></div></section>`
   return page('Audit', actor, body, { current: '/app/audit', url, wide: true })

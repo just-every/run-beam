@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 
 // OPS-001: a course publication, an access revocation, an automatic outcome and an agent approval made through public
 // doors are found in Audit by search and category, with the agent's route and its delegating person, and exported; a
-// correction is appended beside its event, and no door edits or removes an event or opens the audit to anyone else.
+// correction is appended beside its event, and no door edits or removes an event; a learning administrator and an
+// auditor read only their own slice, and nobody else reads it.
 export async function auditCheck(f) {
   const { api, h, cookies, ids, publish, course } = f
   const MINUTE = 60_000
@@ -59,7 +60,26 @@ export async function auditCheck(f) {
   assert.deepEqual([corrected.action, corrected.subject, corrected.corrections.map(row => row.explanation)], ['person.inactive', ids.leaver, ['Left on 18 October; access removed a day late.']])
   await api('owner', 'audit.correct', { event: 999999999, explanation: 'Nothing there' }, 404)
 
-  // No door edits or removes an event, and nobody but the owner reads, exports or corrects the audit.
+  // A learning administrator reads the events about their unit's people and courses; an auditor the recording of the
+  // completions shared with them. Neither corrects, and neither sees events about anyone else.
+  ids.unitAdmin = (await api('owner', 'person.invite', { email: 'unit.admin@example.test', name: 'Una Admin', roles: ['learner'] })).id
+  ids.reader = (await api('owner', 'person.invite', { email: 'reader@example.test', name: 'Rae Reader', roles: ['learner'] })).id
+  for (const role of ['unitAdmin', 'reader']) cookies[role] = await h.signIn(`${role === 'unitAdmin' ? 'unit.admin' : 'reader'}@example.test`, { requested: true })
+  const unit = (await api('owner', 'unit.create', { name: 'Audit unit', teams: [ids.team] })).id
+  await api('owner', 'admin.grant', { member: ids.unitAdmin, unit })
+  const [finished] = (await api('manager', 'assignment.create', { course: published.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
+  for (const lesson of (await api('learner', `assignments/${finished}`)).lessons) await api('learner', 'lesson.complete', { assignment: finished, lesson: lesson.id })
+  const day = offset => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10)
+  await api('owner', 'auditor.grant', { member: ids.reader, teams: [ids.team], periodFrom: day(-1), periodTo: day(1), expiresOn: day(30) })
+  const adminView = (await api('unitAdmin', 'audit')).events
+  assert.ok(adminView.some(event => event.action === 'quiz.expire' && event.detail.assignment === assignment) && adminView.some(event => event.subject === finished))
+  assert.ok(!adminView.some(event => event.subject === ids.leaver || event.action === 'agent.propose' || event.action === 'questions.answer'))
+  const readerView = (await api('reader', 'audit')).events
+  assert.ok(readerView.length > 0 && readerView.every(event => event.action === 'completion.record'))
+  assert.ok((await page('/app/audit', 'unitAdmin')).text.includes('Audit') && !(await page('/app/audit', 'unitAdmin')).text.includes('Add a correction'))
+  for (const role of ['unitAdmin', 'reader']) await api(role, 'audit.correct', { event: revocation.id, explanation: 'Mine' }, 403)
+
+  // No door edits or removes an event, and nobody else reads, exports or corrects the audit.
   for (const action of ['audit.update', 'audit.delete', 'audit.remove']) await api('owner', action, { event: revocation.id }, 404)
   for (const role of ['manager', 'reviewer', 'learner']) {
     await api(role, 'audit', undefined, 403)

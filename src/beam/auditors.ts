@@ -43,7 +43,7 @@ export async function revokeAuditor(env: Bindings, actor: Actor, input: Input) {
 }
 
 /** SQL: completions an active auditor grant of the bound member shares (binds: member, now). */
-const SHARED = `SELECT c.id FROM beam_completions c JOIN beam_auditor_grants g ON g.member_id = ? AND g.revoked_at IS NULL AND g.expires_at > ?
+export const SHARED = `SELECT c.id FROM beam_completions c JOIN beam_auditor_grants g ON g.member_id = ? AND g.revoked_at IS NULL AND g.expires_at > ?
   AND c.completed_at >= g.period_from AND c.completed_at < g.period_to
   AND c.learner_id IN (SELECT tm.member_id FROM beam_team_members tm WHERE tm.team_id IN (SELECT value FROM json_each(g.teams)))`
 
