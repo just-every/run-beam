@@ -1,4 +1,4 @@
-// Page frame and small form helpers. Every value is escaped; pages need no script.
+// Page frame and small form helpers. Every value is escaped; pages need no script except the timed quiz's countdown.
 import branding from '../../branding.json'
 import type { Actor } from '../actor'
 import { formatClock, formatInstant, formatWeekday } from '../time'
@@ -66,16 +66,17 @@ function rail(actor: Actor, current: string, shell?: Shell): Html {
 
 /** The app frame: the left rail (a menu at phone width), the top bar with the business's date and time and any page
  * tools, and the work surface. `wide` pages lay out their own columns. */
-export function page(title: string, actor: Actor | null, body: Html, { current = '', url, status = 200, tools, wide = false }: { current?: string; url?: URL; status?: number; tools?: Html; wide?: boolean } = {}): Response {
+export function page(title: string, actor: Actor | null, body: Html, { current = '', url, status = 200, tools, wide = false, script }: { current?: string; url?: URL; status?: number; tools?: Html; wide?: boolean; script?: string } = {}): Response {
   const notice = url?.searchParams.get('notice'), error = url?.searchParams.get('error')
   const shell = actor?.shell
   const brand = h`<a class="brand" href="/app"><img src="/brand/mark.svg" alt="" width="30" height="35"><span data-rer-name>${branding.name}</span></a>`
   const clock = shell ? h`<p class="clock"><span>${formatWeekday(shell.now, shell.zone)}</span><span>${formatClock(shell.now, shell.zone)}</span></p>` : ''
-  const document = h`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/site/fonts.css"><link rel="stylesheet" href="/site/theme.css"><link rel="stylesheet" href="/beam.css"></head><body>
+  const document = h`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/site/fonts.css"><link rel="stylesheet" href="/site/theme.css"><link rel="stylesheet" href="/beam.css">${script ? h`<script src="${script}" defer></script>` : ''}</head><body>
 <div class="app${actor ? '' : ' bare'}">${actor ? h`<input type="checkbox" id="menu-toggle" class="menu-toggle" aria-hidden="true" tabindex="-1"><aside class="rail">${brand}<label for="menu-toggle" class="menu-button">${raw(icon('menu', { size: 22 }))}<span>Menu</span></label>${rail(actor, current, shell)}</aside>` : h`<aside class="rail">${brand}</aside>`}
 <header class="topbar">${clock}${tools ?? ''}</header>
 <main class="work${wide ? ' wide' : ''}">${notice ? h`<p class="flash" role="status">${notice}</p>` : ''}${error ? h`<p class="flash error" role="alert">That did not work: ${describeError(error)}</p>` : ''}${body}</main></div></body></html>`
-  return new Response(document.html, { status, headers })
+  // A page that needs its own script (the timed quiz's countdown) may load it from this origin only.
+  return new Response(document.html, { status, headers: script ? { ...headers, 'content-security-policy': headers['content-security-policy'].replace("default-src 'none';", "default-src 'none'; script-src 'self';") } : headers })
 }
 
 /** A white card with its heading. */
@@ -143,11 +144,14 @@ const ERRORS: Record<string, string> = {
   person_not_found: 'that person is not in Beam.',
   owner_access_fixed: 'the owner’s access cannot be changed.',
   completed_assignment_not_reset: 'a completed assignment is never reset; its completion stays with its revision. Assign the course again instead.',
-  learner_outside_your_team: 'you can reset training only for people in one of your teams.',
+  learner_outside_your_team: 'you can do this only for people in one of your teams.',
   attempt_closed_by_reset: 'this attempt was closed when the assignment was reset.',
   access_not_open: 'this course is not open yet. It opens on the date shown on the course.',
   access_ended: 'access to this course has ended. Your records and certificates stay readable; your manager can extend access.',
   no_access_window: 'this assignment has no access window to extend.',
+  time_expired: 'the time limit has passed. Only the answers saved before it were scored.',
+  quiz_not_started: 'start the timed quiz first.',
+  quiz_not_timed: 'this quiz has no time limit.',
   window_closes_before_it_opens: 'the closing date must be on or after the opening date.',
 }
 export const describeError = (code: string) => ERRORS[code] ?? code.replace(/_/g, ' ') + '.'

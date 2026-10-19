@@ -10,7 +10,7 @@ import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath,
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
 import { restoreRevision } from './history'
 import type { Input } from './input'
-import { completeLesson, decidePractical, submitPractical, submitQuiz } from './learning'
+import { completeLesson, decidePractical, saveQuizAnswers, startQuiz, submitPractical, submitQuiz } from './learning'
 import { decideNotice, decideProposal, proposeDraft } from './maintenance'
 import { acceptHistory, applyImport, importAction, previewImport } from './movein/talentlms'
 import { configureBusiness, createTeam, invitePerson, setAccess, setRoles, setTeamMembers } from './people'
@@ -18,6 +18,7 @@ import { choosePractice, restartPractice } from './practice'
 import { answerQuestions, closeQuestions, declineQuestions } from './questions'
 import { recordOffline } from './records'
 import { resetAssignment } from './resets'
+import { grantAccommodation } from './timing'
 import { addSourceVersion, createSource } from './sources'
 
 type Handler = (env: Bindings, actor: Actor, input: Input, request: Request) => Promise<unknown>
@@ -57,8 +58,11 @@ export const actions: Record<string, Handler> = {
   'assignment.window': (env, actor, input) => setAssignmentWindow(env, actor, input),
   'access.extend': (env, actor, input) => extendAccess(env, actor, input),
   'attempt.grant': (env, actor, input) => grantAttempt(env, actor, input),
+  'accommodation.grant': (env, actor, input) => grantAccommodation(env, actor, input),
   'assignment.reset': (env, actor, input) => resetAssignment(env, actor, input),
   'lesson.complete': (env, actor, input) => completeLesson(env, actor, input),
+  'quiz.start': (env, actor, input) => startQuiz(env, actor, input),
+  'quiz.save': (env, actor, input) => saveQuizAnswers(env, actor, input),
   'quiz.submit': (env, actor, input) => submitQuiz(env, actor, input),
   'practical.submit': (env, actor, input) => submitPractical(env, actor, input),
   'practical.decide': (env, actor, input) => decidePractical(env, actor, input),

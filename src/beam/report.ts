@@ -5,6 +5,7 @@
 import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
 import { all, insist, now, type Row } from './core'
+import { closeAllExpired } from './learning'
 import { DAY } from './time'
 
 export const STATUSES = ['all', 'open', 'overdue', 'completed', 'expiring'] as const
@@ -24,6 +25,7 @@ export function reportFilters(url: URL): Filters {
 
 export async function trainingReport(env: Bindings, actor: Actor, filters: Filters) {
   requireRole(actor, 'manager')
+  await closeAllExpired(env, actor)
   const at = now()
   const rows = await all(env, `SELECT a.id AS assignment, a.learner_id AS learner, m.name AS learnerName, a.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, a.course_revision_id AS revision,
       a.status AS assignmentStatus, a.due_at AS dueAt, a.timezone, a.reason, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt,

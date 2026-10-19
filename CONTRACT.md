@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 4 | 47 | 75 | 126 |
-| All | 24 | 47 | 75 | 146 |
+| Target and push further | 5 | 47 | 74 | 126 |
+| All | 25 | 47 | 74 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -557,7 +557,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `LEARN-015` | Score fill-in, ordering and matching questions | target | missing |  | Only exact-choice multiple-choice questions exist (BEAM-07); fill-in-the-blank, ordering and matching types and their scoring are absent. |
 | `LEARN-016` | Import GIFT and Aiken question banks | target | missing |  | GIFT/Aiken parsing, write-free question preview with named losses and bank CSV/GIFT export are absent. |
 | `LEARN-017` | Use Beam in the learner’s language | target | missing |  | The interface, emails and certificates are English only; a Spanish catalog, per-person language preference and course-locale fallback are absent. |
-| `LEARN-018` | Time-limit assessments | target | missing |  | Assessment time limits, server-enforced expiry, countdowns and recorded extra-time accommodations are absent. |
+| `LEARN-018` | Time-limit assessments | target | done | `src/beam/timing.ts`, `src/beam/learning.ts`, `src/beam/ui/timing.ts`, `public/beam-countdown.js`, `migrations/core/0022_beam_timed_attempts.sql`, `tests/beam/regression-timing.mjs` (LEARN-018) |  |
 | `LEARN-019` | Reset one learner’s progress with history kept | target | done | `src/beam/resets.ts`, `src/beam/learning.ts`, `migrations/core/0019_beam_resets.sql`, `tests/beam/regression-learning.mjs` (LEARN-019) |  |
 | `AUTO-001` | Maintain dynamic learner audiences | target | missing |  | Field-based audience rules and automatic membership maintenance are absent. |
 | `AUTO-002` | Enroll joiners and movers and remove leavers | target | missing |  | HRIS-triggered lifecycle reconciliation and event-driven enrollment are absent. |

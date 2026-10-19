@@ -55,6 +55,7 @@ export async function compareRevisions(env: Bindings, actor: Actor, fromId: stri
   const rules = [
     rule('passPercent', from.assessment?.pass_percent, to.assessment?.pass_percent),
     rule('maxAttempts', from.assessment?.max_attempts, to.assessment?.max_attempts),
+    rule('timeLimitMinutes', from.assessment?.time_limit_minutes, to.assessment?.time_limit_minutes),
     rule('practicalAssessor', from.assessment?.assessor_id, to.assessment?.assessor_id),
   ]
   return {
@@ -105,6 +106,7 @@ export const restoreRevision = (env: Bindings, actor: Actor, input: Input) => ed
     questions: detail.assessment?.questions ?? [],
     passPercent: detail.assessment?.pass_percent ?? null,
     maxAttempts: detail.assessment?.max_attempts ?? null,
+    timeLimitMinutes: detail.assessment?.time_limit_minutes ?? null,
     practical: detail.assessment?.practical_instructions ? { instructions: detail.assessment.practical_instructions, assessor: detail.assessment.assessor_id } : null,
   }
   Object.assign(draft, restored)

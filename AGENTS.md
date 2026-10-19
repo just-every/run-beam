@@ -26,7 +26,7 @@ rer describe
 ```
 
 `verify` builds, typechecks and runs `tests/email-link.mjs` and
-`tests/beam/flows.mjs` (with `agent-flows.mjs`) plus the four focused
+`tests/beam/flows.mjs` (with `agent-flows.mjs`) plus the focused
 `tests/beam/regressions.mjs` checks (`pnpm run test:regressions`). The browser journey runs on release tags and nightly in a disposable fresh
 clone: `BEAM_TEST_CHECKOUT=1 pnpm run test:journey` (it runs setup, dev, build,
 preview, export and import itself). Reset is destructive local cleanup; import
@@ -63,12 +63,12 @@ Rules that hold everywhere:
   roles), one module per area (`people`, `sources`, `courses`, `assignments`,
   `learning`, `records`, `maintenance`), `actions.ts` (every write by name),
   `views.ts` (every read), `http.ts` (the doors), `ui/` (server-rendered pages,
-  no client script), `movein/` (TalentLMS kit on Base's import kit).
+  no client script except the timed quiz's countdown, `public/beam-countdown.js`), `movein/` (TalentLMS kit on Base's import kit).
 - `migrations/core/` — numbered D1 migrations: 0001–0005 Base auth, outbox,
   portability and first-run; 0006 Beam; 0007 the import kit schema; 0008–0014
   Base provider control, dependency approval and owner claim; 0015 the import
   kit upgrade to Base `79f61fa`; 0016 Beam agent work; 0017 Base's owner
-  sign-in link (`rer signin`); 0018 the import kit's resumable erasure; 0019 Beam's assignment resets (LEARN-019); 0020 policy acknowledgments (LEARN-010); 0021 course access windows (AUTO-009). Import-kit migrations come from
+  sign-in link (`rer signin`); 0018 the import kit's resumable erasure; 0019 Beam's assignment resets (LEARN-019); 0020 policy acknowledgments (LEARN-010); 0021 course access windows (AUTO-009); 0022 timed assessments (LEARN-018). Import-kit migrations come from
   `node --experimental-strip-types scripts/beam/import-kit-migration.mjs OUT BASE_SHA`,
   which writes only what the applied ones lack. Never edit an applied
   migration; add the next number.
@@ -129,7 +129,7 @@ even with a human cookie. Reads are `GET /api/beam/me`, `/api/beam/people`,
 `/api/beam/source-compare?from=VER&to=VER` (two versions of one source),
 `/api/beam/acknowledgments` and `/api/beam/acknowledgments/:id`. Writes are `POST /api/beam/ACTION` with a JSON body and
 an `Origin` header equal to the app origin; the human action names are the keys of
-`src/beam/actions.ts`, subject to publication restrictions above. Files go as `{ "filename": "...", "base64": "..." }`.
+`src/beam/actions.ts`, subject to publication restrictions above. A timed quiz is `quiz.start`, then `quiz.save` and `quiz.submit` before the deadline it returns. Files go as `{ "filename": "...", "base64": "..." }`.
 
 To propose course changes from source material, read `/api/beam/courses/:id` (its
 `draftVersion` and `draft`) and the cited source versions, then

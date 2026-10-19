@@ -30,6 +30,7 @@ export async function resetAssignment(env: Bindings, actor: Actor, input: Input)
     stmt(env, 'DELETE FROM beam_lesson_progress WHERE assignment_id = ? AND EXISTS (SELECT 1 FROM beam_assignment_resets WHERE id = ?)', assignment.id, id),
     stmt(env, 'UPDATE beam_attempts SET reset_id = ? WHERE assignment_id = ? AND reset_id IS NULL AND EXISTS (SELECT 1 FROM beam_assignment_resets WHERE id = ?)', id, assignment.id, id),
     stmt(env, "UPDATE beam_assignments SET last_lesson_id = NULL, extra_attempts = 0 WHERE id = ? AND status = 'open' AND EXISTS (SELECT 1 FROM beam_assignment_resets WHERE id = ?)", assignment.id, id),
+    stmt(env, "UPDATE beam_quiz_sessions SET closed_at = ?, close_reason = 'reset' WHERE assignment_id = ? AND closed_at IS NULL AND EXISTS (SELECT 1 FROM beam_assignment_resets WHERE id = ?)", at, assignment.id, id),
     stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM beam_assignment_resets WHERE id = ?)', at, actor.id, 'assignment.reset', assignment.id, JSON.stringify({ reset: id, reason, learner: assignment.learner_id, previousExtraAttempts: assignment.extra_attempts }), id),
   ])
   insist(result[0].meta.changes === 1, 'assignment_closed', 409)

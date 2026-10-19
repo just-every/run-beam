@@ -10,6 +10,7 @@ import { serve, store } from './files'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { resetHistory } from './resets'
+import { type Accommodation, accommodationFor, closeSession, deadlineFor, extraMinutes, openSession, refuseLate, savedAnswers, score, selectionsFrom, upsertAnswers } from './timing'
 import { DAY } from './time'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
@@ -28,7 +29,7 @@ async function progress(env: Bindings, assignment: any) {
   const content = await revisionDetail(env, assignment.course_revision_id)
   const done = new Set((await all<{ lesson_revision_id: string }>(env, 'SELECT lesson_revision_id FROM beam_lesson_progress WHERE assignment_id = ?', assignment.id)).map(row => row.lesson_revision_id))
   // Attempts closed by a reset (LEARN-019) stay as history and no longer count.
-  const recorded = await all(env, 'SELECT id, kind, number, submitted_at AS submittedAt, score, max_score AS maxScore, passed, scoring_rule AS scoringRule, retry_decision AS retryDecision, state, evidence_text AS evidenceText, attachment_id AS attachment, reset_id AS reset FROM beam_attempts WHERE assignment_id = ? ORDER BY submitted_at', assignment.id)
+  const recorded = await all(env, 'SELECT id, kind, number, submitted_at AS submittedAt, score, max_score AS maxScore, passed, scoring_rule AS scoringRule, retry_decision AS retryDecision, state, evidence_text AS evidenceText, attachment_id AS attachment, reset_id AS reset, close_reason AS closeReason FROM beam_attempts WHERE assignment_id = ? ORDER BY submitted_at', assignment.id)
   const attempts = recorded.filter(attempt => !attempt.reset), earlier = recorded.filter(attempt => attempt.reset)
   const nextNumber = (kind: string) => recorded.filter(attempt => attempt.kind === kind).length + 1
   const assessment = content.assessment
@@ -47,9 +48,28 @@ async function progress(env: Bindings, assignment: any) {
   }
 }
 
+/** LEARN-018: a timed attempt past its deadline is closed at the deadline and scored from its saved answers. */
+export async function closeExpired(env: Bindings, actor: Actor, assignmentId: string) {
+  const session = await openSession(env, assignmentId)
+  if (!session || now() < session.deadline) return
+  const assignment = (await one(env, 'SELECT * FROM beam_assignments WHERE id = ?', assignmentId))!
+  const state = await progress(env, assignment)
+  const assessment = state.content.assessment!
+  const closed = await closeSession(env, session, assessment.questions, assessment.pass_percent, state.quizAttemptsLeft, 'expired', session.deadline, assignment.learner_id)
+  if (closed?.passed && assignment.status === 'open') await tryComplete(env, { ...actor, id: assignment.learner_id }, assignment.id)
+}
+
+/** Closes every expired timed attempt, so reports count them as the attempts they are. */
+export async function closeAllExpired(env: Bindings, actor: Actor) {
+  for (const row of await all<{ assignment_id: string }>(env, 'SELECT assignment_id FROM beam_quiz_sessions WHERE closed_at IS NULL AND deadline <= ?', now())) await closeExpired(env, actor, row.assignment_id)
+}
+
 export async function assignmentView(env: Bindings, actor: Actor, id: string) {
+  await loadAssignment(env, actor, id, { manage: true })
+  await closeExpired(env, actor, id)
   const assignment = await loadAssignment(env, actor, id, { manage: true })
   const state = await progress(env, assignment)
+  const timed = state.quizRequired ? await timedView(env, assignment, state.content.assessment!) : null
   const learner = assignment.learner_id === actor.id
   const completion = await one(env, 'SELECT c.*, k.id AS certificate FROM beam_completions c LEFT JOIN beam_certificates k ON k.completion_id = c.id WHERE c.assignment_id = ?', id)
   // Outside the access window (AUTO-009) the lesson text and quiz questions are not served; records stay readable.
@@ -62,7 +82,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     lessons: state.content.lessons.map(lesson => launchable ? { ...lesson, completed: state.done.has(lesson.id) } : { id: lesson.id, position: lesson.position, title: lesson.title, completed: state.done.has(lesson.id) }),
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
-    quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: (launchable ? state.content.assessment!.questions : []).map(question => ({ id: question.id, prompt: question.prompt, choices: question.choices, multiple: question.correct.length > 1 })) } : null,
+    quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: (launchable ? state.content.assessment!.questions : []).map(question => ({ id: question.id, prompt: question.prompt, choices: question.choices, multiple: question.correct.length > 1 })), ...timed! } : null,
     practical: state.practicalRequired ? { instructions: state.content.assessment!.practical_instructions, assessor: state.content.assessment!.assessor_id, accepted: state.practicalAccepted, pending: state.practicalPending } : null,
     attempts: learner || isManager(actor) ? state.attempts : [],
     // Everything before each reset, marked with who reset it and why.
@@ -71,7 +91,21 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
   }
 }
 
+/** The time limit, the open attempt's clock and saved answers, and the accommodation that would apply to a new attempt. */
+interface TimedView { timeLimitMinutes: number | null; extraMinutes: number; accommodation: Accommodation | null; session: { id: string; startedAt: number; deadline: number; timeLimitMinutes: number; extraMinutes: number; accommodation: Accommodation | null; answers: Record<string, number[]> } | null }
+
+async function timedView(env: Bindings, assignment: Row, assessment: Row): Promise<TimedView> {
+  const limit = assessment.time_limit_minutes as number | null
+  if (!limit) return { timeLimitMinutes: null, extraMinutes: 0, session: null, accommodation: null }
+  const [session, accommodation] = await Promise.all([openSession(env, assignment.id), accommodationFor(env, assignment.learner_id, assignment.course_id)])
+  return {
+    timeLimitMinutes: limit, accommodation, extraMinutes: extraMinutes(limit, accommodation),
+    session: session ? { id: session.id, startedAt: session.started_at, deadline: session.deadline, timeLimitMinutes: session.time_limit_minutes, extraMinutes: session.extra_minutes, accommodation: session.accommodation_json ? JSON.parse(session.accommodation_json) : null, answers: Object.fromEntries(await savedAnswers(env, session.id)) } : null,
+  }
+}
+
 async function learnerAssignment(env: Bindings, actor: Actor, input: Input) {
+  await closeExpired(env, actor, (await loadAssignment(env, actor, input.text('assignment'))).id)
   const assignment = await loadAssignment(env, actor, input.text('assignment'))
   insist(assignment.status === 'open', 'assignment_closed', 409)
   requireAccess(assignment)
@@ -94,24 +128,59 @@ export async function completeLesson(env: Bindings, actor: Actor, input: Input) 
   return { next, completion }
 }
 
-/** Exact-set scoring: a question scores one point only when the selected choices equal the correct choices. */
-function score(questions: Question[], input: Input) {
-  return questions.map(question => {
-    const selected = [...new Set(input.list(`q_${question.id}`).map(Number))].sort((a, b) => a - b)
-    insist(selected.every(index => Number.isInteger(index) && index >= 0 && index < question.choices.length), 'invalid_answer')
-    return { question: question.id, selected, correct: selected.length === question.correct.length && selected.every((value, index) => value === question.correct[index]) }
-  })
+/** Starts a timed quiz attempt on the server, or returns the one already running: leaving the page never stops its clock. */
+export async function startQuiz(env: Bindings, actor: Actor, input: Input) {
+  const assignment = await learnerAssignment(env, actor, input)
+  const state = await quizState(env, assignment)
+  const assessment = state.content.assessment!
+  insist(assessment.time_limit_minutes, 'quiz_not_timed', 409)
+  const running = await openSession(env, assignment.id)
+  if (running) return { id: running.id, startedAt: running.started_at, deadline: running.deadline, resumed: true }
+  const accommodation = await accommodationFor(env, assignment.learner_id, assignment.course_id)
+  const extra = extraMinutes(assessment.time_limit_minutes, accommodation)
+  const id = newId(), at = now(), deadline = deadlineFor(at, assessment.time_limit_minutes, extra)
+  await commit(env, [stmt(env, 'INSERT INTO beam_quiz_sessions (id, assignment_id, assessment_revision_id, started_at, deadline, time_limit_minutes, extra_minutes, accommodation_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, assignment.id, assessment.id, at, deadline, assessment.time_limit_minutes, extra, accommodation ? JSON.stringify(accommodation) : null)],
+    { actor: actor.id, action: 'quiz.start', subject: id, detail: { assignment: assignment.id, timeLimitMinutes: assessment.time_limit_minutes, extraMinutes: extra, accommodation: accommodation?.id ?? null, deadline } })
+  return { id, startedAt: at, deadline, resumed: false }
 }
 
-export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
+/** Saves answers into the running timed attempt; after its deadline they are refused. */
+export async function saveQuizAnswers(env: Bindings, actor: Actor, input: Input) {
   const assignment = await learnerAssignment(env, actor, input)
+  const state = await quizState(env, assignment)
+  const session = await openSession(env, assignment.id) ?? await refuseLate(env, assignment.id)
+  const selections = selectionsFrom(state.content.assessment!.questions, input, { onlyPresent: true })
+  const at = now()
+  insist(at < session.deadline, 'time_expired', 409, { closedAt: session.deadline })
+  if (selections.size) await env.DB.batch(upsertAnswers(env, session.id, selections, at))
+  return { id: session.id, saved: selections.size, deadline: session.deadline }
+}
+
+async function quizState(env: Bindings, assignment: Row) {
   const state = await progress(env, assignment)
   insist(state.quizRequired, 'no_quiz', 409)
   insist(state.lessonsComplete, 'lessons_incomplete', 409)
   insist(!state.quizPassed, 'quiz_already_passed', 409)
   insist(state.quizAttemptsLeft > 0, 'no_attempts_remaining', 409)
+  return state
+}
+
+export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
+  const assignment = await learnerAssignment(env, actor, input)
+  const state = await quizState(env, assignment)
   const assessment = state.content.assessment!
-  const responses = score(assessment.questions, input)
+  if (assessment.time_limit_minutes) {
+    // A timed attempt scores what was saved into it, with these last answers saved first while time remains.
+    const session = await openSession(env, assignment.id) ?? await refuseLate(env, assignment.id)
+    const selections = selectionsFrom(assessment.questions, input, { onlyPresent: true })
+    const at = now()
+    insist(at < session.deadline, 'time_expired', 409, { closedAt: session.deadline })
+    if (selections.size) await env.DB.batch(upsertAnswers(env, session.id, selections, at))
+    const closed = await closeSession(env, session, assessment.questions, assessment.pass_percent, state.quizAttemptsLeft, 'submitted', at, actor.id)
+    insist(closed, 'time_expired', 409)
+    return { ...closed, completion: await tryComplete(env, actor, assignment.id) }
+  }
+  const responses = score(assessment.questions, selectionsFrom(assessment.questions, input))
   const points = responses.filter(response => response.correct).length
   const percent = Math.floor(points * 100 / responses.length)
   const passed = percent >= assessment.pass_percent
@@ -176,7 +245,8 @@ export async function attemptDetail(env: Bindings, actor: Actor, id: string) {
   if (!allowed) throw new BeamError('not_found', 404)
   const responses = await all(env, 'SELECT question_id AS question, answer_json AS answer, correct FROM beam_responses WHERE attempt_id = ?', id)
   const decision = await one(env, 'SELECT assessor_id AS assessor, decision, note, decided_at AS decidedAt FROM beam_review_decisions WHERE attempt_id = ?', id)
-  return { id, assignment: attempt.assignment_id, learner: attempt.learner_id, kind: attempt.kind, number: attempt.number, score: attempt.score, maxScore: attempt.max_score, passed: attempt.passed, scoringRule: attempt.scoring_rule, retryDecision: attempt.retry_decision, state: attempt.state, evidence: attempt.evidence_text, attachment: attempt.attachment_id, reset: attempt.reset_id ? await one(env, 'SELECT r.id, r.reason, r.reset_at AS resetAt, r.reset_by AS resetBy FROM beam_assignment_resets r WHERE r.id = ?', attempt.reset_id) : null, responses: responses.map(response => ({ ...response, answer: JSON.parse(response.answer) })), decision }
+  return { id, assignment: attempt.assignment_id, learner: attempt.learner_id, kind: attempt.kind, number: attempt.number, score: attempt.score, maxScore: attempt.max_score, passed: attempt.passed, scoringRule: attempt.scoring_rule, retryDecision: attempt.retry_decision, state: attempt.state, evidence: attempt.evidence_text, attachment: attempt.attachment_id, reset: attempt.reset_id ? await one(env, 'SELECT r.id, r.reason, r.reset_at AS resetAt, r.reset_by AS resetBy FROM beam_assignment_resets r WHERE r.id = ?', attempt.reset_id) : null, responses: responses.map(response => ({ ...response, answer: JSON.parse(response.answer) })), decision,
+    timing: attempt.time_limit_minutes ? { timeLimitMinutes: attempt.time_limit_minutes, extraMinutes: attempt.extra_minutes, accommodation: attempt.accommodation_json ? JSON.parse(attempt.accommodation_json) : null, startedAt: attempt.started_at, closedAt: attempt.closed_at, closeReason: attempt.close_reason } : null }
 }
 
 export async function attachmentFile(env: Bindings, actor: Actor, id: string) {

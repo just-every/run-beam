@@ -10,7 +10,7 @@ import { business, memberNames } from '../people'
 import { listSources } from '../sources'
 import { backLink, bytes, card, form, h, hidden, page, select, when, type Html } from './html'
 
-const RULES: Record<string, string> = { title: 'Title', summary: 'Summary', passPercent: 'Pass mark (%)', maxAttempts: 'Quiz attempts allowed', practicalAssessor: 'Practical assessor' }
+const RULES: Record<string, string> = { title: 'Title', summary: 'Summary', passPercent: 'Pass mark (%)', maxAttempts: 'Quiz attempts allowed', timeLimitMinutes: 'Time limit (minutes)', practicalAssessor: 'Practical assessor' }
 const CHANGES: Record<string, string> = { same: 'unchanged', moved: 'moved', changed: 'changed', added: 'added', removed: 'removed' }
 
 /** A line comparison as a list: added lines are <ins>, removed lines <del>, each also marked + or − in text. */
