@@ -1,5 +1,5 @@
 // LIB-006: certificates people earn outside Beam (food-handler cards, forklift, CPR, OSHA 10/30 cards). The owner
-// defines a requirement for teams, names its reviewer (the person's managers, one named assessor, or the learning
+// defines a requirement for teams and AUTO-001 audiences (role, location and other directory rules), names its reviewer (the person's managers, one named assessor, or the learning
 // administrators of the person's units) and how many days before expiry to remind. A learner, or their manager for
 // them, uploads the certificate with its issuer, number, dates and a photo or PDF, kept as verified
 // inert bytes. Nothing counts before the reviewer approves it, Beam issues no certificate of its own for it, and an
@@ -10,13 +10,14 @@
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
+import { audienceMembers } from './audiences'
 import { serve, store } from './files'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { manages } from './scope'
 import { DAY, addDays, localDate, zonedInstant } from './time'
 
-export interface Requirement { id: string; name: string; teams: string[]; reviewerKind: 'manager' | 'assessor' | 'administrator'; reviewer: string | null; reviewerName: string | null; reminderDays: number; expires: boolean }
+export interface Requirement { id: string; name: string; teams: string[]; audiences: string[]; reviewerKind: 'manager' | 'assessor' | 'administrator'; reviewer: string | null; reviewerName: string | null; reminderDays: number; expires: boolean }
 /** One person's standing on one requirement: current (approved, unexpired), renewal_due (current, inside the reminder
  * window), pending (no current certificate, one waiting for review) or missing. */
 export type Standing = 'current' | 'renewal_due' | 'pending' | 'missing'
@@ -25,7 +26,7 @@ const FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'appli
 
 export async function requirements(env: Bindings): Promise<Requirement[]> {
   return (await all(env, 'SELECT q.*, m.name AS reviewer_name FROM beam_external_requirements q LEFT JOIN beam_members m ON m.id = q.reviewer_id ORDER BY q.name'))
-    .map(row => ({ id: row.id, name: row.name, teams: JSON.parse(row.teams), reviewerKind: row.reviewer_kind, reviewer: row.reviewer_id, reviewerName: row.reviewer_name, reminderDays: row.reminder_days, expires: row.expires === 1 }))
+    .map(row => ({ id: row.id, name: row.name, teams: JSON.parse(row.teams), audiences: JSON.parse(row.audiences), reviewerKind: row.reviewer_kind, reviewer: row.reviewer_id, reviewerName: row.reviewer_name, reminderDays: row.reminder_days, expires: row.expires === 1 }))
 }
 
 async function requirement(env: Bindings, id: string) {
@@ -34,12 +35,13 @@ async function requirement(env: Bindings, id: string) {
   return found
 }
 
-/** The owner defines a requirement: who it applies to (teams), who reviews it and when to remind before expiry. */
+/** The owner defines a requirement: who it applies to (teams and audiences), who reviews it and when to remind before expiry. */
 export async function saveRequirement(env: Bindings, actor: Actor, input: Input) {
   insist(actor.owner, 'owner_required', 403)
-  const name = input.text('name', { max: 120 }), teams = [...new Set(input.list('teams'))]
-  insist(teams.length > 0, 'teams_required')
+  const name = input.text('name', { max: 120 }), teams = [...new Set(input.list('teams'))], audiences = [...new Set(input.list('audiences'))]
+  insist(teams.length + audiences.length > 0, 'teams_required')
   for (const team of teams) insist(await one(env, 'SELECT 1 FROM beam_teams WHERE id = ?', team), 'team_not_found', 404)
+  for (const audience of audiences) insist(await one(env, 'SELECT 1 FROM beam_audiences WHERE id = ?', audience), 'audience_not_found', 404)
   // The reviewer is "manager", "administrator", or the id of a person who holds the assessor role.
   const reviewer = input.text('reviewer', { max: 100 })
   const kind = (REVIEWERS as readonly string[]).includes(reviewer) ? reviewer : 'assessor'
@@ -48,13 +50,15 @@ export async function saveRequirement(env: Bindings, actor: Actor, input: Input)
   const expires = (input.text('expires', { optional: true, max: 3 }) || 'yes') !== 'no'
   insist(!await one(env, 'SELECT 1 FROM beam_external_requirements WHERE name = ?', name), 'requirement_exists', 409)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_external_requirements (id, name, teams, reviewer_kind, reviewer_id, reminder_days, expires, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    id, name, JSON.stringify(teams), kind, kind === 'assessor' ? reviewer : null, reminderDays, expires ? 1 : 0, actor.id, now())], { actor, action: 'external.requirement', subject: id, detail: { name, teams, reviewer: kind === 'assessor' ? reviewer : kind, reminderDays, expires } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_external_requirements (id, name, teams, audiences, reviewer_kind, reviewer_id, reminder_days, expires, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    id, name, JSON.stringify(teams), JSON.stringify(audiences), kind, kind === 'assessor' ? reviewer : null, reminderDays, expires ? 1 : 0, actor.id, now())], { actor, action: 'external.requirement', subject: id, detail: { name, teams, audiences, reviewer: kind === 'assessor' ? reviewer : kind, reminderDays, expires } })
   return { id }
 }
 
 const teamsOf = async (env: Bindings, learner: string) => (await all<{ team_id: string; unit_id: string | null }>(env, 'SELECT tm.team_id, t.unit_id FROM beam_team_members tm JOIN beam_teams t ON t.id = tm.team_id WHERE tm.member_id = ?', learner))
-const applies = async (env: Bindings, item: Requirement, learner: string) => (await teamsOf(env, learner)).some(row => item.teams.includes(row.team_id))
+/** The audiences (AUTO-001) a person is in now. */
+const audiencesOf = async (env: Bindings, learner: string) => new Set((await all<{ audience_id: string }>(env, 'SELECT audience_id FROM beam_audience_members WHERE member_id = ? AND left_at IS NULL', learner)).map(row => row.audience_id))
+const applies = async (env: Bindings, item: Requirement, learner: string) => (await teamsOf(env, learner)).some(row => item.teams.includes(row.team_id)) || [...await audiencesOf(env, learner)].some(id => item.audiences.includes(id))
 
 /** The reviewer the requirement names; the owner reviews for anyone. Nobody reviews their own certificate. */
 export async function reviews(env: Bindings, actor: Actor, item: Requirement, learner: string) {
@@ -144,9 +148,13 @@ export function standing(item: Requirement, certificates: Row[], at: number, zon
 /** Everyone a requirement applies to whom this person may see (null = everyone), with each standing. */
 async function audience(env: Bindings, items: Requirement[], visible: (learner: string) => boolean) {
   const members = await all<{ team_id: string; member_id: string; name: string }>(env, 'SELECT tm.team_id, tm.member_id, m.name FROM beam_team_members tm JOIN beam_members m ON m.id = tm.member_id ORDER BY m.name')
+  const grouped = await audienceMembers(env, [...new Set(items.flatMap(item => item.audiences))])
   const pairs = new Map<string, { requirement: Requirement; learner: string; learnerName: string }>()
-  for (const item of items) for (const row of members) if (item.teams.includes(row.team_id) && visible(row.member_id)) pairs.set(`${item.id}:${row.member_id}`, { requirement: item, learner: row.member_id, learnerName: row.name })
-  return [...pairs.values()]
+  for (const item of items) {
+    for (const row of members) if (item.teams.includes(row.team_id) && visible(row.member_id)) pairs.set(`${item.id}:${row.member_id}`, { requirement: item, learner: row.member_id, learnerName: row.name })
+    for (const row of grouped) if (item.audiences.includes(row.audience) && visible(row.member)) pairs.set(`${item.id}:${row.member}`, { requirement: item, learner: row.member, learnerName: row.name })
+  }
+  return [...pairs.values()].sort((a, b) => a.learnerName.localeCompare(b.learnerName))
 }
 
 /** LIB-006 rows for REPORT-001: one per person a requirement applies to, labelled external. Current counts as completed
@@ -172,8 +180,8 @@ export async function externalReportRows(env: Bindings, scope: string | null, fi
  * waiting for their review, renewal reminders for the people they manage, and the owner's requirements. */
 export async function externalView(env: Bindings, actor: Actor) {
   const at = now(), items = await requirements(env), zone = (await requireBusiness(env)).timezone
-  const own = new Set((await teamsOf(env, actor.id)).map(row => row.team_id))
-  const mineItems = items.filter(item => item.teams.some(team => own.has(team)))
+  const own = new Set((await teamsOf(env, actor.id)).map(row => row.team_id)), ownAudiences = await audiencesOf(env, actor.id)
+  const mineItems = items.filter(item => item.teams.some(team => own.has(team)) || item.audiences.some(id => ownAudiences.has(id)))
   const myCertificates = await certificatesOf(env, [actor.id])
   const mine = mineItems.map(item => ({ requirement: item, ...standing(item, myCertificates, at, zone), history: myCertificates.filter(row => row.requirement === item.id).reverse() }))
   // People whose standing this person may read: managers and administrators for their scope (or a custom role with

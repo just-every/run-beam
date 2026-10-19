@@ -40,3 +40,17 @@ later; it can be limited to one team. A new rule is a draft: press **Dry run** t
 assigning anyone, then **Enable**. **Replay past events** runs it over what already happened. A rule acts once per
 event, keeps an open assignment rather than adding another, never turns a failure into a pass, and a rule that would
 loop back to its own course is refused. **Pause** stops it.
+
+## Audiences
+
+**Automation** also keeps audiences: groups that follow the employee directory. An audience names roles, locations,
+departments, teams, managers, custom-field values (an "Employment type" custom field, for example), how recently people
+were hired or transferred, and whether people on leave belong; different conditions must all hold, and the values listed
+for one condition are alternatives. It can enroll a course due a number of days after joining. Press **Preview** to see
+who would join and leave, without changing anything, then **Enable**. From then on every roster change (an import, a
+directory edit, a team change) synchronizes it, and so does **Synchronize now**: people who now match join and are
+enrolled unless they already have the course open or completed, and people who no longer match, go on leave or leave
+the business leave the audience with that reason. Leaving withdraws only the open assignment the audience made;
+completions and evidence stay. **Exclude** keeps one person out with a reason, until you lift it. A transfer is a change
+of role, department or location; its date is today unless the edit or roster row gives one. External-certificate
+requirements can apply to audiences as well as teams.
