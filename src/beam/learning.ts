@@ -1,7 +1,7 @@
 // Flows 6-9: learners resume lessons, take deterministic quizzes and submit
 // practical evidence; completion is recorded only when every requirement of the
 // exact assigned revision is met, and is bound to that revision.
-import { keepsRoster } from './attendance'
+import { attendanceRecords, keepsRoster } from './attendance'
 import type { Bindings } from '../auth.server'
 import { accessView, requireAccess } from './access'
 import { isManager, requireRole, type Actor } from './actor'
@@ -105,6 +105,8 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     attendance: state.attendance.required === null ? null : { percent: state.attendance.required, met: state.attendance.met, record: state.attendance.record },
     practical: state.practicalRequired ? { instructions: state.content.assessment!.practical_instructions, assessor: state.content.assessment!.assessor_id, accepted: state.practicalAccepted, pending: state.practicalPending } : null,
     attempts: learner || isManager(actor) ? state.attempts : [],
+    // LIVE-003: attendance records and their amendments, like attempts, for the learner and their managers.
+    attendanceRecords: learner || isManager(actor) ? await attendanceRecords(env, assignment.id) : [],
     // Everything before each reset, marked with who reset it and why.
     resets: learner || isManager(actor) ? (await resetHistory(env, assignment.id)).map(reset => ({ ...reset, attempts: state.earlier.filter(attempt => attempt.reset === reset.id).map(attempt => ({ ...attempt, closedByReset: attempt.state === 'awaiting_review' }) as Row) })) : [],
     // ORG-004: every due-date exception, with the earlier due date, who approved it and why.
@@ -279,9 +281,10 @@ export async function attemptDetail(env: Bindings, actor: Actor, id: string) {
 export async function attachmentFile(env: Bindings, actor: Actor, id: string) {
   const file = await one(env, 'SELECT filename, media_type AS mediaType, size, sha256 FROM beam_attachments WHERE id = ?', id)
   const attempt = await one(env, 'SELECT id FROM beam_attempts WHERE attachment_id = ?', id)
-  // LIVE-003: attendance evidence goes to its learner and to whoever keeps that session's roster.
+  // LIVE-003: attendance evidence goes to its learner, their managers for their own teams (as offline-session files do)
+  // and whoever keeps that session's roster.
   const attendance = await one(env, 'SELECT session_id, learner_id FROM beam_attendance WHERE attachment_id = ?', id)
-  if (file && attendance && (attendance.learner_id === actor.id || await keepsRoster(env, actor, attendance.session_id))) return serve(env, file as never, { download: true })
+  if (file && attendance && (attendance.learner_id === actor.id || (isManager(actor) && inScope(actor, attendance.learner_id)) || await keepsRoster(env, actor, attendance.session_id))) return serve(env, file as never, { download: true })
   // An attempt's file follows the attempt; an offline session's file goes to managers of someone it completed.
   // An auditor's shared evidence is checked file by file (ORG-005).
   const allowed = file && (await sharesFile(env, actor, id) || (attempt ? await attemptDetail(env, actor, attempt.id).then(() => true, () => false)

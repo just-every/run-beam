@@ -39,7 +39,7 @@ export async function attendanceCheck(f) {
   const attended = await api('other', 'attendance.record', { session, learner: ids.learner, status: 'attended', decision: 'complete', note: 'Signed the sheet', file: file('sheet.txt', 'Sign-in sheet, Yard C') })
   assert.equal(attended.completion, null)
   assert.equal((await h.submit('attendance.record', cookies.other, { session, learner: ids.assessor, status: 'absent', decision: 'complete' }, `/app/sessions/${session}/roster`)).searchParams.get('error'), null)
-  await api('other', 'attendance.record', { session, learner: ids.author, status: 'partial', minutes: 30, decision: 'complete' })
+  await api('other', 'attendance.record', { session, learner: ids.author, status: 'partial', minutes: 30, decision: 'complete', file: file('late.txt', 'Late sign-in, Yard C') })
   await api('other', 'attendance.record', { session, learner: ids.author, status: 'attended', decision: 'complete' }, 409)
   let roster = await api('other', `sessions/${session}/roster`)
   const person = name => roster.learners.find(row => row.learnerName === name)
@@ -58,6 +58,20 @@ export async function attendanceCheck(f) {
   const evidence = person('learner').current.attachment
   assert.equal((await h.raw(`/app/files/attachment/${evidence}`, { cookie: cookies.learner })).status, 200)
   assert.equal((await h.raw(`/app/files/attachment/${evidence}`, { cookie: cookies.assessor })).status, 404)
+  // The learner's manager reads their team member's attendance records and evidence; a manager outside the team is refused.
+  assert.deepEqual((await api('manager', `assignments/${practical}`)).attendanceRecords.map(item => [item.status, item.attachment, item.recordedByName]), [['attended', evidence, 'other']])
+  assert.equal((await h.raw(`/app/files/attachment/${evidence}`, { cookie: cookies.manager })).status, 200)
+  assert.ok((await page(`/app/learn/${practical}`, 'manager')).includes(`/app/files/attachment/${evidence}`))
+  // Another team's manager reads only their own member: the author's records and evidence, not the learner's.
+  const crew = (await api('owner', 'team.create', { name: 'Scaffold B crew' })).id
+  await api('owner', 'team.members', { team: crew, members: [ids.author] })
+  await api('owner', 'team.managers', { team: crew, members: [ids.reviewer] })
+  const late = person('author').current.attachment
+  assert.deepEqual((await api('reviewer', `assignments/${person('author').assignment}`)).attendanceRecords.map(item => item.attachment), [late])
+  assert.equal((await h.raw(`/app/files/attachment/${late}`, { cookie: cookies.reviewer })).status, 200)
+  await api('reviewer', `assignments/${practical}`, undefined, 404)
+  assert.equal((await h.raw(`/app/files/attachment/${evidence}`, { cookie: cookies.reviewer })).status, 404)
+  await api('owner', 'team.managers', { team: crew, members: [] })
 
   // Amend a mistake with a reason: the partial record is superseded and stays in the timeline.
   await api('other', 'attendance.amend', { attendance: person('author').current.id, status: 'attended', decision: 'complete' }, 400)

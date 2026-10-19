@@ -1,6 +1,8 @@
 // LIVE-003: attendance on a session's roster. The session's named instructor or whoever schedules it records, for each
 // registered learner once the session has begun: attended (all scheduled minutes), partial (the minutes attended) or
-// absent, a completion decision, a note and optional evidence. Nobody records their own attendance. A record is never
+// absent, a completion decision, a note and optional evidence. Nobody records their own attendance. The learner and their
+// managers (for their own teams, as with offline-session evidence) read the records and evidence; ORG-005 auditors only
+// through the per-file share. A record is never
 // edited: an amendment needs a reason and supersedes the last record, so the timeline keeps every decision. Attendance
 // completes only the exact revision of the learner's assignment, and only when that reviewed revision requires
 // attendance and its online parts are also done (learning.ts); a course without the requirement is never completed by
@@ -89,5 +91,6 @@ export async function roster(env: Bindings, actor: Actor, id: string) {
   return { session: { id: session.id, title: session.title, courseTitle: session.courseTitle, scheduled: session.scheduled, started: session.first <= now(), timezone: session.timezone, first: session.first }, learners }
 }
 
-/** A learner's own attendance records, for their agenda. */
-export const myAttendance = (env: Bindings, actor: Actor) => all(env, 'SELECT session_id AS session, status, minutes, decision, recorded_at AS recordedAt, amends_id AS amends FROM beam_attendance WHERE learner_id = ? AND superseded_at IS NULL', actor.id)
+/** Every attendance record of an assignment, amendments included, for the learner and their managers (learning.ts). */
+export const attendanceRecords = (env: Bindings, assignment: string) => all(env, `SELECT t.id, s.title AS sessionTitle, t.status, t.minutes, t.decision, t.note, t.attachment_id AS attachment, t.recorded_at AS recordedAt, b.name AS recordedByName, t.amends_id AS amends, t.amend_reason AS reason, t.superseded_at AS supersededAt
+  FROM beam_attendance t JOIN beam_sessions s ON s.id = t.session_id JOIN beam_members b ON b.id = t.recorded_by WHERE t.assignment_id = ? ORDER BY t.recorded_at, t.rowid`, assignment)
