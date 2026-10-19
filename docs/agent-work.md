@@ -22,3 +22,9 @@ Course drafts are decided on their course page, and a practice scenario is deplo
 ## Questions for staff
 
 An approved question plan appears to the people it asks under **Questions for you**. Answering is optional. Answers are shown to the manager without names, only after the questions close and only if at least three people answered. They are never used to rate anyone.
+
+## Measuring an intervention
+
+Before you decide an intervention, choose how its effect on work will be measured on its card under **Measuring the outcome**: the outcome and its unit, whether lower or higher is better, a baseline period and an after period, whether the rest of the role is the comparison group, and the smallest group whose result is shown (at least 3). Your agent may prepare this plan; only a person approves it. Once the intervention is applied, import the outcomes as a CSV with **Employee ID**, **Date** and **Value** columns (a blank value counts as missing) and note any process changes in those periods. Beam keeps only rows for people you manage in the two periods and lists every other row it refused.
+
+The comparison shows each group's before and after averages, its change with an approximate 95% interval, the difference from the comparison group, missing data, process changes and small-sample limits. It is shown for groups only, never ranks or lists anyone, and does not claim the training caused the change: completion proves neither competence nor causation.

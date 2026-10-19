@@ -43,7 +43,7 @@ export async function listDiagnoses(env: Bindings, actor: Actor) {
 
 const object = (value: unknown): Record<string, any> => { insist(value && typeof value === 'object' && !Array.isArray(value), 'invalid_payload'); return value as Record<string, any> }
 const text = (value: unknown, code: string, max: number) => { insist(typeof value === 'string' && value.trim() && value.trim().length <= max, code); return (value as string).trim() }
-const roleMembers = async (env: Bindings, role: string) => (await all(env, "SELECT m.id FROM beam_members m LEFT JOIN oa_operators o ON o.id = m.operator_id WHERE lower(m.job_role) = lower(?) AND m.employment <> 'terminated' AND (o.status IS NULL OR o.status <> 'inactive') ORDER BY m.id", role)).map(row => row.id as string)
+export const roleMembers = async (env: Bindings, role: string) => (await all(env, "SELECT m.id FROM beam_members m LEFT JOIN oa_operators o ON o.id = m.operator_id WHERE lower(m.job_role) = lower(?) AND m.employment <> 'terminated' AND (o.status IS NULL OR o.status <> 'inactive') ORDER BY m.id", role)).map(row => row.id as string)
 
 export const interventionKind: Kind = {
   label: 'Intervention',

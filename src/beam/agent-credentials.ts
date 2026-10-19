@@ -11,7 +11,7 @@ const encoder = new TextEncoder()
 const PREPARATION_ACTIONS = new Set([
   'course.create', 'course.details', 'course.lesson', 'course.lesson.remove',
   'course.lesson.move', 'course.question', 'course.question.remove',
-  'course.assessment', 'course.survey', 'course.submit', 'proposal.create', 'agent.propose',
+  'course.assessment', 'course.survey', 'course.submit', 'proposal.create', 'agent.propose', 'outcome.plan',
 ])
 // Each handler still checks the specific role its action or view needs.
 const PREPARERS = ['author', 'reviewer', 'manager'] as const

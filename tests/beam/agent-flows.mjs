@@ -3,6 +3,7 @@
 // The agent is a real preparation credential issued from a manager's or
 // author's ordinary session; no model is involved.
 import assert from 'node:assert/strict'
+import { file } from './harness.mjs'
 
 export async function agentFlows({ h, check, people, ids, publish }) {
   const agentOf = async cookie => {
@@ -299,5 +300,53 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     const lineage = await h.api(`proposals/${made.id}`, people.manager)
     assert.deepEqual([lineage.inputs.map(item => item.label), lineage.state, lineage.decidedBy, lineage.note, lineage.result.option], [['Reviewed diagnosis “Fridge log missed at opening”'], 'approved', ids.manager, 'Start with the refresher.', 'refresher'])
     assert.ok((await h.api('audit?q=agent.approve', people.owner)).events.some(event => event.subject === made.id && event.detail.sha256 === made.sha256))
+  })
+
+  // AGENT-005: the manager approves the measurement plan on the intervention page before deciding the intervention; scoped
+  // outcomes with missing rows and a process change give a group comparison that names no one and claims no cause.
+  await check('AGENT-005', async () => {
+    const agent = await agentOf(people.manager)
+    const roster = [['Employee ID', 'Name', 'Role', 'Team'], ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => [`E-70${n}`, `Dispenser ${n}`, 'Dispensary', 'Front desk']), ['E-709', 'Dispenser 9', 'Dispensary', '']]
+    const created = (await h.api('people.import', people.owner, { file: file('roster.csv', roster.map(row => row.join(',')).join('\n'), 'text/csv') })).created
+    assert.equal(created.length, 9)
+    const [exposed, rest] = [created.slice(0, 4), created.slice(4)]
+    const diagnosis = (await h.api('diagnosis.record', people.manager, { title: 'Dispensing checks missed', finding: 'Four dispensers skip the second check at busy times.', jobRole: 'Dispensary', evidence: 'Dispensing audit, January' })).id
+    await h.api('diagnosis.review', people.reviewer, { diagnosis })
+    const revision = (await h.api(`courses/${ids.opening}`, people.manager)).publishedRevision
+    const due = { course: ids.opening, courseRevision: revision, dueDate: '2030-02-10', dueTime: '17:00', timezone: 'UTC' }
+    const made = await agent('agent.propose', { kind: 'intervention', title: 'Second dispensing check', agent: 'claude-code', inputs: [{ type: 'diagnosis', id: diagnosis }], reasons: ['Only four dispensers miss the check.'], excluded: [], payload: { diagnosis, recommended: 'four', options: [
+      { id: 'four', kind: 'cohort_assignment', summary: 'Refresher for the four', expectedBenefit: 'Fewer missed checks', people: exposed, paidMinutesPerPerson: 20, ...due },
+      { id: 'all', kind: 'broad_course', summary: 'Everyone in the dispensary', expectedBenefit: 'Everyone revisits the check', people: [...created].sort(), paidMinutesPerPerson: 45, ...due },
+    ] } })
+    // The agent may prepare the plan; only a person approves it, and only while the intervention still waits.
+    const plan = { intervention: made.id, metric: 'Missed second checks', unit: 'misses per 100 scripts', direction: 'lower', baselineFrom: '2030-01-01', baselineTo: '2030-01-31', afterFrom: '2030-03-01', afterTo: '2030-03-31', comparison: 'rest_of_role', minGroup: 3 }
+    assert.equal((await agent('outcome.plan', { ...plan, baselineTo: '2030-03-05' }, 400)).error, 'baseline_must_precede_after')
+    const prepared = (await agent('outcome.plan', plan)).id
+    await agent('outcome.approve', { plan: prepared }, 403)
+    const waiting = await pageOf('/app/agent', people.manager)
+    assert.ok(waiting.includes('Measuring the outcome') && waiting.includes('Approve this measurement plan') && waiting.includes('Missed second checks'))
+    assert.equal((await h.submit('outcome.approve', people.manager, { plan: prepared }, '/app/agent')).searchParams.get('notice'), 'Saved.')
+    assert.equal((await h.api('outcome.import', people.manager, { plan: prepared, csv: 'Employee ID,Date,Value\nE-701,2030-01-05,6' }, 409)).error, 'intervention_not_applied')
+    await h.api('agent.decide', people.manager, { proposal: made.id, decision: 'approve', sha256: made.sha256, option: 'four' })
+    assert.equal((await h.api('outcome.plan', people.manager, plan, 409)).error, 'intervention_already_decided')
+    assert.ok((await pageOf('/app/agent?state=approved', people.manager)).includes('action="/app/do/outcome.import"'))
+    // Scoped import: E-709 is outside the manager's teams, E-999 is nobody, one row is outside both periods, one value is blank.
+    const csv = ['Employee ID,Date,Value', 'E-701,2030-01-10,6', 'E-702,2030-01-10,5', 'E-703,2030-01-10,7', 'E-704,2030-01-10,6', 'E-701,2030-03-10,2', 'E-702,2030-03-10,3', 'E-703,2030-03-10,2', 'E-704,2030-03-10,',
+      'E-705,2030-01-12,6', 'E-706,2030-01-12,6', 'E-707,2030-01-12,5', 'E-708,2030-01-12,7', 'E-705,2030-03-12,5', 'E-706,2030-03-12,6', 'E-707,2030-03-12,5', 'E-709,2030-01-12,6', 'E-999,2030-01-12,4', 'E-701,2030-02-15,1'].join('\n')
+    const imported = await h.api('outcome.import', people.manager, { plan: prepared, file: file('outcomes.csv', csv, 'text/csv'), processChanges: '2030-02-20 New dispensing checklist for all staff' })
+    assert.deepEqual([imported.stored, imported.blank, imported.processChanges, imported.refused], [14, 1, 1, [{ line: 17, reason: 'outside_your_people' }, { line: 18, reason: 'unknown_employee' }, { line: 19, reason: 'outside_periods' }]])
+    const view = await h.api(`outcomes/${prepared}`, people.manager)
+    assert.deepEqual([view.exposed.people, view.exposed.paired, view.exposed.missingAfter, view.exposed.before, view.exposed.after, view.exposed.change, view.exposed.interval], [4, 3, 1, 6, 2.33, -3.67, [-5.4, -1.94]])
+    assert.deepEqual([view.comparisonGroup.people, view.comparisonGroup.paired, view.comparisonGroup.missingBefore, view.comparisonGroup.missingAfter, view.comparisonGroup.change], [5, 3, 1, 2, -0.33])
+    assert.deepEqual([view.difference.value, view.difference.interval], [-3.33, [-5.18, -1.49]])
+    assert.deepEqual(view.confounders, [{ date: '2030-02-20', description: 'New dispensing checklist for all staff' }])
+    assert.ok(view.limits.some(limit => limit.startsWith('Missing data')) && view.limits.some(limit => limit.startsWith('Small sample')))
+    assert.ok(view.reading.includes('does not show cause') && view.causation.includes('Completion proves neither competence nor causation'))
+    // No person's value, id or rank is ever returned, and a per-person or ranked read is refused.
+    assert.ok(created.every(id => !JSON.stringify(view).includes(id)))
+    assert.equal((await h.api(`outcomes/${prepared}?rank=change`, people.manager, undefined, 400)).error, 'individual_results_refused')
+    await h.api(`outcomes/${prepared}`, people.sam, undefined, 403)
+    const page = await pageOf('/app/agent?state=approved', people.manager)
+    assert.ok(page.includes('Difference in change: -3.33') && page.includes('New dispensing checklist for all staff') && page.includes('does not show that the intervention caused any change'))
   })
 }
