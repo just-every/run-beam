@@ -28,6 +28,7 @@ import { receivedCard } from './announcements'
 import { business, memberNames } from '../people'
 import { certificate, learnerRecord, queues, reminders } from '../records'
 import { formatDate } from '../time'
+import { recognitionCard } from './recognition'
 import { discussionCard } from './discussions'
 import branding from '../../branding.json'
 import { formatDay } from '../time'
@@ -67,7 +68,7 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
   const completed = card('Completed', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} (revision ${row.revisionNumber})`, meta: h`${formatDate(row.completedAt, zone)}${row.expiresAt ? h` · renew by ${formatDate(row.expiresAt, zone)}` : ''} · <a href="/app/certificates/${row.certificate}">Certificate</a>` }))) : h`<p>No completions yet.</p>${raw(documentSheet)}`, { id: 'done', className: record.completions.length ? '' : 'empty' })
   const side = [review, assess].filter(Boolean)
   const body = h`<h1>My learning</h1>
-${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${externalCard(external)}${await discussionCard(env, actor)}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
+${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${externalCard(external)}${await recognitionCard(env, actor)}${await discussionCard(env, actor)}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
 ${open.length ? assigned : ''}
 <div class="grid">${open.length ? '' : assigned}${completed}${side}</div>`
   return page('My learning', actor, body, { current: '/app/learning', url })

@@ -36,6 +36,7 @@ import { externalFile } from './external'
 import { certificatePdfResponse } from './certificates'
 import { certificatePage, templatesPage, verifyPage } from './ui/certificates'
 import { externalPage } from './ui/external'
+import { recognitionPage } from './ui/recognition'
 import { discussionsPage } from './ui/discussions'
 import { discussionFile } from './discussions'
 import { sessionForCalendar } from './live'
@@ -201,6 +202,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/catalog') return catalogPage(env, actor, url)
   if (path === '/app/sessions') return sessionsPage(env, actor, url)
   if (path === '/app/external') return externalPage(env, actor, url)
+  if (path === '/app/recognition') return recognitionPage(env, actor, url)
   if ((match = path.match(/^\/app\/discussions\/([\w-]+)$/))) return discussionsPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/roster$/))) return rosterPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/calendar\.ics$/))) return calendarResponse(env, actor, match[1])

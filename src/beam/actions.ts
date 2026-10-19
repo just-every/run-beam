@@ -44,6 +44,7 @@ import { importBank, previewBank } from './bank-import'
 import { excludeFromAudience, includeInAudience, previewAudience, saveAudience, setAudienceState, syncAudience, syncAudiences } from './audiences'
 import { applyBatch, previewBatch } from './roster-batch'
 import { editDirectory, importRoster, resolveConflict as resolveRosterConflict, saveDirectoryField } from './directory'
+import { retireBadge, saveBadge, saveChallenge, setGroupRecognition, setPoints, setVisibility } from './recognition'
 import { askQuestion, decideFile, hidePost, proposeFromThread, reply, resolveQuestion } from './discussions'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
@@ -199,6 +200,12 @@ export const actions: Record<string, Handler> = {
   'questions.answer': (env, actor, input) => answerQuestions(env, actor, input),
   'questions.decline': (env, actor, input) => declineQuestions(env, actor, input),
   'questions.close': (env, actor, input) => closeQuestions(env, actor, input),
+  'recognition.points': (env, actor, input) => setPoints(env, actor, input),
+  'recognition.badge': (env, actor, input) => saveBadge(env, actor, input),
+  'recognition.badge.retire': (env, actor, input) => retireBadge(env, actor, input),
+  'recognition.group': (env, actor, input) => setGroupRecognition(env, actor, input),
+  'recognition.challenge': (env, actor, input) => saveChallenge(env, actor, input),
+  'recognition.visibility': (env, actor, input) => setVisibility(env, actor, input),
   'discussion.ask': (env, actor, input) => askQuestion(env, actor, input),
   'discussion.reply': (env, actor, input) => reply(env, actor, input),
   'discussion.resolve': (env, actor, input) => resolveQuestion(env, actor, input),
