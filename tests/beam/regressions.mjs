@@ -14,7 +14,7 @@ import { estateCheck } from './regression-estate.mjs'
 const only = process.argv.find(arg => arg.startsWith('--only='))?.slice('--only='.length) ?? ''
 const f = await fixture()
 try {
-  for (const [name, check] of [...learningChecks, ['LEARN-018 timed assessments', timedCheck], ['LEARN-015 fill-in, ordering and matching questions', questionTypesCheck], ['AUTHOR-005 retire and copy courses', estateCheck], ['BEAM-14 scoped preparation and human publication', agentCheck], ['ORG-002 delegated administration', adminCheck], ['ORG-003 course-scoped authors and reviewers', courseScopeCheck], ['ORG-004 team-scoped managers', managersCheck], ['ORG-010 custom administrator roles', customRoleCheck], ['ORG-005 read-only auditors', auditorCheck], ['OPS-001 searchable audit', auditCheck], ['ORG-012 read-only view as', viewAsCheck]].filter(([name]) => name.startsWith(only))) {
+  for (const [name, check] of [...learningChecks, ['LEARN-018 timed assessments', timedCheck], ['LEARN-015 fill-in, ordering and matching questions', questionTypesCheck], ['AUTHOR-005 organize and reuse the course estate', estateCheck], ['BEAM-14 scoped preparation and human publication', agentCheck], ['ORG-002 delegated administration', adminCheck], ['ORG-003 course-scoped authors and reviewers', courseScopeCheck], ['ORG-004 team-scoped managers', managersCheck], ['ORG-010 custom administrator roles', customRoleCheck], ['ORG-005 read-only auditors', auditorCheck], ['OPS-001 searchable audit', auditCheck], ['ORG-012 read-only view as', viewAsCheck]].filter(([name]) => name.startsWith(only))) {
     await check(f)
     console.log(`PASS ${name}`)
   }

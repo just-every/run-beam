@@ -191,12 +191,15 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
 
 /** Every course, or only those in the given units (a learning administrator's catalog, ORG-002) and the given
  * courses (a course's own author, ORG-003). */
+/** AUTHOR-005: a course's catalog details, outside its reviewed revisions. */
+export const catalogOf = (row: Row) => ({ folder: row.folder ?? null, tags: JSON.parse(row.tags ?? '[]') as string[], objectives: JSON.parse(row.objectives ?? '[]') as string[], language: row.language ?? 'en', durationMinutes: row.duration_minutes ?? null, owner: row.owner_id ?? null, template: row.is_template === 1, archivedAt: row.archived_at ?? null })
+
 export async function listCourses(env: Bindings, within: { units: string[]; courses?: string[] } | null = null) {
   const units = within && JSON.stringify(within.units), courses = within && JSON.stringify(within.courses ?? [])
-  return await all(env, `SELECT c.id, c.title, c.unit_id AS unit, c.reviewer_id AS reviewer, c.draft_version AS draftVersion, c.published_revision_id AS publishedRevision, c.retired_at AS retiredAt, c.cloned_from AS clonedFrom,
+  return (await all(env, `SELECT c.id, c.title, c.unit_id AS unit, c.reviewer_id AS reviewer, c.draft_version AS draftVersion, c.published_revision_id AS publishedRevision, c.retired_at AS retiredAt, c.cloned_from AS clonedFrom, c.archived_at AS archivedAt, c.folder, c.tags, c.objectives, c.language, c.duration_minutes AS durationMinutes, c.owner_id AS owner, c.is_template AS template,
     (SELECT number FROM beam_course_revisions WHERE id = c.published_revision_id) AS publishedNumber,
     (SELECT COUNT(*) FROM beam_course_revisions WHERE course_id = c.id AND state = 'in_review') AS inReview
-    FROM beam_courses c WHERE (? IS NULL OR c.unit_id IN (SELECT value FROM json_each(?)) OR c.id IN (SELECT value FROM json_each(?))) ORDER BY c.title`, units, units, courses)
+    FROM beam_courses c WHERE (? IS NULL OR c.unit_id IN (SELECT value FROM json_each(?)) OR c.id IN (SELECT value FROM json_each(?))) ORDER BY c.title`, units, units, courses)).map(row => ({ ...row, tags: JSON.parse(row.tags), objectives: JSON.parse(row.objectives), template: row.template === 1 }) as Row)
 }
 
 export async function revisionDetail(env: Bindings, id: string) {
@@ -213,5 +216,5 @@ export async function courseDetail(env: Bindings, actor: Actor, id: string) {
   const revisions = await all(env, 'SELECT id, number, title, state, submitted_by AS submittedBy, submitted_at AS submittedAt, reviewed_by AS reviewedBy, reviewed_at AS reviewedAt, review_note AS reviewNote, reassignment, self_reviewed AS selfReviewed FROM beam_course_revisions WHERE course_id = ? ORDER BY number DESC', id)
   const notices = await all(env, 'SELECT n.*, s.title AS source_title, pv.number AS previous_number, nv.number AS new_number FROM beam_source_notices n JOIN beam_sources s ON s.id = n.source_id JOIN beam_source_versions pv ON pv.id = n.previous_version_id JOIN beam_source_versions nv ON nv.id = n.new_version_id WHERE n.course_id = ? ORDER BY n.created_at DESC', id)
   const proposals = await all(env, 'SELECT id, base_draft_version AS baseDraftVersion, input_version_ids AS inputs, prepared_by AS preparedBy, agent, summary, draft_json AS draft, passages_json AS passages, missing_json AS missing, state, decided_by AS decidedBy, created_at AS createdAt FROM beam_proposals WHERE course_id = ? ORDER BY created_at DESC', id)
-  return { id: course.id, title: course.title, unit: course.unit_id ?? null, retired: course.retired_at ? { at: course.retired_at, by: course.retired_by, reason: course.retire_reason } : null, clonedFrom: course.cloned_from ?? null, selfReview: course.self_review === 1, ...await courseAccess(env, id), reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft, publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
+  return { id: course.id, title: course.title, unit: course.unit_id ?? null, retired: course.retired_at ? { at: course.retired_at, by: course.retired_by, reason: course.retire_reason } : null, clonedFrom: course.cloned_from ?? null, catalog: catalogOf(course), selfReview: course.self_review === 1, ...await courseAccess(env, id), reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft, publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
 }

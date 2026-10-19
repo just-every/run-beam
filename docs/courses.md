@@ -43,3 +43,7 @@ Under **Assessment rules**, set the **Pass mark (%)** and the number of **Quiz a
 ## Retire or copy a course
 
 On a course's page, **Retire this course** with a reason when it should no longer be assigned, for example when a newer course replaces it. Nobody can assign it again, through Manage, a team, a role path or a renewal, until you press **Reinstate for new assignments**; people who already have it can still finish it, and its records, certificates and reports stay. **Copy into a new course** makes an unpublished course with the same lessons, quiz and reviewer, ready to edit and send for review.
+
+## Organize the catalog
+
+On a course's page, **Catalog details** sets its **Folder**, **Tags**, **Learning objectives**, **Language**, **Expected duration in minutes** and **Course owner**; tick **Offer this course as a template** to let authors **Start from a template** on **Courses**. On **Courses**, filter by **Folder** and **Tag**, use **Change tags on several courses** to add or remove tags in one go, and tick **Archived courses** to see courses you have archived. Only a retired course can be archived; it stays readable, and reinstating it brings it back.

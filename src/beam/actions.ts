@@ -11,7 +11,7 @@ import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
-import { cloneCourse, reinstateCourse, retireCourse } from './estate'
+import { archiveCourse, cloneCourse, reinstateCourse, retagCourses, retireCourse, setCatalog } from './estate'
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
 import { restoreRevision } from './history'
 import type { Input } from './input'
@@ -83,6 +83,9 @@ export const actions: Record<string, Handler> = {
   'course.retire': (env, actor, input) => retireCourse(env, actor, input),
   'course.reinstate': (env, actor, input) => reinstateCourse(env, actor, input),
   'course.clone': (env, actor, input) => cloneCourse(env, actor, input),
+  'course.catalog': (env, actor, input) => setCatalog(env, actor, input),
+  'course.retag': (env, actor, input) => retagCourses(env, actor, input),
+  'course.archive': (env, actor, input) => archiveCourse(env, actor, input),
   'assignment.window': (env, actor, input) => setAssignmentWindow(env, actor, input),
   'access.extend': (env, actor, input) => extendAccess(env, actor, input),
   'attempt.grant': (env, actor, input) => grantAttempt(env, actor, input),
