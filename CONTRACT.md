@@ -137,7 +137,7 @@ than claiming these narrower proofs already cover the full target.
 
 - **AUTHOR-004 — Compare and restore earlier content safely.** Authors compare source, lesson and assessment revisions and restore an earlier revision into a new draft. Review and publication create a new immutable version; restoration never changes previous attempts, assignments or completions. **Acceptance evidence:** Publish two revisions, compare them and restore the first into a new draft through course history; publish that draft and verify all three revisions and prior completion evidence.
 
-- **AUTHOR-005 — Organize and reuse the course estate.** Admins maintain folders, tags, learning objectives, languages, duration, owners, templates and reusable courses. Clone, bulk retag, archive and retire keep assignments/history readable and stop retired content being newly assigned. **Acceptance evidence:** Build courses from a template, clone and bulk tag them, retire one with an open assignment and verify retained evidence plus refusal of new enrollment.
+- **AUTHOR-005 — Organize and reuse the course estate.** Admins maintain folders, tags, learning objectives, languages, duration, owners, templates and reusable courses. Clone, bulk retag, archive and retire keep assignments/history readable and stop retired content being newly assigned. Today the owner (acting as admin), the learning administrator of the course's unit and a custom role with the courses permission there retire a course with a reason, reinstate it, and copy it; each step is audited (OPS-001). A retired course is refused for every new assignment (a person, a team, a path requirement or a renewal) with the course named, and stays out of the assign and path course lists, while its revisions, open assignments, completions, certificates and reports stay readable and its open assignments can still be finished; recording offline attendance (BEAM-10) is not an assignment and stays possible. A copy is a new unpublished course whose draft copies the source's current draft, in the same unit with the same named reviewer, recording which course it came from; authors, revisions and assignments are not copied. **Acceptance evidence:** Build courses from a template, clone and bulk tag them, retire one with an open assignment and verify retained evidence plus refusal of new enrollment.
 
 - **AUTHOR-006 — Schedule content upkeep and accountable review.** Each course has a responsible owner, next review date and fallback owner. Scheduled stale-content reminders and source-change notices reach reviewers, escalate when unowned and retain an explicit material/no-change decision and next review date. **Acceptance evidence:** Set a review date, advance the scheduler with no source change, remove the owner and inspect fallback escalation; separately replace a cited source and record a no-change decision.
 
@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 10 | 46 | 70 | 126 |
-| All | 30 | 46 | 70 | 146 |
+| Target and push further | 10 | 47 | 69 | 126 |
+| All | 30 | 47 | 69 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -521,7 +521,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `AUTHOR-002` | Turn existing SOP documents into editable learning | target | partial | `src/beam/sources.ts`, `src/beam/files.ts` | Original bytes are stored; document parsing, OCR and editable lesson conversion are absent. |
 | `AUTHOR-003` | Collect expert feedback before publication | target | missing |  | Collaborative comments, coauthor conflict resolution and learner feedback workflow are absent. |
 | `AUTHOR-004` | Compare and restore earlier content safely | target | done | `src/beam/history.ts`, `src/beam/diff.ts`, `src/beam/ui/history.ts`, `tests/beam/flows.mjs` (AUTHOR-004) |  |
-| `AUTHOR-005` | Organize and reuse the course estate | target | missing |  | Course taxonomy, templates, cloning, bulk catalog operations and retirement are absent. |
+| `AUTHOR-005` | Organize and reuse the course estate | target | partial | `src/beam/estate.ts`, `src/beam/assignments.ts`, `migrations/core/0030_beam_course_retirement.sql`, `tests/beam/regression-estate.mjs` (AUTHOR-005) | Retiring, reinstating and copying courses are done; folders, tags, learning objectives, languages, duration, owners, templates, bulk retag and archive are absent. |
 | `AUTHOR-006` | Schedule content upkeep and accountable review | target | partial | `src/beam/sources.ts`, `src/beam/maintenance.ts`, `tests/beam/flows.mjs` | Source-change notices and material decisions exist; scheduled stale reviews, fallback owners and delivered escalation are absent. |
 | `AUTHOR-007` | Generate source-grounded course drafts with AI | target | partial | `src/beam/maintenance.ts`, `src/beam/agent-credentials.ts`, `tests/beam/agent-flows.mjs` | Externally prepared source-bound proposals work; embedded model calls, document-to-outline generation and cost controls are absent. |
 | `AUTHOR-008` | Translate learning with human language review | target | missing |  | Localization, translation generation, glossary and language-review workflows are absent. |

@@ -66,7 +66,8 @@ export async function pathsPage(env: Bindings, actor: Actor, url: URL) {
   requireRole(actor, 'manager')
   const teamIds = actor.teams && JSON.stringify(actor.teams)
   const [paths, courses, teams] = await Promise.all([listPaths(env, actor), listCourses(env), all(env, 'SELECT id, name FROM beam_teams WHERE (? IS NULL OR id IN (SELECT value FROM json_each(?))) ORDER BY name', teamIds, teamIds)])
-  const courseOptions = courses.map(course => ({ value: course.id, label: course.title }))
+  // A retired course stays named on the paths that hold it but is not offered for new requirements (AUTHOR-005).
+  const courseOptions = courses.filter(course => !course.retiredAt).map(course => ({ value: course.id, label: course.title }))
   const title = (id: string | null) => courses.find(course => course.id === id)?.title ?? ''
   const requirementRows = (path: any) => [...path.requirements, ...Array(3).fill({ course: '', prerequisite: '', dueDays: 14, renewalDays: '' })].map((requirement: any, index: number) => h`<fieldset><legend>Requirement ${index + 1}</legend>${select('Course', 'courses', courseOptions, requirement.course, { required: false, blank: '—' })}${select('Prerequisite', 'prerequisites', courseOptions, requirement.prerequisite ?? '', { required: false, blank: 'None' })}${field('Days to complete', 'dueDays', { type: 'number', value: requirement.dueDays, required: false })}${field('Renew every (days)', 'renewalDays', { type: 'number', value: requirement.renewalDays ?? '', required: false })}</fieldset>`)
   const body = h`<h1>Role paths</h1><p class="lede">A path lists the courses a team needs, in order, with prerequisites and renewal intervals. Saving creates a new path revision; earlier assignments keep theirs.</p>

@@ -28,9 +28,11 @@ export interface NewAssignment {
 export async function insertAssignments(env: Bindings, actor: Actor, items: NewAssignment[], action: string) {
   const created: string[] = [], kept: string[] = []
   for (const item of items) {
-    const course = await one<{ published_revision_id: string | null }>(env, 'SELECT published_revision_id FROM beam_courses WHERE id = ?', item.course)
+    const course = await one<{ published_revision_id: string | null; retired_at: number | null; title: string }>(env, 'SELECT published_revision_id, retired_at, title FROM beam_courses WHERE id = ?', item.course)
     insist(course, 'course_not_found', 404)
     insist(course.published_revision_id, 'course_not_published', 409)
+    // AUTHOR-005: a retired course is never newly assigned, by any door (person, team, path or renewal).
+    insist(!course.retired_at, 'course_retired', 409, { course: item.course, title: course.title })
     const dueAt = zonedInstant(item.dueDate, item.dueTime, item.timezone)
     const id = newId(), at = now()
     const window = item.access ?? await enrolmentWindow(env, item.course, item.pathRevision, at)

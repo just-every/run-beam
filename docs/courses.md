@@ -39,3 +39,7 @@ Under **Assessment rules**, set the **Pass mark (%)** and the number of **Quiz a
 ## Send for review
 
 **Submit for review** freezes the draft as a new revision for the course's reviewer. You can keep editing the draft; the revision in review does not change. The reviewer publishes it or returns it with a note: see [Review and publish](/docs/review).
+
+## Retire or copy a course
+
+On a course's page, **Retire this course** with a reason when it should no longer be assigned, for example when a newer course replaces it. Nobody can assign it again, through Manage, a team, a role path or a renewal, until you press **Reinstate for new assignments**; people who already have it can still finish it, and its records, certificates and reports stay. **Copy into a new course** makes an unpublished course with the same lessons, quiz and reviewer, ready to edit and send for review.

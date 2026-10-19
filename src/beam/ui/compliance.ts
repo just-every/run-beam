@@ -153,7 +153,8 @@ function coverage(view: ComplianceView): Html {
 }
 
 function assignCard(courses: Awaited<ReturnType<typeof listCourses>>, list: Awaited<ReturnType<typeof people>>, zone: string): Html {
-  const published = courses.filter(course => course.publishedRevision).map(course => ({ value: course.id, label: course.title }))
+  // A retired course is never offered for new assignment (AUTHOR-005).
+  const published = courses.filter(course => course.publishedRevision && !course.retiredAt).map(course => ({ value: course.id, label: course.title }))
   const memberOptions = list.members.map(member => ({ value: member.id, label: member.name }))
   const teamOptions = list.teams.map(team => ({ value: team.id, label: team.name }))
   const zones = Intl.supportedValuesOf('timeZone').map(value => ({ value, label: value }))
@@ -161,7 +162,8 @@ function assignCard(courses: Awaited<ReturnType<typeof listCourses>>, list: Awai
 }
 
 function offlineCard(courses: Awaited<ReturnType<typeof listCourses>>, list: Awaited<ReturnType<typeof people>>, revisions: any[], zone: string): Html {
-  const published = courses.filter(course => course.publishedRevision).map(course => ({ value: course.id, label: course.title }))
+  // A retired course is never offered for new assignment (AUTHOR-005).
+  const published = courses.filter(course => course.publishedRevision && !course.retiredAt).map(course => ({ value: course.id, label: course.title }))
   const memberOptions = list.members.map(member => ({ value: member.id, label: member.name }))
   return card('Record offline training', published.length ? form('offline.record', '/app/manage', h`${hidden('submission', crypto.randomUUID())}<div class="form-row"><div>${select('Course', 'course', published)}</div><div>${select('Revision', 'revision', revisions.map(revision => ({ value: revision.id, label: `Revision ${revision.number}`, group: revision.title })), '', { hint: 'Must match the course.' })}</div><div>${field('Held on', 'heldOn', { type: 'date', value: localDate(Date.now(), zone) })}</div><div>${field('Instructor', 'instructor')}</div><div>${field('Location', 'location')}</div></div>${checks('Attendees', 'learners', memberOptions, [], { scroll: true })}${area('Attestation', 'attestation')}${fileField('Evidence file (optional, for example a signed attendance sheet)', 'file')}`, 'Record attendance', { multipart: true }) : h`<p class="muted">Publish a course first.</p>`)
 }
