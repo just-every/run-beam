@@ -11,7 +11,8 @@ import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
 import { previewRule, replayRule, saveRule, setRuleState } from './automation'
 import { previewPolicy, runPolicy, savePolicy, setPolicyEnabled } from './inactivity'
-import { cancelSession, leave, register, rescheduleSession, scheduleSession, updateSession } from './live'
+import { cancelSession, rescheduleSession, scheduleSession, setSeats, updateSession } from './live'
+import { acceptOffer, leave, register } from './registrations'
 import { decideRequest, requestEnrollment, saveSearch, selfEnroll, setEnrollment, setFavorite, withdraw } from './catalog'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
@@ -65,6 +66,8 @@ export const actions: Record<string, Handler> = {
   'session.cancel': (env, actor, input) => cancelSession(env, actor, input),
   'session.register': (env, actor, input) => register(env, actor, input),
   'session.leave': (env, actor, input) => leave(env, actor, input),
+  'session.seats': (env, actor, input) => setSeats(env, actor, input),
+  'session.accept': (env, actor, input) => acceptOffer(env, actor, input),
   'inactivity.policy': (env, actor, input) => savePolicy(env, actor, input),
   'inactivity.preview': (env, actor) => previewPolicy(env, actor),
   'inactivity.enable': (env, actor, input) => setPolicyEnabled(env, actor, input),

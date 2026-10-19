@@ -5,12 +5,14 @@
 // daylight-saving change. A learner with an open assignment of the course chooses one of its sessions once the
 // assignment's prerequisite (a role path requirement) is complete; choosing another keeps the first as cancelled. Every
 // reschedule, change and cancellation bumps the session's iCalendar sequence and is kept as a change the learner's
-// agenda shows, and the .ics file (ics.ts) carries it.
+// agenda shows, and the .ics file (ics.ts) carries it. Choosing a session, seats and waitlists (LIVE-002) are in
+// registrations.ts.
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { prerequisiteMet } from './learning'
+import { FIRST, learnerEvents, myWaits, promote, readSeats, sessionEvents, sweep } from './registrations'
 import { requireBusiness } from './people'
 import { addDays, validTimezone, zonedInstant } from './time'
 
@@ -79,12 +81,13 @@ export async function scheduleSession(env: Bindings, actor: Actor, input: Input)
   insist((REPEATS as readonly string[]).includes(repeat), 'invalid_repeat')
   const count = repeat === 'none' ? 1 : input.integer('count', { min: 1, max: MAX_MEETINGS })!
   const list = meetings(when, repeat, count)
+  const seats = readSeats(input, when.timezone, list[0].startsAt)
   const id = newId(), at = now()
   await commit(env, [
-    stmt(env, "INSERT INTO beam_sessions (id, course_id, title, format, location, join_url, instructor_id, materials, timezone, start_date, start_time, minutes, repeat, meetings, sequence, state, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'scheduled', ?, ?, ?)",
-      id, course, details.title, details.format, details.location, details.joinUrl, details.instructor, details.materials, when.timezone, when.date, when.time, when.minutes, repeat, count, actor.id, at, at),
+    stmt(env, "INSERT INTO beam_sessions (id, course_id, title, format, location, join_url, instructor_id, materials, timezone, start_date, start_time, minutes, repeat, meetings, sequence, state, created_by, created_at, updated_at, capacity, registration_closes_at, waitlist_policy, waitlist_order, offer_hours) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?)",
+      id, course, details.title, details.format, details.location, details.joinUrl, details.instructor, details.materials, when.timezone, when.date, when.time, when.minutes, repeat, count, actor.id, at, at, seats.capacity, seats.closesAt, seats.policy, seats.order, seats.offerHours),
     ...meetingRows(env, id, list),
-  ], { actor, action: 'session.schedule', subject: id, detail: { course, ...when, repeat, meetings: count } })
+  ], { actor, action: 'session.schedule', subject: id, detail: { course, ...when, repeat, meetings: count, ...seats } })
   return { id }
 }
 
@@ -133,57 +136,47 @@ export async function cancelSession(env: Bindings, actor: Actor, input: Input) {
   await commit(env, [
     stmt(env, "UPDATE beam_sessions SET state = 'cancelled', cancel_reason = ?, sequence = sequence + 1, updated_at = ? WHERE id = ?", reason, now(), session.id),
     change(env, session.id, 'cancelled', { reason }),
+    stmt(env, "UPDATE beam_session_waitlist SET state = 'closed', ended_at = ? WHERE session_id = ? AND state IN ('waiting', 'offered')", now(), session.id),
   ], { actor, action: 'session.cancel', subject: session.id, detail: { reason } })
   return { id: session.id }
 }
 
-const FIRST = '(SELECT MIN(starts_at) FROM beam_session_meetings m WHERE m.session_id = s.id)'
-
-/** The learner chooses a session of a course they are assigned; a registration in another session of it ends as switched. */
-export async function register(env: Bindings, actor: Actor, input: Input) {
-  const session = await one(env, `SELECT s.*, ${FIRST} AS first FROM beam_sessions s WHERE s.id = ?`, input.text('session'))
-  insist(session, 'session_not_found', 404)
-  const assignment = await one(env, "SELECT * FROM beam_assignments WHERE learner_id = ? AND course_id = ? AND status = 'open'", actor.id, session.course_id)
-  insist(assignment, 'session_not_offered', 404)
-  insist(session.state === 'scheduled', 'session_cancelled', 409)
-  insist(session.first > now(), 'session_started', 409)
-  insist(await prerequisiteMet(env, assignment), 'prerequisite_incomplete', 409)
-  const current = await one(env, "SELECT id, session_id FROM beam_session_registrations WHERE course_id = ? AND learner_id = ? AND state = 'registered'", session.course_id, actor.id)
-  insist(current?.session_id !== session.id, 'already_registered', 409)
-  const id = newId(), at = now()
-  await commit(env, [
-    ...(current ? [stmt(env, "UPDATE beam_session_registrations SET state = 'cancelled', ended_at = ?, end_reason = 'switched' WHERE id = ? AND state = 'registered'", at, current.id)] : []),
-    stmt(env, "INSERT INTO beam_session_registrations (id, session_id, course_id, learner_id, assignment_id, state, registered_at) VALUES (?, ?, ?, ?, ?, 'registered', ?)", id, session.id, session.course_id, actor.id, assignment.id, at),
-  ], { actor, action: 'session.register', subject: session.id, detail: { registration: id, switchedFrom: current?.session_id ?? null } })
-  return { id: session.id, registration: id }
-}
-
-export async function leave(env: Bindings, actor: Actor, input: Input) {
-  const registration = await one(env, "SELECT id, session_id FROM beam_session_registrations WHERE session_id = ? AND learner_id = ? AND state = 'registered'", input.text('session'), actor.id)
-  insist(registration, 'not_registered', 404)
-  await commit(env, [stmt(env, "UPDATE beam_session_registrations SET state = 'cancelled', ended_at = ?, end_reason = 'left' WHERE id = ?", now(), registration.id)],
-    { actor, action: 'session.leave', subject: registration.session_id, detail: { registration: registration.id } })
-  return { id: registration.session_id }
+/** LIVE-002: capacity, registration deadline, seat policy, offer length and waitlist order. Lowering the capacity never
+ * removes anyone registered; raising it passes the new seats to the waitlist at once. */
+export async function setSeats(env: Bindings, actor: Actor, input: Input) {
+  const session = await managedSession(env, actor, input.text('session'))
+  const first = (await one<{ first: number }>(env, `SELECT ${FIRST} AS first FROM beam_sessions s WHERE s.id = ?`, session.id))!.first
+  const seats = readSeats(input, session.timezone, first)
+  await commit(env, [stmt(env, 'UPDATE beam_sessions SET capacity = ?, registration_closes_at = ?, waitlist_policy = ?, waitlist_order = ?, offer_hours = ?, updated_at = ? WHERE id = ?', seats.capacity, seats.closesAt, seats.policy, seats.order, seats.offerHours, now(), session.id)],
+    { actor, action: 'session.seats', subject: session.id, detail: seats })
+  await promote(env, session.id)
+  return { id: session.id }
 }
 
 const SESSION = `SELECT s.id, s.course_id AS course, c.title AS courseTitle, s.title, s.format, s.location, s.join_url AS joinUrl, s.instructor_id AS instructor, i.name AS instructorName,
-  s.materials, s.timezone, s.start_date AS startDate, s.start_time AS startTime, s.minutes, s.repeat, s.meetings AS meetingCount, s.sequence, s.state, s.cancel_reason AS cancelReason, s.updated_at AS updatedAt
+  s.materials, s.timezone, s.start_date AS startDate, s.start_time AS startTime, s.minutes, s.repeat, s.meetings AS meetingCount, s.sequence, s.state, s.cancel_reason AS cancelReason, s.updated_at AS updatedAt,
+  s.capacity, s.registration_closes_at AS closesAt, s.waitlist_policy AS policy, s.waitlist_order AS waitlistOrder, s.offer_hours AS offerHours
   FROM beam_sessions s JOIN beam_courses c ON c.id = s.course_id LEFT JOIN beam_members i ON i.id = s.instructor_id`
 
-async function shape(env: Bindings, rows: Row[], since: (row: Row) => number | null = () => null) {
+async function shape(env: Bindings, rows: Row[], since: (row: Row) => number | null = () => null, roster = false) {
   return await Promise.all(rows.map(async row => {
-    const [meetingList, changes, registered] = await Promise.all([
+    const [meetingList, changes, registered, waits, events] = await Promise.all([
       all(env, 'SELECT position, local_date AS date, starts_at AS startsAt, ends_at AS endsAt FROM beam_session_meetings WHERE session_id = ? ORDER BY position', row.id),
       all(env, 'SELECT kind, at, detail FROM beam_session_changes WHERE session_id = ? AND at >= ? ORDER BY at', row.id, since(row) ?? 0),
       one<{ n: number }>(env, "SELECT COUNT(*) AS n FROM beam_session_registrations WHERE session_id = ? AND state = 'registered'", row.id),
+      one<{ offered: number; waiting: number }>(env, "SELECT COALESCE(SUM(state = 'offered'), 0) AS offered, COALESCE(SUM(state = 'waiting'), 0) AS waiting FROM beam_session_waitlist WHERE session_id = ?", row.id),
+      roster ? sessionEvents(env, row.id) : null,
     ])
-    return { ...row, meetings: meetingList, changes: changes.map(item => ({ ...item, detail: JSON.parse(item.detail) })), registered: registered?.n ?? 0 } as Row
+    const seats = { registered: registered?.n ?? 0, offered: waits?.offered ?? 0, waiting: waits?.waiting ?? 0 }
+    return { ...row, meetings: meetingList, changes: changes.map(item => ({ ...item, detail: JSON.parse(item.detail) })), ...seats, full: row.capacity !== null && seats.registered + seats.offered >= row.capacity,
+      ...(events ? { history: events.map(item => ({ ...item, detail: JSON.parse(item.detail) })) } : {}) } as Row
   }))
 }
 
 /** The agenda (sessions this person is registered in, including ones since cancelled), the session options for each of
  * their open assignments with a prerequisite gate, the sessions they lead, and those they schedule. */
 export async function sessionsView(env: Bindings, actor: Actor) {
+  await sweep(env)
   const mine = await all(env, `${SESSION.replace('SELECT s.id', 'SELECT r.registered_at AS registeredAt, s.id')} JOIN beam_session_registrations r ON r.session_id = s.id WHERE r.learner_id = ? AND r.state = 'registered' ORDER BY s.start_date`, actor.id)
   const agenda = await shape(env, mine, row => row.registeredAt)
   const assigned = await all(env, "SELECT a.*, c.title AS courseTitle, p.title AS prerequisiteTitle FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id LEFT JOIN beam_courses p ON p.id = a.prerequisite_course_id WHERE a.learner_id = ? AND a.status = 'open' AND EXISTS (SELECT 1 FROM beam_sessions s WHERE s.course_id = a.course_id AND s.state = 'scheduled') ORDER BY a.due_at", actor.id)
@@ -194,9 +187,10 @@ export async function sessionsView(env: Bindings, actor: Actor) {
   })))
   const leading = await shape(env, await all(env, `${SESSION} WHERE s.instructor_id = ? ORDER BY s.start_date`, actor.id))
   const units = sessionUnits(actor)
-  const managed = schedules(actor) ? await shape(env, await all(env, `${SESSION} WHERE ? OR c.unit_id IN (SELECT value FROM json_each(?)) ORDER BY s.state DESC, s.start_date`, actor.owner ? 1 : 0, JSON.stringify(units))) : []
+  const managed = schedules(actor) ? await shape(env, await all(env, `${SESSION} WHERE ? OR c.unit_id IN (SELECT value FROM json_each(?)) ORDER BY s.state DESC, s.start_date`, actor.owner ? 1 : 0, JSON.stringify(units)), () => null, true) : []
   const courses = schedules(actor) ? await all(env, 'SELECT id, title FROM beam_courses WHERE published_revision_id IS NOT NULL AND retired_at IS NULL AND (? OR unit_id IN (SELECT value FROM json_each(?))) ORDER BY title', actor.owner ? 1 : 0, JSON.stringify(units)) : []
-  return { agenda, options: options.filter(option => option.sessions.length), leading, managed, courses }
+  const [waits, history] = await Promise.all([myWaits(env, actor), learnerEvents(env, actor)])
+  return { agenda, waits, history: history.map(item => ({ ...item, detail: JSON.parse(item.detail) })), options: options.filter(option => option.sessions.length), leading, managed, courses }
 }
 
 /** A session's calendar file is for its registered (or formerly registered) learners, its instructor and its schedulers. */
