@@ -37,6 +37,8 @@ export interface Actor {
   learners: string[] | null
   /** ORG-010: each permission held through custom roles, with where it reaches. */
   grants: Partial<Record<Permission, Reach>>
+  /** ORG-005: holds an active auditor grant (read-only shared evidence). */
+  auditor: boolean
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
   shell?: { people: number; waiting: number; now: number; zone: string }
 }
@@ -60,7 +62,8 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   const teams = owner ? null : (await all<{ id: string }>(env, 'SELECT id FROM beam_teams WHERE id IN (SELECT value FROM json_each(?)) OR unit_id IN (SELECT value FROM json_each(?)) ORDER BY id', JSON.stringify(managedTeams), JSON.stringify(adminUnits))).map(row => row.id)
   const learners = teams && (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(teams))).map(row => row.member_id)
   const grants = agent || owner ? {} : await customGrants(env, member.id)
-  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners, grants }
+  const auditor = !agent && !owner && !!await one(env, 'SELECT 1 FROM beam_auditor_grants WHERE member_id = ? AND revoked_at IS NULL AND expires_at > ?', member.id, now())
+  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners, grants, auditor }
 }
 
 /** The permissions of every custom role this member holds, merged, each with the teams, units and people it reaches. */

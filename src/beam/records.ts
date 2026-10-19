@@ -12,6 +12,7 @@ import { requireBusiness } from './people'
 import { recordStatus } from './report'
 import { DAY, calendarDays, localDate, zonedInstant } from './time'
 import { inScope, manages, permits, requireLearnerScope } from './scope'
+import { sharesCertificate } from './auditors'
 
 export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
   insist(actor.roles.has('assessor') || permits(actor, 'live_sessions'), 'forbidden', 403)
@@ -56,7 +57,7 @@ export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
 export async function certificate(env: Bindings, actor: Actor, id: string) {
   const row = await one(env, `SELECT k.*, c.learner_id, c.method, c.completed_at, c.course_revision_id, r.number AS revision_number, r.title AS course_title, m.name AS learner_name
     FROM beam_certificates k JOIN beam_completions c ON c.id = k.completion_id JOIN beam_course_revisions r ON r.id = c.course_revision_id JOIN beam_members m ON m.id = c.learner_id WHERE k.id = ?`, id)
-  if (!row || !(row.learner_id === actor.id || manages(actor, row.learner_id, 'certificates', 'people'))) throw new BeamError('not_found', 404)
+  if (!row || !(row.learner_id === actor.id || manages(actor, row.learner_id, 'certificates', 'people') || await sharesCertificate(env, actor, id))) throw new BeamError('not_found', 404)
   return { id: row.id, number: row.number, issuer: row.issuer, learner: row.learner_name, course: row.course_title, revision: row.revision_number, method: row.method, completedAt: row.completed_at, issuedAt: row.issued_at, expiresAt: row.expires_at }
 }
 

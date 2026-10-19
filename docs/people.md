@@ -34,6 +34,10 @@ Under **Grant administration**, choose a person and a unit to make them that uni
 
 Under **Custom roles** on **People**, the owner makes a role such as a site training coordinator: name it, tick its **Permissions** (courses, people, enrollment, reports, live sessions, certificates, integrations, notifications) and limit it to chosen teams or business units. Owner settings, sign-in providers and named reviewer or assessor decisions are never part of a role. Give it to someone with **Grant role**; saving the role again changes it for every holder on their next page, and **Revoke** takes it away.
 
+## Auditors
+
+To let an auditor check training records, open **Auditors** on **People** and use **Share evidence with an auditor**: pick the person, the **Teams**, the period the completions fall in and when access ends. The auditor opens **Shared evidence** and sees those completions with their certificates and evidence files, changes nothing, and loses access at the end date or when you press **Revoke**.
+
 ## Remove or restore access
 
 **Remove access** signs the person out everywhere and stops them signing in. Their records stay. **Restore access** lets them sign in again with a fresh sign-in link.

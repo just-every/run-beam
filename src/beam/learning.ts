@@ -13,6 +13,7 @@ import { resetHistory } from './resets'
 import { type Accommodation, accommodationFor, closeSession, deadlineFor, extraMinutes, openSession, refuseLate, savedAnswers, score, selectionsFrom, upsertAnswers } from './timing'
 import { DAY } from './time'
 import { inScope, manages } from './scope'
+import { sharesFile } from './auditors'
 import { dueExceptions } from './assignments'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
@@ -257,8 +258,9 @@ export async function attachmentFile(env: Bindings, actor: Actor, id: string) {
   const file = await one(env, 'SELECT filename, media_type AS mediaType, size, sha256 FROM beam_attachments WHERE id = ?', id)
   const attempt = await one(env, 'SELECT id FROM beam_attempts WHERE attachment_id = ?', id)
   // An attempt's file follows the attempt; an offline session's file goes to managers of someone it completed.
-  const allowed = file && (attempt ? await attemptDetail(env, actor, attempt.id).then(() => true, () => false)
-    : isManager(actor) && (actor.learners === null || (await all<{ learner_id: string }>(env, "SELECT learner_id FROM beam_completions WHERE json_extract(evidence_json, '$.attachment') = ?", id)).some(row => inScope(actor, row.learner_id))))
+  // An auditor's shared evidence is checked file by file (ORG-005).
+  const allowed = file && (await sharesFile(env, actor, id) || (attempt ? await attemptDetail(env, actor, attempt.id).then(() => true, () => false)
+    : isManager(actor) && (actor.learners === null || (await all<{ learner_id: string }>(env, "SELECT learner_id FROM beam_completions WHERE json_extract(evidence_json, '$.attachment') = ?", id)).some(row => inScope(actor, row.learner_id)))))
   if (!allowed) throw new BeamError('not_found', 404)
   return serve(env, file as never, { download: true })
 }

@@ -21,6 +21,7 @@ import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
 import { managePage } from './ui/compliance'
 import { importPage, previewPage } from './ui/movein'
 import { agentPage } from './ui/agent'
+import { evidencePage } from './ui/evidence'
 import { practicePage, questionsPage } from './ui/practice'
 import { reportCsvResponse, reportPage } from './ui/report'
 import { describeError, page, h } from './ui/html'
@@ -127,6 +128,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/learn\/([\w-]+)\/practical$/))) return practicalPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/attempts\/([\w-]+)$/))) return attemptPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/certificates\/([\w-]+)$/))) return certificatePage(env, actor, match[1], url)
+  if (path === '/app/evidence') return evidencePage(env, actor, url)
   if (path === '/app/import') return importPage(env, actor, url)
   if (path === '/app/reports') return reportPage(env, actor, url)
   if (path === '/app/reports.csv') return reportCsvResponse(env, actor, url)

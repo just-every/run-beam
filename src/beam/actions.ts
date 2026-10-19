@@ -9,6 +9,7 @@ import { decide, propose } from './agent-work'
 import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { grantRole, revokeRole, saveRole } from './roles'
+import { grantAuditor, revokeAuditor } from './auditors'
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
 import { restoreRevision } from './history'
 import type { Input } from './input'
@@ -38,6 +39,8 @@ export const actions: Record<string, Handler> = {
   'team.coverage': (env, actor, input) => grantCoverage(env, actor, input),
   'team.coverage.end': (env, actor, input) => endCoverage(env, actor, input),
   'assignment.due': (env, actor, input) => moveDueDate(env, actor, input),
+  'auditor.grant': (env, actor, input) => grantAuditor(env, actor, input),
+  'auditor.revoke': (env, actor, input) => revokeAuditor(env, actor, input),
   'role.save': (env, actor, input) => saveRole(env, actor, input),
   'role.grant': (env, actor, input) => grantRole(env, actor, input),
   'role.revoke': (env, actor, input) => revokeRole(env, actor, input),

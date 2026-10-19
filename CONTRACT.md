@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 9 | 44 | 73 | 126 |
-| All | 29 | 44 | 73 | 146 |
+| Target and push further | 9 | 45 | 72 | 126 |
+| All | 29 | 45 | 72 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -509,7 +509,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `ORG-002` | Delegate administration with explicit rights | target | done | `src/beam/units.ts`, `src/beam/actor.ts`, `src/beam/ui/units.ts`, `migrations/core/0023_beam_units.sql`, `tests/beam/regression-admin.mjs` (ORG-002) |  |
 | `ORG-003` | Scope authors and reviewers to their content | target | done | `src/beam/course-access.ts`, `src/beam/courses.ts`, `src/beam/ui/course-access.ts`, `migrations/core/0024_beam_course_scope.sql`, `tests/beam/regression-admin.mjs` (ORG-003) |  |
 | `ORG-004` | Give managers only their teams’ learning authority | target | done | `src/beam/scope.ts`, `src/beam/managers.ts`, `src/beam/actor.ts`, `src/beam/assignments.ts`, `migrations/core/0025_beam_team_managers.sql`, `tests/beam/regression-managers.mjs` (ORG-004) |  |
-| `ORG-005` | Support instructors and read-only auditors | target | missing |  | Instructor/auditor grants and scoped evidence access are absent. |
+| `ORG-005` | Support instructors and read-only auditors | target | partial | `src/beam/auditors.ts`, `src/beam/ui/evidence.ts`, `migrations/core/0027_beam_auditors.sql`, `tests/beam/regression-managers.mjs` (ORG-005) | Read-only auditors with a team cohort, completion period and end, per-file evidence checks and revocation are done; instructors managing assigned sessions, rosters and attendance need LIVE-001/LIVE-003 scheduled sessions. |
 | `ORG-006` | Preview bulk people changes | target | missing |  | Bulk roster import, mapping and reviewed application are absent; individual invitation is BEAM-01. |
 | `ORG-007` | Offer an organized self-service learning catalog | target | missing |  | Searchable catalog, optional enrollment, requests and favorites are absent. |
 | `ORG-008` | Separate employee and external training portals | target | missing |  | Extended-enterprise portals, branding and isolated external learner identity are absent. |

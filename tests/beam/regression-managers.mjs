@@ -143,3 +143,58 @@ export async function customRoleCheck(f) {
   assert.deepEqual(audit.map(row => row.action), ['role.create', 'role.grant', 'role.change'])
   assert.deepEqual(JSON.parse(audit[2].detail).before.permissions, ['enrollment', 'reports'])
 }
+
+// ORG-005, auditor half: the owner shares one team's evidence for a period with a time-limited auditor, who reads it
+// and downloads its files (each checked on its own), changes nothing, and loses it all when the grant ends.
+export async function auditorCheck(f) {
+  const { api, h, cookies, ids, course } = f
+  const page = async (path, role) => { const response = await h.raw(path, { cookie: cookies[role] }); return { status: response.status, text: await response.text() } }
+  const upload = (name, text) => ({ filename: name, base64: Buffer.from(text).toString('base64'), type: 'text/plain' })
+  ids.audrey = (await api('owner', 'person.invite', { email: 'audrey@example.test', name: 'Audrey Auditor', roles: ['learner'] })).id
+  cookies.audrey = await h.signIn('audrey@example.test', { requested: true })
+  // A practical returned once and then accepted: only the accepted evidence completes, so only it is shared.
+  const c = await course('Audited lockout', true)
+  const [assignment] = (await api('manager', 'assignment.create', { course: c.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
+  for (const lesson of (await api('learner', `assignments/${assignment}`)).lessons) await api('learner', 'lesson.complete', { assignment, lesson: lesson.id })
+  const first = await api('learner', 'practical.submit', { assignment, evidence: 'First try', file: upload('first.txt', 'first') })
+  await api('assessor', 'practical.decide', { attempt: first.id, decision: 'rejected', note: 'Lock missing' })
+  const second = await api('learner', 'practical.submit', { assignment, evidence: 'Locked out', file: upload('second.txt', 'second') })
+  await api('assessor', 'practical.decide', { attempt: second.id, decision: 'accepted', note: 'Good' })
+  const [unshared, shared] = [(await api('learner', `attempts/${first.id}`)).attachment, (await api('learner', `attempts/${second.id}`)).attachment]
+  const day = offset => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10)
+  // Someone outside the shared team completes the same course in the same period.
+  await api('owner', 'offline.record', { course: c.id, revision: c.revision, learners: [ids.other], heldOn: day(0), instructor: 'Trainer', location: 'Shop floor', attestation: 'Observed the lockout.' })
+  const elsewhere = (await api('other', 'records/me')).completions.find(row => row.courseTitle === 'Audited lockout').certificate
+
+  await api('audrey', 'evidence', undefined, 403)
+  await api('audrey', 'auditor.grant', { member: ids.audrey, teams: [ids.team], periodFrom: day(-1), periodTo: day(1), expiresOn: day(30) }, 403)
+  const expiresAt = Date.now() + 5000
+  await api('owner', 'auditor.grant', { member: ids.audrey, teams: [ids.team], periodFrom: day(-1), periodTo: day(1), expiresAt: new Date(expiresAt).toISOString() })
+  const evidence = await api('audrey', 'evidence')
+  const row = evidence.completions.find(item => item.courseTitle === 'Audited lockout')
+  assert.ok(row && row.attachment === shared && row.certificate && evidence.completions.every(item => item.learner === ids.learner))
+  assert.equal((await page(`/app/files/attachment/${shared}`, 'audrey')).text, 'second')
+  assert.equal((await page(`/app/files/attachment/${unshared}`, 'audrey')).status, 404)
+  await api('audrey', `certificates/${row.certificate}`)
+  await api('audrey', `certificates/${elsewhere}`, undefined, 404)
+  assert.ok((await page('/app/evidence', 'audrey')).text.includes('Audited lockout'))
+  // Read-only: no record, report or people, and no write to assessments, completions, people or policy.
+  await api('audrey', `records/${ids.learner}`, undefined, 404)
+  for (const path of ['report', 'people']) await api('audrey', path, undefined, 403)
+  await api('audrey', 'practical.decide', { attempt: second.id, decision: 'rejected', note: 'x' }, 403)
+  await api('audrey', 'offline.record', { course: c.id, revision: c.revision, learners: [ids.learner], heldOn: day(0), instructor: 'x', location: 'x', attestation: 'x' }, 403)
+  await api('audrey', 'assignment.create', { course: c.id, learners: [ids.learner], dueDate: '2030-10-01' }, 403)
+  await api('audrey', 'person.roles', { email: 'learner@example.test', roles: ['manager'] }, 403)
+  await api('audrey', 'access.rule', { scope: 'course', target: c.id, kind: 'none' }, 403)
+  // After the end, nothing: the list, the file and the certificate.
+  await new Promise(resolve => setTimeout(resolve, expiresAt - Date.now() + 300))
+  await api('audrey', 'evidence', undefined, 403)
+  assert.equal((await page(`/app/files/attachment/${shared}`, 'audrey')).status, 404)
+  await api('audrey', `certificates/${row.certificate}`, undefined, 404)
+  // Through the form door, then revoked by the owner.
+  assert.equal((await h.submit('auditor.grant', cookies.owner, { member: ids.audrey, teams: ids.team, periodFrom: day(-1), periodTo: day(1), expiresOn: day(30) }, '/app/people')).searchParams.get('error'), null)
+  await api('audrey', 'evidence')
+  const grant = (await api('owner', 'auditors')).find(item => item.state === 'active')
+  assert.equal((await h.submit('auditor.revoke', cookies.owner, { grant: grant.id }, '/app/people')).searchParams.get('error'), null)
+  await api('audrey', 'evidence', undefined, 403)
+}

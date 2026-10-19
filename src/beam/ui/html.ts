@@ -39,6 +39,7 @@ const NAV: NavItem[] = [
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
   { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) || !!actor.grants.reports },
   LEARNING,
+  { href: '/app/evidence', label: 'Shared evidence', icon: 'document', show: actor => actor.auditor },
   { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
   { href: '/app/business', label: 'Settings', icon: 'gear', show: actor => actor.owner },
 ]
@@ -56,7 +57,7 @@ const headers = {
 }
 
 const ROLE_NAMES: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
-const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...(administrator(actor) ? ['Learning administrator'] : []), ...(Object.keys(actor.grants).length ? ['Custom role'] : []), ...[...actor.roles].filter(role => role !== 'learner').map(role => ROLE_NAMES[role])].join(', ') || 'Learner'
+const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...(administrator(actor) ? ['Learning administrator'] : []), ...(Object.keys(actor.grants).length ? ['Custom role'] : []), ...(actor.auditor ? ['Auditor'] : []), ...[...actor.roles].filter(role => role !== 'learner').map(role => ROLE_NAMES[role])].join(', ') || 'Learner'
 
 function rail(actor: Actor, current: string, shell?: Shell): Html {
   // Until the owner names the business every /app page leads to it, so the rail shows only the brand and the person.

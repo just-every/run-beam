@@ -14,6 +14,7 @@ import { describeRule, windowForm } from './access'
 import { timingCard } from './timing'
 import { unitsCard } from './units'
 import { rolesCard } from './roles'
+import { auditorsCard } from './evidence'
 
 const ROLE_LABELS: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
 const roleOptions = ROLES.map(role => ({ value: role, label: ROLE_LABELS[role] }))
@@ -52,7 +53,8 @@ export async function peoplePage(env: Bindings, actor: Actor, request: Request, 
 ${actor.owner ? card('Invite a staff member', h`<p class="muted">Beam is for adult staff. The invitation is an ordinary sign-in email.</p>${form('person.invite', '/app/people', [field('Name', 'name'), field('Email', 'email', { type: 'email' }), checks('Roles', 'roles', roleOptions, ['learner']), teamOptions.length ? checks('Teams', 'teams', teamOptions) : ''], 'Send invitation')}`) : ''}
 ${isManager(actor) ? card('Teams', h`${list.teams.map(team => teamDetails(actor, team, list, everyone, zone))}${actor.owner ? form('team.create', '/app/people', [field('New team (for example Front desk)', 'name')], 'Add team') : ''}`) : ''}
 ${await unitsCard(env, actor, list.members, list.teams)}
-${await rolesCard(env, actor, list.members, list.teams)}`
+${await rolesCard(env, actor, list.members, list.teams)}
+${await auditorsCard(env, actor, list.members, list.teams)}`
   return page('People', actor, body, { current: '/app/people', url, wide: true })
 }
 
