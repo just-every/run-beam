@@ -174,7 +174,7 @@ export const hidden = (name: string, value: unknown) => h`<input type="hidden" n
 /** ORG-012: whose view this is, read-only, until when, and the way out. */
 function viewBanner(actor: Actor) {
   const zone = actor.shell?.zone ?? 'UTC'
-  return h`<div class="flash" role="status"><p>Viewing Beam as <strong>${actor.name}</strong>, read-only, until ${formatClock(actor.viewAs!.expiresAt, zone)}. You see their pages as they do; nothing here changes their training.</p><form method="post" action="/app/view/end"><button type="submit" class="secondary">Exit view</button></form></div>`
+  return h`<div class="flash" role="status"><p>Viewing Beam as <strong>${actor.name}</strong>, read-only, until ${formatClock(actor.viewAs!.expiresAt, zone)}: you see their pages as they do, and nothing here changes their training.</p><form method="post" action="/app/view/end"><button type="submit" class="secondary">Exit view</button></form></div>`
 }
 
 /** A POST form to the shared action door; returnTo may contain {id} for the created record. */

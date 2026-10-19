@@ -1063,7 +1063,7 @@
       "executable": false
     },
     "src/beam/ui/html.ts": {
-      "sha256": "555b40e434fce8e49b91d06391c37c9d17fcb19e7f05141452835dc4b406fc2b",
+      "sha256": "fbf944a8596eab3821be1c82158b72d11a3da3f51d4aed21cf38dd1561876fa9",
       "executable": false
     },
     "src/beam/ui/icons.ts": {
