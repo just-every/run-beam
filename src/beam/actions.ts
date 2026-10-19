@@ -11,6 +11,7 @@ import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
+import { replyToAnnouncement, sendAnnouncement } from './announcements'
 import { archiveCourse, cloneCourse, reinstateCourse, retagCourses, retireCourse, setCatalog } from './estate'
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
 import { restoreRevision } from './history'
@@ -80,6 +81,8 @@ export const actions: Record<string, Handler> = {
   'assignment.renewals': (env, actor, input) => assignRenewals(env, actor, input),
   'access.rule': (env, actor, input) => setAccessRule(env, actor, input),
   'audit.correct': (env, actor, input) => correctAudit(env, actor, input),
+  'announcement.send': (env, actor, input) => sendAnnouncement(env, actor, input),
+  'announcement.reply': (env, actor, input) => replyToAnnouncement(env, actor, input),
   'course.retire': (env, actor, input) => retireCourse(env, actor, input),
   'course.reinstate': (env, actor, input) => reinstateCourse(env, actor, input),
   'course.clone': (env, actor, input) => cloneCourse(env, actor, input),

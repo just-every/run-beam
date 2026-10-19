@@ -36,6 +36,7 @@
           "migrations/core/0029_beam_view_sessions.sql",
           "migrations/core/0030_beam_course_retirement.sql",
           "migrations/core/0031_beam_course_catalog.sql",
+          "migrations/core/0032_beam_announcements.sql",
           "src/auth.server.ts",
           "src/identity.ts",
           "src/server.ts",

@@ -38,6 +38,7 @@ const NAV: NavItem[] = [
   { href: '/app/paths', label: 'Paths', icon: 'route', show: manager },
   { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
+  { href: '/app/announcements', label: 'Announcements', icon: 'bell', show: actor => manager(actor) || administrator(actor) },
   { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) || !!actor.grants.reports },
   LEARNING,
   { href: '/app/evidence', label: 'Shared evidence', icon: 'document', show: actor => actor.auditor },

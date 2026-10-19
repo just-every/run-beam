@@ -47,3 +47,7 @@ To let an auditor check training records, open **Auditors** on **People** and us
 **Remove access** signs the person out everywhere and stops them signing in. Their records stay. **Restore access** lets them sign in again with a fresh sign-in link.
 
 After a [restore from a backup](/docs/backup), staff show **Needs an invitation**: archives never carry sign-in accounts. Press **Restore access** and Beam sends them an ordinary invitation; when they sign in, their records and certificates are all there.
+
+## Announcements
+
+Open **Announcements** to write to the people of a team you look after, or to everyone you look after who is assigned a course. Each person sees it on **My learning** with your name, never who else received it, and can **Reply privately**; replies appear under your announcement and nobody else reads them. Announcements are delivered in Beam only for now: email, Slack and Teams delivery are not sent yet.
