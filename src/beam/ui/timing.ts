@@ -13,7 +13,7 @@ interface Quiz { passPercent: number; attemptsLeft: number; timeLimitMinutes?: n
  * keyboard and screen reader on any screen (LEARN-015, LEARN-011). */
 export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {}) => quiz.questions.map((question, n) => {
   const given = answers[question.id] ?? []
-  if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(fill in ${question.blanks === 1 ? 'the blank' : `all ${question.blanks} blanks`})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(`Blank ${part + 1}`, `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
+  if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(fill in ${question.blanks === 1 ? 'the blank' : question.blanks === 2 ? 'both blanks' : `all ${question.blanks} blanks`})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(`Blank ${part + 1}`, `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
   const options = question.kind === 'order' || question.kind === 'match' ? question.options.map(option => ({ value: String(option.index), label: option.label })) : []
   const chosen = (part: number) => typeof given[part] === 'number' && given[part] !== -1 ? String(given[part]) : ''
   if (question.kind === 'order') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(put the items in order)</span></legend>${Array.from({ length: question.positions }, (_, part) => select(`Position ${part + 1}`, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
