@@ -73,7 +73,7 @@ export async function sessionsPage(env: Bindings, actor: Actor, url: URL) {
     const choose = session.full ? 'Join the waitlist' : view.agenda.some(item => item.course === option.course) ? 'Switch to this session' : 'Choose this session'
     return { title: session.title, meta: summary(session, home, h`<br>${seatLine(session, home)}`), aside: mine ? h`<span class="muted">Registered</span>` : waiting ? h`<span class="muted">On the waitlist</span>` : closed ? h`<span class="muted">Registration closed</span>` : option.blocked ? '' : form('session.register', '/app/sessions', [hidden('session', session.id)], choose, { secondary: true }) }
   }))}`, { id: `options-${option.course}` }))
-  const leading = view.leading.length ? card('Sessions you lead', rows(view.leading.map(session => ({ title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? ' · Cancelled' : ''}`, meta: summary(session, home, h` · ${session.registered} registered<br>${calendarLink(session, session.state === 'cancelled')}`) }))), { id: 'leading' }) : ''
+  const leading = view.leading.length ? card('Sessions you lead', rows(view.leading.map(session => ({ title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? ' · Cancelled' : ''}`, meta: summary(session, home, h` · ${session.registered} registered<br>${calendarLink(session, session.state === 'cancelled')} · <a href="/app/sessions/${session.id}/roster">Roster and attendance</a>`) }))), { id: 'leading' }) : ''
   let manage: unknown = ''
   if (view.courses.length || view.managed.length) {
     const members = await all(env, 'SELECT id, name FROM beam_members ORDER BY name')
@@ -81,7 +81,7 @@ export async function sessionsPage(env: Bindings, actor: Actor, url: URL) {
       select('Repeats', 'repeat', Object.entries(REPEAT).map(([value, label]) => ({ value, label })), 'none'), field(`Meetings in the series (1–${MAX_MEETINGS})`, 'count', { type: 'number', value: 1, required: false }), ...seatFields(null)], 'Schedule session'), { id: 'schedule' })
     const managed = view.managed.length ? card('Scheduled sessions', rows(view.managed.map(session => ({
       title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? h` · <strong>Cancelled: ${session.cancelReason}</strong>` : ''}`,
-      meta: h`${summary(session, home, h` · ${REPEAT[session.repeat]}, ${session.meetingCount} ${session.meetingCount === 1 ? 'meeting' : 'meetings'} · ${seatLine(session, home)} · ${calendarLink(session, session.state === 'cancelled')}`)}${session.history.length ? h`
+      meta: h`${summary(session, home, h` · ${REPEAT[session.repeat]}, ${session.meetingCount} ${session.meetingCount === 1 ? 'meeting' : 'meetings'} · ${seatLine(session, home)} · ${calendarLink(session, session.state === 'cancelled')} · <a href="/app/sessions/${session.id}/roster">Roster and attendance</a>`)}${session.history.length ? h`
 <details><summary>Roster history</summary>${rows(session.history.map((item: Row) => ({ title: item.learnerName, meta: `${EVENT[item.kind] ?? item.kind} · ${formatInstant(item.at, home)}` })))}</details>` : ''}${session.state === 'scheduled' ? h`
 <details><summary>Reschedule</summary>${form('session.reschedule', '/app/sessions', [hidden('session', session.id), ...whenFields(session, home)], 'Reschedule')}</details>
 <details><summary>Change details</summary>${form('session.update', '/app/sessions', [hidden('session', session.id), ...detailFields(session, members)], 'Save changes')}</details>

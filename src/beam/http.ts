@@ -29,6 +29,7 @@ import { announcementsPage } from './ui/announcements'
 import { automationPage } from './ui/automation'
 import { catalogPage } from './ui/catalog'
 import { sessionsPage } from './ui/live'
+import { rosterPage } from './ui/attendance'
 import { sessionCalendar } from './ics'
 import { sessionForCalendar } from './live'
 import { transcriptCsvResponse, transcriptPage, transcriptXlsxResponse } from './ui/transcript'
@@ -184,6 +185,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/automation') return automationPage(env, actor, url)
   if (path === '/app/catalog') return catalogPage(env, actor, url)
   if (path === '/app/sessions') return sessionsPage(env, actor, url)
+  if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/roster$/))) return rosterPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/calendar\.ics$/))) return calendarResponse(env, actor, match[1])
   if (path === '/app/audit.csv') return auditCsvResponse(env, actor, url)
   if (path === '/app/agent') return agentPage(env, actor, url, (await business(env))!.timezone)

@@ -1,6 +1,7 @@
 // Flows 6-9: learners resume lessons, take deterministic quizzes and submit
 // practical evidence; completion is recorded only when every requirement of the
 // exact assigned revision is met, and is bound to that revision.
+import { keepsRoster } from './attendance'
 import type { Bindings } from '../auth.server'
 import { accessView, requireAccess } from './access'
 import { isManager, requireRole, type Actor } from './actor'
@@ -51,7 +52,17 @@ async function progress(env: Bindings, assignment: any) {
     practicalAccepted: attempts.some(attempt => attempt.kind === 'practical' && attempt.state === 'accepted'),
     practicalPending: attempts.some(attempt => attempt.kind === 'practical' && attempt.state === 'awaiting_review'),
     resumeLesson: content.lessons.find(lesson => lesson.id === assignment.last_lesson_id && !done.has(lesson.id)) ?? content.lessons.find(lesson => !done.has(lesson.id)) ?? null,
+    attendance: await attendanceState(env, assignment.id, content.revision.attendance_percent),
   }
+}
+
+/** LIVE-003: a revision that requires attendance is met by the current attendance record of this assignment's session:
+ * a "complete" decision with at least the revision's share of the session's scheduled minutes. Online parts and
+ * attendance stay separate requirements; neither stands in for the other. */
+export async function attendanceState(env: Bindings, assignment: string, percent: number | null) {
+  if (percent === null) return { required: null, met: true, record: null }
+  const record = await one(env, 'SELECT t.id, t.session_id AS session, t.status, t.minutes, t.decision, s.minutes * s.meetings AS scheduled FROM beam_attendance t JOIN beam_sessions s ON s.id = t.session_id WHERE t.assignment_id = ? AND t.superseded_at IS NULL ORDER BY t.recorded_at DESC LIMIT 1', assignment)
+  return { required: percent, record, met: !!record && record.decision === 'complete' && record.minutes * 100 >= percent * record.scheduled }
 }
 
 /** LEARN-018: a timed attempt past its deadline is closed at the deadline and scored from its saved answers. */
@@ -91,6 +102,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
     quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: (launchable ? state.content.assessment!.questions : []).map(presentQuestion), ...timed! } : null,
+    attendance: state.attendance.required === null ? null : { percent: state.attendance.required, met: state.attendance.met, record: state.attendance.record },
     practical: state.practicalRequired ? { instructions: state.content.assessment!.practical_instructions, assessor: state.content.assessment!.assessor_id, accepted: state.practicalAccepted, pending: state.practicalPending } : null,
     attempts: learner || isManager(actor) ? state.attempts : [],
     // Everything before each reset, marked with who reset it and why.
@@ -267,6 +279,9 @@ export async function attemptDetail(env: Bindings, actor: Actor, id: string) {
 export async function attachmentFile(env: Bindings, actor: Actor, id: string) {
   const file = await one(env, 'SELECT filename, media_type AS mediaType, size, sha256 FROM beam_attachments WHERE id = ?', id)
   const attempt = await one(env, 'SELECT id FROM beam_attempts WHERE attachment_id = ?', id)
+  // LIVE-003: attendance evidence goes to its learner and to whoever keeps that session's roster.
+  const attendance = await one(env, 'SELECT session_id, learner_id FROM beam_attendance WHERE attachment_id = ?', id)
+  if (file && attendance && (attendance.learner_id === actor.id || await keepsRoster(env, actor, attendance.session_id))) return serve(env, file as never, { download: true })
   // An attempt's file follows the attempt; an offline session's file goes to managers of someone it completed.
   // An auditor's shared evidence is checked file by file (ORG-005).
   const allowed = file && (await sharesFile(env, actor, id) || (attempt ? await attemptDetail(env, actor, attempt.id).then(() => true, () => false)
@@ -280,11 +295,11 @@ export async function tryComplete(env: Bindings, actor: Actor, assignmentId: str
   const assignment = await one(env, "SELECT * FROM beam_assignments WHERE id = ? AND status = 'open'", assignmentId)
   if (!assignment) return null
   const state = await progress(env, assignment)
-  if (!state.lessonsComplete || (state.quizRequired && !state.quizPassed) || (state.practicalRequired && !state.practicalAccepted)) return null
+  if (!state.lessonsComplete || (state.quizRequired && !state.quizPassed) || (state.practicalRequired && !state.practicalAccepted) || !state.attendance.met) return null
   const assessment = state.content.assessment
   const quiz = state.attempts.find(attempt => attempt.kind === 'quiz' && attempt.passed === 1)
   const practical = state.attempts.find(attempt => attempt.kind === 'practical' && attempt.state === 'accepted')
-  const evidence = { lessons: state.content.lessons.map(lesson => lesson.id), quizAttempt: quiz?.id ?? null, practicalAttempt: practical?.id ?? null }
+  const evidence = { lessons: state.content.lessons.map(lesson => lesson.id), quizAttempt: quiz?.id ?? null, practicalAttempt: practical?.id ?? null, ...(state.attendance.record ? { attendance: state.attendance.record.id } : {}) }
   return await recordCompletion(env, actor, { assignment: assignment.id, learner: assignment.learner_id, course: assignment.course_id, revision: assignment.course_revision_id, assessmentRevision: assessment?.id ?? null, method: assessment ? 'assessed' : 'lessons', evidence, renewalDays: assignment.renewal_days })
 }
 

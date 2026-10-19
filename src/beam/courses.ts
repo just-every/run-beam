@@ -21,9 +21,11 @@ export interface Draft {
   /** LEARN-018: an optional limit in minutes on the quiz; older drafts have none. */
   timeLimitMinutes?: number | null
   practical: { instructions: string; assessor: string } | null
+  /** LIVE-003: the share (1-100%) of a session's scheduled minutes a learner must attend; older drafts have none. */
+  attendancePercent?: number | null
 }
 
-export const emptyDraft = (title: string, summary: string): Draft => ({ title, summary, lessons: [], questions: [], passPercent: null, maxAttempts: null, timeLimitMinutes: null, practical: null })
+export const emptyDraft = (title: string, summary: string): Draft => ({ title, summary, lessons: [], questions: [], passPercent: null, maxAttempts: null, timeLimitMinutes: null, practical: null, attendancePercent: null })
 
 export async function createCourse(env: Bindings, actor: Actor, input: Input) {
   const unit = await newCourseUnit(env, actor, input)
@@ -63,13 +65,15 @@ export async function normaliseDraft(env: Bindings, value: unknown): Promise<Dra
   insist(maxAttempts === null || (Number.isInteger(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 20), 'invalid_max_attempts')
   const timeLimitMinutes = draft.timeLimitMinutes === null || draft.timeLimitMinutes === undefined ? null : draft.timeLimitMinutes
   insist(timeLimitMinutes === null || (Number.isInteger(timeLimitMinutes) && timeLimitMinutes >= 1 && timeLimitMinutes <= 600), 'invalid_time_limit_minutes')
+  const attendancePercent = draft.attendancePercent === null || draft.attendancePercent === undefined ? null : draft.attendancePercent
+  insist(attendancePercent === null || (Number.isInteger(attendancePercent) && attendancePercent >= 1 && attendancePercent <= 100), 'invalid_attendance_percent')
   let practical: Draft['practical'] = null
   if (draft.practical) {
     insist(typeof draft.practical.instructions === 'string' && draft.practical.instructions.trim() && draft.practical.instructions.length <= 5000 && typeof draft.practical.assessor === 'string', 'invalid_practical')
     insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', draft.practical.assessor), 'assessor_not_found', 404)
     practical = { instructions: draft.practical.instructions.trim(), assessor: draft.practical.assessor }
   }
-  return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical }
+  return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent }
 }
 
 export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}) {
@@ -140,6 +144,11 @@ export const saveAssessment = (env: Bindings, actor: Actor, input: Input) => edi
   draft.practical = instructions ? { instructions, assessor: input.text('assessor') } : null
 })
 
+/** LIVE-003: the revision requires attending a session of the course, reviewed and published with it. */
+export const saveAttendance = (env: Bindings, actor: Actor, input: Input) => editDraft(env, actor, input, 'course.attendance', draft => {
+  draft.attendancePercent = input.integer('attendancePercent', { min: 1, max: 100, optional: true })
+})
+
 export async function submitForReview(env: Bindings, actor: Actor, input: Input) {
   await requireCourseRole(env, actor, input.text('course'), 'author')
   const course = await loadCourse(env, input.text('course'))
@@ -152,7 +161,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   const id = newId(), number = (latest?.number ?? 0) + 1
   const assessed = draft.questions.length > 0 || draft.practical
   await commit(env, [
-    stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now()),
+    stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at, attendance_percent) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now(), draft.attendancePercent ?? null),
     ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids) VALUES (?, ?, ?, ?, ?, ?)', newId(), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources))),
     ...(assessed ? [stmt(env, 'INSERT INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', newId(), id, JSON.stringify(draft.questions), draft.passPercent, draft.maxAttempts, draft.questions.length ? draft.timeLimitMinutes ?? null : null, draft.practical?.instructions ?? null, draft.practical?.assessor ?? null)] : []),
   ], { actor, action: 'revision.submit', subject: id, detail: { course: course.id, number, draftVersion: course.draft_version } })

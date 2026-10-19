@@ -25,7 +25,7 @@ export const MAX_MEETINGS = 26
 /** Units where this person schedules sessions: administered units and those of a live sessions custom role. */
 const sessionUnits = (actor: Actor) => [...new Set([...actor.adminUnits, ...(actor.grants.live_sessions?.units ?? [])])]
 
-async function requireScheduler(env: Bindings, actor: Actor, course: string) {
+export async function requireScheduler(env: Bindings, actor: Actor, course: string) {
   insist(await one(env, 'SELECT 1 FROM beam_courses WHERE id = ?', course), 'course_not_found', 404)
   if (actor.owner) return
   const units = sessionUnits(actor)

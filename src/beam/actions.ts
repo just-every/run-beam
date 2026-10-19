@@ -13,13 +13,14 @@ import { previewRule, replayRule, saveRule, setRuleState } from './automation'
 import { previewPolicy, runPolicy, savePolicy, setPolicyEnabled } from './inactivity'
 import { cancelSession, rescheduleSession, scheduleSession, setSeats, updateSession } from './live'
 import { acceptOffer, leave, register } from './registrations'
+import { amendAttendance, recordAttendance } from './attendance'
 import { decideRequest, requestEnrollment, saveSearch, selfEnroll, setEnrollment, setFavorite, withdraw } from './catalog'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
 import { replyToAnnouncement, sendAnnouncement } from './announcements'
 import { archiveCourse, cloneCourse, reinstateCourse, retagCourses, retireCourse, setCatalog } from './estate'
-import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
+import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveAttendance, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
 import { restoreRevision } from './history'
 import type { Input } from './input'
 import { completeLesson, decidePractical, saveQuizAnswers, startQuiz, submitPractical, submitQuiz } from './learning'
@@ -68,6 +69,8 @@ export const actions: Record<string, Handler> = {
   'session.leave': (env, actor, input) => leave(env, actor, input),
   'session.seats': (env, actor, input) => setSeats(env, actor, input),
   'session.accept': (env, actor, input) => acceptOffer(env, actor, input),
+  'attendance.record': (env, actor, input) => recordAttendance(env, actor, input),
+  'attendance.amend': (env, actor, input) => amendAttendance(env, actor, input),
   'inactivity.policy': (env, actor, input) => savePolicy(env, actor, input),
   'inactivity.preview': (env, actor) => previewPolicy(env, actor),
   'inactivity.enable': (env, actor, input) => setPolicyEnabled(env, actor, input),
@@ -100,6 +103,7 @@ export const actions: Record<string, Handler> = {
   'course.question': (env, actor, input) => saveQuestion(env, actor, input),
   'course.question.remove': (env, actor, input) => removeQuestion(env, actor, input),
   'course.assessment': (env, actor, input) => saveAssessment(env, actor, input),
+  'course.attendance': (env, actor, input) => saveAttendance(env, actor, input),
   'course.submit': (env, actor, input) => submitForReview(env, actor, input),
   'course.restore': (env, actor, input) => restoreRevision(env, actor, input),
   'revision.decide': (env, actor, input) => decideRevision(env, actor, input),
