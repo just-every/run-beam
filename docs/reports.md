@@ -21,6 +21,10 @@ Each row shows the learner, the course and revision, the due time in its time zo
 
 From **Manage**, open **Learner records** and choose a person: their assignments, completions with certificates, and history imported from a previous system, which is labeled as such and never counts as a Beam completion.
 
+## Transcripts
+
+On a person's record, open **Transcript** for everything that happened to their training, in time order: each assignment and its revision, every attempt (including those before a reset), assessor decisions, completions and certificates, offline attendance, due-date changes, access extensions, resets, cancellations and history imported from a previous system with where it came from. **Download CSV** carries the same entries, with the time zone and the moment it was produced on every row.
+
 ## What a completion means
 
 A completion records what happened against an exact revision: the lessons, the quiz attempt that passed, the practical decision or the offline attestation. It is not a statement of competence.

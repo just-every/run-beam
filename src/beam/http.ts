@@ -26,6 +26,7 @@ import { practicePage, questionsPage } from './ui/practice'
 import { reportCsvResponse, reportPage } from './ui/report'
 import { auditCsvResponse, auditPage } from './ui/audit'
 import { announcementsPage } from './ui/announcements'
+import { transcriptCsvResponse, transcriptPage } from './ui/transcript'
 import { describeError, page, h } from './ui/html'
 import { route } from './views'
 import { VIEW_PAGES, VIEW_READS, exitView, startView, viewCookie, viewing } from './view-as'
@@ -159,6 +160,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/paths') return pathsPage(env, actor, url)
   if (path === '/app/manage') return managePage(env, actor, request, url)
   if ((match = path.match(/^\/app\/records\/([\w-]+)$/))) return recordPage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/records\/([\w-]+)\/transcript$/))) return transcriptPage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/records\/([\w-]+)\/transcript\.csv$/))) return transcriptCsvResponse(env, actor, match[1])
   if ((match = path.match(/^\/app\/learn\/([\w-]+)$/))) return learnOverview(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/learn\/([\w-]+)\/lessons\/([\w-]+)$/))) return lessonPage(env, actor, match[1], match[2], url)
   if ((match = path.match(/^\/app\/learn\/([\w-]+)\/quiz$/))) return quizPage(env, actor, match[1], url)
