@@ -40,6 +40,7 @@ import { addSourceVersion, createSource } from './sources'
 import { decideCertificate, saveRequirement, uploadCertificate } from './external'
 import { correctCertificate, createLink, revokeLink, saveTemplate, setCourseTemplate } from './certificates'
 import { replaceReviewer, setCourseAuthors, setSelfReview } from './course-access'
+import { importBank, previewBank } from './bank-import'
 import { editDirectory, importRoster, resolveConflict as resolveRosterConflict, saveDirectoryField } from './directory'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
@@ -128,6 +129,8 @@ export const actions: Record<string, Handler> = {
   'course.lesson.move': (env, actor, input) => moveLesson(env, actor, input),
   'course.question': (env, actor, input) => saveQuestion(env, actor, input),
   'course.question.remove': (env, actor, input) => removeQuestion(env, actor, input),
+  'bank.preview': (env, actor, input) => previewBank(env, actor, input),
+  'bank.import': (env, actor, input) => importBank(env, actor, input),
   'course.assessment': (env, actor, input) => saveAssessment(env, actor, input),
   'course.attendance': (env, actor, input) => saveAttendance(env, actor, input),
   'course.survey': (env, actor, input) => saveSurvey(env, actor, input),

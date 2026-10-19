@@ -7,7 +7,7 @@ import { acknowledgmentDocument, acknowledgmentEvidence } from './acknowledgment
 import { issueAgentCredential, requireAgentScope } from './agent-credentials'
 import { actions } from './actions'
 import { currentActor, isManager, type Actor } from './actor'
-import { BeamError, one } from './core'
+import { BeamError, insist, one } from './core'
 import { listProposals } from './agent-work'
 import { Input } from './input'
 import { attachmentFile } from './learning'
@@ -20,6 +20,7 @@ import { dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage
 import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
 import { managePage } from './ui/compliance'
 import { importPage, previewPage } from './ui/movein'
+import { bankFileResponse, bankPreviewPage } from './ui/bank'
 import { agentPage } from './ui/agent'
 import { evidencePage } from './ui/evidence'
 import { practicePage, questionsPage } from './ui/practice'
@@ -131,6 +132,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   const path = url.pathname
   if (request.method === 'POST') {
     if (path === '/app/import/preview') return await previewPage(env, actor, await Input.from(request), url)
+    const bank = path.match(/^\/app\/courses\/([\w-]+)\/bank\/preview$/)?.[1]
+    if (bank) { const input = await Input.from(request); insist(input.text('course') === bank, 'invalid_course'); return await bankPreviewPage(env, actor, bank, input, url) }
     const name = path.match(/^\/app\/do\/([\w.]+)$/)?.[1]
     const action = name ? actions[name] : undefined
     if (!action) throw new BeamError('not_found', 404)
@@ -168,6 +171,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/acknowledgments\/([\w-]+)\/evidence$/))) return acknowledgmentEvidence(env, actor, match[1])
   if ((match = path.match(/^\/app\/courses\/([\w-]+)$/))) return coursePage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/courses\/([\w-]+)\/compare$/))) return revisionComparePage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/courses\/([\w-]+)\/bank\.(csv|gift)$/))) return bankFileResponse(env, actor, match[1], match[2] as 'csv' | 'gift')
   if ((match = path.match(/^\/app\/sources\/([\w-]+)\/compare$/))) return sourceComparePage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/revisions\/([\w-]+)$/))) return revisionPage(env, actor, match[1], url)
   if (path === '/app/paths') return pathsPage(env, actor, url)
