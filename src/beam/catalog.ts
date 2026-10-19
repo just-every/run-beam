@@ -1,6 +1,6 @@
 // ORG-007: the learner's catalog. Whoever manages a course's catalog (AUTHOR-005) offers it for self-enrollment, on
 // approval or only by assignment, to everyone or to chosen teams. A learner searches and browses the courses offered to
-// them by subject (folder), skill (tag), role (a role path that includes the course), language and longest duration;
+// them by subject (folder), skill (tag, or a reviewed LEARN-007 skill mapped to the course), role (a role path that includes the course), language and longest duration;
 // enrolls in an open course, requests one that needs approval, and withdraws from optional work they chose, which ends
 // the assignment as cancelled and keeps its history. Whoever may enroll the learner in that course decides a request.
 // Work someone else assigned is required; what the learner chose or asked for is optional. Favorites and saved
@@ -60,14 +60,15 @@ export async function catalog(env: Bindings, actor: Actor, query: CatalogQuery) 
       EXISTS (SELECT 1 FROM beam_enrollment_requests r WHERE r.learner_id = ?1 AND r.course_id = c.id AND r.state = 'open') AS requested
     FROM beam_courses c WHERE ${OFFERED}
       AND (?2 = '%%' OR lower(c.title) LIKE ?2 OR lower(COALESCE(json_extract(c.draft_json, '$.summary'), '')) LIKE ?2 OR lower(c.tags) LIKE ?2 OR lower(c.objectives) LIKE ?2)
-      AND (?3 = '' OR c.folder = ?3) AND (?4 = '' OR EXISTS (SELECT 1 FROM json_each(c.tags) WHERE value = ?4)) AND (?5 = '' OR c.language = ?5)
+      AND (?3 = '' OR c.folder = ?3) AND (?4 = '' OR EXISTS (SELECT 1 FROM json_each(c.tags) WHERE value = ?4) OR c.id IN (SELECT k.course_id FROM beam_course_skills k JOIN beam_skills s ON s.id = k.skill_id WHERE s.reviewed_at IS NOT NULL AND lower(s.name) = ?4)) AND (?5 = '' OR c.language = ?5)
       AND (?6 IS NULL OR (c.duration_minutes IS NOT NULL AND c.duration_minutes <= ?6))
       AND (?7 = '' OR c.id IN (SELECT q.course_id FROM beam_path_requirements q JOIN beam_paths p ON p.current_revision_id = q.path_revision_id WHERE p.id = ?7))
     ORDER BY c.title`, actor.id, needle, query.subject, query.skill, query.language, query.maxMinutes, query.role)
   const shaped = courses.map(row => ({ ...row, tags: JSON.parse(row.tags), objectives: JSON.parse(row.objectives), favorite: row.favorite === 1, requested: row.requested === 1,
     standing: row.openAssignment ? (OPTIONAL.includes(row.openReason) ? 'optional' : 'required') : row.requested === 1 ? 'requested' : null }) as Row)
   const [facets, work, requests, searches] = await Promise.all([
-    all(env, `SELECT DISTINCT c.folder, c.language, c.tags FROM beam_courses c WHERE ${OFFERED}`, actor.id),
+    // LEARN-007: a course's reviewed taxonomy skills are skills alongside its tags.
+    all(env, `SELECT DISTINCT c.folder, c.language, c.tags, (SELECT json_group_array(lower(s.name)) FROM beam_course_skills k JOIN beam_skills s ON s.id = k.skill_id WHERE k.course_id = c.id AND s.reviewed_at IS NOT NULL) AS mapped FROM beam_courses c WHERE ${OFFERED}`, actor.id),
     all(env, "SELECT a.id, c.title AS courseTitle, a.reason, a.due_at AS dueAt, a.timezone, a.status FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.learner_id = ? AND (a.status = 'open' OR (a.status = 'cancelled' AND a.reason IN ('self', 'request'))) ORDER BY a.due_at", actor.id),
     all(env, 'SELECT r.id, r.course_id AS course, c.title AS courseTitle, r.note, r.state, r.requested_at AS requestedAt, r.reason, m.name AS decidedByName FROM beam_enrollment_requests r JOIN beam_courses c ON c.id = r.course_id LEFT JOIN beam_members m ON m.id = r.decided_by WHERE r.learner_id = ? ORDER BY r.requested_at DESC', actor.id),
     all(env, 'SELECT id, name, query FROM beam_saved_searches WHERE member_id = ? ORDER BY name', actor.id),
@@ -75,7 +76,7 @@ export async function catalog(env: Bindings, actor: Actor, query: CatalogQuery) 
   const roles = await all(env, `SELECT DISTINCT p.id, p.name FROM beam_paths p JOIN beam_path_requirements q ON q.path_revision_id = p.current_revision_id JOIN beam_courses c ON c.id = q.course_id WHERE ${OFFERED} ORDER BY p.name`, actor.id)
   return {
     query, courses: shaped,
-    facets: { subjects: [...new Set(facets.map(row => row.folder).filter(Boolean))].sort(), languages: [...new Set(facets.map(row => row.language))].sort(), skills: [...new Set(facets.flatMap(row => JSON.parse(row.tags)))].sort(), roles },
+    facets: { subjects: [...new Set(facets.map(row => row.folder).filter(Boolean))].sort(), languages: [...new Set(facets.map(row => row.language))].sort(), skills: [...new Set(facets.flatMap(row => [...JSON.parse(row.tags), ...JSON.parse(row.mapped)]))].sort(), roles },
     required: work.filter(row => row.status === 'open' && !OPTIONAL.includes(row.reason)), optional: work.filter(row => row.status === 'open' && OPTIONAL.includes(row.reason)), withdrawn: work.filter(row => row.status === 'cancelled'),
     requests, favorites: shaped.filter(row => row.favorite), searches: searches.map(row => ({ ...row, query: JSON.parse(row.query) }) as Row),
   }

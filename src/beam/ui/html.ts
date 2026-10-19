@@ -44,6 +44,7 @@ const NAV: NavItem[] = [
   { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) || !!actor.grants.reports },
   LEARNING,
   { href: '/app/catalog', label: 'Catalog', icon: 'book', show: () => true },
+  { href: '/app/skills', label: 'Skills', icon: 'route', show: actor => !!actor.business },
   { href: '/app/sessions', label: 'Sessions', icon: 'calendar', show: () => true },
   { href: '/app/recognition', label: 'Recognition', icon: 'rosette', show: actor => !!actor.business },
   { href: '/app/external', label: 'Certificates', icon: 'clipboard', show: actor => !!actor.business },

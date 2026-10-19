@@ -25,6 +25,12 @@ If the course has a practical part, **Submit evidence** describes what the perso
 
 Some courses offer **Practice**: short scenarios staff can try as often as they like. Practice never counts toward completion and nobody scores it.
 
+## Skills and suggestions
+
+**Skills** lists the skill taxonomy and, under **My skills and suggestions**, the skills your job role needs and the goals you chose, each with why it is there. A skill counts as met only when your manager records a diagnostic result saying so; finishing a course is shown as what you did, never as proof of the skill. Beam suggests the fewest courses that cover what is still needed and says which role, goal or diagnostic each course answers. Your manager can approve that path, which assigns it to you. **Turn optional personalization off** to stop using your goals; anything already assigned stays assigned.
+
+The owner proposes skills, a reviewer reviews them, and the owner maps courses (and their objectives) and job roles to reviewed skills on the same page. Managers record diagnostic results and approve paths from each person's skills page.
+
 ## Certificates
 
 Every completion issues a numbered certificate from your business, naming the course revision. Use the browser's print command to save a copy. A certificate records completion of your own training; it is not an accreditation or a statement of competence.

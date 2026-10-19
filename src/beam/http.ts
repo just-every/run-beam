@@ -28,6 +28,7 @@ import { evidencePage } from './ui/evidence'
 import { practicePage, questionsPage } from './ui/practice'
 import { reportCsvResponse, reportPage, reportXlsxResponse } from './ui/report'
 import { qualityPage } from './ui/quality'
+import { personSkillsPage, skillsPage } from './ui/skills'
 import { auditCsvResponse, auditPage } from './ui/audit'
 import { announcementsPage } from './ui/announcements'
 import { notificationsPage } from './ui/notifications'
@@ -222,6 +223,9 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/import') return importPage(env, actor, url)
   if (path === '/app/reports') return reportPage(env, actor, url)
   if (path === '/app/quality') return qualityPage(env, actor, url)
+  if (path === '/app/skills') return skillsPage(env, actor, url)
+  const skillsOf = path.match(/^\/app\/skills\/([\w-]+)$/)
+  if (skillsOf) return personSkillsPage(env, actor, skillsOf[1], url)
   if (path === '/app/reports.csv') return reportCsvResponse(env, actor, url)
   if (path === '/app/reports.xlsx') return reportXlsxResponse(env, actor, url)
   if (path === '/app/audit') return auditPage(env, actor, url)
