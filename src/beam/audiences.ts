@@ -15,6 +15,7 @@
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { insertAssignments } from './assignments'
+import { controlledExecution } from './automation-execution'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
@@ -127,46 +128,57 @@ export async function previewAudience(env: Bindings, actor: Actor, input: Input)
   return preview
 }
 
-/** Applies one audience's plan. Joins claim the stint first (one open stint per person), so racing runs never enroll twice. */
-async function syncOne(env: Bindings, actor: Actor, audience: Row) {
+/** Every join and departure is controlled before any membership or enrollment
+ * changes. A join's reserved assignment survives a failed response and replay. */
+async function syncOne(env: Bindings, actor: Actor, audience: Row, manual: boolean) {
   const { joins, leaves } = await plan(env, audience)
-  const at = now(), joined: Row[] = [], left: Row[] = []
+  const at = now(), joined: Row[] = [], left: Row[] = [], held: Row[] = []
   const business = await requireBusiness(env)
+  const execute = (event: string, learner: string, input: unknown, perform: (artifact: string) => Promise<string>) => controlledExecution(env, { kind: 'audience', rule: audience.id, event, learner, authority: audience.enabled_by, unit: audience.unit_id, input, manual }, perform)
   for (const leave of leaves) {
-    const [closed] = await env.DB.batch([stmt(env, 'UPDATE beam_audience_members SET left_at = ?, left_reason = ? WHERE id = ? AND left_at IS NULL', at, leave.reason, leave.stint)])
-    if (closed.meta.changes !== 1) continue
-    // Only the open assignment this audience made is withdrawn; completed work and evidence stay.
-    if (leave.assignment) await env.DB.batch([stmt(env, "UPDATE beam_assignments SET status = 'cancelled' WHERE id = ? AND status = 'open'", leave.assignment),
-      stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', at, audience.enabled_by, 'assignment.cancel', leave.assignment, JSON.stringify({ reason: `left audience ${audience.name}: ${leave.reason}`, audience: audience.id }))])
-    left.push({ member: leave.member, name: leave.name, reason: leave.reason })
+    const result = await execute(`leave:${leave.stint}`, leave.member, leave, async () => {
+      await commit(env, [
+        stmt(env, 'UPDATE beam_audience_members SET left_at=?,left_reason=? WHERE id=? AND left_at IS NULL', at, leave.reason, leave.stint),
+        ...(leave.assignment ? [stmt(env, "UPDATE beam_assignments SET status='cancelled' WHERE id=? AND status='open'", leave.assignment)] : []),
+      ], { actor: audience.enabled_by, action: 'audience.leave', subject: leave.member, detail: { audience: audience.id, reason: leave.reason, assignment: leave.assignment } })
+      left.push({ member: leave.member, name: leave.name, reason: leave.reason })
+      return 'left'
+    })
+    if (result !== 'left' && result !== 'already_ran') held.push({ member: leave.member, outcome: result })
   }
   for (const join of joins) {
-    const id = newId()
-    const [claimed] = await env.DB.batch([stmt(env, 'INSERT OR IGNORE INTO beam_audience_members (id, audience_id, member_id, joined_at, outcome) VALUES (?, ?, ?, ?, ?)', id, audience.id, join.member, at, join.outcome)])
-    if (claimed.meta.changes !== 1) continue
-    let outcome = join.outcome
-    if (outcome === 'assigned') {
-      const { created } = await insertAssignments(env, { id: audience.enabled_by } as Actor, [{ learner: join.member, course: audience.course_id, dueDate: addDays(localDate(at, business.timezone), audience.due_days), dueTime: '17:00', timezone: business.timezone, reason: `audience ${audience.id}` }], 'assignment.audience')
-      outcome = created.length ? 'assigned' : 'already_open'
-      await env.DB.prepare('UPDATE beam_audience_members SET assignment_id = ?, outcome = ? WHERE id = ?').bind(created[0] ?? null, outcome, id).run()
-    }
-    joined.push({ member: join.member, name: join.name, outcome })
+    const previous = await one(env, 'SELECT id FROM beam_audience_members WHERE audience_id=? AND member_id=? ORDER BY joined_at DESC,rowid DESC LIMIT 1', audience.id, join.member)
+    const result = await execute(`join:${join.member}:${previous?.id ?? 'first'}`, join.member, { member: join.member, course: audience.course_id }, async artifact => {
+      let outcome = join.outcome, assignment: string | null = null
+      insist(outcome !== 'course_unavailable', 'target_unavailable', 409)
+      const prior = await one(env, 'SELECT id FROM beam_assignments WHERE id=?', artifact)
+      if (prior) { outcome = 'assigned'; assignment = prior.id }
+      else if (outcome === 'assigned') {
+        const { created } = await insertAssignments(env, { id: audience.enabled_by } as Actor, [{ id: artifact, learner: join.member, course: audience.course_id, dueDate: addDays(localDate(at, business.timezone), audience.due_days), dueTime: '17:00', timezone: business.timezone, reason: `audience ${audience.id}` }], 'assignment.audience')
+        outcome = created.length ? 'assigned' : 'already_open'
+        assignment = created[0] ?? null
+      }
+      await env.DB.prepare('INSERT OR IGNORE INTO beam_audience_members(id,audience_id,member_id,joined_at,outcome,assignment_id) VALUES(?,?,?,?,?,?)').bind(newId(), audience.id, join.member, at, outcome, assignment).run()
+      joined.push({ member: join.member, name: join.name, outcome })
+      return outcome
+    })
+    if (!['member','assigned','already_open','already_completed','already_ran'].includes(result)) held.push({ member: join.member, outcome: result })
   }
-  await commit(env, [stmt(env, 'UPDATE beam_audiences SET synced_at = ? WHERE id = ?', at, audience.id)], { actor, action: 'audience.sync', subject: audience.id, detail: { joined, left } })
-  return { id: audience.id, joined, left }
+  await commit(env, [stmt(env, 'UPDATE beam_audiences SET synced_at=? WHERE id=?', at, audience.id)], { actor, action: 'audience.sync', subject: audience.id, detail: { joined, left, held } })
+  return { id: audience.id, joined, left, held }
 }
 
 /** Synchronizes every active audience (or one): after roster changes, on activation and from the button. */
-export async function syncAudiences(env: Bindings, actor: Actor, only?: string) {
+export async function syncAudiences(env: Bindings, actor: Actor, only?: string, manual = false) {
   const results = []
-  for (const audience of await all(env, "SELECT * FROM beam_audiences WHERE state = 'active' AND (? IS NULL OR id = ?) ORDER BY created_at", only ?? null, only ?? null)) results.push(await syncOne(env, actor, audience))
+  for (const audience of await all(env, "SELECT * FROM beam_audiences WHERE state = 'active' AND (? IS NULL OR id = ?) ORDER BY created_at", only ?? null, only ?? null)) results.push(await syncOne(env, actor, audience, manual))
   return results
 }
 
 export async function syncAudience(env: Bindings, actor: Actor, input: Input) {
   const audience = await requireAudience(env, actor, input.text('audience'))
   insist(audience.state === 'active', 'audience_not_active', 409)
-  return (await syncAudiences(env, actor, audience.id))[0]
+  return (await syncAudiences(env, actor, audience.id, true))[0]
 }
 
 export async function setAudienceState(env: Bindings, actor: Actor, input: Input) {
@@ -176,7 +188,7 @@ export async function setAudienceState(env: Bindings, actor: Actor, input: Input
   if (state === 'active') insist(audience.previewed_at, 'preview_required', 409)
   await commit(env, [stmt(env, "UPDATE beam_audiences SET state = ?, enabled_by = CASE WHEN ?2 = 'active' THEN ?3 ELSE enabled_by END, enabled_at = CASE WHEN ?2 = 'active' THEN ?4 ELSE enabled_at END WHERE id = ?5", state, state, actor.id, now(), audience.id)],
     { actor, action: state === 'active' ? 'audience.enable' : 'audience.pause', subject: audience.id })
-  return { id: audience.id, state, ...(state === 'active' ? { sync: (await syncAudiences(env, actor, audience.id))[0] } : {}) }
+  return { id: audience.id, state, ...(state === 'active' ? { sync: (await syncAudiences(env, actor, audience.id, true))[0] } : {}) }
 }
 
 /** Keeps a person out of an audience with a reason; their open audience assignment is withdrawn, their records stay. */
@@ -187,7 +199,7 @@ export async function excludeFromAudience(env: Bindings, actor: Actor, input: In
   insist(!await one(env, 'SELECT 1 FROM beam_audience_exclusions WHERE audience_id = ? AND member_id = ? AND lifted_at IS NULL', audience.id, member), 'already_excluded', 409)
   await commit(env, [stmt(env, 'INSERT INTO beam_audience_exclusions (id, audience_id, member_id, reason, excluded_by, excluded_at) VALUES (?, ?, ?, ?, ?, ?)', newId(), audience.id, member, reason, actor.id, now())],
     { actor, action: 'audience.exclude', subject: audience.id, detail: { member, reason } })
-  return { id: audience.id, member, sync: audience.state === 'active' ? (await syncAudiences(env, actor, audience.id))[0] : null }
+  return { id: audience.id, member, sync: audience.state === 'active' ? (await syncAudiences(env, actor, audience.id, true))[0] : null }
 }
 
 export async function includeInAudience(env: Bindings, actor: Actor, input: Input) {
@@ -196,7 +208,7 @@ export async function includeInAudience(env: Bindings, actor: Actor, input: Inpu
   const result = await env.DB.batch([stmt(env, 'UPDATE beam_audience_exclusions SET lifted_by = ?, lifted_at = ? WHERE audience_id = ? AND member_id = ? AND lifted_at IS NULL', actor.id, now(), audience.id, member),
     stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, 'audience.include', audience.id, JSON.stringify({ member }))])
   insist(result[0].meta.changes === 1, 'not_excluded', 404)
-  return { id: audience.id, member, sync: audience.state === 'active' ? (await syncAudiences(env, actor, audience.id))[0] : null }
+  return { id: audience.id, member, sync: audience.state === 'active' ? (await syncAudiences(env, actor, audience.id, true))[0] : null }
 }
 
 /** The people in the given audiences now (LIB-006 requirements read these). */

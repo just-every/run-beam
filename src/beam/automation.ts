@@ -9,6 +9,7 @@
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { insertAssignments } from './assignments'
+import { controlledExecution } from './automation-execution'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
@@ -93,7 +94,7 @@ async function events(env: Bindings, rule: Row, only: { assignment?: string; com
 }
 
 async function outcome(env: Bindings, rule: Row, event: Event): Promise<Outcome> {
-  if (await one(env, 'SELECT 1 FROM beam_automation_runs WHERE rule_id = ? AND event_key = ?', rule.id, event.key)) return 'already_ran'
+  if (await one(env, "SELECT 1 FROM beam_automation_runs WHERE rule_id = ? AND event_key = ? AND outcome NOT IN ('target_unavailable','failed')", rule.id, event.key)) return 'already_ran'
   const target = await one(env, 'SELECT published_revision_id, retired_at FROM beam_courses WHERE id = ?', rule.target_course_id)
   if (!target?.published_revision_id || target.retired_at) return 'target_unavailable'
   if (await one(env, "SELECT 1 FROM beam_assignments WHERE learner_id = ? AND course_id = ? AND status = 'open'", event.learner, rule.target_course_id)) return 'already_open'
@@ -124,23 +125,25 @@ export async function setRuleState(env: Bindings, actor: Actor, input: Input) {
   return { id: rule.id, state }
 }
 
-/** Runs one rule for one event: claims the event first, so it acts once however often the event arrives. */
+/** The native enrollment keeps a reserved assignment id, so even an interrupted
+ * response can be replayed without making the same event's assignment twice. */
 async function run(env: Bindings, rule: Row, event: Event, depth: number, replay: boolean) {
-  const result = await outcome(env, rule, event)
-  if (result === 'already_ran') return 'already_ran'
-  const id = newId(), at = now()
-  const recorded = depth >= MAX_DEPTH ? 'depth_limit' : result === 'would_assign' ? 'assigned' : result
-  const [claimed] = await env.DB.batch([
-    stmt(env, 'INSERT OR IGNORE INTO beam_automation_runs (id, rule_id, event_key, learner_id, source_assignment_id, outcome, replay, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, rule.id, event.key, event.learner, event.assignment, recorded, replay ? 1 : 0, at),
-    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', at, rule.enabled_by, 'automation.run', rule.id, JSON.stringify({ run: id, event: event.key, learner: event.learner, outcome: recorded, replay })),
-  ])
-  if (claimed.meta.changes !== 1) return 'already_ran'
-  if (recorded !== 'assigned') return recorded
-  const business = await requireBusiness(env)
-  const { created } = await insertAssignments(env, { id: rule.enabled_by } as Actor, [{ learner: event.learner, course: rule.target_course_id, dueDate: addDays(localDate(at, business.timezone), rule.due_days), dueTime: '17:00', timezone: business.timezone, reason: `rule ${rule.id}` }], 'assignment.rule', depth + 1)
-  if (!created.length) { await env.DB.prepare("UPDATE beam_automation_runs SET outcome = 'already_open' WHERE id = ?").bind(id).run(); return 'already_open' }
-  await env.DB.prepare('UPDATE beam_automation_runs SET target_assignment_id = ? WHERE id = ?').bind(created[0], id).run()
-  return 'assigned'
+  if (await one(env, "SELECT 1 FROM beam_automation_runs WHERE rule_id=? AND event_key=? AND outcome NOT IN ('target_unavailable','failed')", rule.id, event.key)) return 'already_ran'
+  return await controlledExecution(env, { kind: 'follow_on', rule: rule.id, event: event.key, learner: event.learner, authority: rule.enabled_by, unit: rule.unit_id, input: { ...event, trigger: rule.trigger, target: rule.target_course_id }, manual: replay }, async artifact => {
+    const prior = await one(env, 'SELECT id FROM beam_assignments WHERE id=?', artifact)
+    const result = prior ? 'assigned' : await outcome(env, rule, event)
+    insist(result !== 'target_unavailable', 'target_unavailable', 409)
+    const recorded = depth >= MAX_DEPTH ? 'depth_limit' : result === 'would_assign' ? 'assigned' : result
+    let assignment = prior?.id ?? null, final = recorded
+    if (recorded === 'assigned' && !prior) {
+      const business = await requireBusiness(env)
+      const { created } = await insertAssignments(env, { id: rule.enabled_by } as Actor, [{ id: artifact, learner: event.learner, course: rule.target_course_id, dueDate: addDays(localDate(now(), business.timezone), rule.due_days), dueTime: '17:00', timezone: business.timezone, reason: `rule ${rule.id}` }], 'assignment.rule', depth + 1)
+      assignment = created[0] ?? null
+      if (!assignment) final = 'already_open'
+    }
+    await commit(env, [stmt(env, `INSERT INTO beam_automation_runs(id,rule_id,event_key,learner_id,source_assignment_id,target_assignment_id,outcome,replay,at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(rule_id,event_key) DO UPDATE SET target_assignment_id=excluded.target_assignment_id,outcome=excluded.outcome,replay=excluded.replay,at=excluded.at`, newId(), rule.id, event.key, event.learner, event.assignment, assignment, final, replay ? 1 : 0, now())], { actor: rule.enabled_by, action: 'automation.run', subject: rule.id, detail: { event: event.key, learner: event.learner, outcome: final, replay } })
+    return final
+  })
 }
 
 /** A live event from enrollment, completion or a quiz attempt: every active rule on that course and trigger runs. */

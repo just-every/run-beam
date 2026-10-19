@@ -10,6 +10,7 @@ import { answerSurvey } from './survey'
 import { assignCourse, assignPath, assignRenewals, previewPath, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
+import { approveAutomation, saveAutomationPolicy } from './automation-policy'
 import { previewRule, replayRule, saveRule, setRuleState } from './automation'
 import { previewPolicy, runPolicy, savePolicy, setPolicyEnabled } from './inactivity'
 import { cancelSession, rescheduleSession, scheduleSession, setSeats, updateSession } from './live'
@@ -85,6 +86,8 @@ export const actions: Record<string, Handler> = {
   'blocker.decline': (env, actor, input) => declineBlocker(env, actor, input),
   'exception.grant': (env, actor, input) => grantException(env, actor, input),
   'exception.policy': (env, actor, input) => setExceptionPolicy(env, actor, input),
+  'automation.policy': (env, actor, input) => saveAutomationPolicy(env, actor, input),
+  'automation.approve': (env, actor, input) => approveAutomation(env, actor, input),
   'automation.save': (env, actor, input) => saveRule(env, actor, input),
   'course.enrollment': (env, actor, input) => setEnrollment(env, actor, input),
   'catalog.enroll': (env, actor, input) => selfEnroll(env, actor, input),

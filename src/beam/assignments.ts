@@ -14,6 +14,8 @@ import { followOn } from './automation'
 import { computeDues, dueRules, DUE_TIME, type Anchor } from './due-rules'
 
 export interface NewAssignment {
+  /** An unattended execution reserves its assignment id before writing, for safe explicit replay. */
+  id?: string
   learner: string
   course: string
   dueDate: string
@@ -41,7 +43,7 @@ export async function insertAssignments(env: Bindings, actor: Actor, items: NewA
     // AUTHOR-005: a retired course is never newly assigned, by any door (person, team, path or renewal).
     insist(!course.retired_at, 'course_retired', 409, { course: item.course, title: course.title })
     const dueAt = zonedInstant(item.dueDate, item.dueTime, item.timezone)
-    const id = newId(), at = now()
+    const id = item.id ?? newId(), at = now()
     const window = item.access ?? await enrolmentWindow(env, item.course, item.pathRevision, at)
     const [result] = await env.DB.batch([
       stmt(env, "INSERT OR IGNORE INTO beam_assignments (id, learner_id, course_id, course_revision_id, path_revision_id, prerequisite_course_id, renewal_days, due_date, due_time, timezone, due_at, status, reason, assigned_by, assigned_at, access_opens_at, access_closes_at, access_rule, due_anchor, due_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?)", id, item.learner, item.course, course.published_revision_id, item.pathRevision ?? null, item.prerequisite ?? null, item.renewalDays ?? null, item.dueDate, item.dueTime, item.timezone, dueAt, item.reason, actor.id, at, window.opensAt, window.closesAt, window.rule, item.dueAnchor ?? null, item.dueDays ?? null),
