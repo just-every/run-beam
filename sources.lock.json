@@ -3043,7 +3043,7 @@
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
-      "sha256": "5a3dfc4b7053a429d9e18530800a51020482c9225a2d23a173241e354ae3f477",
+      "sha256": "952435ecce20dbe463823cde18d534f3b4ae066376e750982a6afadbb7e51728",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
@@ -3063,7 +3063,7 @@
       "executable": false
     },
     "tests/beam/regression-inactivity.mjs": {
-      "sha256": "5e19b0f6af1eb3e5a4c01cb7575daa268d5888d94cff05821021600740eafd00",
+      "sha256": "5cc6e22f964d17c7e75e824b51bfc82d3b0d61fbd01a725546441d8bc9c19b45",
       "executable": false
     },
     "tests/beam/regression-instructors.mjs": {

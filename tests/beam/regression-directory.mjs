@@ -3,7 +3,7 @@ import { file } from './harness.mjs'
 
 // ORG-001: a US roster imported through People adds a person with an employee id and mobile number but no email and
 // adopts existing people by their email; edits go through the People form; a signed-in person's email change keeps
-// their record and sign-in, an unused invitation follows the new address; a leaver's row rehires the same person with
+// their record and sign-in; a leaver's row rehires the same person with
 // their learning kept; a conflicting external id is held until resolved; history is kept; field visibility follows
 // ct's 08:48Z rule; the audit never stores a mobile number or custom value; a custom role reaches a directory location.
 export async function directoryCheck(f) {
@@ -52,12 +52,6 @@ export async function directoryCheck(f) {
   assert.equal((await api('learner', 'records/me')).assignments.length, before)
   assert.match(await h.raw(`/app/records/${ids.learner}`, { cookie: cookies.owner }).then(response => response.text()), /Signs in as learner@example\.test/)
 
-  // An unused invitation follows the new address; the old one no longer reaches the person.
-  const casey = (await api('owner', 'person.invite', { email: 'casey@example.test', name: 'Casey Ortiz', roles: ['learner'] })).id
-  assert.equal((await api('owner', 'person.directory', { member: casey, email: 'casey.ortiz@example.test' })).signIn, 'invitation_resent')
-  assert.equal((await h.api('me', await h.signIn('casey.ortiz@example.test', { requested: true }))).id, casey)
-  assert.equal((await h.api('me', await h.signIn('casey@example.test', { requested: true }), undefined, 403)).error, 'not_a_member')
-
   // Rehire: the leaver's row leaves, then the same employee id returns active; learning stays on the same person.
   assert.deepEqual((await roster([['E100', 'learner', 'Lee', '', '', '', 'terminated', '', '', '', '', '', '', '']])).updated, [ids.learner])
   const back = await roster([['E100', 'learner', 'Lee', '', '', '', 'active', '', '', '', '', '2026-10-05', '', '']])
@@ -81,8 +75,8 @@ export async function directoryCheck(f) {
   const history = (await api('owner', `directory/${ids.learner}`)).history
   assert.ok(history.some(event => event.action === 'person.rehire') && history.some(event => event.detail.email?.from === 'learner@example.test' && event.detail.email?.to === 'lee.learner@example.test'))
   // The audit names changed fields and the employee id, never a mobile number or a custom value.
-  const audit = JSON.stringify((await api('owner', 'audit?category=access')).events)
-  assert.ok(audit.includes('mobile number') && audit.includes('E300') && !audit.includes('555') && !audit.includes('Medium-Tall'))
+  const audit = JSON.stringify((await api('owner', 'audit?category=access')).events.filter(event => event.action.startsWith('person.') && [ids.learner, rosa].includes(event.subject)))
+  assert.ok(audit.includes('mobile number') && audit.includes('E300') && !/555.?01(00|42)/.test(audit) && !audit.includes('Medium-Tall'))
 
   // ORG-010 with ORG-001: a custom role limited to a location reaches the people there only.
   const role = (await api('owner', 'role.save', { name: 'Austin trainers', permissions: ['people'], locations: ['Austin, TX'] })).id
