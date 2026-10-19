@@ -34,9 +34,10 @@ const UNZIPPED_LIMIT = 50_000_000
 
 function inflate(data: Uint8Array, expected: number): Uint8Array {
   insist(expected > 0 && expected <= UNZIPPED_LIMIT, 'xlsx_entry_size')
-  // workerd needs one byte of EOF headroom (cloudflare/workerd#6286).
-  // The exact-length check below still enforces the declared ZIP size.
-  const out = inflateRawSync(data, { maxOutputLength: expected + 1 })
+  // Request the engine result so workerd enforces maxOutputLength while
+  // processing chunks, rather than growing its synchronous C++ buffer past it.
+  const result = inflateRawSync(data, { maxOutputLength: expected, info: true })
+  const out = (result as unknown as { buffer: Uint8Array }).buffer
   insist(out.length === expected, 'xlsx_entry_size')
   return out
 }
