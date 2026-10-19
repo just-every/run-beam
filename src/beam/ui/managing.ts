@@ -16,6 +16,7 @@ import { unitsCard } from './units'
 import { rolesCard } from './roles'
 import { auditorsCard } from './evidence'
 import { policyCard } from './exceptions'
+import { inactivityCard } from './inactivity'
 import { exceptionPolicy } from '../exceptions'
 
 const ROLE_LABELS: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
@@ -60,7 +61,8 @@ ${actor.owner ? card('Invite a staff member', h`<p class="muted">Beam is for adu
 ${isManager(actor) || actor.adminUnits.length ? card('Teams', h`${list.teams.map(team => teamDetails(actor, team, list, everyone, zone))}${actor.owner ? form('team.create', '/app/people', [field('New team (for example Front desk)', 'name')], 'Add team') : ''}`) : ''}
 ${await unitsCard(env, actor, list.members, list.teams)}
 ${await rolesCard(env, actor, list.members, list.teams)}
-${await auditorsCard(env, actor, list.members, list.teams)}`
+${await auditorsCard(env, actor, list.members, list.teams)}
+${await inactivityCard(env, actor, list.teams as { id: string; name: string }[], zone)}`
   return page('People', actor, body, { current: '/app/people', url, wide: true })
 }
 

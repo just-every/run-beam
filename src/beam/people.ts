@@ -87,10 +87,15 @@ export async function setRoles(env: Bindings, actor: Actor, input: Input) {
 }
 
 export async function setAccess(env: Bindings, request: Request, actor: Actor, input: Input) {
-  requireOwner(actor)
-  const member = await memberByEmail(env, input.text('email', { max: 254 }))
   const status = input.text('status')
   insist(status === 'active' || status === 'inactive', 'invalid_status')
+  return await changeAccess(env, request, actor, input.text('email', { max: 254 }), status)
+}
+
+/** The owner removes or restores one person's access through Base: removal ends their sessions; evidence stays. */
+export async function changeAccess(env: Bindings, request: Request, actor: Actor, email: string, status: 'active' | 'inactive', detail?: unknown) {
+  requireOwner(actor)
+  const member = await memberByEmail(env, email)
   const auth = operatorAuth(env)
   const operator = await operatorFor(env, request, member.email)
   if (!operator && status === 'active') {
@@ -103,7 +108,7 @@ export async function setAccess(env: Bindings, request: Request, actor: Actor, i
   insist(operator.role !== 'owner', 'owner_access_fixed')
   await auth.setOperatorStatus(request, operator.id, status)
   if (status === 'inactive') for (const session of await auth.listSessions(request, operator.id)) if (session.active) await auth.revokeSession(request, session.id)
-  await commit(env, [], { actor, action: `person.${status}`, subject: member.id })
+  await commit(env, [], { actor, action: `person.${status}`, subject: member.id, detail })
   return { email: member.email, status }
 }
 

@@ -10,6 +10,7 @@ import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath,
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
 import { previewRule, replayRule, saveRule, setRuleState } from './automation'
+import { previewPolicy, runPolicy, savePolicy, setPolicyEnabled } from './inactivity'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
@@ -49,6 +50,10 @@ export const actions: Record<string, Handler> = {
   'exception.grant': (env, actor, input) => grantException(env, actor, input),
   'exception.policy': (env, actor, input) => setExceptionPolicy(env, actor, input),
   'automation.save': (env, actor, input) => saveRule(env, actor, input),
+  'inactivity.policy': (env, actor, input) => savePolicy(env, actor, input),
+  'inactivity.preview': (env, actor) => previewPolicy(env, actor),
+  'inactivity.enable': (env, actor, input) => setPolicyEnabled(env, actor, input),
+  'inactivity.run': (env, actor, input, request) => runPolicy(env, actor, input, request),
   'automation.preview': (env, actor, input) => previewRule(env, actor, input),
   'automation.state': (env, actor, input) => setRuleState(env, actor, input),
   'automation.replay': (env, actor, input) => replayRule(env, actor, input),

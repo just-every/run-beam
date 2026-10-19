@@ -15,6 +15,7 @@ import { acknowledgmentCard } from './acknowledgments'
 import { reminderMessages } from '../plans'
 import { manages, permits } from '../scope'
 import { blockerCard, exceptionCard, exceptionNotice } from './exceptions'
+import { noticeCard } from './inactivity'
 import { scenariosFor } from '../practice'
 import { myQuestions } from '../questions'
 import { announcements } from '../announcements'
@@ -56,7 +57,7 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
   const completed = card('Completed', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} (revision ${row.revisionNumber})`, meta: h`${formatDate(row.completedAt, zone)}${row.expiresAt ? h` · renew by ${formatDate(row.expiresAt, zone)}` : ''} · <a href="/app/certificates/${row.certificate}">Certificate</a>` }))) : h`<p>No completions yet.</p>${raw(documentSheet)}`, { id: 'done', className: record.completions.length ? '' : 'empty' })
   const side = [review, assess].filter(Boolean)
   const body = h`<h1>My learning</h1>
-${reminderCard}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
+${await noticeCard(env, actor, zone)}${reminderCard}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
 ${open.length ? assigned : ''}
 <div class="grid">${open.length ? '' : assigned}${completed}${side}</div>`
   return page('My learning', actor, body, { current: '/app/learning', url })
