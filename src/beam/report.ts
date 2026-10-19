@@ -72,7 +72,7 @@ const COLUMNS: [string, (row: any) => unknown][] = [
 ]
 
 // A cell a spreadsheet would read as a formula is prefixed so it stays text.
-const cell = (value: unknown) => {
+export const cell = (value: unknown) => {
   let text = String(value ?? '')
   if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text

@@ -77,7 +77,7 @@ export async function createPath(env: Bindings, actor: Actor, input: Input) {
   insist(await one(env, 'SELECT 1 FROM beam_teams WHERE id = ?', team), 'team_not_found', 404)
   requireTeamScope(actor, team)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_paths (id, name, team_id, created_at) VALUES (?, ?, ?, ?)', id, name, team, now())], { actor: actor.id, action: 'path.create', subject: id, detail: { name, team } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_paths (id, name, team_id, created_at) VALUES (?, ?, ?, ?)', id, name, team, now())], { actor, action: 'path.create', subject: id, detail: { name, team } })
   return { id }
 }
 
@@ -107,7 +107,7 @@ export async function revisePath(env: Bindings, actor: Actor, input: Input) {
     stmt(env, 'INSERT INTO beam_path_revisions (id, path_id, number, created_by, created_at) VALUES (?, ?, ?, ?, ?)', id, path.id, number, actor.id, now()),
     ...requirements.map((requirement, position) => stmt(env, 'INSERT INTO beam_path_requirements (path_revision_id, position, course_id, prerequisite_course_id, due_days, renewal_days) VALUES (?, ?, ?, ?, ?, ?)', id, position, requirement.course, requirement.prerequisite, Number(requirement.dueDays), requirement.renewalDays === null ? null : Number(requirement.renewalDays))),
     stmt(env, 'UPDATE beam_paths SET current_revision_id = ? WHERE id = ?', id, path.id),
-  ], { actor: actor.id, action: 'path.revise', subject: path.id, detail: { number, requirements } })
+  ], { actor, action: 'path.revise', subject: path.id, detail: { number, requirements } })
   return { id, number }
 }
 
@@ -137,7 +137,7 @@ export async function reassignAfterPublish(env: Bindings, actor: Actor, course: 
   if (mode === 'none') return 0
   const business = await requireBusiness(env)
   const open = await all(env, "SELECT * FROM beam_assignments WHERE course_id = ? AND status = 'open' AND course_revision_id != ?", course, revision)
-  await commit(env, open.map(row => stmt(env, "UPDATE beam_assignments SET status = 'replaced' WHERE id = ? AND status = 'open'", row.id)), { actor: actor.id, action: 'assignment.replace', subject: course, detail: { revision, replaced: open.map(row => row.id) } })
+  await commit(env, open.map(row => stmt(env, "UPDATE beam_assignments SET status = 'replaced' WHERE id = ? AND status = 'open'", row.id)), { actor, action: 'assignment.replace', subject: course, detail: { revision, replaced: open.map(row => row.id) } })
   const items: NewAssignment[] = open.map(row => ({ learner: row.learner_id, course, dueDate: row.due_date, dueTime: row.due_time, timezone: row.timezone, reason: 'revision', pathRevision: row.path_revision_id, prerequisite: row.prerequisite_course_id, renewalDays: row.renewal_days, access: { opensAt: row.access_opens_at, closesAt: row.access_closes_at, rule: row.access_rule } }))
   if (mode === 'everyone') {
     const completed = await all(env, `SELECT DISTINCT learner_id FROM beam_completions WHERE course_id = ? AND course_revision_id != ?

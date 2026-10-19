@@ -3,7 +3,7 @@
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { reassignAfterPublish } from './assignments'
-import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
+import { BeamError, all, auditVia, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { newCourseUnit, requireCourseRole } from './units'
 import { courseAccess } from './course-access'
@@ -31,7 +31,7 @@ export async function createCourse(env: Bindings, actor: Actor, input: Input) {
   const reviewer = input.text('reviewer')
   insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', reviewer), 'reviewer_not_found', 404)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_courses (id, title, reviewer_id, created_by, created_at, draft_json, draft_version, unit_id) VALUES (?, ?, ?, ?, ?, ?, 1, ?)', id, title, reviewer, actor.id, now(), JSON.stringify(emptyDraft(title, summary)), unit)], { actor: actor.id, action: 'course.create', subject: id, detail: { title, reviewer } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_courses (id, title, reviewer_id, created_by, created_at, draft_json, draft_version, unit_id) VALUES (?, ?, ?, ?, ?, ?, 1, ?)', id, title, reviewer, actor.id, now(), JSON.stringify(emptyDraft(title, summary)), unit)], { actor, action: 'course.create', subject: id, detail: { title, reviewer } })
   return { id, draftVersion: 1 }
 }
 
@@ -84,7 +84,7 @@ export async function editDraft(env: Bindings, actor: Actor, input: Input, actio
   const draft = await normaliseDraft(env, course.draft)
   const result = await env.DB.batch([
     stmt(env, 'UPDATE beam_courses SET draft_json = ?, draft_version = draft_version + 1, title = ? WHERE id = ? AND draft_version = ?', JSON.stringify(draft), draft.title, course.id, expected),
-    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, course.id, JSON.stringify({ from: expected, ...detail })),
+    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail, via) SELECT ?, ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, course.id, JSON.stringify({ from: expected, ...detail }), auditVia(actor)),
   ])
   insist(result[0].meta.changes === 1, 'stale_draft', 409)
   return { id: course.id, draftVersion: expected! + 1, draft }
@@ -160,7 +160,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
     stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now()),
     ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids) VALUES (?, ?, ?, ?, ?, ?)', newId(), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources))),
     ...(assessed ? [stmt(env, 'INSERT INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', newId(), id, JSON.stringify(draft.questions), draft.passPercent, draft.maxAttempts, draft.questions.length ? draft.timeLimitMinutes ?? null : null, draft.practical?.instructions ?? null, draft.practical?.assessor ?? null)] : []),
-  ], { actor: actor.id, action: 'revision.submit', subject: id, detail: { course: course.id, number, draftVersion: course.draft_version } })
+  ], { actor, action: 'revision.submit', subject: id, detail: { course: course.id, number, draftVersion: course.draft_version } })
   return { id, number }
 }
 
@@ -178,7 +178,7 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
   const note = input.text('note', { max: 2000, optional: true })
   if (decision === 'return') {
     insist(note, 'note_required')
-    await commit(env, [stmt(env, "UPDATE beam_course_revisions SET state = 'returned', reviewed_by = ?, reviewed_at = ?, review_note = ?, self_reviewed = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note, self, revision.id)], { actor: actor.id, action: 'revision.return', subject: revision.id, detail: { note } })
+    await commit(env, [stmt(env, "UPDATE beam_course_revisions SET state = 'returned', reviewed_by = ?, reviewed_at = ?, review_note = ?, self_reviewed = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note, self, revision.id)], { actor, action: 'revision.return', subject: revision.id, detail: { note } })
     return { id: revision.id, state: 'returned' }
   }
   insist(decision === 'publish', 'invalid_decision')
@@ -189,7 +189,7 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
     stmt(env, "UPDATE beam_course_revisions SET state = 'superseded' WHERE course_id = ? AND state = 'published'", revision.course_id),
     stmt(env, "UPDATE beam_course_revisions SET state = 'published', reviewed_by = ?, reviewed_at = ?, review_note = ?, reassignment = ?, self_reviewed = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note || null, reassignment, self, revision.id),
     stmt(env, 'UPDATE beam_courses SET published_revision_id = ? WHERE id = ?', revision.id, revision.course_id),
-  ], { actor: actor.id, action: 'revision.publish', subject: revision.id, detail: { reassignment, previous: revision.published_revision_id, selfReviewed: self === 1 } })
+  ], { actor, action: 'revision.publish', subject: revision.id, detail: { reassignment, previous: revision.published_revision_id, selfReviewed: self === 1 } })
   const reassigned = revision.published_revision_id ? await reassignAfterPublish(env, actor, revision.course_id, revision.id, reassignment, dueDays) : 0
   return { id: revision.id, state: 'published', reassigned }
 }

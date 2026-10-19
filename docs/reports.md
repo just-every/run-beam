@@ -24,3 +24,7 @@ From **Manage**, open **Learner records** and choose a person: their assignments
 ## What a completion means
 
 A completion records what happened against an exact revision: the lessons, the quiz attempt that passed, the practical decision or the offline attestation. It is not a statement of competence.
+
+## Audit
+
+As the owner, open **Audit** to see every recorded decision and change, newest first: who made it and when, whether it came through their own sign-in or an agent's preparation credential they delegated, the exact inputs, and for automatic outcomes (a timed quiz scored when its time ran out) the rule that applied. Search by words, **Category**, **Person** and a **From**/**To** day range (whole days in your time zone), and press **Download CSV** for the same events. Events are never edited or removed: use **Add a correction** to record an explanation beside one. Anonymous answers appear without the person or their words, and practice runs are not recorded.

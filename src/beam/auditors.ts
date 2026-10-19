@@ -27,7 +27,7 @@ export async function grantAuditor(env: Bindings, actor: Actor, input: Input) {
   insist(expiresAt, 'auditor_end_required')
   const id = newId()
   await commit(env, [stmt(env, 'INSERT INTO beam_auditor_grants (id, member_id, teams, period_from, period_to, expires_at, granted_by, granted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, member, JSON.stringify(teams), from, to, expiresAt, actor.id, now())],
-    { actor: actor.id, action: 'auditor.grant', subject: id, detail: { member, teams, from, to, expiresAt } })
+    { actor, action: 'auditor.grant', subject: id, detail: { member, teams, from, to, expiresAt } })
   return { id, member, teams, periodFrom: from, periodTo: to, expiresAt }
 }
 

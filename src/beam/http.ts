@@ -24,6 +24,7 @@ import { agentPage } from './ui/agent'
 import { evidencePage } from './ui/evidence'
 import { practicePage, questionsPage } from './ui/practice'
 import { reportCsvResponse, reportPage } from './ui/report'
+import { auditCsvResponse, auditPage } from './ui/audit'
 import { describeError, page, h } from './ui/html'
 import { route } from './views'
 
@@ -132,6 +133,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/import') return importPage(env, actor, url)
   if (path === '/app/reports') return reportPage(env, actor, url)
   if (path === '/app/reports.csv') return reportCsvResponse(env, actor, url)
+  if (path === '/app/audit') return auditPage(env, actor, url)
+  if (path === '/app/audit.csv') return auditCsvResponse(env, actor, url)
   if (path === '/app/agent') return agentPage(env, actor, url, (await business(env))!.timezone)
   if ((match = path.match(/^\/app\/practice\/([\w-]+)$/))) return practicePage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/questions\/([\w-]+)$/))) return questionsPage(env, actor, match[1], url)

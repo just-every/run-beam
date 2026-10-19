@@ -26,7 +26,7 @@ export async function setTeamManagers(env: Bindings, actor: Actor, input: Input)
   await commit(env, [
     ...current.filter(member => !members.includes(member)).map(member => stmt(env, `UPDATE beam_team_managers SET revoked_by = ?, revoked_at = ? WHERE team_id = ? AND member_id = ? AND kind = 'direct' AND ${ACTIVE}`, actor.id, at, team, member, at)),
     ...members.filter(member => !current.includes(member)).map(member => stmt(env, "INSERT INTO beam_team_managers (id, team_id, member_id, kind, granted_by, granted_at) VALUES (?, ?, ?, 'direct', ?, ?)", newId(), team, member, actor.id, at)),
-  ], { actor: actor.id, action: 'team.managers', subject: team, detail: { members, previous: current } })
+  ], { actor, action: 'team.managers', subject: team, detail: { members, previous: current } })
   return { team, managers: members }
 }
 
@@ -41,7 +41,7 @@ export async function grantCoverage(env: Bindings, actor: Actor, input: Input) {
   const reason = input.text('reason', { max: 500 })
   const id = newId()
   await commit(env, [stmt(env, "INSERT INTO beam_team_managers (id, team_id, member_id, kind, reason, expires_at, granted_by, granted_at) VALUES (?, ?, ?, 'coverage', ?, ?, ?, ?)", id, team, member, reason, expiresAt, actor.id, now())],
-    { actor: actor.id, action: 'team.coverage', subject: id, detail: { team, member, expiresAt, reason } })
+    { actor, action: 'team.coverage', subject: id, detail: { team, member, expiresAt, reason } })
   return { id, team, member, expiresAt }
 }
 

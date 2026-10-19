@@ -82,7 +82,7 @@ export const reminderDrafts: Kind = {
       statements.push(stmt(env, 'INSERT INTO beam_reminder_messages (id, assignment_id, learner_id, body, proposal_id, approved_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', newId(), item.assignment, open.learner_id, item.message, id, actor.id, now()))
       delivered.push(item.assignment)
     }
-    if (statements.length) await commit(env, statements, { actor: actor.id, action: 'reminder.deliver', subject: id, detail: { delivered } })
+    if (statements.length) await commit(env, statements, { actor, action: 'reminder.deliver', subject: id, detail: { delivered } })
     return { delivered, skipped }
   },
 }

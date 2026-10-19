@@ -25,7 +25,7 @@ export async function configureBusiness(env: Bindings, actor: Actor, input: Inpu
   const name = input.text('name', { max: 120 })
   const timezone = input.text('timezone', { max: 64 })
   insist(validTimezone(timezone), 'invalid_timezone')
-  await commit(env, [stmt(env, 'INSERT INTO beam_business (singleton, name, timezone, updated_at) VALUES (1, ?, ?, ?) ON CONFLICT(singleton) DO UPDATE SET name = excluded.name, timezone = excluded.timezone, updated_at = excluded.updated_at', name, timezone, now())], { actor: actor.id, action: 'business.configure', subject: 'business', detail: { name, timezone } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_business (singleton, name, timezone, updated_at) VALUES (1, ?, ?, ?) ON CONFLICT(singleton) DO UPDATE SET name = excluded.name, timezone = excluded.timezone, updated_at = excluded.updated_at', name, timezone, now())], { actor, action: 'business.configure', subject: 'business', detail: { name, timezone } })
   return { name, timezone }
 }
 
@@ -63,7 +63,7 @@ export async function invitePerson(env: Bindings, request: Request, actor: Actor
   insist(!existing || (actor.owner && !await operatorFor(env, request, email)), 'already_member', 409)
   await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: '/app' })
   const member = await ensureMember(env, email, name, roles)
-  await commit(env, teams.map(team => stmt(env, 'INSERT OR IGNORE INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member.id)), { actor: actor.id, action: 'person.invite', subject: member.id, detail: { email, roles, teams } })
+  await commit(env, teams.map(team => stmt(env, 'INSERT OR IGNORE INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member.id)), { actor, action: 'person.invite', subject: member.id, detail: { email, roles, teams } })
   return { id: member.id, email, roles, teams }
 }
 
@@ -82,7 +82,7 @@ export async function setRoles(env: Bindings, actor: Actor, input: Input) {
   const member = await memberByEmail(env, input.text('email', { max: 254 }))
   insist(member.id !== actor.id, 'owner_roles_fixed')
   const roles = roleList(input)
-  await commit(env, [stmt(env, 'DELETE FROM beam_member_roles WHERE member_id = ?', member.id), ...roles.map(role => stmt(env, 'INSERT INTO beam_member_roles (member_id, role) VALUES (?, ?)', member.id, role))], { actor: actor.id, action: 'person.roles', subject: member.id, detail: { roles } })
+  await commit(env, [stmt(env, 'DELETE FROM beam_member_roles WHERE member_id = ?', member.id), ...roles.map(role => stmt(env, 'INSERT INTO beam_member_roles (member_id, role) VALUES (?, ?)', member.id, role))], { actor, action: 'person.roles', subject: member.id, detail: { roles } })
   return { email: member.email, roles }
 }
 
@@ -96,14 +96,14 @@ export async function setAccess(env: Bindings, request: Request, actor: Actor, i
   if (!operator && status === 'active') {
     // Restored from an archive without a sign-in account: restoring access sends an ordinary invitation.
     await auth.invite(request, { email: member.email, displayName: member.name, role: 'member', returnTo: '/app' })
-    await commit(env, [], { actor: actor.id, action: 'person.reinvite', subject: member.id })
+    await commit(env, [], { actor, action: 'person.reinvite', subject: member.id })
     return { email: member.email, status: 'invited' }
   }
   insist(operator, 'person_not_found', 404)
   insist(operator.role !== 'owner', 'owner_access_fixed')
   await auth.setOperatorStatus(request, operator.id, status)
   if (status === 'inactive') for (const session of await auth.listSessions(request, operator.id)) if (session.active) await auth.revokeSession(request, session.id)
-  await commit(env, [], { actor: actor.id, action: `person.${status}`, subject: member.id })
+  await commit(env, [], { actor, action: `person.${status}`, subject: member.id })
   return { email: member.email, status }
 }
 
@@ -113,7 +113,7 @@ export async function createTeam(env: Bindings, actor: Actor, input: Input) {
   const name = input.text('name', { max: 80 })
   insist(!await one(env, 'SELECT 1 FROM beam_teams WHERE name = ?', name), 'team_exists', 409)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_teams (id, name, created_at) VALUES (?, ?, ?)', id, name, now())], { actor: actor.id, action: 'team.create', subject: id, detail: { name } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_teams (id, name, created_at) VALUES (?, ?, ?)', id, name, now())], { actor, action: 'team.create', subject: id, detail: { name } })
   return { id, name }
 }
 
@@ -125,7 +125,7 @@ export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) 
   const members = input.list('members')
   for (const member of members) insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', member), 'person_not_found', 404)
   for (const member of members) insist(actor.owner || inScope(actor, member), 'outside_your_units', 403)
-  await commit(env, [stmt(env, 'DELETE FROM beam_team_members WHERE team_id = ?', team), ...members.map(member => stmt(env, 'INSERT INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member))], { actor: actor.id, action: 'team.members', subject: team, detail: { members } })
+  await commit(env, [stmt(env, 'DELETE FROM beam_team_members WHERE team_id = ?', team), ...members.map(member => stmt(env, 'INSERT INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member))], { actor, action: 'team.members', subject: team, detail: { members } })
   return { team, members }
 }
 

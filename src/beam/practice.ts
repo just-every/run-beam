@@ -62,7 +62,7 @@ export const scenarioKind: Kind = {
     const current = await one(env, 'SELECT published_revision_id FROM beam_courses WHERE id = ?', payload.course)
     insist(current?.published_revision_id === payload.courseRevision, 'proposal_stale', 409)
     const scenario = newId()
-    await commit(env, [stmt(env, 'INSERT INTO beam_scenarios (id, course_id, course_revision_id, title, rubric, steps_json, proposal_id, approved_by, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', scenario, payload.course, payload.courseRevision, payload.title, payload.rubric, JSON.stringify(payload.steps), id, actor.id, now())], { actor: actor.id, action: 'scenario.deploy', subject: scenario, detail: { proposal: id } })
+    await commit(env, [stmt(env, 'INSERT INTO beam_scenarios (id, course_id, course_revision_id, title, rubric, steps_json, proposal_id, approved_by, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', scenario, payload.course, payload.courseRevision, payload.title, payload.rubric, JSON.stringify(payload.steps), id, actor.id, now())], { actor, action: 'scenario.deploy', subject: scenario, detail: { proposal: id } })
     return { scenario }
   },
 }

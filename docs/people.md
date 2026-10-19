@@ -28,7 +28,7 @@ Tick a team's **Managers** to say who manages it. A manager assigns, reports, fo
 
 A business unit groups teams, such as every team in one region. As the owner, open **Business units and administrators** on **People**, add a unit under **New business unit** and tick its **Teams**. Put a course in a unit from its course page under **Business unit**.
 
-Under **Grant administration**, choose a person and a unit to make them that unit's learning administrator, with an optional end date. They manage the unit's courses, assign its people and read its reports and CSV, and nothing else: other units, people administration, settings, sign-in and providers stay with you. **Revoke** ends a grant at once; an ended or revoked grant stays listed with when and by whom.
+Under **Grant administration**, choose a person and a unit to make them that unit's learning administrator, with an optional end date. They manage the unit's courses, assign its people, invite new learners into its teams and set those teams' members, set and extend the access window of the enrollments they made, and read its reports and CSV, and nothing else: other units, other roles, team managers, settings, sign-in and providers stay with you. **Revoke** ends a grant at once; an ended or revoked grant stays listed with when and by whom.
 
 ## Custom roles
 

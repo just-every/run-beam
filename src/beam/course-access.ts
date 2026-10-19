@@ -27,7 +27,7 @@ export async function setCourseAuthors(env: Bindings, actor: Actor, input: Input
   const members = [...new Set(input.list('members'))]
   await requireMembers(env, members)
   await commit(env, [stmt(env, 'DELETE FROM beam_course_authors WHERE course_id = ?', course), ...members.map(member => stmt(env, 'INSERT INTO beam_course_authors (course_id, member_id, granted_by, granted_at) VALUES (?, ?, ?, ?)', course, member, actor.id, now()))],
-    { actor: actor.id, action: 'course.authors', subject: course, detail: { members } })
+    { actor, action: 'course.authors', subject: course, detail: { members } })
   return { id: course, authors: members }
 }
 
@@ -43,7 +43,7 @@ export async function replaceReviewer(env: Bindings, actor: Actor, input: Input)
   await commit(env, [
     stmt(env, 'UPDATE beam_courses SET reviewer_id = ? WHERE id = ?', reviewer, course),
     stmt(env, 'INSERT INTO beam_reviewer_changes (id, course_id, previous_reviewer_id, reviewer_id, reason, changed_by, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?)', id, course, row.reviewer_id, reviewer, reason, actor.id, now()),
-  ], { actor: actor.id, action: 'course.reviewer', subject: course, detail: { change: id, previous: row.reviewer_id, reviewer, reason } })
+  ], { actor, action: 'course.reviewer', subject: course, detail: { change: id, previous: row.reviewer_id, reviewer, reason } })
   return { id: course, reviewer }
 }
 
@@ -53,7 +53,7 @@ export async function setSelfReview(env: Bindings, actor: Actor, input: Input) {
   const course = input.text('course')
   insist(await one(env, 'SELECT 1 FROM beam_courses WHERE id = ?', course), 'course_not_found', 404)
   const allowed = input.flag('allowed')
-  await commit(env, [stmt(env, 'UPDATE beam_courses SET self_review = ? WHERE id = ?', allowed ? 1 : 0, course)], { actor: actor.id, action: 'course.selfreview', subject: course, detail: { allowed } })
+  await commit(env, [stmt(env, 'UPDATE beam_courses SET self_review = ? WHERE id = ?', allowed ? 1 : 0, course)], { actor, action: 'course.selfreview', subject: course, detail: { allowed } })
   return { id: course, selfReview: allowed }
 }
 

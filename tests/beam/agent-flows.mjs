@@ -198,5 +198,12 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     assert.equal((await h.api(`assignments/${samAssignment.id}`, people.sam)).attempts.length, 0)
     // Someone without an assignment for that revision cannot open it; nobody else sees Sam's runs.
     await h.api(`practice/${deployed}`, people.reviewer, undefined, 404)
+    // OPS-001: the owner's audit and its export hold anonymous answers without the person or their words, and no practice run.
+    const audit = await h.api('audit', people.owner)
+    const answers = audit.events.filter(event => event.action === 'questions.answer')
+    assert.ok(answers.length >= 5 && answers.every(event => event.actorName === 'Anonymous respondent' && JSON.stringify(event.detail) === '{}'))
+    assert.ok(!audit.events.some(event => event.action.startsWith('practice.')))
+    const exported = await (await h.raw('/app/audit.csv', { cookie: people.owner })).text()
+    assert.ok(exported.includes('questions.answer') && !['Mornings are busy', 'Too tired at close', 'Nobody owns it'].some(words => exported.includes(words)))
   })
 }

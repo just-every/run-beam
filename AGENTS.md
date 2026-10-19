@@ -61,14 +61,14 @@ Rules that hold everywhere:
 - `src/beam/` — the product. `core.ts` (errors, D1 helpers, audited commits),
   `input.ts` (one reader for forms and JSON), `actor.ts` (session → member and
   roles), one module per area (`people`, `sources`, `courses`, `assignments`,
-  `learning`, `records`, `maintenance`, `units` for business units and learning administrators, `course-access` for course authors, reviewer handovers and self-review, `managers` for team managers and coverage, `scope` for whose learning a person may manage, `roles` for custom administrator roles, `auditors` for shared read-only evidence), `actions.ts` (every write by name),
+  `learning`, `records`, `maintenance`, `units` for business units and learning administrators, `course-access` for course authors, reviewer handovers and self-review, `managers` for team managers and coverage, `scope` for whose learning a person may manage, `roles` for custom administrator roles, `auditors` for shared read-only evidence, `audit` for the owner's searchable decision audit), `actions.ts` (every write by name),
   `views.ts` (every read), `http.ts` (the doors), `ui/` (server-rendered pages,
   no client script except the timed quiz's countdown, `public/beam-countdown.js`), `movein/` (TalentLMS kit on Base's import kit).
 - `migrations/core/` — numbered D1 migrations: 0001–0005 Base auth, outbox,
   portability and first-run; 0006 Beam; 0007 the import kit schema; 0008–0014
   Base provider control, dependency approval and owner claim; 0015 the import
   kit upgrade to Base `79f61fa`; 0016 Beam agent work; 0017 Base's owner
-  sign-in link (`rer signin`); 0018 the import kit's resumable erasure; 0019 Beam's assignment resets (LEARN-019); 0020 policy acknowledgments (LEARN-010); 0021 course access windows (AUTO-009); 0022 timed assessments (LEARN-018); 0023 business units and administrator grants (ORG-002); 0024 course-scoped authors, reviewer handovers and self-review (ORG-003); 0025 team managers, coverage and due-date exceptions (ORG-004); 0026 custom administrator roles (ORG-010); 0027 read-only auditor grants (ORG-005). Import-kit migrations come from
+  sign-in link (`rer signin`); 0018 the import kit's resumable erasure; 0019 Beam's assignment resets (LEARN-019); 0020 policy acknowledgments (LEARN-010); 0021 course access windows (AUTO-009); 0022 timed assessments (LEARN-018); 0023 business units and administrator grants (ORG-002); 0024 course-scoped authors, reviewer handovers and self-review (ORG-003); 0025 team managers, coverage and due-date exceptions (ORG-004); 0026 custom administrator roles (ORG-010); 0027 read-only auditor grants (ORG-005); 0028 the audit's route column (OPS-001). Import-kit migrations come from
   `node --experimental-strip-types scripts/beam/import-kit-migration.mjs OUT BASE_SHA`,
   which writes only what the applied ones lack. Never edit an applied
   migration; add the next number.
@@ -127,7 +127,7 @@ even with a human cookie. Reads are `GET /api/beam/me`, `/api/beam/people`,
 `/api/beam/certificates/:id`, `/api/beam/imports`, `/api/beam/history`,
 `/api/beam/compare?from=REV&to=REV` (two revisions of one course),
 `/api/beam/source-compare?from=VER&to=VER` (two versions of one source),
-`/api/beam/acknowledgments`, `/api/beam/acknowledgments/:id` `/api/beam/units` (the owner's units and administrator grants, or a learning administrator's own) `/api/beam/roles` (custom roles with their holders, or the roles you hold), `/api/beam/auditors` (the owner's auditor grants) and `/api/beam/evidence` (an auditor's shared evidence). Writes are `POST /api/beam/ACTION` with a JSON body and
+`/api/beam/acknowledgments`, `/api/beam/acknowledgments/:id` `/api/beam/units` (the owner's units and administrator grants, or a learning administrator's own) `/api/beam/roles` (custom roles with their holders, or the roles you hold), `/api/beam/auditors` (the owner's auditor grants), `/api/beam/evidence` (an auditor's shared evidence) and `/api/beam/audit?q=&category=&actor=&from=&to=` (the owner's audit search; CSV at `/app/audit.csv`). Writes are `POST /api/beam/ACTION` with a JSON body and
 an `Origin` header equal to the app origin; the human action names are the keys of
 `src/beam/actions.ts`, subject to publication restrictions above. A timed quiz is `quiz.start`, then `quiz.save` and `quiz.submit` before the deadline it returns. Files go as `{ "filename": "...", "base64": "..." }`.
 

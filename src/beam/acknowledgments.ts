@@ -54,7 +54,7 @@ export async function requestAcknowledgments(env: Bindings, actor: Actor, input:
   const held = new Set((await all<{ learner_id: string }>(env, 'SELECT learner_id FROM beam_acknowledgments WHERE source_version_id = ?', version.id)).map(row => row.learner_id))
   const created = [...learners].filter(learner => !held.has(learner)).map(learner => ({ id: newId(), learner }))
   const at = now()
-  if (created.length) await commit(env, created.map(item => stmt(env, "INSERT INTO beam_acknowledgments (id, source_id, source_version_id, learner_id, kind, requested_by, requested_at, state) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')", item.id, source, version.id, item.learner, kind, actor.id, at)), { actor: actor.id, action: 'acknowledgment.request', subject: version.id, detail: { kind, learners: created.map(item => item.learner) } })
+  if (created.length) await commit(env, created.map(item => stmt(env, "INSERT INTO beam_acknowledgments (id, source_id, source_version_id, learner_id, kind, requested_by, requested_at, state) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')", item.id, source, version.id, item.learner, kind, actor.id, at)), { actor, action: 'acknowledgment.request', subject: version.id, detail: { kind, learners: created.map(item => item.learner) } })
   return { sourceVersion: version.id, created: created.map(item => item.id), kept: [...held].filter(learner => learners.has(learner)) }
 }
 
@@ -68,7 +68,7 @@ export const askAgainStatements = (env: Bindings, actor: Actor, sourceId: string
 /** Opening the document through its requirement records that the person viewed it. */
 export async function acknowledgmentDocument(env: Bindings, actor: Actor, id: string, download: boolean) {
   const row = await load(env, actor, id)
-  if (row.learner_id === actor.id && !row.viewed_at) await commit(env, [stmt(env, 'UPDATE beam_acknowledgments SET viewed_at = ? WHERE id = ? AND viewed_at IS NULL', now(), id)], { actor: actor.id, action: 'acknowledgment.view', subject: id, detail: { sourceVersion: row.source_version_id, sha256: row.sha256 } })
+  if (row.learner_id === actor.id && !row.viewed_at) await commit(env, [stmt(env, 'UPDATE beam_acknowledgments SET viewed_at = ? WHERE id = ? AND viewed_at IS NULL', now(), id)], { actor, action: 'acknowledgment.view', subject: id, detail: { sourceVersion: row.source_version_id, sha256: row.sha256 } })
   return serve(env, { filename: row.filename, mediaType: row.media_type, size: row.size, sha256: row.sha256 }, { download })
 }
 
@@ -83,7 +83,7 @@ export async function decideAcknowledgment(env: Bindings, actor: Actor, input: I
   const at = now()
   if (decision === 'decline') {
     const reason = input.text('reason', { max: 2000 })
-    await commit(env, [stmt(env, "UPDATE beam_acknowledgments SET state = 'declined', decided_at = ?, identity_method = ?, decline_reason = ? WHERE id = ? AND state = 'open'", at, identity, reason, row.id)], { actor: actor.id, action: 'acknowledgment.decline', subject: row.id, detail: { reason, identity } })
+    await commit(env, [stmt(env, "UPDATE beam_acknowledgments SET state = 'declined', decided_at = ?, identity_method = ?, decline_reason = ? WHERE id = ? AND state = 'open'", at, identity, reason, row.id)], { actor, action: 'acknowledgment.decline', subject: row.id, detail: { reason, identity } })
     return { id: row.id, state: 'declined' }
   }
   insist(row.viewed_at, 'document_not_viewed', 409)
@@ -91,7 +91,7 @@ export async function decideAcknowledgment(env: Bindings, actor: Actor, input: I
   const signature = row.kind === 'signature' ? input.text('signature', { max: 160 }) : null
   insist(signature === null || signature.trim().toLowerCase() === actor.name.trim().toLowerCase(), 'signature_must_match_name')
   const intent = intentFor(row)
-  await commit(env, [stmt(env, "UPDATE beam_acknowledgments SET state = 'signed', decided_at = ?, intent = ?, signature = ?, identity_method = ? WHERE id = ? AND state = 'open'", at, intent, signature, identity, row.id)], { actor: actor.id, action: `acknowledgment.${row.kind === 'signature' ? 'sign' : 'acknowledge'}`, subject: row.id, detail: { sourceVersion: row.source_version_id, sha256: row.sha256, intent, signature, identity } })
+  await commit(env, [stmt(env, "UPDATE beam_acknowledgments SET state = 'signed', decided_at = ?, intent = ?, signature = ?, identity_method = ? WHERE id = ? AND state = 'open'", at, intent, signature, identity, row.id)], { actor, action: `acknowledgment.${row.kind === 'signature' ? 'sign' : 'acknowledge'}`, subject: row.id, detail: { sourceVersion: row.source_version_id, sha256: row.sha256, intent, signature, identity } })
   return { id: row.id, state: 'signed' }
 }
 

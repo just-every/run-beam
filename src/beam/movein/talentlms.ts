@@ -245,7 +245,7 @@ export async function applyImport(env: Bindings, actor: Actor, input: Input) {
   const reviewedContext = { ...context, reviewedFingerprint: reviewed, ...(undone?.count ? { operationKey: `${reviewed}:${undone.count}` } : {}) }
   const job = await createD1ImportJob(plan, reviewedContext)
   const result = await applyD1ImportBatches(job.id, reviewedContext)
-  await commit(env, [], { actor: actor.id, action: 'import.apply', subject: job.id, detail: { kit: 'talentlms', fingerprint: reviewed, counts: plan.counts } })
+  await commit(env, [], { actor, action: 'import.apply', subject: job.id, detail: { kit: 'talentlms', fingerprint: reviewed, counts: plan.counts } })
   return { job: job.id, state: result.state }
 }
 
@@ -256,7 +256,7 @@ export async function importAction(env: Bindings, actor: Actor, input: Input) {
   if (action === 'resume') return await resumeD1Import(job, context)
   if (action === 'undo') {
     const result = await undoD1Import(job, context)
-    await commit(env, [], { actor: actor.id, action: 'import.undo', subject: job, detail: { state: result.state } })
+    await commit(env, [], { actor, action: 'import.undo', subject: job, detail: { state: result.state } })
     return { job, state: result.state, report: await readD1ImportUndoReport(job, context) }
   }
   throw new BeamError('invalid_action')
@@ -292,6 +292,6 @@ export async function acceptHistory(env: Bindings, actor: Actor, input: Input) {
   insist(!payload.accepted, 'history_already_accepted', 409)
   payload.accepted = { by: actor.id, at: now(), note: input.text('note', { max: 1000 }) }
   const revision = newId()
-  await commit(env, [stmt(env, 'UPDATE beam_imported_history SET payload = ?, revision = ? WHERE id = ? AND revision = ?', canonicalJson(payload), revision, row.id, row.revision)], { actor: actor.id, action: 'history.accept', subject: row.id, detail: payload.accepted })
+  await commit(env, [stmt(env, 'UPDATE beam_imported_history SET payload = ?, revision = ? WHERE id = ? AND revision = ?', canonicalJson(payload), revision, row.id, row.revision)], { actor, action: 'history.accept', subject: row.id, detail: payload.accepted })
   return { id: row.id, revision }
 }

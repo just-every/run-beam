@@ -29,7 +29,7 @@ export async function grantAccommodation(env: Bindings, actor: Actor, input: Inp
   const note = input.text('note', { max: 500, optional: true })
   const id = newId()
   await commit(env, [stmt(env, 'INSERT INTO beam_accommodations (id, learner_id, course_id, kind, amount, note, granted_by, granted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, learner, course, kind, amount, note, actor.id, now())],
-    { actor: actor.id, action: 'accommodation.grant', subject: learner, detail: { id, course, kind, amount, note } })
+    { actor, action: 'accommodation.grant', subject: learner, detail: { id, course, kind, amount, note } })
   return { id }
 }
 

@@ -1,5 +1,6 @@
 // Shared primitives: typed errors, ids, time and small D1 helpers.
 import type { Bindings } from '../auth.server'
+import type { Actor } from './actor'
 
 export class BeamError extends Error {
   constructor(readonly code: string, readonly status = 400, readonly detail?: unknown) {
@@ -27,10 +28,16 @@ export async function all<T = Row>(env: Bindings, sql: string, ...params: unknow
 export const stmt = (env: Bindings, sql: string, ...params: unknown[]) => env.DB.prepare(sql).bind(...params)
 
 /** Runs the statements atomically with an audit event appended to the same batch. */
-export async function commit(env: Bindings, statements: D1PreparedStatement[], audit: { actor: string; action: string; subject: string; detail?: unknown }) {
+/** OPS-001: the route a change took, for the audit's via column: null for a person's own session, otherwise the
+ * preparation credential's delegating session (BEAM-14). */
+export const auditVia = (actor: Actor) => actor.agent ? JSON.stringify({ kind: 'agent_credential', session: actor.sessionId }) : null
+
+/** Writes the statements and their audit event in one batch. Pass the actor itself so an agent's route is recorded. */
+export async function commit(env: Bindings, statements: D1PreparedStatement[], audit: { actor: string | Actor; action: string; subject: string; detail?: unknown }) {
+  const actor = typeof audit.actor === 'string' ? audit.actor : audit.actor.id, via = typeof audit.actor === 'string' ? null : auditVia(audit.actor)
   await env.DB.batch([
     ...statements,
-    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) VALUES (?, ?, ?, ?, ?)', now(), audit.actor, audit.action, audit.subject, JSON.stringify(audit.detail ?? {})),
+    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail, via) VALUES (?, ?, ?, ?, ?, ?)', now(), actor, audit.action, audit.subject, JSON.stringify(audit.detail ?? {}), via),
   ])
 }
 

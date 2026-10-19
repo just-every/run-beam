@@ -25,13 +25,13 @@ export async function saveRole(env: Bindings, actor: Actor, input: Input) {
     const before = await one(env, 'SELECT name, permissions, teams, units FROM beam_custom_roles WHERE id = ?', existing)
     insist(before, 'role_not_found', 404)
     await commit(env, [stmt(env, 'UPDATE beam_custom_roles SET name = ?, permissions = ?, teams = ?, units = ?, updated_by = ?, updated_at = ? WHERE id = ?', name, JSON.stringify(permissions), JSON.stringify(teams), JSON.stringify(units), actor.id, at, existing)],
-      { actor: actor.id, action: 'role.change', subject: existing, detail: { ...detail, before: { name: before.name, permissions: JSON.parse(before.permissions), teams: JSON.parse(before.teams), units: JSON.parse(before.units) } } })
+      { actor, action: 'role.change', subject: existing, detail: { ...detail, before: { name: before.name, permissions: JSON.parse(before.permissions), teams: JSON.parse(before.teams), units: JSON.parse(before.units) } } })
     return { id: existing, ...detail }
   }
   insist(!await one(env, 'SELECT 1 FROM beam_custom_roles WHERE name = ?', name), 'role_exists', 409)
   const id = newId()
   await commit(env, [stmt(env, 'INSERT INTO beam_custom_roles (id, name, permissions, teams, units, created_by, created_at, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', id, name, JSON.stringify(permissions), JSON.stringify(teams), JSON.stringify(units), actor.id, at, actor.id, at)],
-    { actor: actor.id, action: 'role.create', subject: id, detail })
+    { actor, action: 'role.create', subject: id, detail })
   return { id, ...detail }
 }
 
@@ -43,7 +43,7 @@ export async function grantRole(env: Bindings, actor: Actor, input: Input) {
   insist(member !== actor.id, 'owner_roles_fixed')
   insist(!await one(env, 'SELECT 1 FROM beam_custom_role_grants WHERE role_id = ? AND member_id = ? AND revoked_at IS NULL', role, member), 'grant_exists', 409)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_custom_role_grants (id, role_id, member_id, granted_by, granted_at) VALUES (?, ?, ?, ?, ?)', id, role, member, actor.id, now())], { actor: actor.id, action: 'role.grant', subject: id, detail: { role, member } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_custom_role_grants (id, role_id, member_id, granted_by, granted_at) VALUES (?, ?, ?, ?, ?)', id, role, member, actor.id, now())], { actor, action: 'role.grant', subject: id, detail: { role, member } })
   return { id, role, member }
 }
 

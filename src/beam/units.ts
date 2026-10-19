@@ -33,14 +33,14 @@ export async function createUnit(env: Bindings, actor: Actor, input: Input) {
   const name = input.text('name', { max: 80 })
   insist(!await one(env, 'SELECT 1 FROM beam_units WHERE name = ?', name), 'unit_exists', 409)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_units (id, name, created_by, created_at) VALUES (?, ?, ?, ?)', id, name, actor.id, now()), ...await teamStatements(env, id, input)], { actor: actor.id, action: 'unit.create', subject: id, detail: { name, teams: input.list('teams') } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_units (id, name, created_by, created_at) VALUES (?, ?, ?, ?)', id, name, actor.id, now()), ...await teamStatements(env, id, input)], { actor, action: 'unit.create', subject: id, detail: { name, teams: input.list('teams') } })
   return { id, name }
 }
 
 export async function setUnitTeams(env: Bindings, actor: Actor, input: Input) {
   requireOwner(actor)
   const unit = await requireUnit(env, input.text('unit'))
-  await commit(env, [stmt(env, 'UPDATE beam_teams SET unit_id = NULL WHERE unit_id = ?', unit), ...await teamStatements(env, unit, input)], { actor: actor.id, action: 'unit.teams', subject: unit, detail: { teams: input.list('teams') } })
+  await commit(env, [stmt(env, 'UPDATE beam_teams SET unit_id = NULL WHERE unit_id = ?', unit), ...await teamStatements(env, unit, input)], { actor, action: 'unit.teams', subject: unit, detail: { teams: input.list('teams') } })
   return { id: unit, teams: input.list('teams') }
 }
 
@@ -62,7 +62,7 @@ export async function setCourseUnit(env: Bindings, actor: Actor, input: Input) {
   insist(await one(env, 'SELECT 1 FROM beam_courses WHERE id = ?', course), 'course_not_found', 404)
   const unit = input.text('unit', { optional: true }) || null
   if (unit) await requireUnit(env, unit)
-  await commit(env, [stmt(env, 'UPDATE beam_courses SET unit_id = ? WHERE id = ?', unit, course)], { actor: actor.id, action: 'course.unit', subject: course, detail: { unit } })
+  await commit(env, [stmt(env, 'UPDATE beam_courses SET unit_id = ? WHERE id = ?', unit, course)], { actor, action: 'course.unit', subject: course, detail: { unit } })
   return { id: course, unit }
 }
 
@@ -97,7 +97,7 @@ export async function grantAdministration(env: Bindings, actor: Actor, input: In
   const expiresAt = await expiry(env, input)
   insist(!await one(env, `SELECT 1 FROM beam_admin_grants WHERE member_id = ? AND unit_id = ? AND ${ACTIVE}`, member, unit, now()), 'grant_exists', 409)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_admin_grants (id, member_id, unit_id, granted_by, granted_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)', id, member, unit, actor.id, now(), expiresAt)], { actor: actor.id, action: 'admin.grant', subject: id, detail: { member, unit, expiresAt } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_admin_grants (id, member_id, unit_id, granted_by, granted_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)', id, member, unit, actor.id, now(), expiresAt)], { actor, action: 'admin.grant', subject: id, detail: { member, unit, expiresAt } })
   return { id, member, unit, expiresAt }
 }
 

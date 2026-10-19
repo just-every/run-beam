@@ -76,7 +76,7 @@ export async function setAccessRule(env: Bindings, actor: Actor, input: Input) {
   const rule = await ruleInput(env, input, scope)
   await commit(env, [rule
     ? stmt(env, 'INSERT INTO beam_access_rules (scope, target_id, kind, close_days, open_date, close_date, timezone, set_by, set_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (scope, target_id) DO UPDATE SET kind = excluded.kind, close_days = excluded.close_days, open_date = excluded.open_date, close_date = excluded.close_date, timezone = excluded.timezone, set_by = excluded.set_by, set_at = excluded.set_at', scope, target, rule.kind, rule.closeDays ?? null, rule.openDate ?? null, rule.closeDate ?? null, rule.timezone ?? null, actor.id, now())
-    : stmt(env, 'DELETE FROM beam_access_rules WHERE scope = ? AND target_id = ?', scope, target)], { actor: actor.id, action: 'access.rule', subject: target, detail: { scope, rule } })
+    : stmt(env, 'DELETE FROM beam_access_rules WHERE scope = ? AND target_id = ?', scope, target)], { actor, action: 'access.rule', subject: target, detail: { scope, rule } })
   return { id: target, rule }
 }
 
@@ -97,7 +97,7 @@ export async function setAssignmentWindow(env: Bindings, actor: Actor, input: In
   const rule = await ruleInput(env, input, 'assignment')
   const window = rule ? windowFrom(rule, assignment.assigned_at) : NO_WINDOW
   await commit(env, [stmt(env, "UPDATE beam_assignments SET access_opens_at = ?, access_closes_at = ?, access_rule = ? WHERE id = ? AND status = 'open'", window.opensAt, window.closesAt, window.rule, assignment.id)],
-    { actor: actor.id, action: 'assignment.window', subject: assignment.id, detail: { rule, opensAt: window.opensAt, closesAt: window.closesAt } })
+    { actor, action: 'assignment.window', subject: assignment.id, detail: { rule, opensAt: window.opensAt, closesAt: window.closesAt } })
   return { id: assignment.id, ...window }
 }
 

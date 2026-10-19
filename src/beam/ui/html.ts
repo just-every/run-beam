@@ -40,6 +40,7 @@ const NAV: NavItem[] = [
   { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) || !!actor.grants.reports },
   LEARNING,
   { href: '/app/evidence', label: 'Shared evidence', icon: 'document', show: actor => actor.auditor },
+  { href: '/app/audit', label: 'Audit', icon: 'clipboard', show: actor => actor.owner },
   { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
   { href: '/app/business', label: 'Settings', icon: 'gear', show: actor => actor.owner },
 ]

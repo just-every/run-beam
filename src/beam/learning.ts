@@ -128,7 +128,7 @@ export async function completeLesson(env: Bindings, actor: Actor, input: Input) 
   await commit(env, [
     stmt(env, 'INSERT OR IGNORE INTO beam_lesson_progress (assignment_id, lesson_revision_id, completed_at) VALUES (?, ?, ?)', assignment.id, lesson, now()),
     stmt(env, 'UPDATE beam_assignments SET last_lesson_id = ? WHERE id = ?', next, assignment.id),
-  ], { actor: actor.id, action: 'lesson.complete', subject: assignment.id, detail: { lesson } })
+  ], { actor, action: 'lesson.complete', subject: assignment.id, detail: { lesson } })
   const completion = await tryComplete(env, actor, assignment.id)
   return { next, completion }
 }
@@ -145,7 +145,7 @@ export async function startQuiz(env: Bindings, actor: Actor, input: Input) {
   const extra = extraMinutes(assessment.time_limit_minutes, accommodation)
   const id = newId(), at = now(), deadline = deadlineFor(at, assessment.time_limit_minutes, extra)
   await commit(env, [stmt(env, 'INSERT INTO beam_quiz_sessions (id, assignment_id, assessment_revision_id, started_at, deadline, time_limit_minutes, extra_minutes, accommodation_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, assignment.id, assessment.id, at, deadline, assessment.time_limit_minutes, extra, accommodation ? JSON.stringify(accommodation) : null)],
-    { actor: actor.id, action: 'quiz.start', subject: id, detail: { assignment: assignment.id, timeLimitMinutes: assessment.time_limit_minutes, extraMinutes: extra, accommodation: accommodation?.id ?? null, deadline } })
+    { actor, action: 'quiz.start', subject: id, detail: { assignment: assignment.id, timeLimitMinutes: assessment.time_limit_minutes, extraMinutes: extra, accommodation: accommodation?.id ?? null, deadline } })
   return { id, startedAt: at, deadline, resumed: false }
 }
 
@@ -196,7 +196,7 @@ export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
   await commit(env, [
     stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?, ?, ?, ?, 'scored')", id, assignment.id, assessment.id, number, now(), points, responses.length, passed ? 1 : 0, `exact choice match per question; pass at ${assessment.pass_percent}%`, decision),
     ...responses.map(response => stmt(env, 'INSERT INTO beam_responses (attempt_id, question_id, answer_json, correct) VALUES (?, ?, ?, ?)', id, response.question, JSON.stringify(response.selected), response.correct ? 1 : 0)),
-  ], { actor: actor.id, action: 'quiz.attempt', subject: id, detail: { assignment: assignment.id, points, of: responses.length, passed } })
+  ], { actor, action: 'quiz.attempt', subject: id, detail: { assignment: assignment.id, points, of: responses.length, passed } })
   const completion = await tryComplete(env, actor, assignment.id)
   return { id, number, score: points, maxScore: responses.length, percent, passed, retryDecision: decision, completion }
 }
@@ -215,7 +215,7 @@ export async function submitPractical(env: Bindings, actor: Actor, input: Input)
   await commit(env, [
     ...(attachment ? [stmt(env, 'INSERT INTO beam_attachments (id, filename, media_type, size, sha256, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?)', attachment.id, attachment.filename, attachment.mediaType, attachment.size, attachment.sha256, actor.id, now())] : []),
     stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, scoring_rule, retry_decision, state, evidence_text, attachment_id) VALUES (?, ?, ?, 'practical', ?, ?, 'named assessor decision', 'awaiting the named assessor', 'awaiting_review', ?, ?)", id, assignment.id, state.content.assessment!.id, number, now(), evidence, attachment?.id ?? null),
-  ], { actor: actor.id, action: 'practical.submit', subject: id, detail: { assignment: assignment.id, attachment: attachment?.sha256 ?? null } })
+  ], { actor, action: 'practical.submit', subject: id, detail: { assignment: assignment.id, attachment: attachment?.sha256 ?? null } })
   return { id, number, state: 'awaiting_review' }
 }
 
@@ -238,7 +238,7 @@ export async function decidePractical(env: Bindings, actor: Actor, input: Input)
   await commit(env, [
     stmt(env, 'INSERT INTO beam_review_decisions (id, attempt_id, assessor_id, decision, note, decided_at) VALUES (?, ?, ?, ?, ?, ?)', newId(), attempt.id, actor.id, decision, note, now()),
     stmt(env, "UPDATE beam_attempts SET state = ?, passed = ?, retry_decision = ? WHERE id = ? AND state = 'awaiting_review'", decision, decision === 'accepted' ? 1 : 0, decision === 'accepted' ? 'accepted by the named assessor' : 'resubmission allowed', attempt.id),
-  ], { actor: actor.id, action: `practical.${decision}`, subject: attempt.id, detail: { note } })
+  ], { actor, action: `practical.${decision}`, subject: attempt.id, detail: { note } })
   const completion = attempt.assignment_status === 'open' ? await tryComplete(env, actor, attempt.assignment_id) : null
   return { id: attempt.id, decision, completion }
 }
@@ -293,6 +293,6 @@ export async function recordCompletion(env: Bindings, actor: Actor, item: { assi
     stmt(env, 'INSERT INTO beam_completions (id, assignment_id, learner_id, course_id, course_revision_id, assessment_revision_id, method, evidence_json, completed_at, expires_at, recorded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', id, item.assignment, item.learner, item.course, item.revision, item.assessmentRevision, item.method, JSON.stringify(item.evidence), at, expires, actor.id),
     ...(item.assignment ? [stmt(env, "UPDATE beam_assignments SET status = 'completed' WHERE id = ? AND status = 'open'", item.assignment)] : []),
     stmt(env, 'INSERT INTO beam_certificates (id, completion_id, number, issuer, issued_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)', certificate.id, id, certificate.number, business.name, now(), expires),
-  ], { actor: actor.id, action: 'completion.record', subject: id, detail: { ...item, certificate: certificate.number } })
+  ], { actor, action: 'completion.record', subject: id, detail: { ...item, certificate: certificate.number } })
   return { id, certificate: certificate.id, expiresAt: expires }
 }

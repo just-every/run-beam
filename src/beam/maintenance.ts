@@ -31,7 +31,7 @@ export async function proposeDraft(env: Bindings, actor: Actor, input: Input, dr
   const missingValue = input.json('missing') ?? []
   insist(Array.isArray(missingValue) && missingValue.length <= 20 && missingValue.every(item => typeof item === 'string' && item.trim() && item.length <= 300), 'invalid_missing')
   const missing = (missingValue as string[]).map(item => item.trim())
-  await commit(env, [stmt(env, "INSERT INTO beam_proposals (id, course_id, base_draft_version, input_version_ids, prepared_by, agent, summary, draft_json, state, created_at, passages_json, missing_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)", id, course.id, base, JSON.stringify(inputs), actor.id, agent, summary, JSON.stringify(draft), now(), JSON.stringify(passages), JSON.stringify(missing))], { actor: actor.id, action: 'proposal.create', subject: id, detail: { course: course.id, base, inputs, agent, viaAgent: actor.agent } })
+  await commit(env, [stmt(env, "INSERT INTO beam_proposals (id, course_id, base_draft_version, input_version_ids, prepared_by, agent, summary, draft_json, state, created_at, passages_json, missing_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)", id, course.id, base, JSON.stringify(inputs), actor.id, agent, summary, JSON.stringify(draft), now(), JSON.stringify(passages), JSON.stringify(missing))], { actor, action: 'proposal.create', subject: id, detail: { course: course.id, base, inputs, agent, viaAgent: actor.agent } })
   return { id }
 }
 
@@ -42,7 +42,7 @@ export async function decideProposal(env: Bindings, actor: Actor, input: Input) 
   insist(proposal.state === 'open', 'proposal_decided', 409)
   const decision = input.text('decision')
   if (decision === 'decline') {
-    await commit(env, [stmt(env, "UPDATE beam_proposals SET state = 'declined', decided_by = ?, decided_at = ? WHERE id = ? AND state = 'open'", actor.id, now(), proposal.id)], { actor: actor.id, action: 'proposal.decline', subject: proposal.id })
+    await commit(env, [stmt(env, "UPDATE beam_proposals SET state = 'declined', decided_by = ?, decided_at = ? WHERE id = ? AND state = 'open'", actor.id, now(), proposal.id)], { actor, action: 'proposal.decline', subject: proposal.id })
     return { id: proposal.id, state: 'declined' }
   }
   insist(decision === 'accept', 'invalid_decision')
@@ -65,6 +65,6 @@ export async function decideNotice(env: Bindings, actor: Actor, input: Input) {
   const decision = input.text('decision')
   insist(decision === 'no_material_change' || decision === 'draft_updated', 'invalid_decision')
   const note = input.text('note', { max: 2000 })
-  await commit(env, [stmt(env, "UPDATE beam_source_notices SET state = ?, note = ?, decided_by = ?, decided_at = ? WHERE id = ? AND state = 'open'", decision, note, actor.id, now(), notice.id)], { actor: actor.id, action: `notice.${decision}`, subject: notice.id, detail: { note } })
+  await commit(env, [stmt(env, "UPDATE beam_source_notices SET state = ?, note = ?, decided_by = ?, decided_at = ? WHERE id = ? AND state = 'open'", decision, note, actor.id, now(), notice.id)], { actor, action: `notice.${decision}`, subject: notice.id, detail: { note } })
   return { id: notice.id, state: decision }
 }

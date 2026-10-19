@@ -21,6 +21,7 @@ import { courseUnits } from './scope'
 import { rolesView } from './roles'
 import { auditorGrants, sharedEvidence } from './auditors'
 import { requireOwner } from './actor'
+import { auditFilters, auditLog } from './audit'
 
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
@@ -59,13 +60,14 @@ export const views: Record<string, View> = {
   proposal: (env, actor, _request, id) => proposalDetail(env, actor, id),
   questions: (env, actor, _request, id) => questionPlanView(env, actor, id),
   practice: (env, actor, _request, id) => practiceView(env, actor, id),
+  audit: (env, actor, request) => auditLog(env, actor, auditFilters(new URL(request.url))),
 }
 
 const ROUTES: [RegExp, string][] = [
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
-  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'],
+  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'],
 ]
 
 export function route(path: string): { view: View; id: string } {

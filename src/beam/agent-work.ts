@@ -78,7 +78,7 @@ export async function propose(env: Bindings, actor: Actor, input: Input) {
   const id = newId(), sha256 = await payloadDigest(payload)
   await commit(env, [stmt(env, "INSERT INTO beam_agent_proposals (id, kind, title, agent, prepared_by, via_agent, inputs_json, reasons_json, excluded_json, payload_json, payload_sha256, state, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?)",
     id, input.text('kind'), title, agent, actor.id, actor.agent ? 1 : 0, JSON.stringify(inputs), JSON.stringify(reasons), JSON.stringify(excluded), JSON.stringify(payload), sha256, now())],
-  { actor: actor.id, action: 'agent.propose', subject: id, detail: { kind: input.text('kind'), agent, viaAgent: actor.agent, sha256 } })
+  { actor, action: 'agent.propose', subject: id, detail: { kind: input.text('kind'), agent, viaAgent: actor.agent, sha256 } })
   return { id, sha256 }
 }
 
@@ -107,7 +107,7 @@ export async function decide(env: Bindings, actor: Actor, input: Input) {
       throw error
     }
   }
-  await commit(env, [stmt(env, 'UPDATE beam_agent_proposals SET result_json = ? WHERE id = ?', JSON.stringify(result), row.id)], { actor: actor.id, action: `agent.${state === 'approved' ? 'approve' : 'decline'}`, subject: row.id, detail: { kind: row.kind, sha256: row.payload_sha256, note, result } })
+  await commit(env, [stmt(env, 'UPDATE beam_agent_proposals SET result_json = ? WHERE id = ?', JSON.stringify(result), row.id)], { actor, action: `agent.${state === 'approved' ? 'approve' : 'decline'}`, subject: row.id, detail: { kind: row.kind, sha256: row.payload_sha256, note, result } })
   return { id: row.id, state, result }
 }
 

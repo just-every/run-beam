@@ -26,7 +26,7 @@ export async function createSource(env: Bindings, actor: Actor, input: Input) {
   await commit(env, [
     stmt(env, 'INSERT INTO beam_sources (id, title, licence, licence_evidence, reviewer_id, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', id, title, licence, evidence, reviewer, actor.id, at),
     stmt(env, 'INSERT INTO beam_source_versions (id, source_id, number, filename, media_type, size, sha256, provenance, uploaded_by, uploaded_at) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?)', versionId, id, stored.filename, stored.mediaType, stored.size, stored.sha256, provenance, actor.id, at),
-  ], { actor: actor.id, action: 'source.create', subject: id, detail: { title, licence, sha256: stored.sha256 } })
+  ], { actor, action: 'source.create', subject: id, detail: { title, licence, sha256: stored.sha256 } })
   return { id, versionId, ...stored }
 }
 
@@ -48,7 +48,7 @@ export async function addSourceVersion(env: Bindings, actor: Actor, input: Input
     stmt(env, 'INSERT INTO beam_source_versions (id, source_id, number, filename, media_type, size, sha256, provenance, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', id, sourceId, number, stored.filename, stored.mediaType, stored.size, stored.sha256, provenance, actor.id, at),
     ...askAgainStatements(env, actor, sourceId, id, at),
     ...cited.map(row => stmt(env, "INSERT OR IGNORE INTO beam_source_notices (id, course_id, source_id, previous_version_id, new_version_id, state, created_at) VALUES (?, ?, ?, ?, ?, 'open', ?)", newId(), row.course_id, sourceId, row.version_id, id, at)),
-  ], { actor: actor.id, action: 'source.version', subject: sourceId, detail: { number, sha256: stored.sha256, flaggedCourses: cited.map(row => row.course_id) } })
+  ], { actor, action: 'source.version', subject: sourceId, detail: { number, sha256: stored.sha256, flaggedCourses: cited.map(row => row.course_id) } })
   return { id, number, flaggedCourses: [...new Set(cited.map(row => row.course_id))], ...stored }
 }
 

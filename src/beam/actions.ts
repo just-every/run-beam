@@ -10,6 +10,7 @@ import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath,
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
+import { correctAudit } from './audit'
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
 import { restoreRevision } from './history'
 import type { Input } from './input'
@@ -77,6 +78,7 @@ export const actions: Record<string, Handler> = {
   'assignment.cancel': (env, actor, input) => cancelAssignment(env, actor, input),
   'assignment.renewals': (env, actor, input) => assignRenewals(env, actor, input),
   'access.rule': (env, actor, input) => setAccessRule(env, actor, input),
+  'audit.correct': (env, actor, input) => correctAudit(env, actor, input),
   'assignment.window': (env, actor, input) => setAssignmentWindow(env, actor, input),
   'access.extend': (env, actor, input) => extendAccess(env, actor, input),
   'attempt.grant': (env, actor, input) => grantAttempt(env, actor, input),

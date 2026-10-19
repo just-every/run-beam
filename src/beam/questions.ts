@@ -45,7 +45,7 @@ export const questionPlanKind: Kind = {
     await commit(env, [
       stmt(env, 'INSERT INTO beam_question_plans (id, title, purpose, questions_json, closes_on, closes_at, proposal_id, approved_by, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', plan, payload.title, payload.purpose, JSON.stringify(payload.questions), payload.closesOn, zonedInstant(payload.closesOn, '23:59', business.timezone), id, actor.id, now()),
       ...(payload.participants as string[]).map(member => stmt(env, "INSERT INTO beam_question_invites (plan_id, member_id, state) VALUES (?, ?, 'waiting')", plan, member)),
-    ], { actor: actor.id, action: 'questions.open', subject: plan, detail: { proposal: id, participants: payload.participants.length } })
+    ], { actor, action: 'questions.open', subject: plan, detail: { proposal: id, participants: payload.participants.length } })
     return { plan }
   },
 }
@@ -110,6 +110,6 @@ export async function closeQuestions(env: Bindings, actor: Actor, input: Input) 
   insist(isManager(actor), 'forbidden', 403)
   const plan = await loadPlan(env, input.text('plan'))
   insist(plan.open, 'questions_closed', 409)
-  await commit(env, [stmt(env, 'UPDATE beam_question_plans SET closed_at = ? WHERE id = ? AND closed_at IS NULL', now(), plan.id)], { actor: actor.id, action: 'questions.close', subject: plan.id })
+  await commit(env, [stmt(env, 'UPDATE beam_question_plans SET closed_at = ? WHERE id = ? AND closed_at IS NULL', now(), plan.id)], { actor, action: 'questions.close', subject: plan.id })
   return { id: plan.id }
 }
