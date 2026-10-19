@@ -54,6 +54,20 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   let member = await linkedMember(env, session.operator.id, email)
   if (!member && owner) { await ensureMember(env, email, session.operator.displayName, [...ROLES]); member = await linkedMember(env, session.operator.id, email) }
   if (!member) throw new BeamError('not_a_member', 403)
+  return resolveAuthority(env, member, { sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, owner, agent })
+}
+
+/** Live authority for a saved dashboard's creator or named viewer; never a simulated session. */
+export async function dashboardAuthority(env: Bindings, memberId: string): Promise<Actor | null> {
+  const member = await one<{ id: string; name: string; business: string | null; email: string; role: string }>(env,
+    `SELECT m.id, m.name, o.email, o.role, (SELECT name FROM beam_business WHERE singleton = 1) AS business
+     FROM beam_members m JOIN oa_operators o ON o.id = m.operator_id WHERE m.id = ? AND o.status = 'active'`, memberId)
+  if (!member) return null
+  return resolveAuthority(env, member, { sessionId: '', sessionKind: 'dashboard-authority', email: member.email.toLowerCase(), owner: member.role === 'owner', agent: false })
+}
+
+async function resolveAuthority(env: Bindings, member: { id: string; name: string; business?: string | null },
+  { sessionId, sessionKind, email, owner, agent }: { sessionId: string; sessionKind: string; email: string; owner: boolean; agent: boolean }): Promise<Actor> {
   const roles = new Set((await all<{ role: Role }>(env, 'SELECT role FROM beam_member_roles WHERE member_id = ?', member.id)).map(row => row.role))
   if (owner) ROLES.forEach(role => roles.add(role))
   // An agent credential never carries administration; the owner already holds every authority.
@@ -65,7 +79,7 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   const learners = teams && (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(teams))).map(row => row.member_id)
   const grants = agent || owner ? {} : await customGrants(env, member.id)
   const auditor = !agent && !owner && !!await one(env, 'SELECT 1 FROM beam_auditor_grants WHERE member_id = ? AND revoked_at IS NULL AND expires_at > ?', member.id, now())
-  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners, grants, auditor }
+  return { id: member.id, sessionId, sessionKind, email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners, grants, auditor }
 }
 
 /** The permissions of every custom role this member holds, merged, each with the teams, units and people it reaches. */

@@ -1,6 +1,7 @@
 // Every state change in Beam, by name. The same handler serves the HTML form
 // door (/app/do/NAME) and JSON door (/api/beam/NAME), subject to the
 // transport and credential restrictions in http.ts and agent-credentials.ts.
+import { createDashboard, shareDashboard, linkDashboard, revokeDashboard, revokeDashboardShare } from './dashboards'
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { extendAccess, setAccessRule, setAssignmentWindow } from './access'
@@ -62,6 +63,11 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'dashboard.create': createDashboard,
+  'dashboard.share': shareDashboard,
+  'dashboard.link': linkDashboard,
+  'dashboard.revoke': revokeDashboard,
+  'dashboard.share.revoke': revokeDashboardShare,
   'business.configure': (env, actor, input) => configureBusiness(env, actor, input),
   'person.invite': (env, actor, input, request) => invitePerson(env, request, actor, input),
   'person.roles': (env, actor, input) => setRoles(env, actor, input),

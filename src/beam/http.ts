@@ -1,6 +1,7 @@
 // Beam's public doors: /app pages, /app/do/ACTION form posts, /api/beam JSON,
 // and access-checked file downloads. Every request resolves the signed-in
 // member first; private data is never served to a signed-out request.
+import { dashboardsPage, dashboardPage, dashboardCsvResponse, dashboardLinkPage } from './ui/dashboards'
 import { runtimeBindings, type Bindings } from '../auth.server'
 import { AuthError, safeReturnTo } from '../modules/operator-auth/index.mjs'
 import { acknowledgmentDocument, acknowledgmentEvidence } from './acknowledgments'
@@ -71,6 +72,7 @@ export async function beamResponse(request: Request, original: Bindings): Promis
   let actor: Actor | null = null
   try {
     actor = await currentActor(env, request)
+    if (!actor && !api && /^\/app\/dashboards\/[\w-]+(?:\.csv)?$/.test(url.pathname) && url.searchParams.has('key')) return page('Sign in to open dashboard', null, h`<h1>Sign in to open this dashboard</h1><p>Sign in with the named viewer’s work email, then open your original restricted dashboard link again.</p><p><a href="/signin?returnTo=%2Fapp%2Fdashboards">Sign in</a></p>`, { status: 401 })
     if (!actor) return api ? json({ error: 'authentication_required' }, 401) : Response.redirect(`${env.AUTH_ORIGIN}/signin?returnTo=${encodeURIComponent(url.pathname)}`, 303)
     actor = await viewing(env, request, actor) ?? actor
     const view = await viewDoor(env, actor, request, url, api)
@@ -130,13 +132,16 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   const source = path.match(/^source-files\/([\w-]+)$/)
   if (source) return sourceFile(env, actor, source[1], true)
   const { view, id } = route(path)
-  return json(await view(env, actor, request, id))
+  const response = json(await view(env, actor, request, id))
+  if (path.startsWith('dashboards')) response.headers.set('referrer-policy', 'no-referrer')
+  return response
 }
 
 async function pageResponse(env: Bindings, actor: Actor, request: Request, url: URL): Promise<Response> {
   const path = url.pathname
   if (path === '/app/import/client.js' && request.method === 'GET') return importBrowserResponse()
   if (request.method === 'POST') {
+    if (path === '/app/dashboards/link') return dashboardLinkPage(env, actor, await Input.from(request), url)
     if (path === '/app/import/preview') return await previewPage(env, actor, await Input.from(request), url, request)
     const importAction = path.match(/^\/app\/import\/(apply|reconcile|undo)$/)?.[1]
     if (importAction) return await importProgressPage(env, actor, await Input.from(request), url, request, importAction)
@@ -169,6 +174,9 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   let match: RegExpMatchArray | null
   // Sign-in lands on /app: people who manage training open on Manage, everyone else on My learning.
   if (path === '/app') return isManager(actor) ? Response.redirect(`${env.AUTH_ORIGIN}/app/manage${url.search}`, 303) : dashboard(env, actor, url)
+  if (path === '/app/dashboards') return dashboardsPage(env, actor, url)
+  if ((match = path.match(/^\/app\/dashboards\/([\w-]+)$/))) return dashboardPage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/dashboards\/([\w-]+)\.csv$/))) return dashboardCsvResponse(env, actor, match[1], url)
   if (path === '/app/learning') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
   if (path === '/app/people') return peoplePage(env, actor, request, url)

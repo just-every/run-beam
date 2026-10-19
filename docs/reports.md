@@ -19,6 +19,14 @@ Each row shows the learner, the course and revision, the due time in its time zo
 
 **Download CSV** or **Download XLSX** gives you the same rows as a spreadsheet; every row (or the workbook's Definitions sheet) says when it was produced, the time zone and the filters, and nothing is left out.
 
+## Saved dashboards
+
+From **Reports**, open **Saved dashboards**. Owners, managers for their teams, learning administrators for their units and custom roles with report access can save a name, course/team/status filters and selected fields: name, course, due time, status and completion time. A dashboard is live data, not a snapshot: its as-of instant and saved filters appear on every view and CSV download. URL query changes do not change that saved selection. Dates in these selected fields are UTC.
+
+The creator or owner adds a named viewer by work email. Viewers must already have their own current report authority; sharing grants no new access. Every opening and download uses the people both the creator and viewer can currently report on. A team outside either person's reach, ended grants or an empty common scope refuses access. Private answers, practice, evidence files and learner/evidence links are excluded.
+
+A **restricted link** is for one named signed-in viewer, expires within 90 elapsed days and is shown only once. The form's expiry is UTC. Copy it when it appears; Beam stores only its hash and never puts the reusable link in Audit. A signed-out recipient signs in and then opens the original link again. **Revoke access** ends one share or link; **Revoke entire dashboard** ends them all immediately, including already-open sessions' next request. The owner can revoke a dashboard after its creator loses report authority.
+
 ## A learner's record
 
 From **Manage**, open **Learner records** and choose a person: their assignments, completions with certificates, and history imported from a previous system, which is labeled as such and never counts as a Beam completion.
