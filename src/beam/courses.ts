@@ -192,7 +192,7 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
 /** Every course, or only those in the given units (a learning administrator's catalog, ORG-002) and the given
  * courses (a course's own author, ORG-003). */
 /** AUTHOR-005: a course's catalog details, outside its reviewed revisions. */
-export const catalogOf = (row: Row) => ({ folder: row.folder ?? null, tags: JSON.parse(row.tags ?? '[]') as string[], objectives: JSON.parse(row.objectives ?? '[]') as string[], language: row.language ?? 'en', durationMinutes: row.duration_minutes ?? null, owner: row.owner_id ?? null, template: row.is_template === 1, archivedAt: row.archived_at ?? null })
+export const catalogOf = (row: Row) => ({ folder: row.folder ?? null, tags: JSON.parse(row.tags ?? '[]') as string[], objectives: JSON.parse(row.objectives ?? '[]') as string[], language: row.language ?? 'en', durationMinutes: row.duration_minutes ?? null, owner: row.owner_id ?? null, template: row.is_template === 1, archivedAt: row.archived_at ?? null, enrollmentMode: row.enrollment_mode ?? 'assigned', catalogTeams: row.catalog_teams ? JSON.parse(row.catalog_teams) as string[] : [] })
 
 export async function listCourses(env: Bindings, within: { units: string[]; courses?: string[] } | null = null) {
   const units = within && JSON.stringify(within.units), courses = within && JSON.stringify(within.courses ?? [])

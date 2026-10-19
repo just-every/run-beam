@@ -11,6 +11,7 @@ import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
 import { previewRule, replayRule, saveRule, setRuleState } from './automation'
 import { previewPolicy, runPolicy, savePolicy, setPolicyEnabled } from './inactivity'
+import { decideRequest, requestEnrollment, saveSearch, selfEnroll, setEnrollment, setFavorite, withdraw } from './catalog'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
@@ -50,6 +51,13 @@ export const actions: Record<string, Handler> = {
   'exception.grant': (env, actor, input) => grantException(env, actor, input),
   'exception.policy': (env, actor, input) => setExceptionPolicy(env, actor, input),
   'automation.save': (env, actor, input) => saveRule(env, actor, input),
+  'course.enrollment': (env, actor, input) => setEnrollment(env, actor, input),
+  'catalog.enroll': (env, actor, input) => selfEnroll(env, actor, input),
+  'catalog.request': (env, actor, input) => requestEnrollment(env, actor, input),
+  'catalog.decide': (env, actor, input) => decideRequest(env, actor, input),
+  'catalog.withdraw': (env, actor, input) => withdraw(env, actor, input),
+  'catalog.favorite': (env, actor, input) => setFavorite(env, actor, input),
+  'catalog.search': (env, actor, input) => saveSearch(env, actor, input),
   'inactivity.policy': (env, actor, input) => savePolicy(env, actor, input),
   'inactivity.preview': (env, actor) => previewPolicy(env, actor),
   'inactivity.enable': (env, actor, input) => setPolicyEnabled(env, actor, input),

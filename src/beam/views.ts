@@ -26,6 +26,7 @@ import { announcements } from './announcements'
 import { transcript } from './transcript'
 import { automationView } from './automation'
 import { inactivityView } from './inactivity'
+import { catalog, catalogQuery, waitingRequests } from './catalog'
 
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
@@ -69,13 +70,15 @@ export const views: Record<string, View> = {
   transcript: (env, actor, _request, id) => transcript(env, actor, id === 'me' ? actor.id : id),
   automation: (env, actor) => automationView(env, actor),
   inactivity: (env, actor) => inactivityView(env, actor),
+  catalog: (env, actor, request) => catalog(env, actor, catalogQuery(new URL(request.url))),
+  'catalog-requests': (env, actor) => waitingRequests(env, actor),
 }
 
 const ROUTES: [RegExp, string][] = [
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
-  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^inactivity$/, 'inactivity'],
+  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'],
 ]
 
 export function route(path: string): { view: View; id: string } {

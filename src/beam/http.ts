@@ -27,6 +27,7 @@ import { reportCsvResponse, reportPage, reportXlsxResponse } from './ui/report'
 import { auditCsvResponse, auditPage } from './ui/audit'
 import { announcementsPage } from './ui/announcements'
 import { automationPage } from './ui/automation'
+import { catalogPage } from './ui/catalog'
 import { transcriptCsvResponse, transcriptPage, transcriptXlsxResponse } from './ui/transcript'
 import { describeError, page, h } from './ui/html'
 import { route } from './views'
@@ -178,6 +179,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/audit') return auditPage(env, actor, url)
   if (path === '/app/announcements' && (isManager(actor) || actor.adminUnits.length)) return announcementsPage(env, actor, url)
   if (path === '/app/automation') return automationPage(env, actor, url)
+  if (path === '/app/catalog') return catalogPage(env, actor, url)
   if (path === '/app/audit.csv') return auditCsvResponse(env, actor, url)
   if (path === '/app/agent') return agentPage(env, actor, url, (await business(env))!.timezone)
   if ((match = path.match(/^\/app\/practice\/([\w-]+)$/))) return practicePage(env, actor, match[1], url)

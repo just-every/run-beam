@@ -26,3 +26,9 @@ Some courses offer **Practice**: short scenarios staff can try as often as they 
 ## Certificates
 
 Every completion issues a numbered certificate from your business, naming the course revision. Use the browser's print command to save a copy. A certificate records completion of your own training; it is not an accreditation or a statement of competence.
+
+## The course catalog
+
+Open **Catalog** to find courses offered to you. Search, or narrow by subject, skill, role, language and how long a course takes. **Enroll** starts an open course straight away; a course that needs approval has **Request enrollment**, and your manager approves or declines it. Work someone assigned you is required; courses you chose are optional, due in 90 days, and **Withdraw** leaves one while keeping your progress on record. Favorites and saved searches are yours alone.
+
+Whoever manages a course's catalog details sets how it is offered under **Catalog enrollment** on the course page: only by assignment, open to anyone it is offered to, or on approval, for everyone or chosen teams.
