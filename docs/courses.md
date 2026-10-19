@@ -30,6 +30,8 @@ Open a lesson in the draft to edit it, **Move up**, or **Remove lesson**.
 
 Use **Add a question**: write the **Question**, the **Choices, one per line**, and the **Correct choice numbers**, such as `2`, or `1,3` when several are correct. A question scores only when exactly the right choices are picked, so scoring is the same every time.
 
+Under **Add a question** you can also pick **Fill in the blank** (write `___` where each blank goes, then one line of **Accepted answers** per blank with alternatives separated by `|`, and tick **Ignore upper and lower case** if you want; spaces at either end never count), **Ordering** (the items one per line in the right order) or **Matching** (one `left = right` pair per line). Learners fill each blank, choose an item for each position or a match for each item from labelled lists, and a question scores only when every blank, position or pair is right.
+
 ### Assessment rules
 
 Under **Assessment rules**, set the **Pass mark (%)** and the number of **Quiz attempts allowed**. For practical work, write the **Practical assessment instructions** and choose the **Named assessor** who decides the evidence. Leave the instructions empty for a course without a practical part.

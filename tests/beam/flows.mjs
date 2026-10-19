@@ -190,7 +190,7 @@ try {
     const passed = await h.api('quiz.submit', people.sam, { assignment: ids.samOpening, [`q_${q1.id}`]: ['0'], [`q_${q2.id}`]: ['0', '2'] })
     assert.deepEqual([passed.score, passed.maxScore, passed.passed, passed.completion], [2, 2, true, null])
     const detail = await h.api(`attempts/${passed.id}`, people.sam)
-    assert.match(detail.scoringRule, /exact choice match/)
+    assert.match(detail.scoringRule, /every choice, blank, position or pair is correct/)
     assert.deepEqual(detail.responses.map(row => row.correct).sort(), [1, 1])
     ids.samQuiz = passed.id
   })

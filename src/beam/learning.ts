@@ -5,6 +5,7 @@ import type { Bindings } from '../auth.server'
 import { accessView, requireAccess } from './access'
 import { isManager, requireRole, type Actor } from './actor'
 import { revisionDetail, type Question } from './courses'
+import { SCORING_RULE, presentQuestion, type Answer } from './question-types'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import { serve, store } from './files'
 import type { Input } from './input'
@@ -86,7 +87,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     lessons: state.content.lessons.map(lesson => launchable ? { ...lesson, completed: state.done.has(lesson.id) } : { id: lesson.id, position: lesson.position, title: lesson.title, completed: state.done.has(lesson.id) }),
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
-    quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: (launchable ? state.content.assessment!.questions : []).map(question => ({ id: question.id, prompt: question.prompt, choices: question.choices, multiple: question.correct.length > 1 })), ...timed! } : null,
+    quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: (launchable ? state.content.assessment!.questions : []).map(presentQuestion), ...timed! } : null,
     practical: state.practicalRequired ? { instructions: state.content.assessment!.practical_instructions, assessor: state.content.assessment!.assessor_id, accepted: state.practicalAccepted, pending: state.practicalPending } : null,
     attempts: learner || isManager(actor) ? state.attempts : [],
     // Everything before each reset, marked with who reset it and why.
@@ -98,7 +99,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
 }
 
 /** The time limit, the open attempt's clock and saved answers, and the accommodation that would apply to a new attempt. */
-interface TimedView { timeLimitMinutes: number | null; extraMinutes: number; accommodation: Accommodation | null; session: { id: string; startedAt: number; deadline: number; timeLimitMinutes: number; extraMinutes: number; accommodation: Accommodation | null; answers: Record<string, number[]> } | null }
+interface TimedView { timeLimitMinutes: number | null; extraMinutes: number; accommodation: Accommodation | null; session: { id: string; startedAt: number; deadline: number; timeLimitMinutes: number; extraMinutes: number; accommodation: Accommodation | null; answers: Record<string, Answer> } | null }
 
 async function timedView(env: Bindings, assignment: Row, assessment: Row): Promise<TimedView> {
   const limit = assessment.time_limit_minutes as number | null
@@ -195,7 +196,7 @@ export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
   const decision = passed ? 'passed' : left > 0 ? `retry allowed: ${left} attempt${left === 1 ? '' : 's'} remaining` : 'no attempts remaining: a manager may grant another attempt'
   const id = newId()
   await commit(env, [
-    stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?, ?, ?, ?, 'scored')", id, assignment.id, assessment.id, number, now(), points, responses.length, passed ? 1 : 0, `exact choice match per question; pass at ${assessment.pass_percent}%`, decision),
+    stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?, ?, ?, ?, 'scored')", id, assignment.id, assessment.id, number, now(), points, responses.length, passed ? 1 : 0, `${SCORING_RULE}; pass at ${assessment.pass_percent}%`, decision),
     ...responses.map(response => stmt(env, 'INSERT INTO beam_responses (attempt_id, question_id, answer_json, correct) VALUES (?, ?, ?, ?)', id, response.question, JSON.stringify(response.selected), response.correct ? 1 : 0)),
   ], { actor, action: 'quiz.attempt', subject: id, detail: { assignment: assignment.id, points, of: responses.length, passed } })
   const completion = await tryComplete(env, actor, assignment.id)

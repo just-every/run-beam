@@ -9,7 +9,8 @@ import { newCourseUnit, requireCourseRole } from './units'
 import { courseAccess } from './course-access'
 
 export interface Lesson { id: string; title: string; body: string; sources: string[] }
-export interface Question { id: string; prompt: string; choices: string[]; correct: number[] }
+import { normaliseQuestion, questionFromInput, type Question } from './question-types'
+export type { Question } from './question-types'
 export interface Draft {
   title: string
   summary: string
@@ -55,11 +56,7 @@ export async function normaliseDraft(env: Bindings, value: unknown): Promise<Dra
     lessons.push({ id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set(lesson.sources)] })
   }
   const questions: Question[] = []
-  for (const question of draft.questions) {
-    insist(question && typeof question.prompt === 'string' && question.prompt.trim() && question.prompt.length <= 1000 && Array.isArray(question.choices) && question.choices.length >= 2 && question.choices.length <= 8 && question.choices.every(choice => typeof choice === 'string' && choice.trim() && choice.length <= 300), 'invalid_question')
-    insist(Array.isArray(question.correct) && question.correct.length >= 1 && question.correct.every(index => Number.isInteger(index) && index >= 0 && index < question.choices.length) && new Set(question.correct).size === question.correct.length, 'invalid_question_answer')
-    questions.push({ id: typeof question.id === 'string' && question.id ? question.id : newId(), prompt: question.prompt.trim(), choices: question.choices.map(choice => choice.trim()), correct: [...question.correct].sort((a, b) => a - b) })
-  }
+  for (const question of draft.questions) questions.push(normaliseQuestion(question))
   const passPercent = draft.passPercent === null || draft.passPercent === undefined ? null : draft.passPercent
   const maxAttempts = draft.maxAttempts === null || draft.maxAttempts === undefined ? null : draft.maxAttempts
   insist(passPercent === null || (Number.isInteger(passPercent) && passPercent >= 1 && passPercent <= 100), 'invalid_pass_percent')
@@ -120,9 +117,7 @@ export const moveLesson = (env: Bindings, actor: Actor, input: Input) => editDra
 })
 
 export const saveQuestion = (env: Bindings, actor: Actor, input: Input) => editDraft(env, actor, input, 'course.question', draft => {
-  const choices = input.text('choices', { max: 3000 }).split('\n').map(choice => choice.trim()).filter(Boolean)
-  const correct = input.text('correct', { max: 40 }).split(/[\s,]+/).filter(Boolean).map(value => Number(value) - 1)
-  const question: Question = { id: input.text('question', { optional: true }) || newId(), prompt: input.text('prompt', { max: 1000 }), choices, correct }
+  const question = questionFromInput(input)
   const index = draft.questions.findIndex(existing => existing.id === question.id)
   if (index >= 0) draft.questions[index] = question
   else {

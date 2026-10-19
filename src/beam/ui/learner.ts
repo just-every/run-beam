@@ -115,7 +115,7 @@ export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL
   if (!view.quiz || view.assignment.learner !== actor.id) throw new BeamError('not_found', 404)
   requireAccess({ access_opens_at: view.access.opensAt, access_closes_at: view.access.closesAt })
   const quiz = view.quiz, zone = (await business(env))!.timezone
-  const intro = h`<p class="subtitle">Pass mark ${quiz.passPercent}%. ${quiz.attemptsLeft} attempt${quiz.attemptsLeft === 1 ? '' : 's'} left. Each question scores when exactly the right choices are selected.</p>`
+  const intro = h`<p class="subtitle">Pass mark ${quiz.passPercent}%. ${quiz.attemptsLeft} attempt${quiz.attemptsLeft === 1 ? '' : 's'} left. Each question scores only when every choice, blank, position or pair is right.</p>`
   const back = backLink(`/app/learn/${id}`, view.assignment.courseTitle)
   // LEARN-018: a timed quiz starts on the server; while it runs the page counts down to the server's deadline.
   if (quiz.timeLimitMinutes) {

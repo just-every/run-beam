@@ -1,14 +1,25 @@
 // LEARN-018 on the pages: starting and taking a timed quiz with its countdown,
 // the time facts on an attempt, and a manager's extra-time accommodations.
 import type { Accommodation } from '../timing'
+import type { Answer, PresentedQuestion } from '../question-types'
 import { card, field, form, h, hidden, rows, select, when, type Html } from './html'
 
 export const accommodationLabel = (row: Pick<Accommodation, 'kind' | 'amount' | 'course'>, courseTitle?: string) =>
   `${row.kind === 'percent' ? `${row.amount}% extra time` : `${row.amount} extra ${row.amount === 1 ? 'minute' : 'minutes'}`} ${row.course ? `on ${courseTitle ?? 'this course'}` : 'on every timed assessment'}`
 
-interface Quiz { passPercent: number; attemptsLeft: number; timeLimitMinutes?: number | null; extraMinutes?: number; accommodation?: Accommodation | null; session?: { deadline: number; extraMinutes: number; answers: Record<string, number[]> } | null; questions: { id: string; prompt: string; choices: string[]; multiple: boolean }[] }
+interface Quiz { passPercent: number; attemptsLeft: number; timeLimitMinutes?: number | null; extraMinutes?: number; accommodation?: Accommodation | null; session?: { deadline: number; extraMinutes: number; answers: Record<string, Answer> } | null; questions: PresentedQuestion[] }
 
-export const questionFields = (quiz: Quiz, answers: Record<string, number[]> = {}) => quiz.questions.map((question, n) => h`<fieldset><legend>${n + 1}. ${question.prompt}${question.multiple ? h` <span class="muted">(choose all that apply)</span>` : ''}</legend>${question.choices.map((choice, index) => h`<label class="check"><input type="${question.multiple ? 'checkbox' : 'radio'}" name="q_${question.id}" value="${index}"${answers[question.id]?.includes(index) ? h` checked` : ''}> ${choice}</label>`)}</fieldset>`)
+/** One fieldset per question; each blank, position and pair is its own labelled control, so every type works by
+ * keyboard and screen reader on any screen (LEARN-015, LEARN-011). */
+export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {}) => quiz.questions.map((question, n) => {
+  const given = answers[question.id] ?? []
+  if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(fill in ${question.blanks === 1 ? 'the blank' : `all ${question.blanks} blanks`})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(`Blank ${part + 1}`, `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
+  const options = question.kind === 'order' || question.kind === 'match' ? question.options.map(option => ({ value: String(option.index), label: option.label })) : []
+  const chosen = (part: number) => typeof given[part] === 'number' && given[part] !== -1 ? String(given[part]) : ''
+  if (question.kind === 'order') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(put the items in order)</span></legend>${Array.from({ length: question.positions }, (_, part) => select(`Position ${part + 1}`, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
+  if (question.kind === 'match') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(match each item)</span></legend>${question.lefts.map((left, part) => select(left, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
+  return h`<fieldset><legend>${n + 1}. ${question.prompt}${question.multiple ? h` <span class="muted">(choose all that apply)</span>` : ''}</legend>${question.choices.map((choice, index) => h`<label class="check"><input type="${question.multiple ? 'checkbox' : 'radio'}" name="q_${question.id}" value="${index}"${(given as number[]).includes(index) ? h` checked` : ''}> ${choice}</label>`)}</fieldset>`
+})
 
 /** Before the attempt starts: the limit, any extra time and what happens when time runs out. */
 export function timedStart(id: string, quiz: Quiz) {

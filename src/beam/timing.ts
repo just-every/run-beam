@@ -8,6 +8,7 @@
 import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
 import type { Question } from './courses'
+import { SCORING_RULE, answerFrom, answered, isCorrect, type Answer } from './question-types'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { withinTeam } from './resets'
@@ -51,30 +52,25 @@ export async function openSession(env: Bindings, assignmentId: string) {
 }
 
 export async function savedAnswers(env: Bindings, sessionId: string) {
-  return new Map((await all<{ question_id: string; answer_json: string }>(env, 'SELECT question_id, answer_json FROM beam_quiz_session_answers WHERE session_id = ?', sessionId)).map(row => [row.question_id, JSON.parse(row.answer_json) as number[]]))
+  return new Map((await all<{ question_id: string; answer_json: string }>(env, 'SELECT question_id, answer_json FROM beam_quiz_session_answers WHERE session_id = ?', sessionId)).map(row => [row.question_id, JSON.parse(row.answer_json) as Answer]))
 }
 
-/** The learner's selection for each question named in the input, checked against its choices. */
+/** The learner's answer to each question named in the input, checked against its type (question-types.ts). */
 export function selectionsFrom(questions: Question[], input: Input, { onlyPresent = false } = {}) {
-  const selections = new Map<string, number[]>()
-  for (const question of questions) {
-    if (onlyPresent && !input.has(`q_${question.id}`)) continue
-    const selected = [...new Set(input.list(`q_${question.id}`).map(Number))].sort((a, b) => a - b)
-    insist(selected.every(index => Number.isInteger(index) && index >= 0 && index < question.choices.length), 'invalid_answer')
-    selections.set(question.id, selected)
-  }
+  const selections = new Map<string, Answer>()
+  for (const question of questions) if (!onlyPresent || answered(question, input)) selections.set(question.id, answerFrom(question, input))
   return selections
 }
 
-/** Exact-set scoring: a question scores one point only when the selected choices equal the correct choices; an unanswered question scores none. */
-export function score(questions: Question[], selections: Map<string, number[]>) {
+/** A question scores one point only when its whole answer is right (LEARN-015, BEAM-07); an unanswered question scores none. */
+export function score(questions: Question[], selections: Map<string, Answer>) {
   return questions.map(question => {
     const selected = selections.get(question.id) ?? []
-    return { question: question.id, selected, correct: selected.length === question.correct.length && selected.every((value, index) => value === question.correct[index]) }
+    return { question: question.id, selected, correct: isCorrect(question, selections.get(question.id)) }
   })
 }
 
-export function upsertAnswers(env: Bindings, sessionId: string, selections: Map<string, number[]>, at: number) {
+export function upsertAnswers(env: Bindings, sessionId: string, selections: Map<string, Answer>, at: number) {
   return [...selections].map(([question, selected]) => stmt(env, 'INSERT INTO beam_quiz_session_answers (session_id, question_id, answer_json, saved_at) VALUES (?, ?, ?, ?) ON CONFLICT (session_id, question_id) DO UPDATE SET answer_json = excluded.answer_json, saved_at = excluded.saved_at', sessionId, question, JSON.stringify(selected), at))
 }
 
@@ -89,7 +85,7 @@ export async function closeSession(env: Bindings, session: Row, questions: Quest
   const left = attemptsLeft - 1
   const decision = passed ? 'passed' : left > 0 ? `retry allowed: ${left} attempt${left === 1 ? '' : 's'} remaining` : 'no attempts remaining: a manager may grant another attempt'
   const id = newId()
-  const rule = `exact choice match per question; pass at ${passPercent}%; time limit ${session.time_limit_minutes} minutes${session.extra_minutes ? ` plus ${session.extra_minutes} minutes extra time` : ''}; only answers saved before the limit count`
+  const rule = `${SCORING_RULE}; pass at ${passPercent}%; time limit ${session.time_limit_minutes} minutes${session.extra_minutes ? ` plus ${session.extra_minutes} minutes extra time` : ''}; only answers saved before the limit count`
   // The attempt is written first, only while the session is open; a concurrent closer's attempt number collides and loses.
   const statements = [
     stmt(env, `INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, score, max_score, passed, scoring_rule, retry_decision, state, started_at, closed_at, close_reason, time_limit_minutes, extra_minutes, accommodation_json)

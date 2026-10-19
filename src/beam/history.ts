@@ -7,6 +7,7 @@ import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
 import { editDraft, revisionDetail, type Draft, type Question } from './courses'
 import { insist, one, sha256Hex, type Row } from './core'
+import { answerText } from './question-types'
 import { diffLines } from './diff'
 import type { Input } from './input'
 
@@ -29,7 +30,7 @@ function pairLessons(from: Lesson[], to: Lesson[]) {
 }
 
 const lessonRef = (lesson: Lesson | null) => lesson ? { position: lesson.position + 1, title: lesson.title } : null
-const choiceText = (question: Question) => question.choices.map((choice, index) => `${question.correct.includes(index) ? '[correct] ' : ''}${choice}`).join('\n')
+const choiceText = (question: Question) => answerText(question)
 
 export async function compareRevisions(env: Bindings, actor: Actor, fromId: string, toId: string) {
   requireRole(actor, 'author', 'reviewer', 'manager')
