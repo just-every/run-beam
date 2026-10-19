@@ -13,7 +13,7 @@ import { business, people } from './people'
 import { reminderMessages } from './plans'
 import { practiceView } from './practice'
 import { questionPlanView } from './questions'
-import { certificate, learnerRecord, queues, reminders } from './records'
+import { learnerRecord, queues, reminders } from './records'
 import { reportFilters, trainingReport } from './report'
 import { listSources } from './sources'
 import { requireCourseRole, unitsView } from './units'
@@ -34,6 +34,7 @@ import { collaboration } from './collab'
 import { contentQueue } from './feedback'
 import { instructorGrants } from './instructors'
 import { externalView } from './external'
+import { certificateRecord, templates } from './certificates'
 
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
@@ -63,7 +64,8 @@ export const views: Record<string, View> = {
   record: (env, actor, _request, id) => learnerRecord(env, actor, id === 'me' ? actor.id : id),
   queues: (env, actor) => queues(env, actor),
   reminders: (env, actor) => reminders(env, actor),
-  certificate: (env, actor, _request, id) => certificate(env, actor, id),
+  certificate: (env, actor, _request, id) => certificateRecord(env, actor, id),
+  'certificate-templates': async (env, actor) => { insist(actor.owner || actor.grants.certificates, 'forbidden', 403); return await templates(env) },
   imports: (env, actor) => importJobs(env, actor),
   history: (env, actor) => importedHistory(env, actor),
   messages: (env, actor) => reminderMessages(env, actor),
@@ -92,7 +94,7 @@ const ROUTES: [RegExp, string][] = [
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
-  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'],
+  [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'],
 ]
 
 export function route(path: string): { view: View; id: string } {

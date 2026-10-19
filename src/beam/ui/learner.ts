@@ -160,13 +160,6 @@ export async function practicalPage(env: Bindings, actor: Actor, id: string, url
   return page('Practical assessment', actor, body, { current: '/app/learning', url })
 }
 
-export async function certificatePage(env: Bindings, actor: Actor, id: string, url: URL) {
-  const certificateView = await certificate(env, actor, id)
-  const zone = (await business(env))!.timezone
-  const body = h`<article class="card certificate"><p class="lockup"><img src="/brand/mark.svg" alt="" width="24" height="28">${branding.name}</p><p class="muted">Certificate of completion · ${certificateView.number}</p><hr><h1>${certificateView.learner}</h1><p>completed</p><h2>${certificateView.course}</h2><p class="muted">revision ${certificateView.revision} · ${certificateView.method === 'offline' ? 'attested offline training' : certificateView.method === 'assessed' ? 'lessons and assessment' : 'lessons'}</p><p class="muted">on ${formatDate(certificateView.completedAt, zone)}${certificateView.expiresAt ? h` · valid until ${formatDate(certificateView.expiresAt, zone)}` : ''}</p><hr><p class="issuer">Issued by ${certificateView.issuer}</p><p class="muted disclaimer">This certificate records completion of the issuer’s own training. It is not an accreditation or a statement of competence.</p></article><p class="no-print muted print-note"><a href="/app/learning">← My learning</a> · Use your browser’s print command to save a copy.</p>`
-  return page('Certificate', actor, body, { current: '/app/learning', url })
-}
-
 export async function recordPage(env: Bindings, actor: Actor, memberId: string, url: URL) {
   const record = await learnerRecord(env, actor, memberId)
   const zone = (await business(env))!.timezone

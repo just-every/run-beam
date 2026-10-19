@@ -37,6 +37,7 @@ import { resetAssignment } from './resets'
 import { grantAccommodation } from './timing'
 import { addSourceVersion, createSource } from './sources'
 import { decideCertificate, saveRequirement, uploadCertificate } from './external'
+import { correctCertificate, createLink, revokeLink, saveTemplate, setCourseTemplate } from './certificates'
 import { replaceReviewer, setCourseAuthors, setSelfReview } from './course-access'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
@@ -51,6 +52,11 @@ export const actions: Record<string, Handler> = {
   'external.requirement': (env, actor, input) => saveRequirement(env, actor, input),
   'external.upload': (env, actor, input) => uploadCertificate(env, actor, input),
   'external.decide': (env, actor, input) => decideCertificate(env, actor, input),
+  'certificate.template': (env, actor, input) => saveTemplate(env, actor, input),
+  'course.certificate': (env, actor, input) => setCourseTemplate(env, actor, input),
+  'certificate.correct': (env, actor, input) => correctCertificate(env, actor, input),
+  'certificate.link': (env, actor, input) => createLink(env, actor, input),
+  'certificate.unlink': (env, actor, input) => revokeLink(env, actor, input),
   'team.members': (env, actor, input) => setTeamMembers(env, actor, input),
   'team.managers': (env, actor, input) => setTeamManagers(env, actor, input),
   'team.coverage': (env, actor, input) => grantCoverage(env, actor, input),

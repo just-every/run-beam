@@ -16,7 +16,7 @@ import { sourceFile } from './sources'
 import { coursePage, coursesPage, revisionPage, sourcesPage } from './ui/authoring'
 import { revisionComparePage, sourceComparePage } from './ui/history'
 import { acknowledgmentPage } from './ui/acknowledgments'
-import { certificatePage, dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
+import { dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
 import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
 import { managePage } from './ui/compliance'
 import { importPage, previewPage } from './ui/movein'
@@ -32,6 +32,8 @@ import { sessionsPage } from './ui/live'
 import { rosterPage } from './ui/attendance'
 import { sessionCalendar } from './ics'
 import { externalFile } from './external'
+import { certificatePdfResponse } from './certificates'
+import { certificatePage, templatesPage, verifyPage } from './ui/certificates'
 import { externalPage } from './ui/external'
 import { sessionForCalendar } from './live'
 import { transcriptCsvResponse, transcriptPage, transcriptXlsxResponse } from './ui/transcript'
@@ -54,6 +56,9 @@ export async function beamResponse(request: Request, original: Bindings): Promis
   const env = runtimeBindings(original)
   const url = new URL(request.url)
   const api = url.pathname.startsWith('/api/beam/')
+  // LEARN-002: a certificate's verification link is public and shows only what its template approves.
+  const verify = url.pathname.match(/^\/verify\/([^/]+)$/)
+  if (verify && ['GET', 'HEAD'].includes(request.method)) return await verifyPage(env, verify[1]).catch(() => new Response('Not found', { status: 404 }))
   if (!api && url.pathname !== '/app' && !url.pathname.startsWith('/app/')) return null
   if (request.method === 'POST' && request.headers.get('origin') !== env.AUTH_ORIGIN) return api ? json({ error: 'invalid_origin' }, 403) : new Response('Forbidden', { status: 403 })
   if (!['GET', 'HEAD', 'POST'].includes(request.method)) return new Response(null, { status: 405, headers: { allow: 'GET, HEAD, POST' } })
@@ -177,6 +182,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/learn\/([\w-]+)\/practical$/))) return practicalPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/attempts\/([\w-]+)$/))) return attemptPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/certificates\/([\w-]+)$/))) return certificatePage(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/certificates\/([\w-]+)\.pdf$/))) return certificatePdfResponse(env, actor, match[1])
+  if (path === '/app/certificate-templates') return templatesPage(env, actor, url)
   if (path === '/app/evidence') return evidencePage(env, actor, url)
   if (path === '/app/import') return importPage(env, actor, url)
   if (path === '/app/reports') return reportPage(env, actor, url)
