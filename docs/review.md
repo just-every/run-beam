@@ -27,6 +27,14 @@ When an author uploads a new version of a source, every course whose published l
 - **No material change to the training**: the course stays as it is.
 - **Training needs updating (the draft is being revised)**: the author updates the lessons and submits a new revision, which you publish with the reassignment you choose.
 
+Each decision also sets the course's **Next review date**, which must come after today.
+
+## Scheduled content reviews
+
+Under **Content upkeep** on the course page, whoever manages the course's catalog names a **Fallback owner** and a **Next review date** (a date in the business time zone). The course's responsible owner is its catalog owner, or its reviewer when it has none. From the review date, the daily run opens a scheduled review, which waits in **Waiting for my review** for the course's reviewer.
+
+Open reviews and source-change notices are mailed to the responsible owner. When that person has no active sign-in or has left, the mail goes to the fallback owner instead, and to the owner when there is no available fallback owner. Nobody gets the same item twice. The card lists each mail Beam handed to the mail provider and any mail that was held or refused, with the reason. Beam does not retry a refused mail by itself; once the cause is fixed, the owner presses **Send held mail now**. The reviewer (or the owner) records the review's decision with its next review date, just as for a changed source.
+
 ## Proposed changes
 
 An author's agent can propose changes to a course draft, with the source passages it relies on and anything it could not find. They appear on the course page as **Proposed change**: **Apply to draft** or **Decline**. Applying changes only the draft; nothing is published until a reviewer publishes a revision.

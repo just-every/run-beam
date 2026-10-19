@@ -8,6 +8,7 @@ import { extendAccess, setAccessRule, setAssignmentWindow } from './access'
 import { decideAcknowledgment, requestAcknowledgments } from './acknowledgments'
 import { decide, propose } from './agent-work'
 import { answerSurvey } from './survey'
+import { decideReview, runUpkeepNow, saveUpkeep } from './upkeep'
 import { assignCourse, assignPath, assignRenewals, previewPath, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
@@ -177,6 +178,9 @@ export const actions: Record<string, Handler> = {
   'proposal.create': (env, actor, input) => proposeDraft(env, actor, input, input.json('draft')),
   'proposal.decide': (env, actor, input) => decideProposal(env, actor, input),
   'notice.decide': (env, actor, input) => decideNotice(env, actor, input),
+  'course.upkeep': (env, actor, input) => saveUpkeep(env, actor, input),
+  'review.decide': (env, actor, input) => decideReview(env, actor, input),
+  'upkeep.run': (env, actor) => runUpkeepNow(env, actor),
   'path.create': (env, actor, input) => createPath(env, actor, input),
   'path.revise': (env, actor, input) => revisePath(env, actor, input),
   'path.assign': (env, actor, input) => assignPath(env, actor, input),

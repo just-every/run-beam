@@ -77,7 +77,8 @@ and pnpm 10.12.4, selected automatically. `RUN-LOCALLY.md` and
   responsible reviewer, builds courses (lessons citing exact source versions,
   a deterministic quiz, an optional practical assessment) and submits a revision.
 - **Reviewer:** publishes or returns the revision, chooses whether open or
-  completed learners move to it, and decides source-change notices.
+  completed learners move to it, and decides source-change notices and
+  scheduled content reviews.
 - **Manager:** builds role paths with prerequisites and renewal intervals,
   assigns courses and paths with due dates in an explicit time zone, works the
   overdue, retry and renewal queues, records attested offline training and reads

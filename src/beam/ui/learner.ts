@@ -60,9 +60,10 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
   // Anonymous questions stay the learner's own (BEAM-19): a read-only view (ORG-012) does not list them.
   const asks = asked.length && !actor.viewAs ? card('Questions for you', rows(asked.map(row => ({ title: row.title, meta: `Optional · closes ${day(row.closesOn)}`, href: `/app/questions/${row.id}` }))), { id: 'asked' }) : ''
   const agent = decidable ? card('Agent work', h`<p><a href="/app/agent">${decidable} ${decidable === 1 ? 'proposal is' : 'proposals are'} waiting for your decision</a></p>`, { id: 'agent' }) : ''
-  const review = work.reviews.length || work.notices.length ? card('Waiting for my review', rows([
+  const review = work.reviews.length || work.notices.length || work.contentReviews.length ? card('Waiting for my review', rows([
     ...work.reviews.map(row => ({ title: `${row.title} revision ${row.number}`, href: `/app/revisions/${row.id}` })),
     ...work.notices.map(row => ({ title: row.courseTitle, meta: h`Source “${row.sourceTitle}” has a new version`, href: `/app/courses/${row.course}` })),
+    ...work.contentReviews.map(row => ({ title: row.courseTitle, meta: `Scheduled content review due ${row.dueOn}`, href: `/app/courses/${row.course}#upkeep` })),
   ]), { id: 'review' }) : ''
   const assess = work.assessments.length ? card('Evidence and written answers to assess', rows(work.assessments.map(row => ({ title: `${row.learnerName} — ${row.courseTitle}`, href: `/app/attempts/${row.id}` }))), { id: 'assess' }) : ''
   const assigned = card('Assigned to me', open.length ? rows(open.map(row => ({ title: row.courseTitle, meta: [`revision ${row.revisionNumber}`, lessonCount(row.lessonsDone, row.lessonsTotal), `due ${when(row.dueAt, row.timezone, zone)}`, accessNote({ state: row.access, opensAt: row.accessOpensAt, closesAt: row.accessClosesAt }, zone)].filter(Boolean).join(' · '), aside: progress(row.lessonsDone, row.lessonsTotal), href: `/app/learn/${row.id}` }))) : h`<p>Nothing is assigned to you right now.</p>${raw(bookStack)}`, { id: 'assigned', className: open.length ? '' : 'empty' })

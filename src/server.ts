@@ -12,6 +12,7 @@ import { identity } from './identity'
 import { beamResponse } from './beam/http'
 import { seedDemo } from './demo'
 import { scheduledInactivity } from './beam/inactivity-scheduled'
+import { runUpkeep } from './beam/upkeep'
 import { beamImportDoor } from './beam/movein/door'
 
 const api = new Hono<{ Bindings: Bindings }>()
@@ -26,7 +27,11 @@ function noTransform(response: Response): Response {
 }
 
 export default withDemo({
-  async scheduled(_controller, env) { await scheduledInactivity(runtimeBindings(env)) },
+  async scheduled(_controller, env) {
+    const bindings = runtimeBindings(env)
+    // One job's failure never skips the other; both are still reported as failures.
+    for (const result of await Promise.allSettled([scheduledInactivity(bindings), runUpkeep(bindings)])) if (result.status === 'rejected') throw result.reason
+  },
   async fetch(request, env, execution) {
     const imported = await beamImportDoor(request, runtimeBindings(env))
     if (imported) return imported

@@ -6,6 +6,7 @@ import { requireRole, type Actor } from './actor'
 import { loadCourse, normaliseDraft } from './courses'
 import { commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
+import { DECISIONS, nextReviewDate } from './upkeep'
 
 export async function proposeDraft(env: Bindings, actor: Actor, input: Input, draftValue: unknown) {
   requireRole(actor, 'author')
@@ -72,8 +73,12 @@ export async function decideNotice(env: Bindings, actor: Actor, input: Input) {
   insist(actor.owner || (actor.roles.has('reviewer') && notice.reviewer_id === actor.id), 'named_reviewer_required', 403)
   insist(notice.state === 'open', 'notice_decided', 409)
   const decision = input.text('decision')
-  insist(decision === 'no_material_change' || decision === 'draft_updated', 'invalid_decision')
-  const note = input.text('note', { max: 2000 })
-  await commit(env, [stmt(env, "UPDATE beam_source_notices SET state = ?, note = ?, decided_by = ?, decided_at = ? WHERE id = ? AND state = 'open'", decision, note, actor.id, now(), notice.id)], { actor, action: `notice.${decision}`, subject: notice.id, detail: { note } })
-  return { id: notice.id, state: decision }
+  insist((DECISIONS as readonly string[]).includes(decision), 'invalid_decision')
+  // AUTHOR-006: the decision also sets the course's next review date.
+  const note = input.text('note', { max: 2000 }), nextReviewOn = await nextReviewDate(env, input)
+  await commit(env, [
+    stmt(env, "UPDATE beam_source_notices SET state = ?, note = ?, next_review_on = ?, decided_by = ?, decided_at = ? WHERE id = ? AND state = 'open'", decision, note, nextReviewOn, actor.id, now(), notice.id),
+    stmt(env, 'UPDATE beam_courses SET next_review_on = ? WHERE id = ?', nextReviewOn, notice.course_id),
+  ], { actor, action: `notice.${decision}`, subject: notice.id, detail: { note, nextReviewOn } })
+  return { id: notice.id, state: decision, nextReviewOn }
 }

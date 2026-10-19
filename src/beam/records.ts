@@ -110,6 +110,9 @@ export async function queues(env: Bindings, actor: Actor) {
       WHERE r.state = 'in_review' AND (c.reviewer_id = ? OR ?) ORDER BY r.submitted_at`, actor.id, actor.owner ? 1 : 0) : [],
     notices: actor.roles.has('reviewer') ? await all(env, `SELECT n.id, n.course_id AS course, c.title AS courseTitle, s.title AS sourceTitle FROM beam_source_notices n JOIN beam_courses c ON c.id = n.course_id JOIN beam_sources s ON s.id = n.source_id
       WHERE n.state = 'open' AND (c.reviewer_id = ? OR ?) ORDER BY n.created_at`, actor.id, actor.owner ? 1 : 0) : [],
+    // AUTHOR-006: scheduled content reviews that have come due.
+    contentReviews: actor.roles.has('reviewer') || actor.owner ? await all(env, `SELECT r.id, r.course_id AS course, c.title AS courseTitle, r.due_on AS dueOn FROM beam_content_reviews r JOIN beam_courses c ON c.id = r.course_id
+      WHERE r.state = 'open' AND (c.reviewer_id = ? OR ?) ORDER BY r.due_on`, actor.id, actor.owner ? 1 : 0) : [],
     assessments: actor.roles.has('assessor') ? await all(env, `SELECT t.id, m.name AS learnerName, c.title AS courseTitle, t.submitted_at AS submittedAt FROM beam_attempts t JOIN beam_assessment_revisions s ON s.id = t.assessment_revision_id JOIN beam_assignments a ON a.id = t.assignment_id
       JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id WHERE t.state = 'awaiting_review' AND t.reset_id IS NULL AND s.assessor_id = ? ORDER BY t.submitted_at`, actor.id) : [],
   }

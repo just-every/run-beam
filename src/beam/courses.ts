@@ -7,6 +7,7 @@ import { BeamError, all, auditVia, commit, insist, newId, now, one, sha256Hex, s
 import type { Input } from './input'
 import { newCourseUnit, requireCourseRole } from './units'
 import { courseAccess } from './course-access'
+import { courseUpkeep } from './upkeep'
 
 export interface Lesson { id: string; title: string; body: string; sources: string[] }
 import { normaliseQuestion, questionFromInput, type Question } from './question-types'
@@ -302,5 +303,5 @@ export async function courseDetail(env: Bindings, actor: Actor, id: string) {
   const proposals = await all(env, 'SELECT id, base_draft_version AS baseDraftVersion, input_version_ids AS inputs, prepared_by AS preparedBy, agent, summary, draft_json AS draft, passages_json AS passages, missing_json AS missing, state, decided_by AS decidedBy, created_at AS createdAt FROM beam_proposals WHERE course_id = ? ORDER BY created_at DESC', id)
   return { id: course.id, title: course.title, unit: course.unit_id ?? null, retired: course.retired_at ? { at: course.retired_at, by: course.retired_by, reason: course.retire_reason } : null, clonedFrom: course.cloned_from ?? null, catalog: catalogOf(course), selfReview: course.self_review === 1, ...await courseAccess(env, id), reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft,
     // AUTHOR-003: each draft lesson as its editor sees it, sent back as `base` with a lesson save to detect conflicts.
-    lessonBases: Object.fromEntries(await Promise.all(course.draft.lessons.map(async lesson => [lesson.id, await lessonHash(lesson)]))), publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
+    lessonBases: Object.fromEntries(await Promise.all(course.draft.lessons.map(async lesson => [lesson.id, await lessonHash(lesson)]))), publishedRevision: course.published_revision_id, revisions, notices, upkeep: await courseUpkeep(env, course), proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
 }

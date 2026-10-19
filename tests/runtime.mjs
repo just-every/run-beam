@@ -31,7 +31,8 @@ export async function emittedWorker({ bindings = {} } = {}) {
   const origin = `https://127.0.0.1:${port}`
   const secret = () => randomBytes(32).toString('base64url')
   const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret(), ...bindings }
-  const mails = []
+  // `edge.refuse` makes the provider refuse every message, as Resend does a message it will not accept.
+  const mails = [], edge = { refuse: false }
   const options = convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
     modules: [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) })),
@@ -41,6 +42,7 @@ export async function emittedWorker({ bindings = {} } = {}) {
     bindings: vars,
     outboundService: async request => {
       if (request.url !== 'https://api.resend.com/emails') throw new Error(`Unexpected test network destination ${new URL(request.url).origin}`)
+      if (edge.refuse) return Response.json({ name: 'validation_error', message: 'Refused at the test edge' }, { status: 422 })
       mails.push(await request.json())
       return Response.json({ id: `test-receipt-${mails.length}` })
     },
@@ -73,5 +75,5 @@ export async function emittedWorker({ bindings = {} } = {}) {
   /** The Worker's D1, for checks that move an assignment's clock (AUTO-009), and its D1 and R2 together for the
    * installation archive `rer export` writes (BEAM-16); everything else goes through the doors. */
   const db = await mf.getD1Database('DB'), files = await mf.getR2Bucket('FILES')
-  return { origin, vars, mails, fetch, linkFor, close, db, files, scheduled: () => mf.getWorker().then(worker => worker.scheduled({ cron: '0 8 * * *', scheduledTime: Date.now() })) }
+  return { origin, vars, mails, edge, fetch, linkFor, close, db, files, scheduled: () => mf.getWorker().then(worker => worker.scheduled({ cron: '0 8 * * *', scheduledTime: Date.now() })) }
 }

@@ -7,7 +7,7 @@ import { requireBusiness } from './people'
 import { localDate } from './time'
 
 interface Execution {
-  kind: 'follow_on' | 'audience' | 'notification'; rule: string; event: string; learner: string;
+  kind: 'follow_on' | 'audience' | 'notification' | 'upkeep'; rule: string; event: string; learner: string;
   authority: string; unit: string | null; input: unknown; manual: boolean
 }
 
