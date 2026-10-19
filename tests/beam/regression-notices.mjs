@@ -73,10 +73,14 @@ export async function notificationRulesCheck(f) {
   let page = await h.raw('/app/learning', { cookie: cookies.manager }).then(r => r.text())
   assert.ok(page.includes('&lt;em&gt;result&lt;/em&gt;') && !page.includes('<em>result</em>'))
 
-  // Resolve the new team manager on the next event. Access to the old notice ends.
+  // A manager retains authority through any current team. It ends only when every
+  // applicable management grant ends; prior unrelated journeys must not define it.
+  const sharedTeam = await f.team('Shared loading crew', [ids.learner])
   await api('owner', 'person.directory', { member: ids.other, language: 'es-MX' })
   await api('owner', 'team.managers', { team: ids.team, members: [ids.other] })
   await complete(second)
+  assert.equal((await inbox('manager')).length, 2)
+  await api('owner', 'team.managers', { team: sharedTeam, members: [] })
   assert.deepEqual(await inbox('manager'), [])
   let other = await inbox('other')
   assert.equal(other.length, 1)
