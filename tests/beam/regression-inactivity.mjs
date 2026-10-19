@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict'
+import { fixture } from './regression-fixture.mjs'
 
 // AUTO-007: the owner previews and switches on an inactivity policy; a run gives an inactive person a notice, a sign-in
 // cancels it, a notice that runs out removes access (sessions revoked, records kept, recorded with the policy version),
 // running twice changes nothing more, protected people are left alone, and the owner's restore plus a fresh emailed
 // sign-in recovers the person.
-export async function inactivityCheck(f) {
+export async function inactivityCheck() {
+  // This clause exercises real fresh sign-ins. Unrelated suite sign-ins must
+  // not consume its installation's Base IP limit before it starts.
+  const f = await fixture()
+  try { await inactivity(f) } finally { await f.h.close() }
+}
+
+async function inactivity(f) {
   const { api, h, cookies, ids } = f
   const DAY = 86_400_000
   const age = (email, ms) => h.db.prepare('UPDATE oa_operators SET last_signin_at = ?1, created_at = MIN(created_at, ?1) WHERE lower(email) = ?2').bind(Date.now() - ms, email).run()

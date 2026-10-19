@@ -3280,7 +3280,7 @@
       "executable": false
     },
     "tests/beam/regression-inactivity.mjs": {
-      "sha256": "62c8860e8cc38144e9dfc1d609b6208a0025f2f49a9bb02b11b038fcaf4ce4fc",
+      "sha256": "769d3871bba3dcf5a34706909c4692e18a76431947c0df4d6358fad509b78c22",
       "executable": false
     },
     "tests/beam/regression-instructors.mjs": {
