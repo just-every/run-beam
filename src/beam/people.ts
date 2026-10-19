@@ -6,7 +6,7 @@ import { all, commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
 import { validTimezone } from './time'
 import { teamManagers } from './managers'
-import { IN_SCOPE, learnerScope, teamScope } from './scope'
+import { IN_SCOPE, inScope, learnerScope, teamScope } from './scope'
 
 export interface Business { name: string; timezone: string }
 
@@ -35,20 +35,34 @@ function roleList(input: Input): Role[] {
   return roles as Role[]
 }
 
+/** ORG-002: a learning administrator changes only the teams of the units they administer; the owner changes any team. */
+async function requireUnitTeams(env: Bindings, actor: Actor, teams: string[]) {
+  if (!actor.owner) insist(actor.adminUnits.length, 'owner_required', 403)
+  for (const team of teams) {
+    const row = await one<{ unit_id: string | null }>(env, 'SELECT unit_id FROM beam_teams WHERE id = ?', team)
+    insist(row, 'team_not_found', 404)
+    insist(actor.owner || actor.adminUnits.includes(row.unit_id ?? ''), 'outside_your_units', 403)
+  }
+}
+
+/** The owner invites anyone with any roles; a learning administrator invites new learners into their units' teams. */
 export async function invitePerson(env: Bindings, request: Request, actor: Actor, input: Input) {
-  requireOwner(actor)
+  const teams = input.list('teams')
+  await requireUnitTeams(env, actor, teams)
+  insist(actor.owner || teams.length > 0, 'outside_your_units', 403)
   const email = normalizeEmail(input.text('email', { max: 254 }))
   insist(email, 'invalid_email')
   const name = input.text('name', { max: 120 })
   const roles = roleList(input)
   insist(roles.length > 0, 'roles_required')
-  const teams = input.list('teams')
-  // A member restored from an archive has no sign-in account (archives never carry them): inviting them again
-  // gives them one and keeps their restored roles, teams and records.
-  insist(!await one(env, 'SELECT 1 FROM beam_members WHERE email = ?', email) || !await operatorFor(env, request, email), 'already_member', 409)
+  // Roles reach the whole installation, so only the owner gives more than the learner role.
+  insist(actor.owner || roles.every(role => role === 'learner'), 'owner_required', 403)
+  // A member restored from an archive has no sign-in account (archives never carry them): the owner inviting them
+  // again gives them one and keeps their restored roles, teams and records. An administrator invites only new people.
+  const existing = await one(env, 'SELECT 1 FROM beam_members WHERE email = ?', email)
+  insist(!existing || (actor.owner && !await operatorFor(env, request, email)), 'already_member', 409)
   await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: '/app' })
   const member = await ensureMember(env, email, name, roles)
-  for (const team of teams) insist(await one(env, 'SELECT 1 FROM beam_teams WHERE id = ?', team), 'team_not_found', 404)
   await commit(env, teams.map(team => stmt(env, 'INSERT OR IGNORE INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member.id)), { actor: actor.id, action: 'person.invite', subject: member.id, detail: { email, roles, teams } })
   return { id: member.id, email, roles, teams }
 }
@@ -93,7 +107,7 @@ export async function setAccess(env: Bindings, request: Request, actor: Actor, i
   return { email: member.email, status }
 }
 
-/** Teams and their members are the owner's to set (ORG-004): a team's managers act only for its members. */
+/** The owner creates teams and names their managers (ORG-004); a team's managers act only for its members. */
 export async function createTeam(env: Bindings, actor: Actor, input: Input) {
   requireOwner(actor)
   const name = input.text('name', { max: 80 })
@@ -103,12 +117,14 @@ export async function createTeam(env: Bindings, actor: Actor, input: Input) {
   return { id, name }
 }
 
+/** Sets a team's members: the owner for any team; a learning administrator (ORG-002) for a team of their units, from
+ * people already in their units' teams, so nobody outside their units is drawn in. */
 export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) {
-  requireOwner(actor)
   const team = input.text('team')
-  insist(await one(env, 'SELECT 1 FROM beam_teams WHERE id = ?', team), 'team_not_found', 404)
+  await requireUnitTeams(env, actor, [team])
   const members = input.list('members')
   for (const member of members) insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', member), 'person_not_found', 404)
+  for (const member of members) insist(actor.owner || inScope(actor, member), 'outside_your_units', 403)
   await commit(env, [stmt(env, 'DELETE FROM beam_team_members WHERE team_id = ?', team), ...members.map(member => stmt(env, 'INSERT INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member))], { actor: actor.id, action: 'team.members', subject: team, detail: { members } })
   return { team, members }
 }

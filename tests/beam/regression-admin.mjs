@@ -56,6 +56,38 @@ export async function adminCheck(f) {
   assert.ok(csv.status === 200 && csv.text.includes('North induction') && !csv.text.includes('South forklift safety'))
   assert.equal((await page('/app/reports', 'admin')).status, 200)
 
+  // Membership of their units' teams: they invite new learners into North and set North's members from people already
+  // in their units; South, other roles, existing people and people outside their units are refused. The owner names
+  // managers and sets course and path windows; the windows of enrollments the administrator created are theirs.
+  const nia = (await api('admin', 'person.invite', { email: 'nia@example.test', name: 'Nia New', roles: ['learner'], teams: [north] })).id
+  assert.equal((await api('admin', 'person.invite', { email: 'zed@example.test', name: 'Zed', roles: ['learner'], teams: [south] }, 403)).error, 'outside_your_units')
+  assert.equal((await api('admin', 'person.invite', { email: 'zed@example.test', name: 'Zed', roles: ['author'], teams: [north] }, 403)).error, 'owner_required')
+  assert.equal((await api('admin', 'person.invite', { email: 'other@example.test', name: 'Other', roles: ['learner'], teams: [north] }, 409)).error, 'already_member')
+  assert.equal((await h.raw('/auth/invite', { cookie: cookies.admin, body: { email: 'zed@example.test', displayName: 'Zed' } })).status, 403)
+  cookies.nia = await h.signIn('nia@example.test', { requested: true })
+  assert.equal((await api('nia', 'me')).id, nia)
+  const noor = (await api('admin', 'person.invite', { email: 'noor@example.test', name: 'Noor New', roles: ['learner'], teams: [north] })).id
+  assert.deepEqual((await api('admin', 'people')).members.find(row => row.id === nia).teams, [north])
+  // Removing someone from every team of their units hands them back to the owner: they cannot be drawn in again.
+  assert.equal((await h.submit('team.members', cookies.admin, { team: north, members: [ids.learner, nia] }, '/app/people')).searchParams.get('error'), null)
+  assert.equal((await api('admin', 'team.members', { team: north, members: [ids.learner, nia, noor] }, 403)).error, 'outside_your_units')
+  assert.equal((await api('admin', 'team.members', { team: north, members: [ids.learner, nia, ids.other] }, 403)).error, 'outside_your_units')
+  await api('admin', 'team.members', { team: north, members: [ids.learner, nia] })
+  assert.equal((await api('admin', 'team.members', { team: south, members: [ids.other, nia] }, 403)).error, 'outside_your_units')
+  assert.equal((await api('admin', 'team.managers', { team: north, members: [ids.admin] }, 403)).error, 'owner_required')
+  assert.deepEqual((await api('admin', 'people')).members.map(row => row.id).sort(), [ids.learner, nia].sort())
+  const membersPage = await page('/app/people', 'admin')
+  assert.ok(membersPage.text.includes('Invite a learner') && membersPage.text.includes('Save members') && !membersPage.text.includes('Save managers'))
+  await api('admin', 'access.rule', { scope: 'course', target: created.id, kind: 'after_enrolment', closeDays: 30 }, 403)
+  const window = await api('admin', 'assignment.window', { assignment: mine, kind: 'after_enrolment', closeDays: 30 })
+  assert.equal((await h.submit('access.extend', cookies.admin, { assignment: mine, days: '7', reason: 'Back from leave' }, `/app/learn/${mine}`)).searchParams.get('error'), null)
+  assert.equal((await api('admin', `assignments/${mine}`)).access.closesAt, window.closesAt + 7 * 86400000)
+  assert.ok((await page(`/app/learn/${mine}`, 'admin')).text.includes('Set this assignment’s window'))
+  const [ownerMade] = (await api('owner', 'assignment.create', { course: southCourse.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
+  assert.equal((await api('admin', 'assignment.window', { assignment: ownerMade, kind: 'after_enrolment', closeDays: 30 }, 403)).error, 'not_your_enrollment')
+  await api('owner', 'assignment.window', { assignment: ownerMade, kind: 'after_enrolment', closeDays: 30 })
+  assert.equal((await api('admin', 'access.extend', { assignment: ownerMade, days: 7, reason: 'Not mine' }, 403)).error, 'not_your_enrollment')
+
   // Owner and provider authority stays with the owner: grants, people, settings, move-in, sign-in providers, credentials.
   assert.equal((await api('admin', 'admin.grant', { member: ids.admin, unit: southUnit }, 403)).error, 'owner_required')
   assert.equal((await h.submit('admin.grant', cookies.admin, { member: ids.admin, unit: southUnit }, '/app/people')).searchParams.get('error'), 'owner_required')
@@ -79,6 +111,7 @@ export async function adminCheck(f) {
   assert.equal((await h.submit('admin.revoke', cookies.owner, { grant: grant.id }, '/app/people')).searchParams.get('error'), null)
   assert.deepEqual((await api('admin', 'me')).adminUnits, [])
   for (const path of ['courses', 'people', 'report', 'units']) await api('admin', path, undefined, 403)
+  await assert.rejects(h.signIn('noor@example.test', { requested: true }), /ordinary link confirmation/)
   await api('admin', `records/${ids.learner}`, undefined, 404)
   for (const path of ['/app/courses', '/app/reports', '/app/reports.csv', '/app/people', `/app/revisions/${(await api('author', `courses/${created.id}`)).publishedRevision}`]) assert.equal((await page(path, 'admin')).status, 403, path)
   const revoked = (await api('owner', 'units')).grants.find(row => row.id === grant.id)

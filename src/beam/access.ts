@@ -1,5 +1,6 @@
-// AUTO-009: access windows. An admin (the owner) sets a window on a course, a
-// path or one assignment: closing a set number of days after enrolment, or
+// AUTO-009: access windows. The owner sets a window on a course, a path or one
+// assignment; a learning administrator (ORG-002) sets and extends the window of
+// an assignment they created for someone in their units: closing a set number of days after enrolment, or
 // opening and closing on fixed dates in the employer's time zone. Each new
 // assignment takes its window from the path's rule, else the course's, when it
 // is created, so a renewal gets a fresh window under the same rule. Outside
@@ -7,11 +8,12 @@
 // door while its records stay readable; a closed window never completes,
 // cancels or hides the assignment. A manager extends the close with a reason.
 import type { Bindings } from '../auth.server'
-import { requireOwner, requireRole, type Actor } from './actor'
+import { isManager, requireOwner, type Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { withinTeam } from './resets'
+import { inScope } from './scope'
 import { DAY, addDays, zonedInstant } from './time'
 
 export interface AccessRule { kind: 'after_enrolment' | 'dates'; closeDays?: number | null; openDate?: string | null; closeDate?: string | null; timezone?: string | null; source: 'course' | 'path' | 'assignment' }
@@ -82,11 +84,16 @@ export async function accessRule(env: Bindings, scope: 'course' | 'path', target
   return await ruleFor(env, scope, target)
 }
 
-/** The owner sets one open assignment's own window, counted from its enrolment. */
+/** A learning administrator's own enrollment of someone in their units: its window is theirs to set and extend. */
+const ownEnrollment = (actor: Actor, assignment: Row) =>
+  actor.adminUnits.length > 0 && assignment.assigned_by === actor.id && inScope(actor, assignment.learner_id)
+
+/** The owner, or the learning administrator who created it, sets one open assignment's own window, counted from its enrolment. */
 export async function setAssignmentWindow(env: Bindings, actor: Actor, input: Input) {
-  requireOwner(actor)
-  const assignment = await one(env, "SELECT id, assigned_at FROM beam_assignments WHERE id = ? AND status = 'open'", input.text('assignment'))
+  if (!actor.owner) insist(actor.adminUnits.length, 'owner_required', 403)
+  const assignment = await one(env, "SELECT id, learner_id, assigned_by, assigned_at FROM beam_assignments WHERE id = ? AND status = 'open'", input.text('assignment'))
   insist(assignment, 'assignment_not_found', 404)
+  insist(actor.owner || ownEnrollment(actor, assignment), 'not_your_enrollment', 403)
   const rule = await ruleInput(env, input, 'assignment')
   const window = rule ? windowFrom(rule, assignment.assigned_at) : NO_WINDOW
   await commit(env, [stmt(env, "UPDATE beam_assignments SET access_opens_at = ?, access_closes_at = ?, access_rule = ? WHERE id = ? AND status = 'open'", window.opensAt, window.closesAt, window.rule, assignment.id)],
@@ -94,13 +101,14 @@ export async function setAssignmentWindow(env: Bindings, actor: Actor, input: In
   return { id: assignment.id, ...window }
 }
 
-/** A manager (for people in one of their teams) or the owner moves an open assignment's close later, with a reason;
- * a window that has already closed reopens for that many days from now. The due date does not move. */
+/** A manager (for people in one of their teams), the owner, or the learning administrator who created the assignment
+ * moves an open assignment's close later, with a reason; a window that has already closed reopens for that many days
+ * from now. The due date does not move. */
 export async function extendAccess(env: Bindings, actor: Actor, input: Input) {
-  requireRole(actor, 'manager')
-  const assignment = await one(env, 'SELECT id, learner_id, status, access_closes_at FROM beam_assignments WHERE id = ?', input.text('assignment'))
+  insist(isManager(actor) || actor.adminUnits.length, 'forbidden', 403)
+  const assignment = await one(env, 'SELECT id, learner_id, assigned_by, status, access_closes_at FROM beam_assignments WHERE id = ?', input.text('assignment'))
   insist(assignment, 'assignment_not_found', 404)
-  insist(await withinTeam(env, actor, assignment.learner_id), 'learner_outside_your_team', 403)
+  insist((isManager(actor) && await withinTeam(env, actor, assignment.learner_id)) || ownEnrollment(actor, assignment), actor.adminUnits.length ? 'not_your_enrollment' : 'learner_outside_your_team', 403)
   insist(assignment.status === 'open', 'assignment_closed', 409)
   insist(assignment.access_closes_at, 'no_access_window', 409)
   const days = input.integer('days', { min: 1, max: 365 })!

@@ -2,7 +2,7 @@ import { createDependencies } from './modules/dependencies/index.mjs'
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
 import { firstRunResponse } from './base/setup'
 import { fontDocumentResponse } from './base/font-response'
-import { createOperatorAuth, createAuthHandler, createSignInHandler, devGate, devNotFound, type AuthConfig } from './modules/operator-auth/index.mjs'
+import { createOperatorAuth, createAuthHandler, createSignInHandler, defaultRolePolicy, devGate, devNotFound, isActiveOperator, type AuthConfig, type RolePolicy } from './modules/operator-auth/index.mjs'
 import { operatorMail } from './mail.server.mjs'
 import branding from './branding.json'
 
@@ -47,8 +47,15 @@ export interface Bindings {
 
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env
 export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
+// ORG-002: a learning administrator under an active grant may invite members, as Base's admin role may. Their only door
+// for it is Beam's People form (src/beam/people.ts), which places each invitee in their units' teams; an invitation
+// they sent stops admitting once their grant ends, because Base checks the issuer again when it is used.
+const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePolicy(input)
+ || (input.action === 'operators:invite' && input.role === 'member' && isActiveOperator(input.actor)
+  && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.email = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.email.toLowerCase(), Date.now()).first())
+
 export function operatorAuth(env: Bindings) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), rolePolicy: rolePolicy(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
@@ -72,6 +79,11 @@ export async function authResponse(request: Request, original: Bindings): Promis
  if (url.pathname === '/signin') {
   const page = await createSignInHandler(operatorAuth(env), { defaultReturnTo: '/setup' })(request)
   if (page) return fontDocumentResponse(page)
+ }
+ // Base's own invitation door stays the owner's: everyone else invites through Beam's People form.
+ if (url.pathname === '/auth/invite') {
+  const session = await operatorAuth(env).getSession(request)
+  if (session && session.operator.role !== 'owner') return Response.json({ error: 'forbidden' }, { status: 403 })
  }
  if (url.pathname.startsWith('/auth/')) return fontDocumentResponse(await createAuthHandler(operatorAuth(env))(request))
  if (url.pathname === '/setup' || url.pathname === '/app' || url.pathname.startsWith('/app/')) {

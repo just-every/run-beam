@@ -28,14 +28,16 @@ export async function businessPage(env: Bindings, actor: Actor, url: URL) {
   return page('Business', actor, body, { url })
 }
 
-// ORG-004: each team's members and managers are the owner's to set; the owner or a direct manager hands the team to
-// someone for a while (coverage), with an end and a reason, and either can end it early.
+// ORG-004: the owner names each team's managers; the owner, or a learning administrator for a team of their units
+// (ORG-002), sets its members. The owner or a direct manager hands the team to someone for a while (coverage), with an
+// end and a reason, and either can end it early.
 function teamDetails(actor: Actor, team: Record<string, any>, list: Awaited<ReturnType<typeof people>>, everyone: { value: string; label: string }[], zone: string) {
   const grants = list.managers.filter(grant => grant.team === team.id && grant.state === 'active')
   const direct = grants.filter(grant => grant.kind === 'direct'), coverage = grants.filter(grant => grant.kind === 'coverage')
   const mine = actor.owner || direct.some(grant => grant.member === actor.id)
+  const members = actor.owner || actor.adminUnits.includes(team.unit)
   return h`<details><summary>${team.name} · ${direct.map(grant => grant.memberName).join(', ') || 'no manager'}</summary>
-${actor.owner ? h`${form('team.members', '/app/people', [hidden('team', team.id), checks('Members', 'members', list.members.map(member => ({ value: member.id, label: member.name })), list.members.filter(member => member.teams.includes(team.id)).map(member => member.id))], 'Save members')}${form('team.managers', '/app/people', [hidden('team', team.id), checks('Managers', 'members', everyone, direct.map(grant => grant.member), { scroll: true })], 'Save managers')}` : ''}
+${members ? form('team.members', '/app/people', [hidden('team', team.id), checks('Members', 'members', list.members.map(member => ({ value: member.id, label: member.name })), list.members.filter(member => member.teams.includes(team.id)).map(member => member.id))], 'Save members') : ''}${actor.owner ? form('team.managers', '/app/people', [hidden('team', team.id), checks('Managers', 'members', everyone, direct.map(grant => grant.member), { scroll: true })], 'Save managers') : ''}
 ${coverage.length ? rows(coverage.map(grant => ({ title: `${grant.memberName} covers until ${when(grant.expiresAt, zone)}`, meta: grant.reason, aside: actor.owner || grant.grantedBy === actor.id ? form('team.coverage.end', '/app/people', [hidden('grant', grant.id)], 'End coverage', { secondary: true }) : '' }))) : ''}
 ${mine ? h`<details><summary>Hand this team to someone for a while</summary>${form('team.coverage', '/app/people', [hidden('team', team.id), select('Covering manager', 'member', everyone), field('Ends after', 'expiresOn', { type: 'date' }), area('Reason', 'reason')], 'Grant coverage')}</details>` : ''}</details>`
 }
@@ -45,13 +47,15 @@ export async function peoplePage(env: Bindings, actor: Actor, request: Request, 
   const everyone = [...await memberNames(env)].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label))
   const zone = (await business(env))!.timezone
   const teamOptions = list.teams.map(team => ({ value: team.id, label: team.name }))
+  const unitTeams = list.teams.filter(team => actor.adminUnits.includes(team.unit)).map(team => ({ value: team.id, label: team.name }))
   const roleNames = (roles: string[]) => roles.map(role => ROLE_LABELS[role]).join(', ')
   // A member restored from an archive has no sign-in account yet: Restore access sends them an invitation.
   const access = (member: any) => member.status === 'inactive' ? { label: 'No access', action: 'Restore access', status: 'active' } : member.status === null ? { label: 'Needs an invitation', action: 'Restore access', status: 'active' } : { label: member.status === 'invited' ? 'Invited' : 'Active', action: 'Remove access', status: 'inactive' }
   const body = h`<h1>People and teams</h1>
 <section class="card table-card" aria-labelledby="people"><h2 class="card-title table-title" id="people">People</h2><div class="table-wrap"><table class="stacked"><thead><tr><th scope="col">Name</th><th scope="col">Roles</th><th scope="col">Teams</th>${actor.owner ? h`<th scope="col">Access</th>` : ''}</tr></thead><tbody>${list.members.map(member => h`<tr><td>${cellLabel('Name')}<a href="/app/records/${member.id}">${member.name}</a><br><span class="muted">${member.email}</span></td><td>${cellLabel('Roles')}${member.owner ? 'Owner (every role)' : actor.owner ? h`<details><summary>${roleNames(member.roles) || 'none'}</summary>${form('person.roles', '/app/people', [hidden('email', member.email), checks('Roles', 'roles', roleOptions, member.roles)], 'Save roles')}</details>` : roleNames(member.roles)}</td><td>${cellLabel('Teams')}${member.teams.map((team: string) => teamOptions.find(option => option.value === team)?.label).join(', ') || '—'}</td>${actor.owner ? h`<td class="cell-access">${cellLabel('Access')}${member.owner ? 'Owner' : h`${access(member).label}${form('person.access', '/app/people', [hidden('email', member.email), hidden('status', access(member).status)], access(member).action, { secondary: true })}`}</td>` : ''}</tr>`)}</tbody></table></div></section>
-${actor.owner ? card('Invite a staff member', h`<p class="muted">Beam is for adult staff. The invitation is an ordinary sign-in email.</p>${form('person.invite', '/app/people', [field('Name', 'name'), field('Email', 'email', { type: 'email' }), checks('Roles', 'roles', roleOptions, ['learner']), teamOptions.length ? checks('Teams', 'teams', teamOptions) : ''], 'Send invitation')}`) : ''}
-${isManager(actor) ? card('Teams', h`${list.teams.map(team => teamDetails(actor, team, list, everyone, zone))}${actor.owner ? form('team.create', '/app/people', [field('New team (for example Front desk)', 'name')], 'Add team') : ''}`) : ''}
+${actor.owner ? card('Invite a staff member', h`<p class="muted">Beam is for adult staff. The invitation is an ordinary sign-in email.</p>${form('person.invite', '/app/people', [field('Name', 'name'), field('Email', 'email', { type: 'email' }), checks('Roles', 'roles', roleOptions, ['learner']), teamOptions.length ? checks('Teams', 'teams', teamOptions) : ''], 'Send invitation')}`)
+    : unitTeams.length ? card('Invite a learner', h`<p class="muted">Beam is for adult staff. The invitation is an ordinary sign-in email; they join as a learner in the teams you choose. The owner gives other roles.</p>${form('person.invite', '/app/people', [field('Name', 'name'), field('Email', 'email', { type: 'email' }), hidden('roles', 'learner'), checks('Teams', 'teams', unitTeams)], 'Send invitation')}`) : ''}
+${isManager(actor) || actor.adminUnits.length ? card('Teams', h`${list.teams.map(team => teamDetails(actor, team, list, everyone, zone))}${actor.owner ? form('team.create', '/app/people', [field('New team (for example Front desk)', 'name')], 'Add team') : ''}`) : ''}
 ${await unitsCard(env, actor, list.members, list.teams)}
 ${await rolesCard(env, actor, list.members, list.teams)}
 ${await auditorsCard(env, actor, list.members, list.teams)}`
