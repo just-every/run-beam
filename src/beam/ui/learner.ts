@@ -1,5 +1,7 @@
 // Learner pages: my learning, lessons with resume, quiz, practical evidence,
 // certificates and a learner's record.
+import { myFeedback } from '../feedback'
+import { feedbackForm, myFeedbackCard } from './collab'
 import { myWaits } from '../registrations'
 import type { Bindings } from '../../auth.server'
 import { requireAccess } from '../access'
@@ -79,6 +81,8 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const lessons = card('Lessons', h`<ol class="rows numbered">${view.lessons.map(lesson => h`<li><a class="row row-link" href="/app/learn/${id}/lessons/${lesson.id}"><span class="row-text"><span class="row-title">${lesson.title}</span></span>${lesson.completed ? h`<span class="tag done">done</span>` : ''}${raw(icon('chevron', { size: 20, className: 'chevron' }))}</a></li>`)}</ol>`)
   const timeLimit = view.quiz?.timeLimitMinutes ? ` Time limit ${view.quiz.timeLimitMinutes} minutes${view.quiz.extraMinutes ? `, plus ${view.quiz.extraMinutes} minutes extra time (${accommodationLabel(view.quiz.accommodation!)})` : ''}.` : ''
   const quiz = view.quiz ? card('Quiz', h`<p>Pass mark ${view.quiz.passPercent}%. ${view.quiz.passed ? 'Passed.' : `${view.quiz.attemptsLeft} attempt${view.quiz.attemptsLeft === 1 ? '' : 's'} left.`}${timeLimit}</p>${!view.quiz.passed && launchable && a.learner === actor.id ? (view.lessonsComplete ? h`<a class="button" href="/app/learn/${id}/quiz">${view.quiz.session ? 'Return to the timed quiz' : 'Take the quiz'}</a>` : h`<p class="muted">Available after every lesson is done.</p>`) : ''}`) : ''
+  // AUTHOR-003: the learner's own feedback on this course and each outcome.
+  const feedbackCard = view.assignment.learner === actor.id && !actor.viewAs ? myFeedbackCard(await myFeedback(env, actor, view.assignment.course), zone) : ''
   // AUTHOR-010: each move to a newer revision, with what it kept and reopened.
   const moved = view.moves.length ? card('Moved to a newer revision', rows(view.moves.map((move: any) => ({ title: `Revision ${move.fromRevision} to revision ${move.toRevision}`, meta: `${move.movedByName}, ${when(move.movedAt, zone)} · ${move.kept.length} ${move.kept.length === 1 ? 'lesson' : 'lessons'} kept, ${move.reopened.length} to do${move.assessment === 'unchanged' ? ' · your attempts carried over' : move.assessment === 'changed' ? ' · the assessment changed' : ''}` })))) : ''
   // LIVE-003: the revision also requires attending a session; the instructor's roster decides it.
@@ -106,7 +110,7 @@ ${view.blocked ? h`<p class="flash">Complete the prerequisite course first; your
 ${resetNotice}${exceptionNotice(view, a, zone)}${a.status === 'open' ? accessBanner(view.access, zone) : ''}
 ${launchable && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? 'Resume' : 'Start'}</a></p>` : ''}
 ${completion}
-<div class="split">${lessons}<div class="stack">${moved}${quiz}${practical}${attendance}${practiceCard}${attempts}${history}${access}${blockers}${manage}${exceptions}</div></div>`
+<div class="split">${lessons}<div class="stack">${moved}${feedbackCard}${quiz}${practical}${attendance}${practiceCard}${attempts}${history}${access}${blockers}${manage}${exceptions}</div></div>`
   return page(a.courseTitle, actor, body, { current: '/app/learning', url })
 }
 
@@ -122,7 +126,7 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
   const action = view.assignment.status === 'open' && view.assignment.learner === actor.id && !view.blocked
     ? form('lesson.complete', next ? `/app/learn/${id}/lessons/${next.id}` : `/app/learn/${id}`, [hidden('assignment', id), hidden('lesson', lesson.id)], lesson.completed ? (next ? 'Next lesson' : 'Back to course') : next ? 'Mark done and continue' : 'Mark done')
     : ''
-  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">Lesson ${index + 1} of ${view.lessons.length}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">Lesson reading</p><div class="lesson-body">${lessonText(lesson.body, { lead: true })}</div></article>${sources}${action}`
+  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">Lesson ${index + 1} of ${view.lessons.length}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">Lesson reading</p><div class="lesson-body">${lessonText(lesson.body, { lead: true })}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`) : ''}`
   return page(lesson.title, actor, body, { current: '/app/learning', url })
 }
 

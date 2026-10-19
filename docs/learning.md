@@ -42,3 +42,7 @@ When a session is full, **Join the waitlist**: Sessions shows your place in line
 The owner and learning administrators schedule sessions on the same page: a classroom location or a join link, the instructor, materials, and one meeting or a daily or weekly series at the same local time, which stays at that time across daylight-saving changes. Under **Seats and waitlist** they set the number of seats, the registration deadline, whether a freed seat is offered or given, how long an offer lasts and whether the waitlist goes by joining order or by whose assignment is due soonest; **Roster history** lists every registration, waitlist and offer step.
 
 A course can require attending a session: its author sets the share of the session's time under **Assessment rules**, and the reviewer publishes it with the revision. Once the session begins, its instructor (or whoever scheduled it) opens **Roster and attendance** and records each person as attended, partly attended (with the minutes) or absent, with a decision, a note and an optional evidence file. Mistakes are fixed with **Amend** and a reason; the timeline keeps every record. The course completes when its lessons, any assessment and the attendance are all done.
+
+## Telling the course team
+
+At the end of a lesson, **Tell us about this lesson** sends feedback, or reports something broken, to the people who look after the course. Only your words are sent, never your quiz answers or scores. The course page lists what you sent and, once it is closed, what was done.

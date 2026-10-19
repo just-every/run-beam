@@ -3,7 +3,7 @@
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { reassignAfterPublish } from './assignments'
-import { BeamError, all, auditVia, commit, insist, newId, now, one, stmt, type Row } from './core'
+import { BeamError, all, auditVia, commit, insist, newId, now, one, sha256Hex, stmt, type Row } from './core'
 import type { Input } from './input'
 import { newCourseUnit, requireCourseRole } from './units'
 import { courseAccess } from './course-access'
@@ -76,10 +76,10 @@ export async function normaliseDraft(env: Bindings, value: unknown): Promise<Dra
   return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent }
 }
 
-export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}) {
+export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}, version?: number) {
   await requireCourseRole(env, actor, input.text('course'), 'author')
   const course = await loadCourse(env, input.text('course'))
-  const expected = input.integer('draftVersion', { min: 1, max: 1_000_000 })
+  const expected = version ?? input.integer('draftVersion', { min: 1, max: 1_000_000 })
   insist(expected === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
   await change(course.draft)
   const draft = await normaliseDraft(env, course.draft)
@@ -96,15 +96,43 @@ export const saveDetails = (env: Bindings, actor: Actor, input: Input) => editDr
   draft.summary = input.text('summary', { max: 1000, optional: true })
 })
 
-export const saveLesson = (env: Bindings, actor: Actor, input: Input) => editDraft(env, actor, input, 'course.lesson', draft => {
-  const lesson: Lesson = { id: input.text('lesson', { optional: true }) || newId(), title: input.text('title', { max: 160 }), body: input.text('body', { max: 50_000 }), sources: input.list('sources') }
-  const index = draft.lessons.findIndex(existing => existing.id === lesson.id)
-  if (index >= 0) draft.lessons[index] = lesson
-  else {
-    insist(!input.has('lesson'), 'lesson_not_found', 404)
-    draft.lessons.push(lesson)
+/** AUTHOR-003: a lesson save made from an older draft still applies when that lesson is as its editor saw it (another
+ * coauthor changed something else); when someone changed the same lesson meanwhile, both texts are kept as a conflict
+ * for a coauthor to resolve (collab.ts). */
+export async function saveLesson(env: Bindings, actor: Actor, input: Input, version?: number) {
+  let current: number | undefined = version
+  const id = input.text('lesson', { optional: true })
+  if (current === undefined && id && input.has('base')) {
+    await requireCourseRole(env, actor, input.text('course'), 'author')
+    const course = await loadCourse(env, input.text('course'))
+    const expected = input.integer('draftVersion', { min: 1, max: 1_000_000 })
+    if (expected !== course.draft_version) {
+      const theirs = course.draft.lessons.find(lesson => lesson.id === id)
+      insist(theirs, 'lesson_not_found', 404)
+      if (await lessonHash(theirs) !== input.text('base', { max: 64 })) throw new BeamError('lesson_conflict', 409, { conflict: await recordConflict(env, actor, course, theirs, { id, title: input.text('title', { max: 160 }), body: input.text('body', { max: 50_000 }), sources: input.list('sources') }) })
+      current = course.draft_version
+    }
   }
-})
+  return await editDraft(env, actor, input, 'course.lesson', draft => {
+    const lesson: Lesson = { id: id || newId(), title: input.text('title', { max: 160 }), body: input.text('body', { max: 50_000 }), sources: input.list('sources') }
+    const index = draft.lessons.findIndex(existing => existing.id === lesson.id)
+    if (index >= 0) draft.lessons[index] = lesson
+    else {
+      insist(!input.has('lesson'), 'lesson_not_found', 404)
+      draft.lessons.push(lesson)
+    }
+  }, { lesson: id || null }, current)
+}
+
+/** What an editor saw of a lesson, so a later save can tell whether someone changed it meanwhile. */
+export const lessonHash = (lesson: Lesson) => sha256Hex(new TextEncoder().encode(JSON.stringify([lesson.title, lesson.body, lesson.sources])))
+
+async function recordConflict(env: Bindings, actor: Actor, course: Row, theirs: Lesson, mine: Lesson) {
+  const id = newId()
+  await commit(env, [stmt(env, 'INSERT INTO beam_draft_conflicts (id, course_id, lesson_id, author_id, mine_json, theirs_json, draft_version, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', id, course.id, theirs.id, actor.id, JSON.stringify(mine), JSON.stringify(theirs), course.draft_version, now())],
+    { actor, action: 'course.conflict', subject: course.id, detail: { conflict: id, lesson: theirs.id } })
+  return id
+}
 
 export const removeLesson = (env: Bindings, actor: Actor, input: Input) => editDraft(env, actor, input, 'course.lesson.remove', draft => {
   const id = input.text('lesson')
@@ -225,5 +253,7 @@ export async function courseDetail(env: Bindings, actor: Actor, id: string) {
   const revisions = await all(env, 'SELECT id, number, title, state, submitted_by AS submittedBy, submitted_at AS submittedAt, reviewed_by AS reviewedBy, reviewed_at AS reviewedAt, review_note AS reviewNote, reassignment, self_reviewed AS selfReviewed FROM beam_course_revisions WHERE course_id = ? ORDER BY number DESC', id)
   const notices = await all(env, 'SELECT n.*, s.title AS source_title, pv.number AS previous_number, nv.number AS new_number FROM beam_source_notices n JOIN beam_sources s ON s.id = n.source_id JOIN beam_source_versions pv ON pv.id = n.previous_version_id JOIN beam_source_versions nv ON nv.id = n.new_version_id WHERE n.course_id = ? ORDER BY n.created_at DESC', id)
   const proposals = await all(env, 'SELECT id, base_draft_version AS baseDraftVersion, input_version_ids AS inputs, prepared_by AS preparedBy, agent, summary, draft_json AS draft, passages_json AS passages, missing_json AS missing, state, decided_by AS decidedBy, created_at AS createdAt FROM beam_proposals WHERE course_id = ? ORDER BY created_at DESC', id)
-  return { id: course.id, title: course.title, unit: course.unit_id ?? null, retired: course.retired_at ? { at: course.retired_at, by: course.retired_by, reason: course.retire_reason } : null, clonedFrom: course.cloned_from ?? null, catalog: catalogOf(course), selfReview: course.self_review === 1, ...await courseAccess(env, id), reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft, publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
+  return { id: course.id, title: course.title, unit: course.unit_id ?? null, retired: course.retired_at ? { at: course.retired_at, by: course.retired_by, reason: course.retire_reason } : null, clonedFrom: course.cloned_from ?? null, catalog: catalogOf(course), selfReview: course.self_review === 1, ...await courseAccess(env, id), reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft,
+    // AUTHOR-003: each draft lesson as its editor sees it, sent back as `base` with a lesson save to detect conflicts.
+    lessonBases: Object.fromEntries(await Promise.all(course.draft.lessons.map(async lesson => [lesson.id, await lessonHash(lesson)]))), publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
 }

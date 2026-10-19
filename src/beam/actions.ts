@@ -14,6 +14,8 @@ import { previewPolicy, runPolicy, savePolicy, setPolicyEnabled } from './inacti
 import { cancelSession, rescheduleSession, scheduleSession, setSeats, updateSession } from './live'
 import { acceptOffer, leave, register } from './registrations'
 import { amendAttendance, recordAttendance } from './attendance'
+import { addComment, resolveConflict, resolveThread } from './collab'
+import { closeFeedback, sendFeedback } from './feedback'
 import { decideRequest, requestEnrollment, saveSearch, selfEnroll, setEnrollment, setFavorite, withdraw } from './catalog'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
@@ -71,6 +73,11 @@ export const actions: Record<string, Handler> = {
   'session.accept': (env, actor, input) => acceptOffer(env, actor, input),
   'attendance.record': (env, actor, input) => recordAttendance(env, actor, input),
   'attendance.amend': (env, actor, input) => amendAttendance(env, actor, input),
+  'conflict.resolve': (env, actor, input) => resolveConflict(env, actor, input),
+  'course.comment': (env, actor, input) => addComment(env, actor, input),
+  'course.thread.resolve': (env, actor, input) => resolveThread(env, actor, input),
+  'feedback.send': (env, actor, input) => sendFeedback(env, actor, input),
+  'feedback.close': (env, actor, input) => closeFeedback(env, actor, input),
   'inactivity.policy': (env, actor, input) => savePolicy(env, actor, input),
   'inactivity.preview': (env, actor) => previewPolicy(env, actor),
   'inactivity.enable': (env, actor, input) => setPolicyEnabled(env, actor, input),

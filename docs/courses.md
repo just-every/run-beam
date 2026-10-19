@@ -47,3 +47,11 @@ On a course's page, **Retire this course** with a reason when it should no longe
 ## Organize the catalog
 
 On a course's page, **Catalog details** sets its **Folder**, **Tags**, **Learning objectives**, **Language**, **Expected duration in minutes** and **Course owner**; tick **Offer this course as a template** to let authors **Start from a template** on **Courses**. On **Courses**, filter by **Folder** and **Tag**, use **Change tags on several courses** to add or remove tags in one go, and tick **Archived courses** to see courses you have archived. Only a retired course can be archived; it stays readable, and reinstating it brings it back.
+
+## Working together on a draft
+
+Several people can edit one course. If you save a lesson after someone else changed a different lesson, both changes are kept. If they changed the same lesson, your text is not lost: the course page shows **Conflicting edits** with both texts, and anyone editing the course chooses **Keep the current text**, uses yours, or saves a merged text.
+
+Under each lesson and question, **Comment or request a change** starts a thread. Others reply, and **Resolve thread** closes it; a change request shows as requested until someone resolves it.
+
+Learners can tell you about a lesson from the lesson page, as feedback or as something broken. Open reports appear under **Content feedback** on **Courses** for the course's owner (or its reviewer when it has no owner), its unit's learning administrator and the business owner, with the learner's name; other authors see them without the name. **Close** with a note on what was done; the learner sees it on the course.
