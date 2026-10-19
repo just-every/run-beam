@@ -1107,7 +1107,7 @@
       "executable": false
     },
     "src/beam/transcript.ts": {
-      "sha256": "7e4746e53a5992fc689bb3a76f41bb75e41da4eec3fb1b94b19032783b9ed663",
+      "sha256": "50587660f496ff4bac554c95a2c3a8357cf5973f8274fb5b454ef655c5278595",
       "executable": false
     },
     "src/beam/ui/access.ts": {
@@ -3023,7 +3023,7 @@
       "executable": false
     },
     "tests/beam/regression-moves.mjs": {
-      "sha256": "accc89a43d02dc6e5658d33165b36270985f2460dbcae42cddd685ea41a83390",
+      "sha256": "00b691c48ac47734d5e56a65e0d1a10271404a66e7f8e2332e335d36f11e0854",
       "executable": false
     },
     "tests/beam/regression-notices.mjs": {

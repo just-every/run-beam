@@ -76,6 +76,7 @@ export async function movesCheck(f) {
   assert.deepEqual([moved.lessons.map(lesson => lesson.completed), moved.quiz.passed, moved.practical.pending], [[true, true, false], false, false])
   assert.equal((await api('other', 'practical.decide', { attempt: voided, decision: 'accepted', note: 'Too late' }, 409)).error, 'attempt_closed_by_reset')
   assert.equal((await api('learner', `attempts/${voided}`)).evidence, 'Seal on door 1')
+  assert.ok((await api('learner', 'transcripts/me')).entries.some(entry => entry.kind === 'moved to a new revision' && entry.revision === 2))
   // The finished learner keeps their completion and certificate and has a new assignment on revision 3.
   const after = await api('assessor', 'records/me')
   assert.deepEqual(after.completions.find(row => row.id === finished.id), finished)
