@@ -70,5 +70,7 @@ export async function emittedWorker() {
     const href = mail && `${mail.text ?? ''} ${mail.html ?? ''}`.match(/https:\/\/[^\s"<>]*\/auth\/confirm\?token=[^\s"<>]+/)?.[0]
     return href ? new URL(href.replaceAll('&amp;', '&')) : null
   }
-  return { origin, vars, mails, fetch, linkFor, close }
+  /** The Worker's D1, for checks that move an assignment's clock (AUTO-009); everything else goes through the doors. */
+  const db = await mf.getD1Database('DB')
+  return { origin, vars, mails, fetch, linkFor, close, db }
 }

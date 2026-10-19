@@ -24,6 +24,7 @@
           "migrations/core/0018_import_kit_erasure_progress.sql",
           "migrations/core/0019_beam_resets.sql",
           "migrations/core/0020_beam_acknowledgments.sql",
+          "migrations/core/0021_beam_access_windows.sql",
           "src/auth.server.ts",
           "src/identity.ts",
           "src/server.ts",

@@ -1,7 +1,9 @@
 // Learner pages: my learning, lessons with resume, quiz, practical evidence,
 // certificates and a learner's record.
 import type { Bindings } from '../../auth.server'
+import { requireAccess } from '../access'
 import type { Actor } from '../actor'
+import { accessBanner, accessCard, accessNote } from './access'
 import { all, BeamError } from '../core'
 import { listProposals } from '../agent-work'
 import { assignmentView } from '../learning'
@@ -42,7 +44,7 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
     ...work.notices.map(row => ({ title: row.courseTitle, meta: h`Source “${row.sourceTitle}” has a new version`, href: `/app/courses/${row.course}` })),
   ]), { id: 'review' }) : ''
   const assess = work.assessments.length ? card('Practical evidence to assess', rows(work.assessments.map(row => ({ title: `${row.learnerName} — ${row.courseTitle}`, href: `/app/attempts/${row.id}` }))), { id: 'assess' }) : ''
-  const assigned = card('Assigned to me', open.length ? rows(open.map(row => ({ title: row.courseTitle, meta: `revision ${row.revisionNumber} · ${lessonCount(row.lessonsDone, row.lessonsTotal)} · due ${when(row.dueAt, row.timezone, zone)}`, aside: progress(row.lessonsDone, row.lessonsTotal), href: `/app/learn/${row.id}` }))) : h`<p>Nothing is assigned to you right now.</p>${raw(bookStack)}`, { id: 'assigned', className: open.length ? '' : 'empty' })
+  const assigned = card('Assigned to me', open.length ? rows(open.map(row => ({ title: row.courseTitle, meta: [`revision ${row.revisionNumber}`, lessonCount(row.lessonsDone, row.lessonsTotal), `due ${when(row.dueAt, row.timezone, zone)}`, accessNote({ state: row.access, opensAt: row.accessOpensAt, closesAt: row.accessClosesAt }, zone)].filter(Boolean).join(' · '), aside: progress(row.lessonsDone, row.lessonsTotal), href: `/app/learn/${row.id}` }))) : h`<p>Nothing is assigned to you right now.</p>${raw(bookStack)}`, { id: 'assigned', className: open.length ? '' : 'empty' })
   const completed = card('Completed', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} (revision ${row.revisionNumber})`, meta: h`${formatDate(row.completedAt, zone)}${row.expiresAt ? h` · renew by ${formatDate(row.expiresAt, zone)}` : ''} · <a href="/app/certificates/${row.certificate}">Certificate</a>` }))) : h`<p>No completions yet.</p>${raw(documentSheet)}`, { id: 'done', className: record.completions.length ? '' : 'empty' })
   const side = [review, assess].filter(Boolean)
   const body = h`<h1>My learning</h1>
@@ -57,11 +59,12 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const names = await memberNames(env)
   const zone = (await business(env))!.timezone
   const a = view.assignment
+  const launchable = a.status === 'open' && view.access.state === 'open'
   const resume = view.resumeLesson ? `/app/learn/${id}/lessons/${view.resumeLesson}` : null
   const practice = a.learner === actor.id ? await scenariosFor(env, a.revision) : []
   const lessons = card('Lessons', h`<ol class="rows numbered">${view.lessons.map(lesson => h`<li><a class="row row-link" href="/app/learn/${id}/lessons/${lesson.id}"><span class="row-text"><span class="row-title">${lesson.title}</span></span>${lesson.completed ? h`<span class="tag done">done</span>` : ''}${raw(icon('chevron', { size: 20, className: 'chevron' }))}</a></li>`)}</ol>`)
-  const quiz = view.quiz ? card('Quiz', h`<p>Pass mark ${view.quiz.passPercent}%. ${view.quiz.passed ? 'Passed.' : `${view.quiz.attemptsLeft} attempt${view.quiz.attemptsLeft === 1 ? '' : 's'} left.`}</p>${!view.quiz.passed && a.status === 'open' && a.learner === actor.id ? (view.lessonsComplete ? h`<a class="button" href="/app/learn/${id}/quiz">Take the quiz</a>` : h`<p class="muted">Available after every lesson is done.</p>`) : ''}`) : ''
-  const practical = view.practical ? card('Practical assessment', h`<p>Assessor: ${names.get(view.practical.assessor ?? '')}</p>${view.practical.accepted || view.practical.pending ? h`<p>${view.practical.accepted ? 'Accepted.' : 'Submitted and waiting for the assessor.'}</p>` : ''}${!view.practical.accepted && !view.practical.pending && a.status === 'open' && a.learner === actor.id ? (view.lessonsComplete ? h`<a class="button" href="/app/learn/${id}/practical">Submit evidence</a>` : h`<p class="muted">Available after every lesson is done.</p>`) : ''}`) : ''
+  const quiz = view.quiz ? card('Quiz', h`<p>Pass mark ${view.quiz.passPercent}%. ${view.quiz.passed ? 'Passed.' : `${view.quiz.attemptsLeft} attempt${view.quiz.attemptsLeft === 1 ? '' : 's'} left.`}</p>${!view.quiz.passed && launchable && a.learner === actor.id ? (view.lessonsComplete ? h`<a class="button" href="/app/learn/${id}/quiz">Take the quiz</a>` : h`<p class="muted">Available after every lesson is done.</p>`) : ''}`) : ''
+  const practical = view.practical ? card('Practical assessment', h`<p>Assessor: ${names.get(view.practical.assessor ?? '')}</p>${view.practical.accepted || view.practical.pending ? h`<p>${view.practical.accepted ? 'Accepted.' : 'Submitted and waiting for the assessor.'}</p>` : ''}${!view.practical.accepted && !view.practical.pending && launchable && a.learner === actor.id ? (view.lessonsComplete ? h`<a class="button" href="/app/learn/${id}/practical">Submit evidence</a>` : h`<p class="muted">Available after every lesson is done.</p>`) : ''}`) : ''
   const attempts = view.attempts.length ? card('Attempts', rows(view.attempts.map(attempt => ({ title: h`<a href="/app/attempts/${attempt.id}">${attempt.kind === 'quiz' ? 'Quiz' : 'Practical'} attempt ${attempt.number}</a>`, meta: `${attempt.kind === 'quiz' ? `${attempt.score} of ${attempt.maxScore}` : attemptState(attempt.state)}; ${attempt.retryDecision}` })))) : ''
   const practiceCard = practice.length ? card('Practice', h`<p class="muted">Optional. Practice does not count toward completion and nobody scores it.</p><ul class="rows">${practice.map(row => h`<li class="row"><a href="/app/practice/${row.id}">${row.title}</a></li>`)}</ul>`) : ''
   const latestReset = view.resets.at(-1)
@@ -70,14 +73,15 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const manage = a.learner !== actor.id && (actor.owner || actor.roles.has('manager')) ? a.status === 'open'
     ? card('Reset progress', h`<p>Starts the lessons again from the first one and gives a fresh set of attempts. Earlier lessons, attempts and evidence stay in this assignment's history; the learner sees why.</p>${form('assignment.reset', `/app/learn/${id}`, [hidden('assignment', id), area('Reason', 'reason')], 'Reset progress', { secondary: true })}`)
     : a.status === 'completed' ? card('Assign again', h`<p>A completed assignment is not reset: its completion and certificate stay with revision ${a.revisionNumber}. Assign the course again to train this person once more.</p>${form('assignment.create', `/app/records/${a.learner}`, [hidden('course', a.course), hidden('learners', a.learner), field('Due date', 'dueDate', { type: 'date' })], 'Assign the course again', { secondary: true })}`) : '' : ''
+  const access = a.learner !== actor.id && (actor.owner || actor.roles.has('manager')) && (a.status === 'open' || view.access.closesAt) ? accessCard(id, view.access, zone, { owner: actor.owner, open: a.status === 'open' }) : ''
   const completion = view.completion ? card('Completion', h`<p><mark class="hl">Completed</mark> ${when(view.completion.completedAt, a.timezone, zone)} against revision ${a.revisionNumber}. <a href="/app/certificates/${view.completion.certificate}">Certificate</a></p>`) : ''
   const body = h`${backLink('/app/learning', 'My learning')}<h1>${a.courseTitle}</h1>
-<p class="subtitle">Revision ${a.revisionNumber} · ${a.status} · due ${when(a.dueAt, a.timezone, zone)}${a.learner !== actor.id ? h` · learner ${names.get(a.learner)}` : ''}</p>
+<p class="subtitle">Revision ${a.revisionNumber} · ${a.status} · due ${when(a.dueAt, a.timezone, zone)}${a.status === 'open' && accessNote(view.access, zone) ? ` · ${accessNote(view.access, zone)}` : ''}${a.learner !== actor.id ? h` · learner ${names.get(a.learner)}` : ''}</p>
 ${view.blocked ? h`<p class="flash">Complete the prerequisite course first; your manager can see this requirement.</p>` : ''}
-${resetNotice}
-${a.status === 'open' && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? 'Resume' : 'Start'}</a></p>` : ''}
+${resetNotice}${a.status === 'open' ? accessBanner(view.access, zone) : ''}
+${launchable && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? 'Resume' : 'Start'}</a></p>` : ''}
 ${completion}
-<div class="split">${lessons}<div class="stack">${quiz}${practical}${practiceCard}${attempts}${history}${manage}</div></div>`
+<div class="split">${lessons}<div class="stack">${quiz}${practical}${practiceCard}${attempts}${history}${access}${manage}</div></div>`
   return page(a.courseTitle, actor, body, { current: '/app/learning', url })
 }
 
@@ -85,7 +89,8 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
   const view = await assignmentView(env, actor, id)
   const index = view.lessons.findIndex(lesson => lesson.id === lessonId)
   if (index < 0) throw new BeamError('not_found', 404)
-  const lesson = view.lessons[index]
+  requireAccess({ access_opens_at: view.access.opensAt, access_closes_at: view.access.closesAt })
+  const lesson = view.lessons[index] as typeof view.lessons[number] & { body: string; sources: string[] }
   const next = view.lessons[index + 1]
   const cited = lesson.sources.length ? await all<{ id: string; number: number; title: string }>(env, `SELECT v.id, v.number, s.title FROM beam_source_versions v JOIN beam_sources s ON s.id = v.source_id WHERE v.id IN (${lesson.sources.map(() => '?').join(', ')}) ORDER BY s.title, v.number`, ...lesson.sources) : []
   const sources = cited.length ? h`<p class="muted source-line">Source material: ${cited.map((version, n) => h`${n ? ', ' : ''}<a href="/app/files/source/${version.id}">${version.title}, version ${version.number}</a>`)}</p>` : ''
@@ -99,6 +104,7 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
 export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL) {
   const view = await assignmentView(env, actor, id)
   if (!view.quiz || view.assignment.learner !== actor.id) throw new BeamError('not_found', 404)
+  requireAccess({ access_opens_at: view.access.opensAt, access_closes_at: view.access.closesAt })
   const fields: Html[] = [hidden('assignment', id), ...view.quiz.questions.map((question, n) => h`<fieldset><legend>${n + 1}. ${question.prompt}${question.multiple ? h` <span class="muted">(choose all that apply)</span>` : ''}</legend>${question.choices.map((choice, index) => h`<label class="check"><input type="${question.multiple ? 'checkbox' : 'radio'}" name="q_${question.id}" value="${index}"> ${choice}</label>`)}</fieldset>`)]
   const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<h1>Quiz</h1><p class="subtitle">Pass mark ${view.quiz.passPercent}%. ${view.quiz.attemptsLeft} attempt${view.quiz.attemptsLeft === 1 ? '' : 's'} left. Each question scores when exactly the right choices are selected.</p><div class="card narrow">${form('quiz.submit', `/app/learn/${id}`, fields, 'Submit answers')}</div>`
   return page('Quiz', actor, body, { current: '/app/learning', url })
@@ -107,6 +113,7 @@ export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL
 export async function practicalPage(env: Bindings, actor: Actor, id: string, url: URL) {
   const view = await assignmentView(env, actor, id)
   if (!view.practical || view.assignment.learner !== actor.id) throw new BeamError('not_found', 404)
+  requireAccess({ access_opens_at: view.access.opensAt, access_closes_at: view.access.closesAt })
   const names = await memberNames(env)
   const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<h1>Practical assessment</h1><div class="narrow">${card('Instructions', lessonText(view.practical.instructions ?? ''))}
 <section class="card"><p>Your evidence goes to ${names.get(view.practical.assessor ?? '')}, who decides it.</p>${form('practical.submit', `/app/learn/${id}`, [hidden('assignment', id), area('What you did', 'evidence'), fileField('Evidence file (optional)', 'file')], 'Submit for assessment', { multipart: true })}</section></div>`

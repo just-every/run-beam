@@ -2,6 +2,7 @@
 // practical evidence; completion is recorded only when every requirement of the
 // exact assigned revision is met, and is bound to that revision.
 import type { Bindings } from '../auth.server'
+import { accessView, requireAccess } from './access'
 import { isManager, requireRole, type Actor } from './actor'
 import { revisionDetail, type Question } from './courses'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
@@ -51,14 +52,17 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
   const state = await progress(env, assignment)
   const learner = assignment.learner_id === actor.id
   const completion = await one(env, 'SELECT c.*, k.id AS certificate FROM beam_completions c LEFT JOIN beam_certificates k ON k.completion_id = c.id WHERE c.assignment_id = ?', id)
+  // Outside the access window (AUTO-009) the lesson text and quiz questions are not served; records stay readable.
+  const access = await accessView(env, assignment), launchable = access.state === 'open'
   return {
+    access,
     assignment: { id: assignment.id, course: assignment.course_id, courseTitle: assignment.course_title, revision: assignment.course_revision_id, revisionNumber: state.content.revision.number, status: assignment.status, dueDate: assignment.due_date, dueTime: assignment.due_time, timezone: assignment.timezone, dueAt: assignment.due_at, reason: assignment.reason, learner: assignment.learner_id, pathRevision: assignment.path_revision_id },
     blocked: !await prerequisiteMet(env, assignment),
     prerequisite: assignment.prerequisite_course_id,
-    lessons: state.content.lessons.map(lesson => ({ ...lesson, completed: state.done.has(lesson.id) })),
+    lessons: state.content.lessons.map(lesson => launchable ? { ...lesson, completed: state.done.has(lesson.id) } : { id: lesson.id, position: lesson.position, title: lesson.title, completed: state.done.has(lesson.id) }),
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
-    quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: state.content.assessment!.questions.map(question => ({ id: question.id, prompt: question.prompt, choices: question.choices, multiple: question.correct.length > 1 })) } : null,
+    quiz: state.quizRequired ? { passPercent: state.content.assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, questions: (launchable ? state.content.assessment!.questions : []).map(question => ({ id: question.id, prompt: question.prompt, choices: question.choices, multiple: question.correct.length > 1 })) } : null,
     practical: state.practicalRequired ? { instructions: state.content.assessment!.practical_instructions, assessor: state.content.assessment!.assessor_id, accepted: state.practicalAccepted, pending: state.practicalPending } : null,
     attempts: learner || isManager(actor) ? state.attempts : [],
     // Everything before each reset, marked with who reset it and why.
@@ -70,6 +74,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
 async function learnerAssignment(env: Bindings, actor: Actor, input: Input) {
   const assignment = await loadAssignment(env, actor, input.text('assignment'))
   insist(assignment.status === 'open', 'assignment_closed', 409)
+  requireAccess(assignment)
   insist(await prerequisiteMet(env, assignment), 'prerequisite_incomplete', 409)
   return assignment
 }

@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 3 | 47 | 76 | 126 |
-| All | 23 | 47 | 76 | 146 |
+| Target and push further | 4 | 47 | 75 | 126 |
+| All | 24 | 47 | 75 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -567,7 +567,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `AUTO-006` | Handle leave, exceptions and deadline changes openly | target | partial | `src/beam/assignments.ts`, `src/beam/plans.ts` | Reasoned assignment cancellation and retry grants exist; blocker reporting, deferral and exemption lifecycle are absent. |
 | `AUTO-007` | Deactivate inactive learners under a reviewed policy | target | missing |  | Inactivity rules, previews, notices and scheduled deactivation are absent. |
 | `AUTO-008` | Control and inspect unattended automation | target | missing |  | Central automation policies, scheduler execution history, limits and pause controls are absent. |
-| `AUTO-009` | Open and close course access windows | target | missing |  | Enrolment-relative and fixed-date access windows, closed-window refusal and recorded extensions are absent. |
+| `AUTO-009` | Open and close course access windows | target | done | `src/beam/access.ts`, `src/beam/learning.ts`, `src/beam/report.ts`, `migrations/core/0021_beam_access_windows.sql`, `tests/beam/regression-learning.mjs` (AUTO-009) |  |
 | `LIVE-001` | Schedule classroom and blended learning | target | missing |  | Live-session calendar, registration, recurring events and calendar updates are absent. |
 | `LIVE-002` | Manage capacity and waitlists | target | missing |  | Session seats, waitlists and automatic promotion are absent. |
 | `LIVE-003` | Reconcile attendance and instructor evidence | target | partial | `src/beam/records.ts`, `tests/beam/regression-learning.mjs` | Instructor-attested offline completions exist; scheduled session attendance, absence and amendment workflow are absent. |

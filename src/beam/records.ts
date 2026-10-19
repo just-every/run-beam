@@ -1,6 +1,7 @@
 // Flows 10-12: instructor-attested offline training, completion certificates,
 // in-app reminders and the manager, reviewer and assessor queues.
 import type { Bindings } from '../auth.server'
+import { accessState } from './access'
 import { isManager, requireRole, type Actor } from './actor'
 import { renewalsDue } from './assignments'
 import { BeamError, all, insist, newId, now, one, sha256Hex, stmt, type Row } from './core'
@@ -63,11 +64,11 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
   if (!member) throw new BeamError('not_found', 404)
   const assignments = await all(env, `SELECT a.id, a.course_id AS course, c.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,
     (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone, (SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id = a.course_revision_id) AS lessonsTotal,
-    k.id AS completion, k.expires_at AS expiresAt
+    k.id AS completion, k.expires_at AS expiresAt, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt
     FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id LEFT JOIN beam_completions k ON k.assignment_id = a.id WHERE a.learner_id = ? ORDER BY a.status = 'open' DESC, a.due_at`, memberId)
   // `state` is the record's one status, the same as Manage and the report show; `status` stays the stored assignment state.
   const at = now()
-  const shaped = assignments.map(row => ({ ...row, state: recordStatus({ ...row, assignmentStatus: row.status } as any, at), daysOverdue: row.status === 'open' && row.dueAt < at ? calendarDays(row.dueAt, at, row.timezone) : null }) as Row)
+  const shaped = assignments.map(row => ({ ...row, access: accessState({ access_opens_at: row.accessOpensAt, access_closes_at: row.accessClosesAt }, at), state: recordStatus({ ...row, assignmentStatus: row.status } as any, at), daysOverdue: row.status === 'open' && row.dueAt < at ? calendarDays(row.dueAt, at, row.timezone) : null }) as Row)
   const completions = await all(env, `SELECT c.id, c.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, c.course_revision_id AS revision, c.assessment_revision_id AS assessmentRevision, c.method, c.evidence_json AS evidence, c.completed_at AS completedAt, c.expires_at AS expiresAt, k.id AS certificate
     FROM beam_completions c JOIN beam_course_revisions r ON r.id = c.course_revision_id LEFT JOIN beam_certificates k ON k.completion_id = c.id WHERE c.learner_id = ? ORDER BY c.completed_at DESC`, memberId)
   const history = (await all(env, "SELECT id, payload FROM beam_imported_history WHERE kind = 'completion'")).map(row => ({ id: row.id, ...JSON.parse(row.payload) })).filter(row => row.member === memberId)

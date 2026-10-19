@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { emittedWorker } from '../runtime.mjs'
 
 export async function harness() {
-  const { origin, vars, mails, fetch, linkFor, close } = await emittedWorker()
+  const { origin, vars, mails, fetch, linkFor, close, db } = await emittedWorker()
 
   const raw = (path, { cookie, body, form, method } = {}) => fetch(path, {
     method: method ?? (body !== undefined || form ? 'POST' : 'GET'),
@@ -40,7 +40,7 @@ export async function harness() {
     return confirmed.headers.getSetCookie().map(line => line.split(';')[0]).join('; ')
   }
 
-  return { origin, vars, fetch, raw, api, submit, signIn, close }
+  return { origin, vars, fetch, raw, api, submit, signIn, close, db }
 }
 
 export const file = (filename, content, type = 'application/octet-stream') => ({ filename, base64: Buffer.from(content).toString('base64'), type })

@@ -59,13 +59,14 @@ export async function listSources(env: Bindings, actor: Actor) {
     FROM beam_sources s ORDER BY s.title`).then(rows => rows.map(row => ({ ...row, versions: JSON.parse(row.versions) }) as Row))
 }
 
-/** Staff may open a source version cited by a course revision assigned to them. */
+/** Staff may open any source version; a learner one cited by a course revision assigned to them, inside its access window (AUTO-009). */
 export async function sourceFile(env: Bindings, actor: Actor, versionId: string, download: boolean) {
   const version = await one(env, 'SELECT filename, media_type AS mediaType, size, sha256 FROM beam_source_versions WHERE id = ?', versionId)
   insist(version, 'not_found', 404)
   const staff = actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
   const cited = staff || await one(env, `SELECT 1 FROM beam_assignments a JOIN beam_lesson_revisions l ON l.course_revision_id = a.course_revision_id
-    JOIN json_each(l.source_version_ids) j WHERE a.learner_id = ? AND j.value = ? LIMIT 1`, actor.id, versionId)
+    JOIN json_each(l.source_version_ids) j WHERE a.learner_id = ? AND j.value = ?
+    AND (a.access_opens_at IS NULL OR a.access_opens_at <= ?) AND (a.access_closes_at IS NULL OR a.access_closes_at > ?) LIMIT 1`, actor.id, versionId, now(), now())
   insist(cited, 'not_found', 404)
   return serve(env, version as never, { download })
 }

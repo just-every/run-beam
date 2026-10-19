@@ -1,6 +1,7 @@
 // Flows 4, 5 and renewals: role paths with prerequisites and renewal intervals,
 // assignments to individuals and teams with due dates in an explicit time zone.
 import type { Bindings } from '../auth.server'
+import { accessRule, enrolmentWindow, type Window } from './access'
 import { isManager, requireRole, type Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
@@ -17,6 +18,8 @@ export interface NewAssignment {
   pathRevision?: string | null
   prerequisite?: string | null
   renewalDays?: number | null
+  /** A moved assignment keeps its window; otherwise the path's or course's rule sets it at enrolment (AUTO-009). */
+  access?: Window
 }
 
 /** Inserts assignments bound to each course's published revision; an open one for the same learner and course is kept. */
@@ -27,9 +30,10 @@ export async function insertAssignments(env: Bindings, actor: Actor, items: NewA
     insist(course, 'course_not_found', 404)
     insist(course.published_revision_id, 'course_not_published', 409)
     const dueAt = zonedInstant(item.dueDate, item.dueTime, item.timezone)
-    const id = newId()
+    const id = newId(), at = now()
+    const window = item.access ?? await enrolmentWindow(env, item.course, item.pathRevision, at)
     const [result] = await env.DB.batch([
-      stmt(env, "INSERT OR IGNORE INTO beam_assignments (id, learner_id, course_id, course_revision_id, path_revision_id, prerequisite_course_id, renewal_days, due_date, due_time, timezone, due_at, status, reason, assigned_by, assigned_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)", id, item.learner, item.course, course.published_revision_id, item.pathRevision ?? null, item.prerequisite ?? null, item.renewalDays ?? null, item.dueDate, item.dueTime, item.timezone, dueAt, item.reason, actor.id, now()),
+      stmt(env, "INSERT OR IGNORE INTO beam_assignments (id, learner_id, course_id, course_revision_id, path_revision_id, prerequisite_course_id, renewal_days, due_date, due_time, timezone, due_at, status, reason, assigned_by, assigned_at, access_opens_at, access_closes_at, access_rule) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)", id, item.learner, item.course, course.published_revision_id, item.pathRevision ?? null, item.prerequisite ?? null, item.renewalDays ?? null, item.dueDate, item.dueTime, item.timezone, dueAt, item.reason, actor.id, at, window.opensAt, window.closesAt, window.rule),
       stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, id, JSON.stringify(item)),
     ])
     ;(result.meta.changes === 1 ? created : kept).push(result.meta.changes === 1 ? id : `${item.learner}:${item.course}`)
@@ -112,6 +116,7 @@ export async function assignPath(env: Bindings, actor: Actor, input: Input) {
 
 export async function listPaths(env: Bindings) {
   const paths = await all(env, 'SELECT p.id, p.name, p.team_id AS team, p.current_revision_id AS revision, r.number FROM beam_paths p LEFT JOIN beam_path_revisions r ON r.id = p.current_revision_id ORDER BY p.name')
+  for (const path of paths) path.access = await accessRule(env, 'path', path.id)
   for (const path of paths) path.requirements = path.revision ? await all(env, 'SELECT course_id AS course, prerequisite_course_id AS prerequisite, due_days AS dueDays, renewal_days AS renewalDays FROM beam_path_requirements WHERE path_revision_id = ? ORDER BY position', path.revision) : []
   return paths
 }
@@ -122,7 +127,7 @@ export async function reassignAfterPublish(env: Bindings, actor: Actor, course: 
   const business = await requireBusiness(env)
   const open = await all(env, "SELECT * FROM beam_assignments WHERE course_id = ? AND status = 'open' AND course_revision_id != ?", course, revision)
   await commit(env, open.map(row => stmt(env, "UPDATE beam_assignments SET status = 'replaced' WHERE id = ? AND status = 'open'", row.id)), { actor: actor.id, action: 'assignment.replace', subject: course, detail: { revision, replaced: open.map(row => row.id) } })
-  const items: NewAssignment[] = open.map(row => ({ learner: row.learner_id, course, dueDate: row.due_date, dueTime: row.due_time, timezone: row.timezone, reason: 'revision', pathRevision: row.path_revision_id, prerequisite: row.prerequisite_course_id, renewalDays: row.renewal_days }))
+  const items: NewAssignment[] = open.map(row => ({ learner: row.learner_id, course, dueDate: row.due_date, dueTime: row.due_time, timezone: row.timezone, reason: 'revision', pathRevision: row.path_revision_id, prerequisite: row.prerequisite_course_id, renewalDays: row.renewal_days, access: { opensAt: row.access_opens_at, closesAt: row.access_closes_at, rule: row.access_rule } }))
   if (mode === 'everyone') {
     const completed = await all(env, `SELECT DISTINCT learner_id FROM beam_completions WHERE course_id = ? AND course_revision_id != ?
       AND learner_id NOT IN (SELECT learner_id FROM beam_assignments WHERE course_id = ? AND status = 'open')`, course, revision, course)

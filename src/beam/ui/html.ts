@@ -145,6 +145,10 @@ const ERRORS: Record<string, string> = {
   completed_assignment_not_reset: 'a completed assignment is never reset; its completion stays with its revision. Assign the course again instead.',
   learner_outside_your_team: 'you can reset training only for people in one of your teams.',
   attempt_closed_by_reset: 'this attempt was closed when the assignment was reset.',
+  access_not_open: 'this course is not open yet. It opens on the date shown on the course.',
+  access_ended: 'access to this course has ended. Your records and certificates stay readable; your manager can extend access.',
+  no_access_window: 'this assignment has no access window to extend.',
+  window_closes_before_it_opens: 'the closing date must be on or after the opening date.',
 }
 export const describeError = (code: string) => ERRORS[code] ?? code.replace(/_/g, ' ') + '.'
 

@@ -12,6 +12,8 @@ import { isManager } from '../actor'
 import { all } from '../core'
 import { sourceAcknowledgments } from './acknowledgments'
 import { agentName, area, backLink, bytes, card, checks, field, fileField, form, h, hidden, lessonText, page, rows, select, when } from './html'
+import { accessRule } from '../access'
+import { describeRule, windowForm } from './access'
 
 const LICENCES: Record<string, string> = { owned: 'owned', licensed: 'licensed to the business', permission: 'used with written permission' }
 const STATES: Record<string, string> = { draft: 'draft', in_review: 'in review', published: 'published', superseded: 'superseded', returned: 'returned' }
@@ -41,7 +43,7 @@ ${actor.owner || actor.roles.has('author') ? h`<section class="card settings"><h
 }
 
 export async function coursePage(env: Bindings, actor: Actor, id: string, url: URL) {
-  const [course, sources, names, assessors] = await Promise.all([courseDetail(env, actor, id), listSources(env, actor), memberNames(env), membersWithRole(env, 'assessor')])
+  const [course, sources, names, assessors, window] = await Promise.all([courseDetail(env, actor, id), listSources(env, actor), memberNames(env), membersWithRole(env, 'assessor'), accessRule(env, 'course', id)])
   const zone = (await business(env))!.timezone
   const versions = sources.flatMap(source => source.versions.map((version: any) => ({ value: version.id, label: `${source.title} v${version.number}` })))
   const author = actor.owner || actor.roles.has('author')
@@ -58,6 +60,7 @@ ${course.proposals.filter((proposal: any) => proposal.state === 'open').map((pro
 <section class="card"><h2>Quiz</h2>${draft.questions.map((question, index) => h`<details><summary>${index + 1}. ${question.prompt}</summary>${author ? h`${questionForm(question)}${form('course.question.remove', back, [...base, hidden('question', question.id)], 'Remove question', { secondary: true })}` : ''}</details>`)}${author ? h`<h3>Add a question</h3>${questionForm()}` : ''}</section>
 ${author ? h`<section class="card"><h2>Assessment rules</h2>${form('course.assessment', back, [...base, field('Pass mark (%)', 'passPercent', { type: 'number', value: draft.passPercent ?? '', required: false }), field('Quiz attempts allowed', 'maxAttempts', { type: 'number', value: draft.maxAttempts ?? '', required: false }), area('Practical assessment instructions (leave empty for none)', 'practicalInstructions', draft.practical?.instructions ?? '', false), select('Named assessor', 'assessor', assessors.map(member => ({ value: member.id, label: member.name })), draft.practical?.assessor ?? '', { required: false, blank: 'None' })], 'Save rules')}</section>
 <section class="card"><h2>Send for review</h2><p>Freezes this draft as a new revision for ${names.get(course.reviewer)} to publish or return.</p>${form('course.submit', back, base, 'Submit for review')}</section>` : ''}
+${card('Access window', h`<p>${describeRule(window)} A path’s window, or one set on an assignment, takes precedence; each new assignment takes its window when it is created.</p>${actor.owner ? windowForm('access.rule', back, [hidden('scope', 'course'), hidden('target', id)], window, 'Save window') : ''}`)}
 ${card('Revisions', course.revisions.length ? h`${rows(course.revisions.map((revision: any) => ({ title: h`<a href="/app/revisions/${revision.id}">Revision ${revision.number}</a>`, meta: `${state(revision.state)}, submitted ${when(revision.submittedAt, zone)} by ${names.get(revision.submittedBy)}${revision.reviewNote ? ` · note: ${revision.reviewNote}` : ''}`, aside: author ? form('course.restore', back, [...base, hidden('revision', revision.id)], 'Restore into draft', { secondary: true }) : '' })))}${course.revisions.length > 1 ? h`<h3>Compare revisions</h3>${compareForm(id, course.revisions)}` : ''}` : h`<p class="muted">No revisions yet.</p>`)}`
   return page(course.title, actor, body, { current: '/app/courses', url })
 }

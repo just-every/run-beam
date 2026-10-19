@@ -19,6 +19,12 @@ function practical(row: any) {
   return `${row.practical.state === 'accepted' ? 'accepted' : 'returned'} by ${row.practical.assessor}`
 }
 
+// AUTO-009: the access window beside the original due date, with any extension and its reason.
+function access(row: any, zone: string) {
+  if (!row.accessOpensAt && !row.accessClosesAt) return ''
+  return h`<br><span class="muted">${row.accessOpensAt ? `access opens ${formatDate(row.accessOpensAt, zone)}${row.accessClosesAt ? ', ' : ''}` : 'access '}${row.accessClosesAt ? `through ${formatDate(row.accessClosesAt - 1, zone)}` : ''}${row.extension ? ` · extended ${row.extension.days} ${row.extension.days === 1 ? 'day' : 'days'} by ${row.extension.by}: ${row.extension.reason}` : ''}</span>`
+}
+
 export async function reportPage(env: Bindings, actor: Actor, url: URL) {
   const filters = reportFilters(url)
   const [report, courses, teams, zone] = await Promise.all([trainingReport(env, actor, filters), listCourses(env), all(env, 'SELECT id, name FROM beam_teams ORDER BY name'), business(env).then(value => value!.timezone)])
@@ -38,7 +44,7 @@ export async function reportPage(env: Bindings, actor: Actor, url: URL) {
 <td class="nowrap">${cellLabel('Learner')}<a href="/app/records/${row.learner}">${row.learnerName}</a></td>
 <td class="cell-plain">${cellLabel('Course and revision')}${row.assignment ? h`<a href="/app/learn/${row.assignment}">${row.courseTitle}</a>` : row.courseTitle} — revision ${row.revisionNumber}${row.method === 'offline' ? h`<br><span class="muted">offline attendance</span>` : ''}</td>
 <td class="cell-status">${cellLabel('Status')}${pill(row.status, STATUS_LABELS[row.status])}</td>
-<td${empty(row.dueAt)}>${cellLabel('Due')}${row.dueAt ? h`<span class="nowrap">${formatDate(row.dueAt, row.timezone)}</span><br><span class="nowrap">${formatClock(row.dueAt, row.timezone)}${row.timezone === zone ? '' : h` <span class="muted">${zoneName(row.timezone)}</span>`}</span>` : '—'}</td>
+<td${empty(row.dueAt)}>${cellLabel('Due')}${row.dueAt ? h`<span class="nowrap">${formatDate(row.dueAt, row.timezone)}</span><br><span class="nowrap">${formatClock(row.dueAt, row.timezone)}${row.timezone === zone ? '' : h` <span class="muted">${zoneName(row.timezone)}</span>`}</span>${access(row, zone)}` : '—'}</td>
 <td class="nowrap"${empty(row.lessonsTotal)}>${cellLabel('Lessons')}${row.lessonsTotal ? `${row.lessonsDone} of ${row.lessonsTotal}` : '—'}</td>
 <td${empty(row.quizAttempts)}>${cellLabel('Quiz attempts')}${row.quizAttempts ? h`${row.quizAttempts} ${row.quizAttempts === 1 ? 'attempt' : 'attempts'}<br>${row.bestPercent ?? 0}%, ${row.quizPassed === 1 ? 'passed' : 'not passed'}` : '—'}</td>
 <td${empty(row.practical)}>${cellLabel('Practical')}${practical(row)}</td>

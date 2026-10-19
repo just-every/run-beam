@@ -3,6 +3,7 @@
 // transport and credential restrictions in http.ts and agent-credentials.ts.
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
+import { extendAccess, setAccessRule, setAssignmentWindow } from './access'
 import { decideAcknowledgment, requestAcknowledgments } from './acknowledgments'
 import { decide, propose } from './agent-work'
 import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, revisePath } from './assignments'
@@ -52,6 +53,9 @@ export const actions: Record<string, Handler> = {
   'assignment.create': (env, actor, input) => assignCourse(env, actor, input),
   'assignment.cancel': (env, actor, input) => cancelAssignment(env, actor, input),
   'assignment.renewals': (env, actor, input) => assignRenewals(env, actor, input),
+  'access.rule': (env, actor, input) => setAccessRule(env, actor, input),
+  'assignment.window': (env, actor, input) => setAssignmentWindow(env, actor, input),
+  'access.extend': (env, actor, input) => extendAccess(env, actor, input),
   'attempt.grant': (env, actor, input) => grantAttempt(env, actor, input),
   'assignment.reset': (env, actor, input) => resetAssignment(env, actor, input),
   'lesson.complete': (env, actor, input) => completeLesson(env, actor, input),

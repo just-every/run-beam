@@ -26,7 +26,9 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
   requireRole(actor, 'manager')
   const at = now()
   const rows = await all(env, `SELECT a.id AS assignment, a.learner_id AS learner, m.name AS learnerName, a.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, a.course_revision_id AS revision,
-      a.status AS assignmentStatus, a.due_at AS dueAt, a.timezone, a.reason,
+      a.status AS assignmentStatus, a.due_at AS dueAt, a.timezone, a.reason, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt,
+      (SELECT json_object('days', SUM(e.days), 'reason', (SELECT x.reason FROM beam_access_extensions x WHERE x.assignment_id = a.id ORDER BY x.extended_at DESC, x.rowid DESC LIMIT 1), 'by', (SELECT xm.name FROM beam_access_extensions x JOIN beam_members xm ON xm.id = x.extended_by WHERE x.assignment_id = a.id ORDER BY x.extended_at DESC, x.rowid DESC LIMIT 1), 'count', COUNT(*))
+        FROM beam_access_extensions e WHERE e.assignment_id = a.id HAVING COUNT(*) > 0) AS extension,
       (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone,
       (SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id = a.course_revision_id) AS lessonsTotal,
       (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.reset_id IS NULL) AS quizAttempts,
@@ -38,7 +40,7 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
     LEFT JOIN beam_completions c ON c.assignment_id = a.id LEFT JOIN beam_certificates k ON k.completion_id = c.id
     WHERE a.status != 'replaced' AND (? = '' OR a.course_id = ?) AND (? = '' OR a.learner_id IN (SELECT member_id FROM beam_team_members WHERE team_id = ?))
   UNION ALL
-    SELECT NULL, c.learner_id, m.name, c.course_id, r.title, r.number, c.course_revision_id, 'completed', NULL, NULL, 'offline', 0, 0, 0, NULL, NULL, NULL,
+    SELECT NULL, c.learner_id, m.name, c.course_id, r.title, r.number, c.course_revision_id, 'completed', NULL, NULL, 'offline', NULL, NULL, NULL, 0, 0, 0, NULL, NULL, NULL,
       c.id, c.method, c.completed_at, c.expires_at, k.number, k.id
     FROM beam_completions c JOIN beam_members m ON m.id = c.learner_id JOIN beam_course_revisions r ON r.id = c.course_revision_id LEFT JOIN beam_certificates k ON k.completion_id = c.id
     WHERE c.assignment_id IS NULL AND (? = '' OR c.course_id = ?) AND (? = '' OR c.learner_id IN (SELECT member_id FROM beam_team_members WHERE team_id = ?))
@@ -46,7 +48,7 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
   const shaped = rows.map(row => {
     const [practicalState, assessor] = row.practical ? String(row.practical).split('|') : [null, null]
     const status = recordStatus(row as any, at)
-    return { ...row, practical: practicalState ? { state: practicalState, assessor: assessor || null } : null, status } as Row
+    return { ...row, practical: practicalState ? { state: practicalState, assessor: assessor || null } : null, extension: row.extension ? JSON.parse(row.extension) : null, status } as Row
   }).filter(row => filters.status === 'all' || row.status === filters.status)
   const count = (status: string) => shaped.filter(row => row.status === status).length
   return { filters, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open') } }
@@ -55,6 +57,8 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
 const COLUMNS: [string, (row: any) => unknown][] = [
   ['Learner', row => row.learnerName], ['Course', row => row.courseTitle], ['Revision', row => row.revisionNumber], ['Status', row => row.status],
   ['Due (UTC)', row => row.dueAt ? new Date(row.dueAt).toISOString() : ''], ['Due time zone', row => row.timezone ?? ''],
+  ['Access opens (UTC)', row => row.accessOpensAt ? new Date(row.accessOpensAt).toISOString() : ''], ['Access closes (UTC)', row => row.accessClosesAt ? new Date(row.accessClosesAt).toISOString() : ''],
+  ['Access extended (days)', row => row.extension?.days ?? ''], ['Extension reason', row => row.extension?.reason ?? ''], ['Extended by', row => row.extension?.by ?? ''],
   ['Lessons done', row => row.lessonsDone], ['Lessons total', row => row.lessonsTotal], ['Quiz attempts', row => row.quizAttempts], ['Best quiz %', row => row.bestPercent ?? ''],
   ['Quiz passed', row => row.quizPassed === 1 ? 'yes' : row.quizAttempts ? 'no' : ''], ['Practical', row => row.practical?.state ?? ''], ['Practical assessor', row => row.practical?.assessor ?? ''],
   ['Completion method', row => row.method ?? ''], ['Completed (UTC)', row => row.completedAt ? new Date(row.completedAt).toISOString() : ''], ['Certificate', row => row.certificate ?? ''],
