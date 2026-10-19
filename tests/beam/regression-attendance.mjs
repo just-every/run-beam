@@ -24,6 +24,7 @@ export async function attendanceCheck(f) {
   await api('manager', 'path.revise', { path, courses: [theory.id, c.id], prerequisites: ['', ''], dueDays: ['14', '30'], renewalDays: ['', ''] })
   await api('manager', 'path.assign', { path })
   await api('owner', 'assignment.create', { course: c.id, learners: [ids.assessor, ids.author], dueDate: '2030-10-01', dueTime: '17:00', timezone: 'UTC' })
+  await api('owner', 'instructor.grant', { member: ids.other })
   const session = (await api('owner', 'session.schedule', { course: c.id, title: 'Scaffold yard', format: 'classroom', location: 'Yard C', instructor: ids.other, date: '2030-12-10', time: '08:00', minutes: 60, timezone: 'America/Phoenix' })).id
   for (const person of ['learner', 'assessor', 'author']) await api(person, 'session.register', { session })
   const practical = (await api('learner', 'records/me')).assignments.find(row => row.course === c.id && row.status === 'open').id

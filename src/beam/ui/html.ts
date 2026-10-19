@@ -146,6 +146,7 @@ const ERRORS: Record<string, string> = {
   session_started: 'this session has already started; choose another one.',
   session_cancelled: 'this session was cancelled.',
   session_not_offered: 'you can choose a session only of a course assigned to you.',
+  not_an_instructor: 'that person has no instructor access for this course. Grant it under Instructors on People first.',
   no_attempts_remaining: 'no attempts remain. Ask your manager for another attempt.',
   named_reviewer_required: 'only the course’s named reviewer can decide this revision.',
   named_assessor_required: 'only the named assessor can decide this attempt.',

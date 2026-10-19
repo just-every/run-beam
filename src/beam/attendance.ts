@@ -7,6 +7,7 @@
 // completes only the exact revision of the learner's assignment, and only when that reviewed revision requires
 // attendance and its online parts are also done (learning.ts); a course without the requirement is never completed by
 // attendance, and other courses of a blended path stay outstanding.
+import { instructs } from './instructors'
 import { MOVE_CHAIN } from './moves'
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
@@ -21,7 +22,8 @@ export const STATUSES = ['attended', 'partial', 'absent'] as const
 async function rosterSession(env: Bindings, actor: Actor, id: string) {
   const session = await one(env, 'SELECT s.*, c.title AS courseTitle, s.minutes * s.meetings AS scheduled, (SELECT MIN(starts_at) FROM beam_session_meetings m WHERE m.session_id = s.id) AS first FROM beam_sessions s JOIN beam_courses c ON c.id = s.course_id WHERE s.id = ?', id)
   insist(session, 'not_found', 404)
-  if (session.instructor_id !== actor.id) {
+  // ORG-005: the named instructor keeps the roster only while an instructor grant covering the course lasts.
+  if (!(session.instructor_id === actor.id && await instructs(env, actor.id, session.course_id))) {
     try { await requireScheduler(env, actor, session.course_id) } catch { insist(false, 'not_found', 404) }
   }
   return session

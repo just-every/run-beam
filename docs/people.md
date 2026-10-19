@@ -55,3 +55,7 @@ The owner sets an inactivity policy at the foot of **People**: how many days wit
 ## Announcements
 
 Open **Announcements** to write to the people of a team you look after, or to everyone you look after who is assigned a course. Each person sees it on **My learning** with your name, never who else received it, and can **Reply privately**; replies appear under your announcement and nobody else reads them. Announcements are delivered in Beam only for now: email, Slack and Teams delivery are not sent yet.
+
+## Instructors
+
+Under **Instructors** on **People**, **Give instructor access** to a person for every course or one business unit's courses, with an optional end date. Only people with that access can be named on a session, and they keep its roster and attendance while it lasts; **Revoke** ends it at once. Instructor access changes no course, assignment, completion or person.

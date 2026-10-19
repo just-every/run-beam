@@ -15,6 +15,8 @@ export async function liveCheck(f) {
   const path = (await api('manager', 'path.create', { name: 'Blended line cook', team: ids.team })).id
   await api('manager', 'path.revise', { path, courses: [basics.id, practice.id], prerequisites: ['', basics.id], dueDays: ['14', '30'], renewalDays: ['', ''] })
 
+  // The instructor holds instructor access (ORG-005).
+  await api('owner', 'instructor.grant', { member: ids.other })
   // Two session options: a weekly classroom series in New York crossing the 3 Nov 2030 change, and one virtual meeting.
   const weekly = { course: practice.id, title: 'Knife room, Tuesdays', format: 'classroom', location: 'Kitchen 2, 18 Pine St', instructor: ids.other, materials: 'Bring a chef knife; read lesson 1', date: '2030-10-29', time: '09:00', minutes: 90, timezone: 'America/New_York', repeat: 'weekly', count: 2 }
   await api('manager', 'session.schedule', weekly, 403)

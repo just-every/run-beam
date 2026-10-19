@@ -19,6 +19,7 @@ import { policyCard } from './exceptions'
 import { inactivityCard } from './inactivity'
 import { exceptionPolicy } from '../exceptions'
 import { sessionOptionCounts } from '../live'
+import { instructorsCard } from './instructors'
 
 const ROLE_LABELS: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
 const roleOptions = ROLES.map(role => ({ value: role, label: ROLE_LABELS[role] }))
@@ -63,6 +64,7 @@ ${isManager(actor) || actor.adminUnits.length ? card('Teams', h`${list.teams.map
 ${await unitsCard(env, actor, list.members, list.teams)}
 ${await rolesCard(env, actor, list.members, list.teams)}
 ${await auditorsCard(env, actor, list.members, list.teams)}
+${await instructorsCard(env, actor, list.members as { id: string; name: string }[])}
 ${await inactivityCard(env, actor, list.teams as { id: string; name: string }[], zone)}`
   return page('People', actor, body, { current: '/app/people', url, wide: true })
 }

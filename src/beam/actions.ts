@@ -16,6 +16,7 @@ import { acceptOffer, leave, register } from './registrations'
 import { amendAttendance, recordAttendance } from './attendance'
 import { addComment, resolveConflict, resolveThread } from './collab'
 import { closeFeedback, sendFeedback } from './feedback'
+import { grantInstructor, revokeInstructor } from './instructors'
 import { decideRequest, requestEnrollment, saveSearch, selfEnroll, setEnrollment, setFavorite, withdraw } from './catalog'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
@@ -78,6 +79,8 @@ export const actions: Record<string, Handler> = {
   'course.thread.resolve': (env, actor, input) => resolveThread(env, actor, input),
   'feedback.send': (env, actor, input) => sendFeedback(env, actor, input),
   'feedback.close': (env, actor, input) => closeFeedback(env, actor, input),
+  'instructor.grant': (env, actor, input) => grantInstructor(env, actor, input),
+  'instructor.revoke': (env, actor, input) => revokeInstructor(env, actor, input),
   'inactivity.policy': (env, actor, input) => savePolicy(env, actor, input),
   'inactivity.preview': (env, actor) => previewPolicy(env, actor),
   'inactivity.enable': (env, actor, input) => setPolicyEnabled(env, actor, input),

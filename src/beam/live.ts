@@ -7,6 +7,7 @@
 // reschedule, change and cancellation bumps the session's iCalendar sequence and is kept as a change the learner's
 // agenda shows, and the .ics file (ics.ts) carries it. Choosing a session, seats and waitlists (LIVE-002) are in
 // registrations.ts.
+import { instructs } from './instructors'
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
@@ -60,7 +61,7 @@ const meetingRows = (env: Bindings, session: string, list: ReturnType<typeof mee
   ...list.map(meeting => stmt(env, 'INSERT INTO beam_session_meetings (session_id, position, local_date, starts_at, ends_at) VALUES (?, ?, ?, ?, ?)', session, meeting.position, meeting.date, meeting.startsAt, meeting.endsAt)),
 ]
 
-async function readDetails(env: Bindings, input: Input) {
+async function readDetails(env: Bindings, input: Input, course: string) {
   const format = input.text('format')
   insist((FORMATS as readonly string[]).includes(format), 'invalid_format')
   const location = input.text('location', { optional: format === 'virtual', max: 160 })
@@ -68,6 +69,8 @@ async function readDetails(env: Bindings, input: Input) {
   insist(joinUrl === null || /^https:\/\/[^\s]+$/.test(joinUrl), 'invalid_join_url')
   const instructor = input.text('instructor', { optional: true }) || null
   insist(instructor === null || await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', instructor), 'person_not_found', 404)
+  // ORG-005: only an active instructor grant covering the course lets a person be named.
+  insist(instructor === null || await instructs(env, instructor, course), 'not_an_instructor', 409)
   return { title: input.text('title', { max: 120 }), format, location, joinUrl, instructor, materials: input.text('materials', { optional: true, max: 2000 }) }
 }
 
@@ -75,7 +78,7 @@ export async function scheduleSession(env: Bindings, actor: Actor, input: Input)
   const course = input.text('course')
   await requireScheduler(env, actor, course)
   const business = await requireBusiness(env)
-  const details = await readDetails(env, input)
+  const details = await readDetails(env, input, course)
   const when = readWhen(input, business.timezone)
   const repeat = input.text('repeat', { optional: true }) || 'none'
   insist((REPEATS as readonly string[]).includes(repeat), 'invalid_repeat')
@@ -118,7 +121,7 @@ export async function rescheduleSession(env: Bindings, actor: Actor, input: Inpu
 
 export async function updateSession(env: Bindings, actor: Actor, input: Input) {
   const session = await managedSession(env, actor, input.text('session'))
-  const details = await readDetails(env, input)
+  const details = await readDetails(env, input, session.course_id)
   const changed = Object.entries({ title: session.title, format: session.format, location: session.location, joinUrl: session.join_url, instructor: session.instructor_id, materials: session.materials })
     .filter(([key, value]) => (details as Row)[key] !== value).map(([key]) => key)
   insist(changed.length, 'nothing_changed', 409)
@@ -185,7 +188,8 @@ export async function sessionsView(env: Bindings, actor: Actor) {
     blocked: await prerequisiteMet(env, assignment) ? null : { prerequisite: assignment.prerequisite_course_id, prerequisiteTitle: assignment.prerequisiteTitle },
     sessions: await shape(env, await all(env, `${SESSION} WHERE s.course_id = ? AND s.state = 'scheduled' AND ${FIRST} > ? ORDER BY ${FIRST}`, assignment.course_id, now())),
   })))
-  const leading = await shape(env, await all(env, `${SESSION} WHERE s.instructor_id = ? ORDER BY s.start_date`, actor.id))
+  const led = await all(env, `${SESSION} WHERE s.instructor_id = ? ORDER BY s.start_date`, actor.id)
+  const leading = await shape(env, (await Promise.all(led.map(async row => await instructs(env, actor.id, row.course) ? row : null))).filter((row): row is Row => row !== null))
   const units = sessionUnits(actor)
   const managed = schedules(actor) ? await shape(env, await all(env, `${SESSION} WHERE ? OR c.unit_id IN (SELECT value FROM json_each(?)) ORDER BY s.state DESC, s.start_date`, actor.owner ? 1 : 0, JSON.stringify(units)), () => null, true) : []
   const courses = schedules(actor) ? await all(env, 'SELECT id, title FROM beam_courses WHERE published_revision_id IS NOT NULL AND retired_at IS NULL AND (? OR unit_id IN (SELECT value FROM json_each(?))) ORDER BY title', actor.owner ? 1 : 0, JSON.stringify(units)) : []
@@ -198,7 +202,7 @@ export async function sessionForCalendar(env: Bindings, actor: Actor, id: string
   const [session] = await shape(env, await all(env, `${SESSION} WHERE s.id = ?`, id))
   insist(session, 'not_found', 404)
   const registration = await one(env, 'SELECT state FROM beam_session_registrations WHERE session_id = ? AND learner_id = ? ORDER BY registered_at DESC LIMIT 1', id, actor.id)
-  if (!registration && session.instructor !== actor.id) {
+  if (!registration && !(session.instructor === actor.id && await instructs(env, actor.id, session.course))) {
     try { await requireScheduler(env, actor, session.course) } catch { insist(false, 'not_found', 404) }
   }
   return { session, cancelled: session.state === 'cancelled' || registration?.state === 'cancelled' }
