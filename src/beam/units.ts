@@ -9,11 +9,14 @@ import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { addDays, zonedInstant } from './time'
+import { courseUnits } from './scope'
 
-const outside = (actor: Actor) => actor.adminUnits.length ? 'outside_your_units' : actor.authorOf.length ? 'outside_your_courses' : 'forbidden'
+const outside = (actor: Actor) => courseUnits(actor).length ? 'outside_your_units' : actor.authorOf.length ? 'outside_your_courses' : 'forbidden'
 
+/** A course in a unit whose catalog this person manages: as its learning administrator, or by a courses permission (ORG-010). */
 async function courseInUnits(env: Bindings, actor: Actor, course: string) {
-  return actor.adminUnits.length > 0 && !!await one(env, 'SELECT 1 FROM beam_courses WHERE id = ? AND unit_id IN (SELECT value FROM json_each(?))', course, JSON.stringify(actor.adminUnits))
+  const units = courseUnits(actor)
+  return units.length > 0 && !!await one(env, 'SELECT 1 FROM beam_courses WHERE id = ? AND unit_id IN (SELECT value FROM json_each(?))', course, JSON.stringify(units))
 }
 
 /** The owner and the given roles reach every course; a learning administrator only their units' courses, and a
@@ -67,8 +70,8 @@ export async function setCourseUnit(env: Bindings, actor: Actor, input: Input) {
 export async function newCourseUnit(env: Bindings, actor: Actor, input: Input) {
   const unit = input.text('unit', { optional: true }) || null
   if (!(actor.owner || actor.roles.has('author'))) {
-    insist(actor.adminUnits.length, 'forbidden', 403)
-    insist(unit && actor.adminUnits.includes(unit), 'outside_your_units', 403)
+    insist(courseUnits(actor).length, 'forbidden', 403)
+    insist(unit && courseUnits(actor).includes(unit), 'outside_your_units', 403)
   }
   return unit ? await requireUnit(env, unit) : null
 }

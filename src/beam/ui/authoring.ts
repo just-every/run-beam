@@ -15,6 +15,7 @@ import { agentName, area, backLink, bytes, card, checks, field, fileField, form,
 import { accessRule } from '../access'
 import { describeRule, windowForm } from './access'
 import { courseAccessCard } from './course-access'
+import { courseUnits } from '../scope'
 
 const LICENCES: Record<string, string> = { owned: 'owned', licensed: 'licensed to the business', permission: 'used with written permission' }
 const STATES: Record<string, string> = { draft: 'draft', in_review: 'in review', published: 'published', superseded: 'superseded', returned: 'returned' }
@@ -39,12 +40,12 @@ const staff = (actor: Actor) => actor.owner || ['author', 'reviewer', 'manager']
 
 export async function coursesPage(env: Bindings, actor: Actor, url: URL) {
   // A learning administrator sees and creates only their units' courses (ORG-002).
-  if (!staff(actor)) insist(actor.adminUnits.length || actor.authorOf.length, 'forbidden', 403)
-  const [courses, reviewers, units] = await Promise.all([listCourses(env, staff(actor) ? null : { units: actor.adminUnits, courses: actor.authorOf }), membersWithRole(env, 'reviewer'), all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name')])
+  if (!staff(actor)) insist(courseUnits(actor).length || actor.authorOf.length, 'forbidden', 403)
+  const [courses, reviewers, units] = await Promise.all([listCourses(env, staff(actor) ? null : { units: courseUnits(actor), courses: actor.authorOf }), membersWithRole(env, 'reviewer'), all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name')])
   const author = actor.owner || actor.roles.has('author')
-  const unitOptions = units.filter(unit => author || actor.adminUnits.includes(unit.id)).map(unit => ({ value: unit.id, label: unit.name }))
+  const unitOptions = units.filter(unit => author || courseUnits(actor).includes(unit.id)).map(unit => ({ value: unit.id, label: unit.name }))
   const body = h`<h1>Courses</h1>${card('Course list', courses.length ? rows(courses.map(course => ({ title: course.title, meta: `${course.publishedNumber ? `published revision ${course.publishedNumber}` : 'not published'}${course.inReview ? ' · revision in review' : ''}`, href: `/app/courses/${course.id}` }))) : h`<p class="muted">No courses yet.</p>`)}
-${author || actor.adminUnits.length ? h`<section class="card settings"><h2>New course</h2>${form('course.create', '/app/courses/{id}', [field('Title', 'title'), area('Summary', 'summary', '', false), select('Reviewer who publishes it', 'reviewer', reviewers.map(member => ({ value: member.id, label: member.name }))), unitOptions.length ? select('Business unit', 'unit', unitOptions, '', author ? { required: false, blank: 'No unit' } : {}) : ''], 'Create course')}</section>` : ''}`
+${author || courseUnits(actor).length ? h`<section class="card settings"><h2>New course</h2>${form('course.create', '/app/courses/{id}', [field('Title', 'title'), area('Summary', 'summary', '', false), select('Reviewer who publishes it', 'reviewer', reviewers.map(member => ({ value: member.id, label: member.name }))), unitOptions.length ? select('Business unit', 'unit', unitOptions, '', author ? { required: false, blank: 'No unit' } : {}) : ''], 'Create course')}</section>` : ''}`
   return page('Courses', actor, body, { current: '/app/courses', url })
 }
 
@@ -54,7 +55,7 @@ export async function coursePage(env: Bindings, actor: Actor, id: string, url: U
   const [sources, names, assessors, window, units] = await Promise.all([staff(actor) ? listSources(env, actor) : [], memberNames(env), membersWithRole(env, 'assessor'), accessRule(env, 'course', id), actor.owner ? all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name') : []])
   const zone = (await business(env))!.timezone
   const versions = sources.flatMap(source => source.versions.map((version: any) => ({ value: version.id, label: `${source.title} v${version.number}` })))
-  const author = actor.owner || actor.roles.has('author') || actor.adminUnits.includes(course.unit) || actor.authorOf.includes(id)
+  const author = actor.owner || actor.roles.has('author') || courseUnits(actor).includes(course.unit) || actor.authorOf.includes(id)
   const draft = course.draft
   const base = [hidden('course', id), hidden('draftVersion', course.draftVersion)]
   const back = `/app/courses/${id}`
@@ -76,7 +77,7 @@ ${card('Revisions', course.revisions.length ? h`${rows(course.revisions.map((rev
 }
 
 export async function revisionPage(env: Bindings, actor: Actor, id: string, url: URL) {
-  if (!staff(actor)) insist(actor.adminUnits.length || actor.authorOf.length, 'forbidden', 403)
+  if (!staff(actor)) insist(courseUnits(actor).length || actor.authorOf.length, 'forbidden', 403)
   const detail = await revisionDetail(env, id)
   const course = await courseDetail(env, actor, detail.revision.course_id).catch(() => { throw new BeamError('not_found', 404) })
   const names = await memberNames(env)

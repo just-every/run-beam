@@ -81,3 +81,58 @@ export async function managersCheck(f) {
   assert.equal((await h.submit('team.coverage.end', cookies.mara, { grant: second.id }, '/app/people')).searchParams.get('error'), null)
   await api('ben', `records/${ids.pat}`, undefined, 404)
 }
+
+// ORG-010: a custom "Site training coordinator" role with enrollment and reports for one site (a business unit until
+// ORG-001 brings locations) enrolls and reports there only; another site, provider credentials and publication are
+// refused; owner-only and named decisions cannot be ticked; removing reports takes effect in the open session.
+export async function customRoleCheck(f) {
+  const { api, h, cookies, ids, course } = f
+  const page = async (path, role) => { const response = await h.raw(path, { cookie: cookies[role] }); return { status: response.status, text: await response.text() } }
+  for (const [name, roles] of [['cora', ['learner']], ['fresno', ['learner']], ['joliet', ['learner']]]) {
+    ids[name] = (await api('owner', 'person.invite', { email: `${name}@example.test`, name: `${name[0].toUpperCase()}${name.slice(1)} Person`, roles })).id
+    cookies[name] = await h.signIn(`${name}@example.test`, { requested: true })
+  }
+  const site = async (name, member) => {
+    const team = (await api('owner', 'team.create', { name: `${name} crew` })).id
+    await api('owner', 'team.members', { team, members: [member] })
+    return { team, unit: (await api('owner', 'unit.create', { name: `${name} site`, teams: [team] })).id }
+  }
+  const [fresno, joliet] = [await site('Fresno', ids.fresno), await site('Joliet', ids.joliet)]
+  await api('owner', 'role.save', { name: 'Owner in disguise', permissions: ['enrollment', 'owner'], units: [fresno.unit] }, 400)
+  await api('owner', 'role.save', { name: 'Reviewer in disguise', permissions: ['named_reviewer'], units: [fresno.unit] }, 400)
+  assert.equal((await h.submit('role.save', cookies.owner, { name: 'Site training coordinator', permissions: ['enrollment', 'reports'], units: fresno.unit }, '/app/people')).searchParams.get('error'), null)
+  const role = (await api('owner', 'roles')).roles.find(row => row.name === 'Site training coordinator')
+  await api('cora', 'role.grant', { role: role.id, member: ids.cora }, 403)
+  assert.equal((await h.submit('role.grant', cookies.owner, { role: role.id, member: ids.cora }, '/app/people')).searchParams.get('error'), null)
+  assert.deepEqual((await api('cora', 'me')).permissions.sort(), ['enrollment', 'reports'])
+
+  // Enroll and report at Fresno.
+  const c = await course('Forklift refresher')
+  const [enrolled] = (await api('cora', 'assignment.create', { course: c.id, teams: [fresno.team], dueDate: '2030-10-01' })).created
+  assert.equal((await api('cora', 'assignment.create', { course: c.id, learners: [ids.joliet], dueDate: '2030-10-01' }, 403)).error, 'learner_outside_your_team')
+  await api('owner', 'assignment.create', { course: c.id, learners: [ids.joliet], dueDate: '2030-10-01' })
+  const report = await api('cora', `report?course=${c.id}`)
+  assert.deepEqual(report.rows.map(row => row.assignment), [enrolled])
+  assert.equal((await api('cora', `report?team=${joliet.team}`, undefined, 403)).error, 'learner_outside_your_team')
+  const csv = await page(`/app/reports.csv?course=${c.id}`, 'cora')
+  assert.ok(csv.status === 200 && csv.text.includes('Fresno Person') && !csv.text.includes('Joliet Person'))
+  assert.equal((await page('/app/reports', 'cora')).status, 200)
+  // Nothing the role does not tick: people administration, provider credentials, publication.
+  await api('cora', 'people', undefined, 403)
+  await api('cora', 'person.invite', { email: 'y@example.test', name: 'Y', roles: ['learner'] }, 403)
+  for (const path of ['/auth/providers', '/auth/settings/identity', '/app/business']) assert.equal((await page(path, 'cora')).status, 403, path)
+  const draft = await api('author', 'course.create', { title: 'Coordinator cannot publish', reviewer: ids.reviewer })
+  const lesson = await api('author', 'course.lesson', { course: draft.id, draftVersion: draft.draftVersion, title: 'One', body: 'One.', sources: [] })
+  const revision = (await api('author', 'course.submit', { course: draft.id, draftVersion: lesson.draftVersion })).id
+  assert.equal((await h.submit('revision.decide', cookies.cora, { revision, decision: 'publish' }, `/app/revisions/${revision}`)).searchParams.get('error'), 'named_reviewer_required')
+
+  // Removing reports reaches the open session on its next request; enrollment stays.
+  await api('owner', 'role.save', { role: role.id, name: 'Site training coordinator', permissions: ['enrollment'], units: [fresno.unit] })
+  await api('cora', 'report', undefined, 403)
+  assert.equal((await page('/app/reports.csv', 'cora')).status, 403)
+  await api('cora', 'assignment.cancel', { assignment: enrolled, reason: 'Enrolled the wrong course' })
+  // Every save, grant and change is in the audit record (OPS-001), with the permissions before and after.
+  const audit = (await h.db.prepare("SELECT action, detail FROM beam_audit WHERE action LIKE 'role.%' AND (subject = ? OR json_extract(detail, '$.role') = ?) ORDER BY id").bind(role.id, role.id).all()).results
+  assert.deepEqual(audit.map(row => row.action), ['role.create', 'role.grant', 'role.change'])
+  assert.deepEqual(JSON.parse(audit[2].detail).before.permissions, ['enrollment', 'reports'])
+}

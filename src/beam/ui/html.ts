@@ -31,13 +31,13 @@ const courseAuthor = (actor: Actor) => actor.authorOf.length > 0
 type NavItem = { href: string; label: string; icon: IconName; show: (actor: Actor) => boolean; count?: (shell: Shell) => number }
 const LEARNING: NavItem = { href: '/app/learning', label: 'My learning', icon: 'home', show: () => true }
 const NAV: NavItem[] = [
-  { href: '/app/manage', label: 'Manage', icon: 'document', show: manager },
-  { href: '/app/people', label: 'People', icon: 'people', show: actor => manager(actor) || administrator(actor), count: shell => shell.people },
-  { href: '/app/courses', label: 'Courses', icon: 'book', show: actor => preparer(actor) || administrator(actor) || courseAuthor(actor) },
+  { href: '/app/manage', label: 'Manage', icon: 'document', show: actor => manager(actor) || !!actor.grants.reports },
+  { href: '/app/people', label: 'People', icon: 'people', show: actor => manager(actor) || administrator(actor) || !!actor.grants.people, count: shell => shell.people },
+  { href: '/app/courses', label: 'Courses', icon: 'book', show: actor => preparer(actor) || administrator(actor) || courseAuthor(actor) || !!actor.grants.courses },
   { href: '/app/paths', label: 'Paths', icon: 'route', show: manager },
   { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
-  { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) },
+  { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) || !!actor.grants.reports },
   LEARNING,
   { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
   { href: '/app/business', label: 'Settings', icon: 'gear', show: actor => actor.owner },
@@ -56,7 +56,7 @@ const headers = {
 }
 
 const ROLE_NAMES: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
-const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...(administrator(actor) ? ['Learning administrator'] : []), ...[...actor.roles].filter(role => role !== 'learner').map(role => ROLE_NAMES[role])].join(', ') || 'Learner'
+const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...(administrator(actor) ? ['Learning administrator'] : []), ...(Object.keys(actor.grants).length ? ['Custom role'] : []), ...[...actor.roles].filter(role => role !== 'learner').map(role => ROLE_NAMES[role])].join(', ') || 'Learner'
 
 function rail(actor: Actor, current: string, shell?: Shell): Html {
   // Until the owner names the business every /app page leads to it, so the rail shows only the brand and the person.

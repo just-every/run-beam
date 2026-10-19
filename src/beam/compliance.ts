@@ -2,13 +2,13 @@
 // with what each record is waiting on, coverage per course, and the agent work that touches them. Every figure is
 // counted from the same report rows, so the cards, the queue and the coverage always agree.
 import type { Bindings } from '../auth.server'
-import { requireRole, type Actor } from './actor'
+import type { Actor } from './actor'
 import { listProposals } from './agent-work'
-import { all, now } from './core'
+import { all, insist, now } from './core'
 import { queues } from './records'
 import { trainingReport } from './report'
 import { calendarDays } from './time'
-import { teamScope } from './scope'
+import { permits, teamScope } from './scope'
 
 export const QUEUES = ['overdue', 'expiring', 'open', 'completed'] as const
 export type Queue = typeof QUEUES[number]
@@ -23,11 +23,11 @@ export function complianceFilters(url: URL): ComplianceFilters {
 export interface Standing { label: string; tone: 'done' | 'waiting' | 'late' }
 
 export async function complianceView(env: Bindings, actor: Actor, filters: ComplianceFilters) {
-  requireRole(actor, 'manager')
+  insist(permits(actor, 'reports'), 'forbidden', 403)
   const at = now()
   const [report, teams, memberTeams, work, blocked, reminded, proposals, approved, declined] = await Promise.all([
     trainingReport(env, actor, { course: filters.course, team: filters.team, status: 'all' }),
-    all<{ id: string; name: string; people: number }>(env, 'SELECT t.id, t.name, COUNT(tm.member_id) AS people FROM beam_teams t LEFT JOIN beam_team_members tm ON tm.team_id = t.id WHERE (? IS NULL OR t.id IN (SELECT value FROM json_each(?))) GROUP BY t.id ORDER BY people DESC, t.name', teamScope(actor), teamScope(actor)),
+    all<{ id: string; name: string; people: number }>(env, 'SELECT t.id, t.name, COUNT(tm.member_id) AS people FROM beam_teams t LEFT JOIN beam_team_members tm ON tm.team_id = t.id WHERE (? IS NULL OR t.id IN (SELECT value FROM json_each(?))) GROUP BY t.id ORDER BY people DESC, t.name', teamScope(actor, 'reports'), teamScope(actor, 'reports')),
     all<{ member: string; name: string }>(env, 'SELECT tm.member_id AS member, t.name FROM beam_team_members tm JOIN beam_teams t ON t.id = tm.team_id ORDER BY t.name'),
     queues(env, actor),
     all<{ id: string }>(env, `SELECT a.id FROM beam_assignments a WHERE a.status = 'open' AND a.prerequisite_course_id IS NOT NULL

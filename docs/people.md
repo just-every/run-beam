@@ -30,6 +30,10 @@ A business unit groups teams, such as every team in one region. As the owner, op
 
 Under **Grant administration**, choose a person and a unit to make them that unit's learning administrator, with an optional end date. They manage the unit's courses, assign its people and read its reports and CSV, and nothing else: other units, people administration, settings, sign-in and providers stay with you. **Revoke** ends a grant at once; an ended or revoked grant stays listed with when and by whom.
 
+## Custom roles
+
+Under **Custom roles** on **People**, the owner makes a role such as a site training coordinator: name it, tick its **Permissions** (courses, people, enrollment, reports, live sessions, certificates, integrations, notifications) and limit it to chosen teams or business units. Owner settings, sign-in providers and named reviewer or assessor decisions are never part of a role. Give it to someone with **Grant role**; saving the role again changes it for every holder on their next page, and **Revoke** takes it away.
+
 ## Remove or restore access
 
 **Remove access** signs the person out everywhere and stops them signing in. Their records stay. **Restore access** lets them sign in again with a fresh sign-in link.

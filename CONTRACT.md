@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 8 | 44 | 74 | 126 |
-| All | 28 | 44 | 74 | 146 |
+| Target and push further | 9 | 44 | 73 | 126 |
+| All | 29 | 44 | 73 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -514,7 +514,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `ORG-007` | Offer an organized self-service learning catalog | target | missing |  | Searchable catalog, optional enrollment, requests and favorites are absent. |
 | `ORG-008` | Separate employee and external training portals | target | missing |  | Extended-enterprise portals, branding and isolated external learner identity are absent. |
 | `ORG-009` | Brand the employee portal on the employer’s own address | target | missing |  | Employer logo/colour/favicon theme, themed email and certificates, custom hostname setup check and old-address redirects are absent; pages show only the employer name. |
-| `ORG-010` | Define custom administrator roles | target | missing |  | Custom permission-checkbox roles scoped to teams, locations or units are absent; roles are fixed. |
+| `ORG-010` | Define custom administrator roles | target | done | `src/beam/roles.ts`, `src/beam/scope.ts`, `src/beam/actor.ts`, `src/beam/ui/roles.ts`, `migrations/core/0026_beam_custom_roles.sql`, `tests/beam/regression-managers.mjs` (ORG-010) |  |
 | `ORG-011` | Sign in without a work email | target | partial | `src/beam/people.ts`, `src/modules/operator-auth/service.mjs`, `src/modules/operator-auth/signin/index.mjs` | Emailed sign-in with rate limiting exists and deactivation ends sessions; email-less people, username with password or PIN, SMS codes, audited resets, lockout, first-sign-in sheets, shared-device mode and no-contact-route flags are absent. |
 | `ORG-012` | View Beam as a learner, read-only | target | missing |  | A read-only, audited “View as” learner session is absent. |
 | `AUTHOR-001` | Author multimedia courses without rebuilding files | target | partial | `src/beam/courses.ts`, `src/beam/sources.ts`, `tests/beam/flows.mjs` | Text lessons and uploaded sources work; rich reusable media blocks, author preview and allowlisted sandboxed embeds (YouTube, Vimeo, Loom, Google, Microsoft 365) are absent. |

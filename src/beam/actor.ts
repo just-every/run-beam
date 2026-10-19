@@ -7,6 +7,13 @@ import { BeamError, all, insist, newId, now, one, stmt } from './core'
 export const ROLES = ['author', 'reviewer', 'learner', 'manager', 'assessor'] as const
 export type Role = typeof ROLES[number]
 
+/** ORG-010: what a custom role can hold. Owner authority, provider secrets and named reviewer or assessor decisions
+ * are never among them. */
+export const PERMISSIONS = ['courses', 'people', 'enrollment', 'reports', 'live_sessions', 'certificates', 'integrations', 'notifications'] as const
+export type Permission = typeof PERMISSIONS[number]
+/** Where one permission reaches: its teams (and their members) and its business units. */
+export interface Reach { teams: string[]; units: string[]; learners: string[] }
+
 export interface Actor {
   id: string
   sessionId: string
@@ -28,6 +35,8 @@ export interface Actor {
   /** Null for the owner (every team and person); otherwise the teams this person manages or administers, and their members. */
   teams: string[] | null
   learners: string[] | null
+  /** ORG-010: each permission held through custom roles, with where it reaches. */
+  grants: Partial<Record<Permission, Reach>>
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
   shell?: { people: number; waiting: number; now: number; zone: string }
 }
@@ -50,7 +59,22 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   if (managedTeams.length) roles.add('manager')
   const teams = owner ? null : (await all<{ id: string }>(env, 'SELECT id FROM beam_teams WHERE id IN (SELECT value FROM json_each(?)) OR unit_id IN (SELECT value FROM json_each(?)) ORDER BY id', JSON.stringify(managedTeams), JSON.stringify(adminUnits))).map(row => row.id)
   const learners = teams && (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(teams))).map(row => row.member_id)
-  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners }
+  const grants = agent || owner ? {} : await customGrants(env, member.id)
+  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners, grants }
+}
+
+/** The permissions of every custom role this member holds, merged, each with the teams, units and people it reaches. */
+async function customGrants(env: Bindings, memberId: string) {
+  const held = await all<{ permissions: string; teams: string; units: string }>(env, 'SELECT r.permissions, r.teams, r.units FROM beam_custom_role_grants g JOIN beam_custom_roles r ON r.id = g.role_id WHERE g.member_id = ? AND g.revoked_at IS NULL', memberId)
+  const grants: Partial<Record<Permission, Reach>> = {}
+  for (const role of held) for (const permission of JSON.parse(role.permissions) as Permission[]) {
+    const reach = grants[permission] ??= { teams: [], units: [], learners: [] }
+    reach.units = [...new Set([...reach.units, ...JSON.parse(role.units)])]
+    const teams = (await all<{ id: string }>(env, 'SELECT id FROM beam_teams WHERE id IN (SELECT value FROM json_each(?)) OR unit_id IN (SELECT value FROM json_each(?))', role.teams, role.units)).map(row => row.id)
+    reach.teams = [...new Set([...reach.teams, ...teams])]
+  }
+  for (const reach of Object.values(grants)) reach.learners = (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(reach.teams))).map(row => row.member_id)
+  return grants
 }
 
 export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {

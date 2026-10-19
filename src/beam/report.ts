@@ -27,8 +27,8 @@ export function reportFilters(url: URL): Filters {
 export async function trainingReport(env: Bindings, actor: Actor, filters: Filters) {
   // A manager's report holds only their teams' people (ORG-004), an administrator's their units' (ORG-002);
   // another team is refused.
-  const scope = learnerScope(actor)
-  if (filters.team) requireTeamScope(actor, filters.team)
+  const scope = learnerScope(actor, 'reports')
+  if (filters.team) requireTeamScope(actor, filters.team, 'reports')
   await closeAllExpired(env, actor)
   const at = now()
   const rows = await all(env, `SELECT a.id AS assignment, a.learner_id AS learner, m.name AS learnerName, a.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, a.course_revision_id AS revision,

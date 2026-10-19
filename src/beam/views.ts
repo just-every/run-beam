@@ -17,12 +17,15 @@ import { certificate, learnerRecord, queues, reminders } from './records'
 import { reportFilters, trainingReport } from './report'
 import { listSources } from './sources'
 import { requireCourseRole, unitsView } from './units'
+import { courseUnits } from './scope'
+import { rolesView } from './roles'
 
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
-  me: async (env, actor) => ({ id: actor.id, email: actor.email, name: actor.name, owner: actor.owner, roles: [...actor.roles], adminUnits: actor.adminUnits, business: await business(env) }),
+  me: async (env, actor) => ({ id: actor.id, email: actor.email, name: actor.name, owner: actor.owner, roles: [...actor.roles], adminUnits: actor.adminUnits, permissions: Object.keys(actor.grants), business: await business(env) }),
   units: (env, actor) => unitsView(env, actor),
+  roles: (env, actor) => rolesView(env, actor),
   people: (env, actor, request) => people(env, request, actor),
   members: async (env) => await all(env, 'SELECT id, name FROM beam_members ORDER BY name'),
   sources: (env, actor) => listSources(env, actor),
@@ -30,8 +33,8 @@ export const views: Record<string, View> = {
   acknowledgment: (env, actor, _request, id) => acknowledgmentView(env, actor, id),
   courses: async (env, actor) => {
     if (actor.owner || ['author', 'reviewer', 'manager', 'assessor'].some(role => actor.roles.has(role as never))) return await listCourses(env)
-    insist(actor.adminUnits.length || actor.authorOf.length, 'forbidden', 403)
-    return await listCourses(env, { units: actor.adminUnits, courses: actor.authorOf })
+    insist(courseUnits(actor).length || actor.authorOf.length, 'forbidden', 403)
+    return await listCourses(env, { units: courseUnits(actor), courses: actor.authorOf })
   },
   course: (env, actor, _request, id) => courseDetail(env, actor, id),
   compare: (env, actor, request) => { const query = new URL(request.url).searchParams; return compareRevisions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
@@ -55,7 +58,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
-  [/^me$/, 'me'], [/^units$/, 'units'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
+  [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^people$/, 'people'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^history$/, 'history'],
   [/^messages$/, 'messages'], [/^report$/, 'report'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'],

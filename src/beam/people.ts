@@ -115,7 +115,7 @@ export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) 
 
 /** Everyone for the owner; a manager sees their teams' people (ORG-004), a learning administrator their units' (ORG-002). */
 export async function people(env: Bindings, request: Request, actor: Actor) {
-  const scope = learnerScope(actor), teams = teamScope(actor)
+  const scope = learnerScope(actor, 'people'), teams = teamScope(actor, 'people')
   const members = await all(env, `SELECT m.id, m.email, m.name, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
     WHERE ${IN_SCOPE('m.id')} ORDER BY m.name`, scope, scope)
   const statuses = actor.owner ? new Map((await operatorAuth(env).listOperators(request)).map(operator => [operator.email.toLowerCase(), operator])) : new Map()

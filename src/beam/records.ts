@@ -11,10 +11,10 @@ import { recordCompletion } from './learning'
 import { requireBusiness } from './people'
 import { recordStatus } from './report'
 import { DAY, calendarDays, localDate, zonedInstant } from './time'
-import { inScope, manages, requireLearnerScope } from './scope'
+import { inScope, manages, permits, requireLearnerScope } from './scope'
 
 export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
-  requireRole(actor, 'manager', 'assessor')
+  insist(actor.roles.has('assessor') || permits(actor, 'live_sessions'), 'forbidden', 403)
   const business = await requireBusiness(env)
   const course = await one(env, 'SELECT id, published_revision_id FROM beam_courses WHERE id = ?', input.text('course'))
   insist(course, 'course_not_found', 404)
@@ -32,7 +32,7 @@ export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
   insist(learners.length > 0, 'learners_required')
   for (const learner of learners) insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', learner), 'person_not_found', 404)
   // A manager records attendance for their own teams (ORG-004); an assessor attests under their separate grant.
-  if (!actor.roles.has('assessor')) for (const learner of learners) requireLearnerScope(actor, learner)
+  if (!actor.roles.has('assessor')) for (const learner of learners) requireLearnerScope(actor, learner, 'live_sessions')
   insist(!learners.includes(actor.id), 'self_attestation_refused', 403)
   const file = await input.file('file', { optional: true })
   const attachment = file ? { id: newId(), ...await store(env, file) } : null
@@ -56,13 +56,13 @@ export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
 export async function certificate(env: Bindings, actor: Actor, id: string) {
   const row = await one(env, `SELECT k.*, c.learner_id, c.method, c.completed_at, c.course_revision_id, r.number AS revision_number, r.title AS course_title, m.name AS learner_name
     FROM beam_certificates k JOIN beam_completions c ON c.id = k.completion_id JOIN beam_course_revisions r ON r.id = c.course_revision_id JOIN beam_members m ON m.id = c.learner_id WHERE k.id = ?`, id)
-  if (!row || !(row.learner_id === actor.id || manages(actor, row.learner_id))) throw new BeamError('not_found', 404)
+  if (!row || !(row.learner_id === actor.id || manages(actor, row.learner_id, 'certificates', 'people'))) throw new BeamError('not_found', 404)
   return { id: row.id, number: row.number, issuer: row.issuer, learner: row.learner_name, course: row.course_title, revision: row.revision_number, method: row.method, completedAt: row.completed_at, issuedAt: row.issued_at, expiresAt: row.expires_at }
 }
 
 /** A learner's own record, or one in the teams a manager manages or the units an administrator administers. */
 export async function learnerRecord(env: Bindings, actor: Actor, memberId: string) {
-  if (!(memberId === actor.id || manages(actor, memberId))) throw new BeamError('not_found', 404)
+  if (!(memberId === actor.id || manages(actor, memberId, 'people'))) throw new BeamError('not_found', 404)
   const member = await one(env, 'SELECT id, name, email FROM beam_members WHERE id = ?', memberId)
   if (!member) throw new BeamError('not_found', 404)
   const assignments = await all(env, `SELECT a.id, a.course_id AS course, c.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,

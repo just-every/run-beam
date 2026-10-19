@@ -8,7 +8,7 @@ import type { Input } from './input'
 import { requireBusiness } from './people'
 import { DAY, addDays, localDate, validTimezone, zonedInstant } from './time'
 import { requireCourseRole } from './units'
-import { inScope, requireLearnerScope, requireTeamScope, teamScope } from './scope'
+import { inScope, permits, requireLearnerScope, requireTeamScope, teamScope } from './scope'
 
 export interface NewAssignment {
   learner: string
@@ -55,17 +55,18 @@ async function learnersFrom(env: Bindings, input: Input) {
 }
 
 export async function assignCourse(env: Bindings, actor: Actor, input: Input) {
-  insist(isManager(actor) || actor.adminUnits.length, 'forbidden', 403)
+  insist(permits(actor, 'enrollment'), 'forbidden', 403)
   const business = await requireBusiness(env)
   const course = input.text('course')
-  // A learning administrator enrolls only their units' people in their units' courses (ORG-002).
-  await requireCourseRole(env, actor, course, 'manager')
+  // A learning administrator enrolls only their units' people in their units' courses (ORG-002); an enrollment
+  // permission (ORG-010) reaches any course for its own people.
+  if (!actor.grants.enrollment) await requireCourseRole(env, actor, course, 'manager')
   const timezone = input.text('timezone', { optional: true }) || business.timezone
   insist(validTimezone(timezone), 'invalid_timezone')
   const dueDate = input.text('dueDate'), dueTime = input.text('dueTime', { optional: true }) || '17:00'
   zonedInstant(dueDate, dueTime, timezone)
   const learners = await learnersFrom(env, input)
-  for (const learner of learners) requireLearnerScope(actor, learner)
+  for (const learner of learners) requireLearnerScope(actor, learner, 'enrollment')
   return await insertAssignments(env, actor, learners.map(learner => ({ learner, course, dueDate, dueTime, timezone, reason: 'assigned' })), 'assignment.create')
 }
 
@@ -188,12 +189,12 @@ export async function grantAttempt(env: Bindings, actor: Actor, input: Input) {
 }
 
 export async function cancelAssignment(env: Bindings, actor: Actor, input: Input) {
-  insist(isManager(actor) || actor.adminUnits.length, 'forbidden', 403)
+  insist(permits(actor, 'enrollment'), 'forbidden', 403)
   const id = input.text('assignment')
   const assignment = await one(env, 'SELECT learner_id, course_id FROM beam_assignments WHERE id = ?', id)
   insist(assignment, 'assignment_not_found', 404)
-  await requireCourseRole(env, actor, assignment.course_id, 'manager')
-  requireLearnerScope(actor, assignment.learner_id)
+  if (!actor.grants.enrollment) await requireCourseRole(env, actor, assignment.course_id, 'manager')
+  requireLearnerScope(actor, assignment.learner_id, 'enrollment')
   const reason = input.text('reason', { max: 500 })
   const result = await env.DB.batch([stmt(env, "UPDATE beam_assignments SET status = 'cancelled' WHERE id = ? AND status = 'open'", id), stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, 'assignment.cancel', id, JSON.stringify({ reason }))])
   insist(result[0].meta.changes === 1, 'assignment_not_found', 404)
@@ -203,10 +204,10 @@ export async function cancelAssignment(env: Bindings, actor: Actor, input: Input
 /** ORG-004: a manager approves a due-date exception for one open assignment in their teams, with a reason. The due
  * instant moves in the assignment's own zone; the earlier due date stays in the assignment's history. */
 export async function moveDueDate(env: Bindings, actor: Actor, input: Input) {
-  requireRole(actor, 'manager')
+  insist(isManager(actor) || actor.grants.enrollment, 'forbidden', 403)
   const assignment = await one(env, 'SELECT id, learner_id, status, due_date, due_time, timezone, due_at FROM beam_assignments WHERE id = ?', input.text('assignment'))
   insist(assignment, 'assignment_not_found', 404)
-  requireLearnerScope(actor, assignment.learner_id)
+  requireLearnerScope(actor, assignment.learner_id, 'enrollment')
   insist(assignment.status === 'open', 'assignment_closed', 409)
   const dueDate = input.text('dueDate'), dueTime = input.text('dueTime', { optional: true }) || assignment.due_time
   const dueAt = zonedInstant(dueDate, dueTime, assignment.timezone)
