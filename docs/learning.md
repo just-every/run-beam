@@ -7,7 +7,7 @@ Everything a staff member needs is on **My learning**. Training that is part of 
 - **Completed**: every completion with its certificate.
 - **Questions for you**: optional questions from a manager, when there are any.
 
-Reviewers and assessors also see **Waiting for my review** and **Practical evidence to assess**.
+Reviewers and assessors also see **Waiting for my review** and **Evidence and written answers to assess**.
 
 ## Lessons
 
@@ -15,7 +15,9 @@ Open a course and press **Start**, or **Resume** to carry on. Progress is saved 
 
 ## Quiz and practical
 
-When every lesson is done, **Take the quiz** opens. Each question scores when exactly the right choices are selected, and the pass mark and attempts left are shown before starting.
+When every lesson is done, **Take the quiz** opens. The pass mark, attempts left and each question's points are shown before starting. A question earns its points only when its whole answer is right. Written answers go to the named assessor, and the attempt is scored once they are graded. Depending on the course, an attempt may draw a different set of questions from the course's question bank, and which answers were right may show only once you pass or have used every attempt.
+
+Some courses add an optional **Course survey**. Your answers are kept without your name and never affect passing or completion.
 
 If the course has a practical part, **Submit evidence** describes what the person did, with an optional file, and sends it to the named assessor. The assessor accepts it or asks for resubmission with a note. Nobody can accept their own evidence.
 

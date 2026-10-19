@@ -32,9 +32,15 @@ Use **Add a question**: write the **Question**, the **Choices, one per line**, a
 
 Under **Add a question** you can also pick **Fill in the blank** (write `___` where each blank goes, then one line of **Accepted answers** per blank with alternatives separated by `|`, and tick **Ignore upper and lower case** if you want; spaces at either end never count), **Ordering** (the items one per line in the right order) or **Matching** (one `left = right` pair per line). Learners fill each blank, choose an item for each position or a match for each item from labelled lists (on matching questions they can also drag each answer onto its item, or tap the answer and then the item), and a question scores only when every blank, position or pair is right.
 
+Pick **Written answer** for a free-response question: learners type their answer and the course's **Named assessor** grades it. **Guidance for the assessor** is never shown to learners. Every question has **Points**, its weight in the score (1 unless you change it): a question earns all its points only when its whole answer is right, and a written answer earns what the assessor awards, from 0 to its points. Tick **Always ask this question** for questions every attempt must include.
+
 ### Assessment rules
 
-Under **Assessment rules**, set the **Pass mark (%)** and the number of **Quiz attempts allowed**. For practical work, write the **Practical assessment instructions** and choose the **Named assessor** who decides the evidence. Leave the instructions empty for a course without a practical part.
+Under **Assessment rules**, set the **Pass mark (%)** and the number of **Quiz attempts allowed**. The course's questions are its question bank: **Questions drawn per attempt** makes each attempt ask that many, always-asked questions first and the rest picked at random, and **Shuffle the order for each attempt** mixes their order. Each attempt keeps the questions it asked, and reopening an attempt never draws again. **Learners see which answers were right** sets when learners see which questions they got right: after each attempt, once they pass or have no attempts left, or never (they see only the score). For practical work, write the **Practical assessment instructions**. The **Named assessor** decides practical evidence and grades written answers. Leave the instructions empty for a course without a practical part.
+
+### Satisfaction survey
+
+Under **Satisfaction survey**, write one question per line. Start a line with `rating:` to ask for a rating from 1 to 5. Learners may answer once, after every lesson is done. Answers are kept without names, never count toward passing or completion, and appear on the revision page only once at least three learners have answered.
 
 ## Send for review
 

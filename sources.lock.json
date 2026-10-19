@@ -231,7 +231,7 @@
       "executable": false
     },
     "docs/courses.md": {
-      "sha256": "74485bbb59421add3ff625d856d6e5168eb704b701dd63b9b3c5d5a5b6dbc972",
+      "sha256": "9dbd4a6628c53539c9c22fa4c89f1255d026d2eacf8995baf06da1cd22817ee4",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -239,7 +239,7 @@
       "executable": false
     },
     "docs/learning.md": {
-      "sha256": "5b6109f603a439e14929a2c2aaef316f54936fd746e8f604ee54673305e85e2e",
+      "sha256": "c391dd39bc08c90e74c5956cd26238f1062f4e602ad8875d4d17840b793ed6f0",
       "executable": false
     },
     "docs/move-in.md": {
@@ -448,6 +448,10 @@
     },
     "migrations/core/0044_beam_certificate_templates.sql": {
       "sha256": "c7d719b7d348505143c493157461db019c12ff36ed41125536c52181f715e4e0",
+      "executable": false
+    },
+    "migrations/core/0045_beam_question_banks.sql": {
+      "sha256": "0492135a8152bf43d74f6ab1ddc7c32ad5dbf76109ea9404136bd58332dda764",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1116,6 +1120,10 @@
     },
     "src/beam/sources.ts": {
       "sha256": "64b98026e623714943cf8b99b457c4b7a8b8706e4889cb2fdf53cb058c4d1f3e",
+      "executable": false
+    },
+    "src/beam/survey.ts": {
+      "sha256": "5d35b051bf12971efc48f98128dd89c869734b4e315ede8acf994aa947b3756e",
       "executable": false
     },
     "src/beam/time.ts": {
