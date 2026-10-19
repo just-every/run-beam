@@ -27,6 +27,8 @@ The first time you open Beam as the owner you see **Finish setup**. Check the na
 
 Beam then asks you to **Set up your business**: its name and the **time zone for due dates**. Every due date in Beam is a time in a named time zone, so a deadline of 5:00 pm means 5:00 pm where your team works. You can change both later under **Business settings**.
 
+US time zones are listed first, and daylight saving time is applied for you. **Business settings** also shows **Provider costs (USD)**: Beam itself charges nothing, its automation may not spend (its ceiling is USD 0.00), and your mail provider bills your own account. To give contractors or W-2 staff different training, add a **Worker type** field to the directory and select people by it with an audience under **Automation**; Beam never changes anyone's worker type, pay or eligibility.
+
 ## Try each role
 
 While `rer dev` is running, open Beam as one of four example staff members, each a real local person with their own roles:

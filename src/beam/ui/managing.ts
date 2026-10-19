@@ -9,7 +9,8 @@ import { computeDues } from '../due-rules'
 import { attemptDetail } from '../learning'
 import { business, memberNames, people } from '../people'
 import { queues } from '../records'
-import { formatDate, localDate } from '../time'
+import { formatDate, localDate, usZone } from '../time'
+import { providerCosts } from '../costs'
 import { area, backLink, card, cellLabel, checks, field, fileField, form, h, hidden, page, rows, select, when } from './html'
 import { describeRule, windowForm } from './access'
 import { timingCard } from './timing'
@@ -34,8 +35,10 @@ const ANCHOR_TEXT: Record<string, string> = { enrollment: 'enrollment', hire: 't
 export async function businessPage(env: Bindings, actor: Actor, url: URL) {
   requireOwner(actor)
   const current = await business(env)
-  const zones = Intl.supportedValuesOf('timeZone')
-  const body = h`<h1>${current ? 'Business settings' : 'Set up your business'}</h1>${current ? '' : h`<p class="subtitle">Name your business and its time zone before anything else.</p>`}<div class="card settings">${form('business.configure', '/app', [field('Business name', 'name', { value: current?.name ?? '' }), select('Time zone for due dates', 'timezone', zones.map(zone => ({ value: zone, label: zone })), current?.timezone ?? 'America/Chicago')], 'Save')}</div>${current ? policyCard(await exceptionPolicy(env)) : ''}`
+  // OPS-009: US time zones (with their daylight saving) come first; due dates and reminders follow each zone's rules.
+  const zones = Intl.supportedValuesOf('timeZone'), us = zones.filter(usZone)
+  const costs = providerCosts(env, actor)
+  const body = h`<h1>${current ? 'Business settings' : 'Set up your business'}</h1>${current ? '' : h`<p class="subtitle">Name your business and its time zone before anything else.</p>`}<div class="card settings">${form('business.configure', '/app', [field('Business name', 'name', { value: current?.name ?? '' }), select('Time zone for due dates', 'timezone', [...us.map(zone => ({ value: zone, label: zone, group: 'United States' })), ...zones.filter(zone => !usZone(zone)).map(zone => ({ value: zone, label: zone, group: 'Elsewhere' }))], current?.timezone ?? 'America/Chicago', { hint: 'Daylight saving time applies automatically.' })], 'Save')}</div>${current ? h`${card('Provider costs (USD)', h`<p>Spent through Beam: USD ${(costs.spentCents / 100).toFixed(2)}. External-spend ceiling for automation: USD ${(costs.ceilingCents / 100).toFixed(2)}.</p><p class="muted">${costs.note}</p>`)}${policyCard(await exceptionPolicy(env))}` : ''}`
   return page('Business', actor, body, { url })
 }
 
