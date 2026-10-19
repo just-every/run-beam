@@ -7,6 +7,7 @@ import type { Actor } from './actor'
 import { all, insist, now, type Row } from './core'
 import { closeAllExpired } from './learning'
 import { DAY } from './time'
+import { workbook } from './xlsx'
 import { IN_SCOPE, learnerScope, requireTeamScope } from './scope'
 
 export const STATUSES = ['all', 'open', 'overdue', 'completed', 'expiring'] as const
@@ -57,7 +58,7 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
     return { ...row, practical: practicalState ? { state: practicalState, assessor: assessor || null } : null, extension: row.extension ? JSON.parse(row.extension) : null, status } as Row
   }).filter(row => filters.status === 'all' || row.status === filters.status)
   const count = (status: string) => shaped.filter(row => row.status === status).length
-  return { filters, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open') } }
+  return { filters, asOf: at, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open') } }
 }
 
 const COLUMNS: [string, (row: any) => unknown][] = [
@@ -78,6 +79,21 @@ export const cell = (value: unknown) => {
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-export function reportCsv(report: Awaited<ReturnType<typeof trainingReport>>) {
-  return [COLUMNS.map(([name]) => name), ...report.rows.map(row => COLUMNS.map(([, value]) => value(row)))].map(line => line.map(cell).join(',')).join('\r\n') + '\r\n'
+type Report = Awaited<ReturnType<typeof trainingReport>>
+/** REPORT-003: what an export covers, carried by every CSV row and the workbook's Definitions sheet. */
+const describeFilters = (report: Report, names: { course?: string; team?: string }) =>
+  `course: ${report.filters.course ? names.course ?? report.filters.course : 'all'}; team: ${report.filters.team ? names.team ?? report.filters.team : 'all'}; status: ${report.filters.status}`
+const DEFINITION_COLUMNS = ['As of (UTC)', 'Business time zone', 'Filters']
+
+export function reportCsv(report: Report, zone: string, names: { course?: string; team?: string } = {}) {
+  const definitions = [new Date(report.asOf).toISOString(), zone, describeFilters(report, names)]
+  return [[...COLUMNS.map(([name]) => name), ...DEFINITION_COLUMNS], ...report.rows.map(row => [...COLUMNS.map(([, value]) => value(row)), ...definitions])].map(line => line.map(cell).join(',')).join('\r\n') + '\r\n'
+}
+
+/** The same rows as a workbook, with a Definitions sheet; every matching row is included. */
+export function reportWorkbook(report: Report, zone: string, names: { course?: string; team?: string } = {}) {
+  return workbook([
+    { name: 'Report', rows: [COLUMNS.map(([name]) => name), ...report.rows.map(row => COLUMNS.map(([, value]) => value(row)))] },
+    { name: 'Definitions', rows: [['Item', 'Value'], ['As of (UTC)', new Date(report.asOf).toISOString()], ['Business time zone', zone], ['Times', 'Columns marked (UTC) are UTC instants; Due time zone is each assignment’s own zone'], ['Filters', describeFilters(report, names)], ['Rows', report.rows.length], ['Truncation', 'none: every matching row is included']] },
+  ])
 }

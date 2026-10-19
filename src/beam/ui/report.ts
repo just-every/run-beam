@@ -3,9 +3,10 @@ import type { Bindings } from '../../auth.server'
 import { isManager, type Actor } from '../actor'
 import { teamScope } from '../scope'
 import { listCourses } from '../courses'
-import { all } from '../core'
+import { all, one } from '../core'
 import { business } from '../people'
-import { reportCsv, reportFilters, trainingReport } from '../report'
+import { reportCsv, reportFilters, reportWorkbook, trainingReport } from '../report'
+import { XLSX_TYPE } from '../xlsx'
 import { formatClock, formatDate, zoneName } from '../time'
 import { cellLabel, count, h, page, pill, raw, select } from './html'
 
@@ -38,7 +39,7 @@ export async function reportPage(env: Bindings, actor: Actor, url: URL) {
 <div>${select('Course', 'course', courses.map(course => ({ value: course.id, label: course.title })), filters.course, { required: false, blank: 'All courses' })}</div>
 <div>${select('Team', 'team', teams.map(team => ({ value: team.id, label: team.name })), filters.team, { required: false, blank: 'All teams' })}</div>
 <fieldset class="radios"><legend>Status</legend>${['all', 'open', 'overdue', 'completed', 'expiring'].map(status => h`<label class="check"><input type="radio" name="status" value="${status}"${status === filters.status ? raw(' checked') : ''}> ${STATUS_LABELS[status]}</label>`)}</fieldset>
-<div class="filter-actions"><button type="submit">Apply</button><a href="/app/reports.csv${query ? `?${query}` : ''}" download>Download CSV</a></div>
+<div class="filter-actions"><button type="submit">Apply</button><a href="/app/reports.csv${query ? `?${query}` : ''}" download>Download CSV</a> <a href="/app/reports.xlsx${query ? `?${query}` : ''}" download>Download XLSX</a></div>
 </form>
 <p class="summary"><strong>${count(s.rows)} ${s.rows === 1 ? 'record' : 'records'}</strong> · ${count(s.completed)} completed · ${count(s.expiring)} expiring in 30 days · ${count(s.overdue)} overdue · ${count(s.open)} open</p>
 <section class="card table-card"><div class="table-wrap"><table class="report stacked">
@@ -59,7 +60,17 @@ export async function reportPage(env: Bindings, actor: Actor, url: URL) {
   return page('Training report', actor, body, { current: '/app/reports', url, wide: true })
 }
 
+async function exportNames(env: Bindings, report: Awaited<ReturnType<typeof trainingReport>>) {
+  const [course, team] = await Promise.all([report.filters.course ? one<{ title: string }>(env, 'SELECT title FROM beam_courses WHERE id = ?', report.filters.course) : null, report.filters.team ? one<{ name: string }>(env, 'SELECT name FROM beam_teams WHERE id = ?', report.filters.team) : null])
+  return { course: course?.title, team: team?.name }
+}
+
+export async function reportXlsxResponse(env: Bindings, actor: Actor, url: URL) {
+  const report = await trainingReport(env, actor, reportFilters(url))
+  return new Response(reportWorkbook(report, (await business(env))!.timezone, await exportNames(env, report)), { headers: { 'content-type': XLSX_TYPE, 'content-disposition': 'attachment; filename="beam-training-report.xlsx"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+}
+
 export async function reportCsvResponse(env: Bindings, actor: Actor, url: URL) {
   const report = await trainingReport(env, actor, reportFilters(url))
-  return new Response(reportCsv(report), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="beam-training-report.csv"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+  return new Response(reportCsv(report, (await business(env))!.timezone, await exportNames(env, report)), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="beam-training-report.csv"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
 }

@@ -15,7 +15,7 @@ Every record has exactly one status, the same as on **Manage**, so the line abov
 
 Each row shows the learner, the course and revision, the due time in its time zone, lessons done, quiz attempts, the practical decision, the completion date with its certificate number, and when it expires.
 
-**Download CSV** gives you the same rows as a spreadsheet.
+**Download CSV** or **Download XLSX** gives you the same rows as a spreadsheet; every row (or the workbook's Definitions sheet) says when it was produced, the time zone and the filters, and nothing is left out.
 
 ## A learner's record
 
@@ -23,7 +23,7 @@ From **Manage**, open **Learner records** and choose a person: their assignments
 
 ## Transcripts
 
-On a person's record, open **Transcript** for everything that happened to their training, in time order: each assignment and its revision, every attempt (including those before a reset), assessor decisions, completions and certificates, offline attendance, due-date changes, access extensions, resets, cancellations and history imported from a previous system with where it came from. **Download CSV** carries the same entries, with the time zone and the moment it was produced on every row.
+On a person's record, open **Transcript** for everything that happened to their training, in time order: each assignment and its revision, every attempt (including those before a reset), assessor decisions, completions and certificates, offline attendance, due-date changes, access extensions, resets, cancellations and history imported from a previous system with where it came from. **Download CSV** and **Download XLSX** carry the same entries, with the time zone and the moment they were produced.
 
 ## What a completion means
 
