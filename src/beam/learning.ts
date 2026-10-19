@@ -17,6 +17,7 @@ import { inScope, manages } from './scope'
 import { sharesFile } from './auditors'
 import { dueExceptions } from './assignments'
 import { assignmentExceptions } from './exceptions'
+import { followOn } from './automation'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
   const assignment = await one(env, 'SELECT a.*, c.title AS course_title FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.id = ?', id)
@@ -62,6 +63,7 @@ export async function closeExpired(env: Bindings, actor: Actor, assignmentId: st
   const assessment = state.content.assessment!
   const closed = await closeSession(env, session, assessment.questions, assessment.pass_percent, state.quizAttemptsLeft, 'expired', session.deadline, assignment.learner_id)
   if (closed?.passed && assignment.status === 'open') await tryComplete(env, { ...actor, id: assignment.learner_id }, assignment.id)
+  if (closed && !closed.passed) await followOn(env, 'failure', { assignment: assignment.id })
 }
 
 /** Closes every expired timed attempt, so reports count them as the attempts they are. */
@@ -188,6 +190,7 @@ export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
     if (selections.size) await env.DB.batch(upsertAnswers(env, session.id, selections, at))
     const closed = await closeSession(env, session, assessment.questions, assessment.pass_percent, state.quizAttemptsLeft, 'submitted', at, actor.id)
     insist(closed, 'time_expired', 409)
+    if (!closed.passed) await followOn(env, 'failure', { assignment: assignment.id })
     return { ...closed, completion: await tryComplete(env, actor, assignment.id) }
   }
   const responses = score(assessment.questions, selectionsFrom(assessment.questions, input))
@@ -203,6 +206,8 @@ export async function submitQuiz(env: Bindings, actor: Actor, input: Input) {
     ...responses.map(response => stmt(env, 'INSERT INTO beam_responses (attempt_id, question_id, answer_json, correct) VALUES (?, ?, ?, ?)', id, response.question, JSON.stringify(response.selected), response.correct ? 1 : 0)),
   ], { actor, action: 'quiz.attempt', subject: id, detail: { assignment: assignment.id, points, of: responses.length, passed } })
   const completion = await tryComplete(env, actor, assignment.id)
+  // AUTO-005: an attempt that leaves no attempts runs the course's failure rules; it never becomes a pass.
+  if (!passed) await followOn(env, 'failure', { assignment: assignment.id })
   return { id, number, score: points, maxScore: responses.length, percent, passed, retryDecision: decision, completion }
 }
 
@@ -299,5 +304,6 @@ export async function recordCompletion(env: Bindings, actor: Actor, item: { assi
     ...(item.assignment ? [stmt(env, "UPDATE beam_assignments SET status = 'completed' WHERE id = ? AND status = 'open'", item.assignment)] : []),
     stmt(env, 'INSERT INTO beam_certificates (id, completion_id, number, issuer, issued_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)', certificate.id, id, certificate.number, business.name, now(), expires),
   ], { actor, action: 'completion.record', subject: id, detail: { ...item, certificate: certificate.number } })
+  await followOn(env, 'completion', { completion: id })
   return { id, certificate: certificate.id, expiresAt: expires }
 }

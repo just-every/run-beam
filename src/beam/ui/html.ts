@@ -36,6 +36,7 @@ const NAV: NavItem[] = [
   { href: '/app/people', label: 'People', icon: 'people', show: actor => manager(actor) || administrator(actor) || !!actor.grants.people, count: shell => shell.people },
   { href: '/app/courses', label: 'Courses', icon: 'book', show: actor => preparer(actor) || administrator(actor) || courseAuthor(actor) || !!actor.grants.courses },
   { href: '/app/paths', label: 'Paths', icon: 'route', show: manager },
+  { href: '/app/automation', label: 'Automation', icon: 'route', show: actor => actor.owner || administrator(actor) },
   { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
   { href: '/app/announcements', label: 'Announcements', icon: 'bell', show: actor => manager(actor) || administrator(actor) },

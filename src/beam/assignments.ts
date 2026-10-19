@@ -9,6 +9,7 @@ import { requireBusiness } from './people'
 import { DAY, addDays, localDate, validTimezone, zonedInstant } from './time'
 import { requireCourseRole } from './units'
 import { inScope, permits, requireLearnerScope, requireTeamScope, teamScope } from './scope'
+import { followOn } from './automation'
 
 export interface NewAssignment {
   learner: string
@@ -24,8 +25,9 @@ export interface NewAssignment {
   access?: Window
 }
 
-/** Inserts assignments bound to each course's published revision; an open one for the same learner and course is kept. */
-export async function insertAssignments(env: Bindings, actor: Actor, items: NewAssignment[], action: string) {
+/** Inserts assignments bound to each course's published revision; an open one for the same learner and course is kept.
+ * Each new enrollment runs the AUTO-005 enrollment rules of its course; `depth` counts rule-made steps in a chain. */
+export async function insertAssignments(env: Bindings, actor: Actor, items: NewAssignment[], action: string, depth = 0) {
   const created: string[] = [], kept: string[] = []
   for (const item of items) {
     const course = await one<{ published_revision_id: string | null; retired_at: number | null; title: string }>(env, 'SELECT published_revision_id, retired_at, title FROM beam_courses WHERE id = ?', item.course)
@@ -42,6 +44,7 @@ export async function insertAssignments(env: Bindings, actor: Actor, items: NewA
     ])
     ;(result.meta.changes === 1 ? created : kept).push(result.meta.changes === 1 ? id : `${item.learner}:${item.course}`)
   }
+  for (const id of created) await followOn(env, 'enrollment', { assignment: id }, depth)
   return { created, kept }
 }
 

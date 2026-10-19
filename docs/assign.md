@@ -30,3 +30,13 @@ For training held in person, use **Record offline training**: choose the **Cours
 ## Learner records
 
 **Learner records** lists everyone. Open a person to see their assignments, completions with certificates, and any [imported history](/docs/move-in).
+
+## Follow-on rules
+
+Open **Automation** (the owner, or a learning administrator for their units' courses) to assign the next course
+automatically. A rule says: when a learner is enrolled in a course, completes it (optionally only with a best quiz score
+of at least a percentage), or runs out of its quiz attempts without a pass, assign another course due a number of days
+later; it can be limited to one team. A new rule is a draft: press **Dry run** to see who it would assign today, without
+assigning anyone, then **Enable**. **Replay past events** runs it over what already happened. A rule acts once per
+event, keeps an open assignment rather than adding another, never turns a failure into a pass, and a rule that would
+loop back to its own course is refused. **Pause** stops it.

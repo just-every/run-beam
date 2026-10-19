@@ -9,6 +9,7 @@ import { decide, propose } from './agent-work'
 import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
+import { previewRule, replayRule, saveRule, setRuleState } from './automation'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
@@ -47,6 +48,10 @@ export const actions: Record<string, Handler> = {
   'blocker.decline': (env, actor, input) => declineBlocker(env, actor, input),
   'exception.grant': (env, actor, input) => grantException(env, actor, input),
   'exception.policy': (env, actor, input) => setExceptionPolicy(env, actor, input),
+  'automation.save': (env, actor, input) => saveRule(env, actor, input),
+  'automation.preview': (env, actor, input) => previewRule(env, actor, input),
+  'automation.state': (env, actor, input) => setRuleState(env, actor, input),
+  'automation.replay': (env, actor, input) => replayRule(env, actor, input),
   'auditor.grant': (env, actor, input) => grantAuditor(env, actor, input),
   'auditor.revoke': (env, actor, input) => revokeAuditor(env, actor, input),
   'role.save': (env, actor, input) => saveRole(env, actor, input),

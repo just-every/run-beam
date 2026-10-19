@@ -79,13 +79,12 @@ export async function viewAsCheck(f) {
   assert.equal((await api('viewer', 'view.start', { learner: ids.viewer }, 403)).error, 'cannot_view_yourself')
   assert.equal((await api('learner', 'view.start', { learner: ids.other }, 403)).error, 'forbidden')
   // A custom role (ORG-010), even with the people permission over the learner's team, opens no view and sees no button.
-  ids.pia = (await api('owner', 'person.invite', { email: 'pia@example.test', name: 'Pia People', roles: ['learner'] })).id
-  cookies.pia = await h.signIn('pia@example.test', { requested: true })
+  // (The fixture's author takes the role here: sign-ins are rate limited.)
   await api('owner', 'role.save', { name: 'People coordinator', permissions: ['people'], teams: [ids.team] })
-  await api('owner', 'role.grant', { role: (await api('owner', 'roles')).roles.find(row => row.name === 'People coordinator').id, member: ids.pia })
-  const piaRecord = await h.raw(`/app/records/${ids.learner}`, { cookie: cookies.pia })
-  assert.ok(piaRecord.status === 200 && !(await piaRecord.text()).includes('View as'))
-  assert.equal((await api('pia', 'view.start', { learner: ids.learner }, 403)).error, 'forbidden')
+  await api('owner', 'role.grant', { role: (await api('owner', 'roles')).roles.find(row => row.name === 'People coordinator').id, member: ids.author })
+  const coordinatorRecord = await h.raw(`/app/records/${ids.learner}`, { cookie: cookies.author })
+  assert.ok(coordinatorRecord.status === 200 && !(await coordinatorRecord.text()).includes('View as'))
+  assert.equal((await api('author', 'view.start', { learner: ids.learner }, 403)).error, 'forbidden')
   // A manager views their own team's learner only.
   await api('manager', 'view.start', { learner: ids.learner })
   const loner = (await api('owner', 'person.invite', { email: 'loner@example.test', name: 'Lone Learner', roles: ['learner'] })).id
