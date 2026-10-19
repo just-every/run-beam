@@ -2,14 +2,14 @@
 // is done, and never counts toward passing, attempts or completion (tryComplete never reads it). An answer row keeps
 // only its revision: who answered is kept apart, with no link to the answer, so nobody's answers can be singled out.
 // Per-revision results are read only once at least MIN_ANSWERS answers exist, by the owner, the course's responsible
-// expert (catalog owner, else named reviewer), its unit's learning administrator and its authors.
+// expert (catalog owner, else named reviewer), its unit's learning administrator and its authors (the author role, or
+// course-scoped authors, ORG-003); managers, assessors, auditors and custom roles read none (ct, 19 Oct 08:48Z).
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
-import { all, insist, newId, now, one, stmt } from './core'
+import { BeamError, all, insist, newId, now, one, stmt } from './core'
 import { revisionDetail, type SurveyQuestion } from './courses'
 import type { Input } from './input'
 import { MIN_ANSWERS } from './questions'
-import { requireCourseRole } from './units'
 
 export async function surveyState(env: Bindings, assignment: string, questions: SurveyQuestion[]) {
   return { questions, answered: !!questions.length && !!await one(env, 'SELECT 1 FROM beam_survey_takers WHERE assignment_id = ?', assignment) }
@@ -40,7 +40,9 @@ export async function answerSurvey(env: Bindings, actor: Actor, input: Input) {
 /** Per-question results of one revision's survey: rating counts and written answers in no particular order. */
 export async function surveyResults(env: Bindings, actor: Actor, revisionId: string) {
   const { revision, survey } = await revisionDetail(env, revisionId)
-  await requireCourseRole(env, actor, revision.course_id, 'author', 'reviewer')
+  const course = await one(env, 'SELECT owner_id, reviewer_id, unit_id FROM beam_courses WHERE id = ?', revision.course_id)
+  const reader = actor.owner || (course?.owner_id ?? course?.reviewer_id) === actor.id || (!!course?.unit_id && actor.adminUnits.includes(course.unit_id)) || actor.roles.has('author') || actor.authorOf.includes(revision.course_id)
+  if (!reader || actor.viewAs) throw new BeamError('forbidden', 403)
   const rows = (await all<{ answers_json: string }>(env, 'SELECT answers_json FROM beam_survey_answers WHERE course_revision_id = ? ORDER BY id', revisionId)).map(row => JSON.parse(row.answers_json) as (string | number | null)[])
   const released = rows.length >= MIN_ANSWERS
   return {

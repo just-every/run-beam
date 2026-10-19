@@ -199,7 +199,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f385089f857ffd69b85624e8d61cff399d3b1e85564a58617b64819ee8df22fe",
+      "sha256": "e81f2f566b9adeccf467b27a2bae511d42f352e14f0ce05833325a99857db281",
       "executable": false
     },
     "DEMO.md": {
@@ -231,7 +231,7 @@
       "executable": false
     },
     "docs/courses.md": {
-      "sha256": "9dbd4a6628c53539c9c22fa4c89f1255d026d2eacf8995baf06da1cd22817ee4",
+      "sha256": "af81685ada066519055f0cd217d7edb15347ca9421b46a77b2bf5d34a4d5e65b",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -1123,7 +1123,7 @@
       "executable": false
     },
     "src/beam/survey.ts": {
-      "sha256": "5d35b051bf12971efc48f98128dd89c869734b4e315ede8acf994aa947b3756e",
+      "sha256": "4c0348f8f424cfd92a874f150a36e6bd34f7e5d166a35ad1702eea45c8826ef3",
       "executable": false
     },
     "src/beam/time.ts": {
@@ -3075,7 +3075,7 @@
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
-      "sha256": "fc20ba8bc7e8e1561e480d693a26d1eb1b19d5ae5722e627e5a93cd31aed5a22",
+      "sha256": "c731d25f540ab67f13de37ad3c5a51f10087ccb7ee9128c451c267c9805404f5",
       "executable": false
     },
     "tests/beam/regression-seats.mjs": {

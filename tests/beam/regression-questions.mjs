@@ -197,7 +197,7 @@ export async function questionBankCheck(f) {
     const view = await api(name, `assignments/${own}`)
     assert.deepEqual([view.survey.answered, view.assignment.status, view.completion], [true, 'open', null])
   }
-  assert.equal((await api('manager', `revisions/${revision}/survey`, undefined, 403)).error, 'forbidden')
+  for (const role of ['manager', 'assessor']) assert.equal((await api(role, `revisions/${revision}/survey`, undefined, 403)).error, 'forbidden')
   const revisionPage = await (await h.raw(`/app/revisions/${revision}`, { cookie: cookies.reviewer })).text()
   assert.ok(revisionPage.includes('More on cross-contact 1') && revisionPage.includes('drawn at random from a bank of 6'))
 }

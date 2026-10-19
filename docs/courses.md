@@ -40,7 +40,7 @@ Under **Assessment rules**, set the **Pass mark (%)** and the number of **Quiz a
 
 ### Satisfaction survey
 
-Under **Satisfaction survey**, write one question per line. Start a line with `rating:` to ask for a rating from 1 to 5. Learners may answer once, after every lesson is done. Answers are kept without names, never count toward passing or completion, and appear on the revision page only once at least three learners have answered.
+Under **Satisfaction survey**, write one question per line. Start a line with `rating:` to ask for a rating from 1 to 5. Learners may answer once, after every lesson is done. Answers are kept without names, never count toward passing or completion, and appear on the revision page only once at least three learners have answered, for the owner, the course's responsible expert, its unit's learning administrator and its authors.
 
 ## Send for review
 
