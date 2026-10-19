@@ -58,7 +58,8 @@ export async function notificationRulesCheck(f) {
   await api('learner', 'notification-rules', undefined, 403)
   await api('owner', 'notification.state', { rule: rule.id, enabled: true }, 409)
   assert.equal((await h.submit('notification.test', cookies.owner, { rule: rule.id }, '/app/notifications')).searchParams.get('error'), null)
-  assert.ok((await inbox('owner')).some(n => n.test === 1 && n.subject === 'Owner completed Safe loading' && n.body.includes('/app/learning')))
+  const actualCourses = await api('owner', 'courses')
+  assert.ok((await inbox('owner')).some(n => n.test === 1 && actualCourses.some(c => n.subject === `Owner completed ${c.title}`) && n.body.includes('/app/learning')))
   assert.deepEqual(await inbox('manager'), [])
   assert.equal((await h.submit('notification.state', cookies.owner, { rule: rule.id, enabled: 'true' }, '/app/notifications')).searchParams.get('error'), null)
   const initialMails = h.mails.length
