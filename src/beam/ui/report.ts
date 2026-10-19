@@ -27,9 +27,9 @@ function access(row: any, zone: string) {
 
 export async function reportPage(env: Bindings, actor: Actor, url: URL) {
   const filters = reportFilters(url)
-  // A learning administrator filters by their units' courses and teams only (ORG-002).
-  const units = isManager(actor) ? null : actor.adminUnits, scope = units && JSON.stringify(units)
-  const [report, courses, teams, zone] = await Promise.all([trainingReport(env, actor, filters), listCourses(env, units && { units }), all(env, 'SELECT id, name FROM beam_teams WHERE (? IS NULL OR unit_id IN (SELECT value FROM json_each(?))) ORDER BY name', scope, scope), business(env).then(value => value!.timezone)])
+  // A manager filters by their own teams (ORG-004); a learning administrator by their units' courses and teams (ORG-002).
+  const units = isManager(actor) ? null : actor.adminUnits, scope = actor.teams && JSON.stringify(actor.teams)
+  const [report, courses, teams, zone] = await Promise.all([trainingReport(env, actor, filters), listCourses(env, units && { units }), all(env, 'SELECT id, name FROM beam_teams WHERE (? IS NULL OR id IN (SELECT value FROM json_each(?))) ORDER BY name', scope, scope), business(env).then(value => value!.timezone)])
   const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value && value !== 'all')).toString()
   const s = report.summary
   const body = h`<h1>Training report</h1>

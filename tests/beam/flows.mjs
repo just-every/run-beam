@@ -44,8 +44,14 @@ try {
     assert.deepEqual((await h.api('me', people.sam)).roles, ['learner'])
     await h.api('course.create', people.sam, { title: 'Nope', reviewer: ids.reviewer }, 403)
     await h.api('people', people.sam, undefined, 403)
-    ids.team = (await h.api('team.create', people.manager, { name: 'Front desk' })).id
-    await h.api('team.members', people.manager, { team: ids.team, members: [ids.sam, ids.lee] })
+    // The owner sets teams and who manages them (ORG-004); Tom manages the front desk.
+    await h.api('team.create', people.manager, { name: 'Front desk' }, 403)
+    ids.team = (await h.api('team.create', people.owner, { name: 'Front desk' })).id
+    await h.api('team.members', people.owner, { team: ids.team, members: [ids.sam, ids.lee] })
+    await h.api('team.managers', people.owner, { team: ids.team, members: [ids.manager] })
+    const leads = (await h.api('team.create', people.owner, { name: 'Clinic leads' })).id
+    await h.api('team.members', people.owner, { team: leads, members: [ids.author] })
+    await h.api('team.managers', people.owner, { team: leads, members: [ids.manager] })
     // Removing access ends the person's sessions; restoring it needs a fresh sign-in.
     await h.api('person.access', people.owner, { email: 'lee@example.test', status: 'inactive' })
     await h.api('me', people.lee, undefined, 401)

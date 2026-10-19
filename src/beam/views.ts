@@ -37,7 +37,7 @@ export const views: Record<string, View> = {
   compare: (env, actor, request) => { const query = new URL(request.url).searchParams; return compareRevisions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
   'source-compare': (env, actor, request) => { const query = new URL(request.url).searchParams; return compareSourceVersions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
   revision: async (env, actor, _request, id) => { await requireCourseRole(env, actor, (await one<{ course_id: string }>(env, 'SELECT course_id FROM beam_course_revisions WHERE id = ?', id))?.course_id ?? '', 'author', 'reviewer', 'manager'); return await revisionDetail(env, id) },
-  paths: async (env, actor) => { requireRole(actor, 'manager'); return await listPaths(env) },
+  paths: async (env, actor) => { requireRole(actor, 'manager'); return await listPaths(env, actor) },
   assignment: (env, actor, _request, id) => assignmentView(env, actor, id),
   attempt: (env, actor, _request, id) => attemptDetail(env, actor, id),
   record: (env, actor, _request, id) => learnerRecord(env, actor, id === 'me' ? actor.id : id),

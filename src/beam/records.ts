@@ -11,7 +11,7 @@ import { recordCompletion } from './learning'
 import { requireBusiness } from './people'
 import { recordStatus } from './report'
 import { DAY, calendarDays, localDate, zonedInstant } from './time'
-import { learnerInUnits } from './units'
+import { inScope, manages, requireLearnerScope } from './scope'
 
 export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
   requireRole(actor, 'manager', 'assessor')
@@ -31,6 +31,8 @@ export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
   const learners = input.list('learners')
   insist(learners.length > 0, 'learners_required')
   for (const learner of learners) insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', learner), 'person_not_found', 404)
+  // A manager records attendance for their own teams (ORG-004); an assessor attests under their separate grant.
+  if (!actor.roles.has('assessor')) for (const learner of learners) requireLearnerScope(actor, learner)
   insist(!learners.includes(actor.id), 'self_attestation_refused', 403)
   const file = await input.file('file', { optional: true })
   const attachment = file ? { id: newId(), ...await store(env, file) } : null
@@ -54,13 +56,13 @@ export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
 export async function certificate(env: Bindings, actor: Actor, id: string) {
   const row = await one(env, `SELECT k.*, c.learner_id, c.method, c.completed_at, c.course_revision_id, r.number AS revision_number, r.title AS course_title, m.name AS learner_name
     FROM beam_certificates k JOIN beam_completions c ON c.id = k.completion_id JOIN beam_course_revisions r ON r.id = c.course_revision_id JOIN beam_members m ON m.id = c.learner_id WHERE k.id = ?`, id)
-  if (!row || !(row.learner_id === actor.id || isManager(actor))) throw new BeamError('not_found', 404)
+  if (!row || !(row.learner_id === actor.id || manages(actor, row.learner_id))) throw new BeamError('not_found', 404)
   return { id: row.id, number: row.number, issuer: row.issuer, learner: row.learner_name, course: row.course_title, revision: row.revision_number, method: row.method, completedAt: row.completed_at, issuedAt: row.issued_at, expiresAt: row.expires_at }
 }
 
-/** A learner's own record, any learner's for a manager, or one in their units for a learning administrator. */
+/** A learner's own record, or one in the teams a manager manages or the units an administrator administers. */
 export async function learnerRecord(env: Bindings, actor: Actor, memberId: string) {
-  if (!(memberId === actor.id || isManager(actor) || await learnerInUnits(env, actor, memberId))) throw new BeamError('not_found', 404)
+  if (!(memberId === actor.id || manages(actor, memberId))) throw new BeamError('not_found', 404)
   const member = await one(env, 'SELECT id, name, email FROM beam_members WHERE id = ?', memberId)
   if (!member) throw new BeamError('not_found', 404)
   const assignments = await all(env, `SELECT a.id, a.course_id AS course, c.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,
@@ -84,13 +86,14 @@ export async function reminders(env: Bindings, actor: Actor) {
 
 export async function queues(env: Bindings, actor: Actor) {
   const manager = isManager(actor)
+  const mine = <T extends { learner: string }>(rows: T[]) => rows.filter(row => inScope(actor, row.learner))
   return {
-    overdue: manager ? await all(env, `SELECT a.id, a.learner_id AS learner, m.name AS learnerName, c.title AS courseTitle, a.due_at AS dueAt, a.timezone FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id
-      WHERE a.status = 'open' AND a.due_at < ? ORDER BY a.due_at`, now()) : [],
-    attemptsExhausted: manager ? await all(env, `SELECT a.id, m.name AS learnerName, c.title AS courseTitle FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_assessment_revisions s ON s.course_revision_id = a.course_revision_id
+    overdue: manager ? mine(await all<any>(env, `SELECT a.id, a.learner_id AS learner, m.name AS learnerName, c.title AS courseTitle, a.due_at AS dueAt, a.timezone FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id
+      WHERE a.status = 'open' AND a.due_at < ? ORDER BY a.due_at`, now())) : [],
+    attemptsExhausted: manager ? mine(await all<any>(env, `SELECT a.id, a.learner_id AS learner, m.name AS learnerName, c.title AS courseTitle FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_assessment_revisions s ON s.course_revision_id = a.course_revision_id
       WHERE a.status = 'open' AND s.max_attempts IS NOT NULL AND (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.reset_id IS NULL) >= s.max_attempts + a.extra_attempts
-      AND NOT EXISTS (SELECT 1 FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.passed = 1 AND t.reset_id IS NULL)`) : [],
-    renewals: manager ? await renewalsDue(env) : [],
+      AND NOT EXISTS (SELECT 1 FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.passed = 1 AND t.reset_id IS NULL)`)) : [],
+    renewals: manager ? mine(await renewalsDue(env) as any[]) : [],
     reviews: actor.roles.has('reviewer') ? await all(env, `SELECT r.id, r.course_id AS course, r.number, r.title, r.submitted_at AS submittedAt FROM beam_course_revisions r JOIN beam_courses c ON c.id = r.course_id
       WHERE r.state = 'in_review' AND (c.reviewer_id = ? OR ?) ORDER BY r.submitted_at`, actor.id, actor.owner ? 1 : 0) : [],
     notices: actor.roles.has('reviewer') ? await all(env, `SELECT n.id, n.course_id AS course, c.title AS courseTitle, s.title AS sourceTitle FROM beam_source_notices n JOIN beam_courses c ON c.id = n.course_id JOIN beam_sources s ON s.id = n.source_id

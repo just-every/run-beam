@@ -10,6 +10,7 @@ import { isManager, requireRole, type Actor } from './actor'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import { serve } from './files'
 import type { Input } from './input'
+import { inScope, requireLearnerScope } from './scope'
 
 const KINDS = ['acknowledgment', 'signature']
 const IDENTITY: Record<string, string> = { native: 'emailed sign-in link', oidc: 'single sign-on', password: 'password', dev: 'local development identity', review: 'review session' }
@@ -34,7 +35,7 @@ export type Acknowledgment = ReturnType<typeof present>
 /** The person asked, or a manager. Everyone else gets 404. */
 async function load(env: Bindings, actor: Actor, id: string) {
   const row = await one(env, `${SELECT} WHERE k.id = ?`, id)
-  if (!row || !(row.learner_id === actor.id || isManager(actor))) throw new BeamError('not_found', 404)
+  if (!row || !(row.learner_id === actor.id || (isManager(actor) && inScope(actor, row.learner_id)))) throw new BeamError('not_found', 404)
   return row
 }
 
@@ -49,6 +50,7 @@ export async function requestAcknowledgments(env: Bindings, actor: Actor, input:
   for (const team of input.list('teams')) for (const row of await all<{ member_id: string }>(env, 'SELECT member_id FROM beam_team_members WHERE team_id = ?', team)) learners.add(row.member_id)
   insist(learners.size > 0, 'learners_required')
   for (const learner of learners) insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', learner), 'person_not_found', 404)
+  for (const learner of learners) requireLearnerScope(actor, learner)
   const held = new Set((await all<{ learner_id: string }>(env, 'SELECT learner_id FROM beam_acknowledgments WHERE source_version_id = ?', version.id)).map(row => row.learner_id))
   const created = [...learners].filter(learner => !held.has(learner)).map(learner => ({ id: newId(), learner }))
   const at = now()
@@ -97,10 +99,10 @@ export async function acknowledgmentView(env: Bindings, actor: Actor, id: string
   return present(await load(env, actor, id))
 }
 
-/** My requirements (every state, every version), and for managers everyone's. */
+/** My requirements (every state, every version), and for managers their teams' (ORG-004). */
 export async function acknowledgmentList(env: Bindings, actor: Actor) {
   const mine = (await all(env, `${SELECT} WHERE k.learner_id = ? ORDER BY k.requested_at DESC, v.number DESC`, actor.id)).map(present)
-  const managed = isManager(actor) ? (await all(env, `${SELECT} ORDER BY s.title, v.number DESC, m.name`)).map(present) : []
+  const managed = isManager(actor) ? (await all(env, `${SELECT} ORDER BY s.title, v.number DESC, m.name`)).filter(row => inScope(actor, row.learner_id)).map(present) : []
   return { mine, managed }
 }
 

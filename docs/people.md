@@ -20,7 +20,9 @@ To change someone's roles later, open their roles in the **People** table, tick 
 
 ## Teams
 
-Teams group people who need the same training, such as a front desk. Add one under **Teams** with **Add team**, then open it and tick its **Members**. You can assign a course to a whole team, and a [role path](/docs/assign#role-paths) belongs to one team.
+Teams group people who need the same training, such as a front desk. As the owner, add one under **Teams** with **Add team**, then open it and tick its **Members**. You can assign a course to a whole team, and a [role path](/docs/assign#role-paths) belongs to one team.
+
+Tick a team's **Managers** to say who manages it. A manager assigns, reports, follows up, moves due dates and grants retries only for the people in the teams they manage; everyone else's records stay closed to them. A team's manager (or you) can **Hand this team to someone for a while**: pick the covering manager, the last day and the reason. Coverage ends by itself after that day, or early with **End coverage**.
 
 ## Business units and learning administrators
 

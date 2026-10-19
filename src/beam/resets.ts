@@ -8,11 +8,11 @@ import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
+import { inScope } from './scope'
 
-/** The owner resets anyone; a manager only people who share one of their teams. */
-export async function withinTeam(env: Bindings, actor: Actor, learner: string) {
-  if (actor.owner) return true
-  return !!await one(env, 'SELECT 1 FROM beam_team_members mine JOIN beam_team_members theirs ON theirs.team_id = mine.team_id WHERE mine.member_id = ? AND theirs.member_id = ?', actor.id, learner)
+/** The owner acts for anyone; a manager only for members of the teams they manage (ORG-004). */
+export async function withinTeam(_env: Bindings, actor: Actor, learner: string) {
+  return inScope(actor, learner)
 }
 
 export async function resetAssignment(env: Bindings, actor: Actor, input: Input) {

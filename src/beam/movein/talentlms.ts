@@ -12,6 +12,7 @@ import { BeamError, all, commit, insist, newId, now, one, sha256Hex, stmt } from
 import type { Input } from '../input'
 import { readCsv, readXlsx, type Table } from './tables'
 import { historyTargets } from './target'
+import { inScope, requireLearnerScope } from '../scope'
 
 const namespace = 'talentlms', mappingVersion = 'talentlms-records-1'
 const MAX_REPORTS = 5, FILE_BYTES = 10_000_000
@@ -276,7 +277,9 @@ export async function importJobs(env: Bindings, actor: Actor) {
 
 export async function importedHistory(env: Bindings, actor: Actor) {
   requireRole(actor, 'manager')
+  // A manager reads and reviews imported completions of their teams' people (ORG-004).
   return (await all(env, 'SELECT id, kind, payload, revision FROM beam_imported_history ORDER BY kind, id')).map(row => ({ id: row.id, kind: row.kind, revision: row.revision, ...JSON.parse(row.payload) }))
+    .filter(row => row.kind !== 'completion' || !row.member || inScope(actor, row.member))
 }
 
 /** A later decision on imported evidence: a manager records that it was reviewed. Undo keeps such rows. */
@@ -285,6 +288,7 @@ export async function acceptHistory(env: Bindings, actor: Actor, input: Input) {
   const row = await one(env, "SELECT * FROM beam_imported_history WHERE id = ? AND kind = 'completion'", input.text('history', { max: 100 }))
   insist(row, 'history_not_found', 404)
   const payload = JSON.parse(row.payload)
+  if (payload.member) requireLearnerScope(actor, payload.member)
   insist(!payload.accepted, 'history_already_accepted', 409)
   payload.accepted = { by: actor.id, at: now(), note: input.text('note', { max: 1000 }) }
   const revision = newId()

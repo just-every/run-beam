@@ -23,6 +23,11 @@ export interface Actor {
   adminUnits: string[]
   /** ORG-003: the courses this person may author without the author role. */
   authorOf: string[]
+  /** ORG-004: the teams this person manages, directly or under unexpired coverage; managing one gives the manager role. */
+  managedTeams: string[]
+  /** Null for the owner (every team and person); otherwise the teams this person manages or administers, and their members. */
+  teams: string[] | null
+  learners: string[] | null
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
   shell?: { people: number; waiting: number; now: number; zone: string }
 }
@@ -41,7 +46,11 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   // An agent credential never carries administration; the owner already holds every authority.
   const adminUnits = agent || owner ? [] : (await all<{ unit_id: string }>(env, 'SELECT DISTINCT unit_id FROM beam_admin_grants WHERE member_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) ORDER BY unit_id', member.id, now())).map(row => row.unit_id)
   const authorOf = (await all<{ course_id: string }>(env, 'SELECT course_id FROM beam_course_authors WHERE member_id = ? ORDER BY course_id', member.id)).map(row => row.course_id)
-  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf }
+  const managedTeams = owner ? [] : (await all<{ team_id: string }>(env, 'SELECT DISTINCT team_id FROM beam_team_managers WHERE member_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) ORDER BY team_id', member.id, now())).map(row => row.team_id)
+  if (managedTeams.length) roles.add('manager')
+  const teams = owner ? null : (await all<{ id: string }>(env, 'SELECT id FROM beam_teams WHERE id IN (SELECT value FROM json_each(?)) OR unit_id IN (SELECT value FROM json_each(?)) ORDER BY id', JSON.stringify(managedTeams), JSON.stringify(adminUnits))).map(row => row.id)
+  const learners = teams && (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(teams))).map(row => row.member_id)
+  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners }
 }
 
 export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {

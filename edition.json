@@ -29,6 +29,7 @@
           "migrations/core/0022_beam_timed_attempts.sql",
           "migrations/core/0023_beam_units.sql",
           "migrations/core/0024_beam_course_scope.sql",
+          "migrations/core/0025_beam_team_managers.sql",
           "src/auth.server.ts",
           "src/identity.ts",
           "src/server.ts",

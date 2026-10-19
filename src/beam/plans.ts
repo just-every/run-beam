@@ -8,6 +8,7 @@ import { isManager, type Actor } from './actor'
 import { insertAssignments } from './assignments'
 import { all, commit, insist, newId, now, one, stmt } from './core'
 import { validTimezone, zonedInstant } from './time'
+import { requireLearnerScope } from './scope'
 
 const object = (value: unknown, code: string): Record<string, any> => {
   insist(value && typeof value === 'object' && !Array.isArray(value), code)
@@ -46,6 +47,7 @@ export const assignmentPlan: Kind = {
   mayDecide: managerOnly,
   async apply(env, actor, { id, payload }) {
     for (const item of payload.items as PlanItem[]) {
+      requireLearnerScope(actor, item.learner)
       const course = await one(env, 'SELECT published_revision_id FROM beam_courses WHERE id = ?', item.course)
       insist(course?.published_revision_id === item.courseRevision, 'proposal_stale', 409, { course: item.course })
     }
@@ -76,6 +78,7 @@ export const reminderDrafts: Kind = {
       // An assignment that closed since preparation gets no message.
       const open = await one(env, "SELECT learner_id FROM beam_assignments WHERE id = ? AND status = 'open'", item.assignment)
       if (!open) { skipped.push(item.assignment); continue }
+      requireLearnerScope(actor, open.learner_id)
       statements.push(stmt(env, 'INSERT INTO beam_reminder_messages (id, assignment_id, learner_id, body, proposal_id, approved_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', newId(), item.assignment, open.learner_id, item.message, id, actor.id, now()))
       delivered.push(item.assignment)
     }

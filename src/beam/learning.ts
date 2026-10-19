@@ -12,11 +12,13 @@ import { requireBusiness } from './people'
 import { resetHistory } from './resets'
 import { type Accommodation, accommodationFor, closeSession, deadlineFor, extraMinutes, openSession, refuseLate, savedAnswers, score, selectionsFrom, upsertAnswers } from './timing'
 import { DAY } from './time'
+import { inScope, manages } from './scope'
+import { dueExceptions } from './assignments'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
   const assignment = await one(env, 'SELECT a.*, c.title AS course_title FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.id = ?', id)
   // Another learner's assignment is indistinguishable from a missing one.
-  if (!assignment || !(assignment.learner_id === actor.id || (manage && isManager(actor)))) throw new BeamError('not_found', 404)
+  if (!assignment || !(assignment.learner_id === actor.id || (manage && manages(actor, assignment.learner_id)))) throw new BeamError('not_found', 404)
   return assignment
 }
 
@@ -87,6 +89,8 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     attempts: learner || isManager(actor) ? state.attempts : [],
     // Everything before each reset, marked with who reset it and why.
     resets: learner || isManager(actor) ? (await resetHistory(env, assignment.id)).map(reset => ({ ...reset, attempts: state.earlier.filter(attempt => attempt.reset === reset.id).map(attempt => ({ ...attempt, closedByReset: attempt.state === 'awaiting_review' }) as Row) })) : [],
+    // ORG-004: every due-date exception, with the earlier due date, who approved it and why.
+    dueExceptions: await dueExceptions(env, assignment.id),
     completion: completion ? { id: completion.id, method: completion.method, completedAt: completion.completed_at, expiresAt: completion.expires_at, certificate: completion.certificate, revision: completion.course_revision_id, assessmentRevision: completion.assessment_revision_id } : null,
   }
 }
@@ -241,7 +245,7 @@ export async function decidePractical(env: Bindings, actor: Actor, input: Input)
 /** One attempt: its learner, managers, and the named assessor of a practical attempt. Everyone else gets 404. */
 export async function attemptDetail(env: Bindings, actor: Actor, id: string) {
   const attempt = await loadAttempt(env, id)
-  const allowed = attempt && (attempt.learner_id === actor.id || isManager(actor) || (attempt.kind === 'practical' && actor.roles.has('assessor') && attempt.assessor_id === actor.id))
+  const allowed = attempt && (attempt.learner_id === actor.id || (isManager(actor) && inScope(actor, attempt.learner_id)) || (attempt.kind === 'practical' && actor.roles.has('assessor') && attempt.assessor_id === actor.id))
   if (!allowed) throw new BeamError('not_found', 404)
   const responses = await all(env, 'SELECT question_id AS question, answer_json AS answer, correct FROM beam_responses WHERE attempt_id = ?', id)
   const decision = await one(env, 'SELECT assessor_id AS assessor, decision, note, decided_at AS decidedAt FROM beam_review_decisions WHERE attempt_id = ?', id)
@@ -252,7 +256,9 @@ export async function attemptDetail(env: Bindings, actor: Actor, id: string) {
 export async function attachmentFile(env: Bindings, actor: Actor, id: string) {
   const file = await one(env, 'SELECT filename, media_type AS mediaType, size, sha256 FROM beam_attachments WHERE id = ?', id)
   const attempt = await one(env, 'SELECT id FROM beam_attempts WHERE attachment_id = ?', id)
-  const allowed = file && (isManager(actor) || (attempt && await attemptDetail(env, actor, attempt.id).then(() => true, () => false)))
+  // An attempt's file follows the attempt; an offline session's file goes to managers of someone it completed.
+  const allowed = file && (attempt ? await attemptDetail(env, actor, attempt.id).then(() => true, () => false)
+    : isManager(actor) && (actor.learners === null || (await all<{ learner_id: string }>(env, "SELECT learner_id FROM beam_completions WHERE json_extract(evidence_json, '$.attachment') = ?", id)).some(row => inScope(actor, row.learner_id))))
   if (!allowed) throw new BeamError('not_found', 404)
   return serve(env, file as never, { download: true })
 }

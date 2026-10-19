@@ -6,7 +6,8 @@ import type { Actor } from './actor'
 import { extendAccess, setAccessRule, setAssignmentWindow } from './access'
 import { decideAcknowledgment, requestAcknowledgments } from './acknowledgments'
 import { decide, propose } from './agent-work'
-import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, revisePath } from './assignments'
+import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
+import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { createCourse, decideRevision, moveLesson, removeLesson, removeQuestion, saveAssessment, saveDetails, saveLesson, saveQuestion, submitForReview } from './courses'
 import { restoreRevision } from './history'
 import type { Input } from './input'
@@ -32,6 +33,10 @@ export const actions: Record<string, Handler> = {
   'person.access': (env, actor, input, request) => setAccess(env, request, actor, input),
   'team.create': (env, actor, input) => createTeam(env, actor, input),
   'team.members': (env, actor, input) => setTeamMembers(env, actor, input),
+  'team.managers': (env, actor, input) => setTeamManagers(env, actor, input),
+  'team.coverage': (env, actor, input) => grantCoverage(env, actor, input),
+  'team.coverage.end': (env, actor, input) => endCoverage(env, actor, input),
+  'assignment.due': (env, actor, input) => moveDueDate(env, actor, input),
   'unit.create': (env, actor, input) => createUnit(env, actor, input),
   'unit.teams': (env, actor, input) => setUnitTeams(env, actor, input),
   'course.unit': (env, actor, input) => setCourseUnit(env, actor, input),

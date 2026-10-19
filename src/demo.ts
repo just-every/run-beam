@@ -119,6 +119,8 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   const team = (site: Site) => id('a2', sites.indexOf(site) + 1)
   sites.forEach(site => statements.push(q('INSERT OR IGNORE INTO beam_teams (id, name, created_at) VALUES (?, ?, ?)', team(site), SITES[site].team, at(-890))))
   statements.push(...inserts(db, 'INSERT OR IGNORE INTO beam_team_members (team_id, member_id)', [['owner' as Person], ...people.filter(row => !row.former).map(row => [row.person])].map(([person]) => [team(siteOf(person)), member(person)])))
+  // ORG-004: each site's managers manage their own site's team.
+  statements.push(...inserts(db, 'INSERT OR IGNORE INTO beam_team_managers (id, team_id, member_id, kind, granted_by, granted_at)', people.filter(row => !row.former && row.roles.includes('manager')).map((row, index) => [id('a5', index + 1), team(siteOf(row.person)), member(row.person), 'direct', ownerMember, at(-890)])))
 
   // Owned sources: bytes in FILES by content hash, as sources.ts stores them. A put of the same
   // bytes to their content key is idempotent, so the objects are written together, without a head.

@@ -15,8 +15,7 @@ export async function timedCheck(f) {
   await edit('course.question', { prompt: 'Second step?', choices: 'Record\nForget', correct: '1' })
   await edit('course.assessment', { passPercent: 100, maxAttempts: 2, timeLimitMinutes: 10 })
   await publish((await api('author', 'course.submit', { course: c.id, draftVersion })).id)
-  const team = (await api('manager', 'team.create', { name: 'Timed team' })).id
-  await api('manager', 'team.members', { team, members: [ids.manager, ids.learner, ids.assessor] })
+  await f.team('Timed team', [ids.learner, ids.assessor])
   await api('learner', 'accommodation.grant', { learner: ids.assessor, course: c.id, kind: 'percent', amount: 50 }, 403)
   const granted = await h.submit('accommodation.grant', cookies.manager, { learner: ids.assessor, course: c.id, kind: 'percent', amount: '50', note: 'LEARN-011 extra time' }, `/app/records/${ids.assessor}`)
   assert.equal(granted.searchParams.get('error'), null)

@@ -77,8 +77,7 @@ async function renewal(f) {
   const { api, course, ids, view, offline } = f
   const prerequisite = await course('Renewal prerequisite'), c = await course('Recurring procedure')
   await api('manager', 'offline.record', offline(prerequisite))
-  const team = (await api('manager', 'team.create', { name: 'Renewing team' })).id
-  await api('manager', 'team.members', { team, members: [ids.learner] })
+  const team = await f.team('Renewing team', [ids.learner])
   const path = (await api('manager', 'path.create', { name: 'Recurring path', team })).id
   const requirements = { path, courses: [prerequisite.id, c.id], prerequisites: ['', prerequisite.id], dueDays: ['1', '1'], renewalDays: ['', '7'] }
   const origin = (await api('manager', 'path.revise', requirements)).id
@@ -109,8 +108,6 @@ async function reset(f) {
   const { api, h, cookies, ids, publish } = f
   ids.outsider = (await api('owner', 'person.invite', { email: 'outsider@example.test', name: 'outsider', roles: ['learner'] })).id
   cookies.outsider = await h.signIn('outsider@example.test', { requested: true })
-  const team = (await api('manager', 'team.create', { name: 'Reset team' })).id
-  await api('manager', 'team.members', { team, members: [ids.manager, ids.learner] })
   const c = await api('author', 'course.create', { title: 'Resettable procedure', reviewer: ids.reviewer })
   let draftVersion = c.draftVersion
   const edit = async (action, fields) => { draftVersion = (await api('author', action, { course: c.id, draftVersion, ...fields })).draftVersion }
@@ -120,7 +117,7 @@ async function reset(f) {
   await edit('course.assessment', { passPercent: 100, maxAttempts: 1, practicalInstructions: 'Demonstrate the procedure', assessor: ids.assessor })
   const revision = (await api('author', 'course.submit', { course: c.id, draftVersion })).id
   await publish(revision)
-  const [assignment, outside] = (await api('manager', 'assignment.create', { course: c.id, learners: [ids.learner, ids.outsider], dueDate: '2030-10-01' })).created
+  const [assignment, outside] = (await api('owner', 'assignment.create', { course: c.id, learners: [ids.learner, ids.outsider], dueDate: '2030-10-01' })).created
   const learn = async () => { const view = await api('learner', `assignments/${assignment}`); for (const lesson of view.lessons) await api('learner', 'lesson.complete', { assignment, lesson: lesson.id }); return view.quiz.questions[0] }
   // The learner fails the quiz, has a practical returned and resubmits it.
   const question = await learn()
@@ -185,7 +182,7 @@ async function windows(f) {
   await api('owner', 'access.rule', { scope: 'course', target: dated.id, kind: 'dates', openDate: '2030-03-08', closeDate: '2030-03-01' }, 400)
   await api('owner', 'access.rule', { scope: 'course', target: dated.id, kind: 'dates', openDate: '2030-03-01', closeDate: '2030-03-08' })
   const before = Date.now()
-  const [a30, b30] = (await api('manager', 'assignment.create', { course: relative.id, learners: [ids.learner, ids.assessor], dueDate: '2030-10-01' })).created
+  const [a30, b30] = (await api('owner', 'assignment.create', { course: relative.id, learners: [ids.learner, ids.assessor], dueDate: '2030-10-01' })).created
   const [aDated] = (await api('manager', 'assignment.create', { course: dated.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
   const open = await api('learner', `assignments/${a30}`)
   assert.equal(open.access.state, 'open')
@@ -225,8 +222,6 @@ async function windows(f) {
   assert.deepEqual((await api('learner', `assignments/${aDated}`)).access.rule, { kind: 'dates', openDate: '2026-01-01', closeDate: '2031-12-31', timezone: 'UTC', source: 'assignment' })
   assert.ok((await api('learner', 'lesson.complete', { assignment: aDated, lesson })).completion)
   // A manager extends a learner in their team by seven days with a reason; the due date stays as it was.
-  const team = (await api('manager', 'team.create', { name: 'Window team' })).id
-  await api('manager', 'team.members', { team, members: [ids.manager, ids.learner] })
   await api('manager', 'access.extend', { assignment: b30, days: 7, reason: 'Not my team' }, 403)
   const reason = 'Was on leave when the window closed.'
   const form = await h.submit('access.extend', cookies.manager, { assignment: a30, days: '7', reason }, `/app/learn/${a30}`)
@@ -240,7 +235,7 @@ async function windows(f) {
   assert.ok((await (await h.raw(`/app/reports.csv?course=${relative.id}`, { cookie: cookies.manager })).text()).includes(reason))
   assert.ok((await api('learner', 'lesson.complete', { assignment: a30, lesson: closed })).completion)
   // A path's rule wins over the course's, and its renewal gets a fresh window under that rule.
-  const path = (await api('manager', 'path.create', { name: 'Window path', team })).id
+  const path = (await api('manager', 'path.create', { name: 'Window path', team: ids.team })).id
   await api('manager', 'path.revise', { path, courses: [relative.id], prerequisites: [''], dueDays: ['14'], renewalDays: ['1'] })
   await api('owner', 'access.rule', { scope: 'path', target: path, kind: 'after_enrolment', closeDays: 10 })
   await api('manager', 'path.assign', { path })

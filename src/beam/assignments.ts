@@ -7,7 +7,8 @@ import { all, commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { DAY, addDays, localDate, validTimezone, zonedInstant } from './time'
-import { requireCourseRole, requireLearnerScope } from './units'
+import { requireCourseRole } from './units'
+import { inScope, requireLearnerScope, requireTeamScope, teamScope } from './scope'
 
 export interface NewAssignment {
   learner: string
@@ -64,7 +65,7 @@ export async function assignCourse(env: Bindings, actor: Actor, input: Input) {
   const dueDate = input.text('dueDate'), dueTime = input.text('dueTime', { optional: true }) || '17:00'
   zonedInstant(dueDate, dueTime, timezone)
   const learners = await learnersFrom(env, input)
-  for (const learner of learners) await requireLearnerScope(env, actor, learner)
+  for (const learner of learners) requireLearnerScope(actor, learner)
   return await insertAssignments(env, actor, learners.map(learner => ({ learner, course, dueDate, dueTime, timezone, reason: 'assigned' })), 'assignment.create')
 }
 
@@ -73,6 +74,7 @@ export async function createPath(env: Bindings, actor: Actor, input: Input) {
   const name = input.text('name', { max: 120 })
   const team = input.text('team')
   insist(await one(env, 'SELECT 1 FROM beam_teams WHERE id = ?', team), 'team_not_found', 404)
+  requireTeamScope(actor, team)
   const id = newId()
   await commit(env, [stmt(env, 'INSERT INTO beam_paths (id, name, team_id, created_at) VALUES (?, ?, ?, ?)', id, name, team, now())], { actor: actor.id, action: 'path.create', subject: id, detail: { name, team } })
   return { id }
@@ -83,6 +85,7 @@ export async function revisePath(env: Bindings, actor: Actor, input: Input) {
   requireRole(actor, 'manager')
   const path = await one(env, 'SELECT * FROM beam_paths WHERE id = ?', input.text('path'))
   insist(path, 'path_not_found', 404)
+  requireTeamScope(actor, path.team_id)
   const courses = input.list('courses', { keepEmpty: true })
   const prerequisites = input.list('prerequisites', { keepEmpty: true })
   const dueDays = input.list('dueDays', { keepEmpty: true })
@@ -112,14 +115,17 @@ export async function assignPath(env: Bindings, actor: Actor, input: Input) {
   const business = await requireBusiness(env)
   const path = await one(env, 'SELECT * FROM beam_paths WHERE id = ?', input.text('path'))
   insist(path?.current_revision_id, 'path_not_ready', 409)
+  requireTeamScope(actor, path.team_id)
   const requirements = await all(env, 'SELECT * FROM beam_path_requirements WHERE path_revision_id = ? ORDER BY position', path.current_revision_id)
   const learners = (await all<{ member_id: string }>(env, 'SELECT member_id FROM beam_team_members WHERE team_id = ?', path.team_id)).map(row => row.member_id)
   const today = localDate(now(), business.timezone)
   return await insertAssignments(env, actor, learners.flatMap(learner => requirements.map(requirement => ({ learner, course: requirement.course_id, dueDate: addDays(today, requirement.due_days), dueTime: '17:00', timezone: business.timezone, reason: 'path', pathRevision: path.current_revision_id, prerequisite: requirement.prerequisite_course_id, renewalDays: requirement.renewal_days }))), 'assignment.path')
 }
 
-export async function listPaths(env: Bindings) {
-  const paths = await all(env, 'SELECT p.id, p.name, p.team_id AS team, p.current_revision_id AS revision, r.number FROM beam_paths p LEFT JOIN beam_path_revisions r ON r.id = p.current_revision_id ORDER BY p.name')
+/** Role paths of the teams this person manages (all of them for the owner). */
+export async function listPaths(env: Bindings, actor: Actor) {
+  const teams = teamScope(actor)
+  const paths = await all(env, 'SELECT p.id, p.name, p.team_id AS team, p.current_revision_id AS revision, r.number FROM beam_paths p LEFT JOIN beam_path_revisions r ON r.id = p.current_revision_id WHERE (? IS NULL OR p.team_id IN (SELECT value FROM json_each(?))) ORDER BY p.name', teams, teams)
   for (const path of paths) path.access = await accessRule(env, 'path', path.id)
   for (const path of paths) path.requirements = path.revision ? await all(env, 'SELECT course_id AS course, prerequisite_course_id AS prerequisite, due_days AS dueDays, renewal_days AS renewalDays FROM beam_path_requirements WHERE path_revision_id = ? ORDER BY position', path.revision) : []
   return paths
@@ -157,7 +163,7 @@ export async function assignRenewals(env: Bindings, actor: Actor, input: Input) 
   requireRole(actor, 'manager')
   const business = await requireBusiness(env)
   const selected = new Set(input.list('completions'))
-  const due = (await renewalsDue(env)).filter(row => selected.size === 0 || selected.has(row.completion))
+  const due = (await renewalsDue(env)).filter(row => (selected.size === 0 || selected.has(row.completion)) && inScope(actor, row.learner))
   const items = due.map(row => ({ learner: row.learner, course: row.course, dueDate: localDate(Math.max(row.expiresAt, now()), business.timezone), dueTime: '17:00', timezone: business.timezone, reason: 'renewal', renewalDays: row.renewalDays, pathRevision: row.pathRevision, prerequisite: row.prerequisite }))
   return await insertAssignments(env, actor, items, 'assignment.renewal')
 }
@@ -165,8 +171,9 @@ export async function assignRenewals(env: Bindings, actor: Actor, input: Input) 
 /** A retry decision: the manager grants one more quiz attempt after the limit. */
 export async function grantAttempt(env: Bindings, actor: Actor, input: Input) {
   requireRole(actor, 'manager')
-  const assignment = await one(env, "SELECT id FROM beam_assignments WHERE id = ? AND status = 'open'", input.text('assignment'))
+  const assignment = await one(env, "SELECT id, learner_id FROM beam_assignments WHERE id = ? AND status = 'open'", input.text('assignment'))
   insist(assignment, 'assignment_not_found', 404)
+  requireLearnerScope(actor, assignment.learner_id)
   const reason = input.text('reason', { max: 500 })
   // Only when the attempts are used up and the quiz is not passed, so a retried form grants one attempt, not two.
   const result = await env.DB.batch([
@@ -183,14 +190,38 @@ export async function grantAttempt(env: Bindings, actor: Actor, input: Input) {
 export async function cancelAssignment(env: Bindings, actor: Actor, input: Input) {
   insist(isManager(actor) || actor.adminUnits.length, 'forbidden', 403)
   const id = input.text('assignment')
-  if (!isManager(actor)) {
-    const assignment = await one(env, 'SELECT learner_id, course_id FROM beam_assignments WHERE id = ?', id)
-    insist(assignment, 'assignment_not_found', 404)
-    await requireCourseRole(env, actor, assignment.course_id)
-    await requireLearnerScope(env, actor, assignment.learner_id)
-  }
+  const assignment = await one(env, 'SELECT learner_id, course_id FROM beam_assignments WHERE id = ?', id)
+  insist(assignment, 'assignment_not_found', 404)
+  await requireCourseRole(env, actor, assignment.course_id, 'manager')
+  requireLearnerScope(actor, assignment.learner_id)
   const reason = input.text('reason', { max: 500 })
   const result = await env.DB.batch([stmt(env, "UPDATE beam_assignments SET status = 'cancelled' WHERE id = ? AND status = 'open'", id), stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, 'assignment.cancel', id, JSON.stringify({ reason }))])
   insist(result[0].meta.changes === 1, 'assignment_not_found', 404)
   return { id }
+}
+
+/** ORG-004: a manager approves a due-date exception for one open assignment in their teams, with a reason. The due
+ * instant moves in the assignment's own zone; the earlier due date stays in the assignment's history. */
+export async function moveDueDate(env: Bindings, actor: Actor, input: Input) {
+  requireRole(actor, 'manager')
+  const assignment = await one(env, 'SELECT id, learner_id, status, due_date, due_time, timezone, due_at FROM beam_assignments WHERE id = ?', input.text('assignment'))
+  insist(assignment, 'assignment_not_found', 404)
+  requireLearnerScope(actor, assignment.learner_id)
+  insist(assignment.status === 'open', 'assignment_closed', 409)
+  const dueDate = input.text('dueDate'), dueTime = input.text('dueTime', { optional: true }) || assignment.due_time
+  const dueAt = zonedInstant(dueDate, dueTime, assignment.timezone)
+  const reason = input.text('reason', { max: 500 })
+  const id = newId(), at = now()
+  const result = await env.DB.batch([
+    stmt(env, "UPDATE beam_assignments SET due_date = ?, due_time = ?, due_at = ? WHERE id = ? AND status = 'open' AND due_at = ?", dueDate, dueTime, dueAt, assignment.id, assignment.due_at),
+    stmt(env, 'INSERT INTO beam_due_exceptions (id, assignment_id, previous_due_date, previous_due_time, previous_due_at, due_date, due_time, due_at, reason, approved_by, approved_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1', id, assignment.id, assignment.due_date, assignment.due_time, assignment.due_at, dueDate, dueTime, dueAt, reason, actor.id, at),
+    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM beam_due_exceptions WHERE id = ?)', at, actor.id, 'assignment.due', assignment.id, JSON.stringify({ exception: id, from: assignment.due_at, to: dueAt, reason }), id),
+  ])
+  insist(result[0].meta.changes === 1, 'assignment_changed', 409)
+  return { id: assignment.id, dueAt }
+}
+
+/** Every due-date exception of one assignment, oldest first. */
+export async function dueExceptions(env: Bindings, assignment: string) {
+  return await all(env, 'SELECT e.previous_due_at AS previousDueAt, e.due_at AS dueAt, e.reason, e.approved_by AS approvedBy, m.name AS approvedByName, e.approved_at AS approvedAt FROM beam_due_exceptions e JOIN beam_members m ON m.id = e.approved_by WHERE e.assignment_id = ? ORDER BY e.approved_at, e.rowid', assignment)
 }

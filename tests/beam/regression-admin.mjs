@@ -8,9 +8,7 @@ export async function adminCheck(f) {
   const page = async (path, role) => { const response = await h.raw(path, { cookie: cookies[role] }); return { status: response.status, text: await response.text() } }
   ids.admin = (await api('owner', 'person.invite', { email: 'admin@example.test', name: 'Ada Admin', roles: ['learner'] })).id
   cookies.admin = await h.signIn('admin@example.test', { requested: true })
-  const north = (await api('manager', 'team.create', { name: 'North floor' })).id, south = (await api('manager', 'team.create', { name: 'South floor' })).id
-  await api('manager', 'team.members', { team: north, members: [ids.learner] })
-  await api('manager', 'team.members', { team: south, members: [ids.other] })
+  const north = await f.team('North floor', [ids.learner]), south = await f.team('South floor', [ids.other])
   // Units and grants are the owner's: created and granted through the form door.
   for (const [name, team] of [['North region', north], ['South region', south]]) assert.equal((await h.submit('unit.create', cookies.owner, { name, teams: team }, '/app/people')).searchParams.get('error'), null)
   const unit = name => api('owner', 'units').then(view => view.units.find(row => row.name === name).id)

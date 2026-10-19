@@ -4,20 +4,13 @@
 // read on every request (actor.ts), so expiry and revocation apply to every page,
 // API call and download at once.
 import type { Bindings } from '../auth.server'
-import { isManager, requireOwner, type Actor, type Role } from './actor'
+import { requireOwner, type Actor, type Role } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { addDays, zonedInstant } from './time'
 
-/** SQL: the members of every team in the units listed by a JSON array parameter. */
-export const UNIT_MEMBERS = 'SELECT tm.member_id FROM beam_team_members tm JOIN beam_teams ut ON ut.id = tm.team_id WHERE ut.unit_id IN (SELECT value FROM json_each(?))'
-
 const outside = (actor: Actor) => actor.adminUnits.length ? 'outside_your_units' : actor.authorOf.length ? 'outside_your_courses' : 'forbidden'
-
-export async function learnerInUnits(env: Bindings, actor: Actor, learner: string) {
-  return actor.adminUnits.length > 0 && !!await one(env, `SELECT 1 WHERE ? IN (${UNIT_MEMBERS})`, learner, JSON.stringify(actor.adminUnits))
-}
 
 async function courseInUnits(env: Bindings, actor: Actor, course: string) {
   return actor.adminUnits.length > 0 && !!await one(env, 'SELECT 1 FROM beam_courses WHERE id = ? AND unit_id IN (SELECT value FROM json_each(?))', course, JSON.stringify(actor.adminUnits))
@@ -29,19 +22,6 @@ export async function requireCourseRole(env: Bindings, actor: Actor, course: str
   if (actor.owner || roles.some(role => actor.roles.has(role))) return
   if (roles.includes('author') && actor.authorOf.includes(course)) return
   insist(await courseInUnits(env, actor, course), outside(actor), 403)
-}
-
-/** Managers and the owner reach every learner; a learning administrator only people in their units' teams. */
-export async function requireLearnerScope(env: Bindings, actor: Actor, learner: string) {
-  if (isManager(actor)) return
-  insist(await learnerInUnits(env, actor, learner), outside(actor), 403)
-}
-
-/** Null for a manager or the owner (every learner); otherwise the administrator's units as a JSON array. */
-export function learnerScope(actor: Actor): string | null {
-  if (isManager(actor)) return null
-  insist(actor.adminUnits.length, 'forbidden', 403)
-  return JSON.stringify(actor.adminUnits)
 }
 
 /** The owner names a unit and the teams it holds; a team belongs to one unit at a time. */
@@ -94,7 +74,7 @@ export async function newCourseUnit(env: Bindings, actor: Actor, input: Input) {
 }
 
 /** The grant's end: an exact instant (`expiresAt`, ISO 8601 with its offset) or the end of a day in the business's zone (`expiresOn`). */
-async function expiry(env: Bindings, input: Input) {
+export async function expiry(env: Bindings, input: Input) {
   const instant = input.text('expiresAt', { optional: true, max: 40 })
   const day = input.text('expiresOn', { optional: true, max: 10 })
   if (!instant && !day) return null

@@ -13,6 +13,14 @@ export async function fixture() {
       ids[name] = (await api('owner', 'person.invite', { email: `${name}@example.test`, name, roles })).id
       cookies[name] = await h.signIn(`${name}@example.test`, { requested: true })
     }
+    // ORG-004: the owner sets a team and its members; the manager manages it and only it.
+    async function team(name, members) {
+      const id = (await api('owner', 'team.create', { name })).id
+      await api('owner', 'team.members', { team: id, members })
+      await api('owner', 'team.managers', { team: id, members: [ids.manager] })
+      return id
+    }
+    ids.team = await team('Regression floor', [ids.learner])
     async function publish(revision, fields = {}) {
       const result = await h.submit('revision.decide', cookies.reviewer, { revision, decision: 'publish', ...fields })
       assert.equal(result.searchParams.get('error'), null)
@@ -46,6 +54,6 @@ export async function fixture() {
       const safeError = res.status >= 400 ? [token, cookie, cookies[role], ...Object.values(h.vars)].filter(Boolean).reduce((safe, secret) => safe.replaceAll(secret, '[redacted]'), text).slice(0, 1200) : undefined
       return { status: res.status, location: res.headers.get('location'), data: res.headers.get('content-type')?.includes('application/json') ? JSON.parse(text) : null, ...(safeError ? { errorText: safeError } : {}) }
     }
-    return { h, api, cookies, ids, publish, course, nextRevision, assign, view, lessons, offline, request }
+    return { h, api, cookies, ids, team, publish, course, nextRevision, assign, view, lessons, offline, request }
   } catch (error) { await h.close(); throw error }
 }

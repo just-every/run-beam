@@ -1,4 +1,4 @@
-Managers and the owner assign training on **Manage** and follow it up from the same page.
+Managers and the owner assign training on **Manage** and follow it up from the same page. A manager works only with the people in the [teams they manage](/docs/people#teams). To move one person's due date, open their assignment and use **Due date exception** with a reason; the earlier date stays in its history.
 
 ## Assign a course
 

@@ -8,6 +8,7 @@ import { all, now } from './core'
 import { queues } from './records'
 import { trainingReport } from './report'
 import { calendarDays } from './time'
+import { teamScope } from './scope'
 
 export const QUEUES = ['overdue', 'expiring', 'open', 'completed'] as const
 export type Queue = typeof QUEUES[number]
@@ -26,7 +27,7 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
   const at = now()
   const [report, teams, memberTeams, work, blocked, reminded, proposals, approved, declined] = await Promise.all([
     trainingReport(env, actor, { course: filters.course, team: filters.team, status: 'all' }),
-    all<{ id: string; name: string; people: number }>(env, 'SELECT t.id, t.name, COUNT(tm.member_id) AS people FROM beam_teams t LEFT JOIN beam_team_members tm ON tm.team_id = t.id GROUP BY t.id ORDER BY people DESC, t.name'),
+    all<{ id: string; name: string; people: number }>(env, 'SELECT t.id, t.name, COUNT(tm.member_id) AS people FROM beam_teams t LEFT JOIN beam_team_members tm ON tm.team_id = t.id WHERE (? IS NULL OR t.id IN (SELECT value FROM json_each(?))) GROUP BY t.id ORDER BY people DESC, t.name', teamScope(actor), teamScope(actor)),
     all<{ member: string; name: string }>(env, 'SELECT tm.member_id AS member, t.name FROM beam_team_members tm JOIN beam_teams t ON t.id = tm.team_id ORDER BY t.name'),
     queues(env, actor),
     all<{ id: string }>(env, `SELECT a.id FROM beam_assignments a WHERE a.status = 'open' AND a.prerequisite_course_id IS NOT NULL

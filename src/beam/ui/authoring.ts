@@ -23,7 +23,7 @@ const KINDS: Record<string, string> = { 'application/pdf': 'PDF', 'text/plain': 
 const fileKind = (mediaType: string) => KINDS[mediaType] ?? (mediaType.split('/')[1]?.split(/[.+;-]/)[0]?.toUpperCase() || 'File')
 
 export async function sourcesPage(env: Bindings, actor: Actor, url: URL) {
-  const [sources, reviewers, names, acknowledgments, teams] = await Promise.all([listSources(env, actor), membersWithRole(env, 'reviewer'), memberNames(env), acknowledgmentList(env, actor), isManager(actor) ? all(env, 'SELECT id, name FROM beam_teams ORDER BY name') : []])
+  const [sources, reviewers, names, acknowledgments, teams] = await Promise.all([listSources(env, actor), membersWithRole(env, 'reviewer'), memberNames(env), acknowledgmentList(env, actor), isManager(actor) ? all(env, 'SELECT id, name FROM beam_teams WHERE (? IS NULL OR id IN (SELECT value FROM json_each(?))) ORDER BY name', actor.teams && JSON.stringify(actor.teams), actor.teams && JSON.stringify(actor.teams)) : []])
   const people = [...names].map(([value, label]) => ({ value, label }))
   const zone = (await business(env))!.timezone
   const canAuthor = actor.owner || actor.roles.has('author')

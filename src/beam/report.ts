@@ -4,10 +4,10 @@
 // CSV carries the same rows the page shows.
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
-import { all, insist, now, one, type Row } from './core'
+import { all, insist, now, type Row } from './core'
 import { closeAllExpired } from './learning'
 import { DAY } from './time'
-import { UNIT_MEMBERS, learnerScope } from './units'
+import { IN_SCOPE, learnerScope, requireTeamScope } from './scope'
 
 export const STATUSES = ['all', 'open', 'overdue', 'completed', 'expiring'] as const
 export interface Filters { course: string; team: string; status: string }
@@ -25,9 +25,10 @@ export function reportFilters(url: URL): Filters {
 }
 
 export async function trainingReport(env: Bindings, actor: Actor, filters: Filters) {
-  // A learning administrator's report holds only their units' people; another unit's team is refused (ORG-002).
+  // A manager's report holds only their teams' people (ORG-004), an administrator's their units' (ORG-002);
+  // another team is refused.
   const scope = learnerScope(actor)
-  if (scope && filters.team) insist(await one(env, 'SELECT 1 FROM beam_teams WHERE id = ? AND unit_id IN (SELECT value FROM json_each(?))', filters.team, scope), 'outside_your_units', 403)
+  if (filters.team) requireTeamScope(actor, filters.team)
   await closeAllExpired(env, actor)
   const at = now()
   const rows = await all(env, `SELECT a.id AS assignment, a.learner_id AS learner, m.name AS learnerName, a.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, a.course_revision_id AS revision,
@@ -43,12 +44,12 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
       c.id AS completion, c.method, c.completed_at AS completedAt, c.expires_at AS expiresAt, k.number AS certificate, k.id AS certificateId
     FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_course_revisions r ON r.id = a.course_revision_id
     LEFT JOIN beam_completions c ON c.assignment_id = a.id LEFT JOIN beam_certificates k ON k.completion_id = c.id
-    WHERE a.status != 'replaced' AND (? = '' OR a.course_id = ?) AND (? = '' OR a.learner_id IN (SELECT member_id FROM beam_team_members WHERE team_id = ?)) AND (? IS NULL OR a.learner_id IN (${UNIT_MEMBERS}))
+    WHERE a.status != 'replaced' AND (? = '' OR a.course_id = ?) AND (? = '' OR a.learner_id IN (SELECT member_id FROM beam_team_members WHERE team_id = ?)) AND ${IN_SCOPE('a.learner_id')}
   UNION ALL
     SELECT NULL, c.learner_id, m.name, c.course_id, r.title, r.number, c.course_revision_id, 'completed', NULL, NULL, 'offline', NULL, NULL, NULL, 0, 0, 0, NULL, NULL, NULL,
       c.id, c.method, c.completed_at, c.expires_at, k.number, k.id
     FROM beam_completions c JOIN beam_members m ON m.id = c.learner_id JOIN beam_course_revisions r ON r.id = c.course_revision_id LEFT JOIN beam_certificates k ON k.completion_id = c.id
-    WHERE c.assignment_id IS NULL AND (? = '' OR c.course_id = ?) AND (? = '' OR c.learner_id IN (SELECT member_id FROM beam_team_members WHERE team_id = ?)) AND (? IS NULL OR c.learner_id IN (${UNIT_MEMBERS}))
+    WHERE c.assignment_id IS NULL AND (? = '' OR c.course_id = ?) AND (? = '' OR c.learner_id IN (SELECT member_id FROM beam_team_members WHERE team_id = ?)) AND ${IN_SCOPE('c.learner_id')}
   ORDER BY learnerName, courseTitle, revisionNumber`, filters.course, filters.course, filters.team, filters.team, scope, scope, filters.course, filters.course, filters.team, filters.team, scope, scope)
   const shaped = rows.map(row => {
     const [practicalState, assessor] = row.practical ? String(row.practical).split('|') : [null, null]
