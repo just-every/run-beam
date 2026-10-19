@@ -206,4 +206,57 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     const exported = await (await h.raw('/app/audit.csv', { cookie: people.owner })).text()
     assert.ok(exported.includes('questions.answer') && !['Mornings are busy', 'Too tired at close', 'Nobody owns it'].some(words => exported.includes(words)))
   })
+
+  // REPORT-005: a program with a drop-off, a retry and feedback, read as revision trends with effort and content age;
+  // nothing is per person, and the private practice and anonymous answers above cannot be drilled into.
+  await check('REPORT-005', async () => {
+    const lessonsOf = async (cookie, assignment) => (await h.api(`assignments/${assignment}`, cookie)).lessons
+    const made = await h.api('course.create', people.author, { title: 'Cold chain basics', reviewer: ids.reviewer })
+    let draftVersion = made.draftVersion
+    const edit = async (action, fields) => { draftVersion = (await h.api(action, people.author, { course: made.id, draftVersion, ...fields })).draftVersion }
+    for (const title of ['Receiving', 'Storing', 'Logging']) await edit('course.lesson', { title, body: `${title} chilled stock.`, sources: [] })
+    await edit('course.question', { prompt: 'Highest safe fridge temperature?', choices: '5 °C\n12 °C', correct: '1' })
+    await edit('course.question', { prompt: 'Where is the log kept?', choices: 'On the fridge\nIn the office', correct: '1' })
+    await edit('course.assessment', { passPercent: 100, maxAttempts: 3 })
+    const first = (await h.api('course.submit', people.author, { course: made.id, draftVersion })).id
+    await publish(first)
+    const created = (await h.api('assignment.create', people.manager, { course: made.id, learners: [ids.sam, ids.lee], dueDate: '2030-05-01', dueTime: '17:00', timezone: 'UTC' })).created
+    const mine = async cookie => (await h.api('records/me', cookie)).assignments.find(row => row.course === made.id && row.status === 'open').id
+    const sam = await mine(people.sam), lee = await mine(people.lee)
+    assert.ok(created.includes(sam) && created.includes(lee))
+    for (const lesson of await lessonsOf(people.sam, sam)) await h.api('lesson.complete', people.sam, { assignment: sam, lesson: lesson.id })
+    await h.api('lesson.complete', people.lee, { assignment: lee, lesson: (await lessonsOf(people.lee, lee))[0].id })
+    const [q1, q2] = (await h.api(`assignments/${sam}`, people.sam)).quiz.questions
+    assert.equal((await h.api('quiz.submit', people.sam, { assignment: sam, [`q_${q1.id}`]: ['1'], [`q_${q2.id}`]: ['0'] })).passed, false)
+    assert.equal((await h.api('quiz.submit', people.sam, { assignment: sam, [`q_${q1.id}`]: ['0'], [`q_${q2.id}`]: ['0'] })).passed, true)
+    await h.api('feedback.send', people.sam, { assignment: sam, kind: 'feedback', body: 'The log location is unclear.' })
+    // A second revision continues the trend; its assignments start empty.
+    await edit('course.lesson', { title: 'Cleaning', body: 'Clean the seals weekly.', sources: [] })
+    await publish((await h.api('course.submit', people.author, { course: made.id, draftVersion })).id)
+
+    await h.api('quality', people.sam, undefined, 403)
+    assert.equal((await h.api(`quality?course=${made.id}&learner=${ids.sam}`, people.owner, undefined, 400)).error, 'individual_drilldown_refused')
+    const view = await h.api(`quality?course=${made.id}`, people.owner)
+    const [course] = view.courses
+    assert.deepEqual(course.revisions.map(revision => [revision.number, revision.state, revision.enrollment.assigned]), [[1, 'superseded', 2], [2, 'published', 0]])
+    const [one] = course.revisions
+    assert.deepEqual(one.enrollment, { assigned: 2, completed: 1, open: 1, cancelled: 0 })
+    assert.equal(one.completionDays.n, 1)
+    assert.deepEqual(one.lessons.map(lesson => [lesson.completed, lesson.of, lesson.stoppedAfter]), [[2, 2, 1], [1, 2, 0], [1, 2, 0]])
+    assert.equal(one.notStarted, 0)
+    assert.deepEqual(one.questions.map(question => [question.answered, question.fullCredit]), [[2, 1], [2, 2]])
+    assert.deepEqual(one.retries, { attempted: 1, retried: 1, passedAfterRetry: 1, attempts: 2 })
+    assert.deepEqual(one.feedback, { feedback: 1, broken: 0 })
+    assert.equal(one.survey, undefined)
+    assert.deepEqual([course.effort.submitted, course.effort.published, course.effort.reviewHours.n, course.effort.timeSpent, course.contentAge.days], [2, 2, 2, null, 0])
+    // A manager reads the same figures for one of their teams; a team outside their scope is refused.
+    const team = await h.api(`quality?course=${made.id}&team=${ids.team}`, people.manager)
+    assert.deepEqual(team.courses[0].revisions[0].lessons.map(lesson => lesson.completed), [2, 1, 1])
+    await h.api(`quality?team=${(await h.api('team.create', people.owner, { name: 'Night shift' })).id}`, people.manager, undefined, 403)
+    assert.equal((await h.raw('/app/quality', { cookie: people.manager })).status, 200)
+    // The opening course holds Sam's practice runs and the anonymous answers: no person, run or answer appears.
+    const opening = JSON.stringify(await h.api(`quality?course=${ids.opening}`, people.owner))
+    for (const hidden of [ids.sam, ids.lee, 'Sam', 'The alarm is still armed.', 'Too tired at close.', 'Mornings are busy.']) assert.ok(!opening.includes(hidden), hidden)
+    assert.ok(!JSON.stringify(view).includes(ids.sam) && !JSON.stringify(view).includes('The log location is unclear.'))
+  })
 }

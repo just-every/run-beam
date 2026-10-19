@@ -27,6 +27,7 @@ import { agentPage } from './ui/agent'
 import { evidencePage } from './ui/evidence'
 import { practicePage, questionsPage } from './ui/practice'
 import { reportCsvResponse, reportPage, reportXlsxResponse } from './ui/report'
+import { qualityPage } from './ui/quality'
 import { auditCsvResponse, auditPage } from './ui/audit'
 import { announcementsPage } from './ui/announcements'
 import { notificationsPage } from './ui/notifications'
@@ -220,6 +221,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/evidence') return evidencePage(env, actor, url)
   if (path === '/app/import') return importPage(env, actor, url)
   if (path === '/app/reports') return reportPage(env, actor, url)
+  if (path === '/app/quality') return qualityPage(env, actor, url)
   if (path === '/app/reports.csv') return reportCsvResponse(env, actor, url)
   if (path === '/app/reports.xlsx') return reportXlsxResponse(env, actor, url)
   if (path === '/app/audit') return auditPage(env, actor, url)

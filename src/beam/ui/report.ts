@@ -39,7 +39,7 @@ export async function reportPage(env: Bindings, actor: Actor, url: URL) {
   const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value && value !== 'all')).toString()
   const s = report.summary
   const body = h`<h1>Training report</h1>
-<p><a href="/app/dashboards${query ? `?${query}` : ''}">Saved dashboards · save or share this selection</a></p>
+<p><a href="/app/dashboards${query ? `?${query}` : ''}">Saved dashboards · save or share this selection</a> · <a href="/app/quality">Course quality and effort</a></p>
 <form class="card filters" method="get" action="/app/reports">
 <div>${select('Course', 'course', courses.map((course: any) => ({ value: course.id, label: course.title, group: course.group })), filters.course, { required: false, blank: 'All courses' })}</div>
 <div>${select('Team', 'team', teams.map(team => ({ value: team.id, label: team.name })), filters.team, { required: false, blank: 'All teams' })}</div>

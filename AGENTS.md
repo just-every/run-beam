@@ -123,7 +123,7 @@ even with a human cookie. Reads are `GET /api/beam/me`, `/api/beam/people`,
 `/api/beam/members`, `/api/beam/directory` (custom fields and held roster conflicts), `/api/beam/directory/:id` (one person's directory record as you may see it), `/api/beam/audiences` (the audiences you manage with members, past members and exclusions), `/api/beam/roster-batches` (your latest roster batches with each row's planned action and outcome), `/api/beam/sources`, `/api/beam/courses`,
 `/api/beam/courses/:id`, `/api/beam/revisions/:id`, `/api/beam/paths` (with each requirement's due anchor; `POST /api/beam/path.preview` with `{ path }` returns every member's due dates without assigning),
 `/api/beam/assignments/:id`, `/api/beam/attempts/:id`, `/api/beam/records/:id`
-(or `/api/beam/records/me`), `/api/beam/queues`, `/api/beam/reminders`,
+(or `/api/beam/records/me`), `/api/beam/queues`, `/api/beam/reminders`, `/api/beam/quality?course=&team=` (REPORT-005 course quality and effort per revision, never per person),
 `/api/beam/certificates/:id` (with its template, corrections and links; the PDF at `/app/certificates/:id.pdf`), `/api/beam/certificate-templates`, `/api/beam/imports`, `/api/beam/history`,
 `/api/beam/compare?from=REV&to=REV` (two revisions of one course),
 `/api/beam/source-compare?from=VER&to=VER` (two versions of one source),

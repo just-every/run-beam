@@ -19,6 +19,12 @@ Each row shows the learner, the course and revision, the due time in its time zo
 
 **Download CSV** or **Download XLSX** gives you the same rows as a spreadsheet; every row (or the workbook's Definitions sheet) says when it was produced, the time zone and the filters, and nothing is left out.
 
+## Course quality
+
+**Course quality and effort** (from the training report) shows, for each course, every published revision side by side over the people your report covers, or one team: how many were assigned, completed, still open or canceled; the median days from assignment to completion; how many finished each lesson and where unfinished learners stopped; how each quiz question was answered and how many learners needed a retry; and how much feedback came in. Each figure shows what it is out of, and what is missing is named rather than guessed. Per course it also shows review cycles and turnaround (Beam does not record time spent writing or reviewing) and how long ago the current revision was approved, with its next review date.
+
+These are learning activity, not work results, and nothing is shown per person: private practice, anonymous answers and the nameless survey are never included (survey results stay on each revision, shown once enough people have answered).
+
 ## Saved dashboards
 
 From **Reports**, open **Saved dashboards**. Owners, managers for their teams, learning administrators for their units and custom roles with report access can save a name, course/team/status filters and selected fields: name, course, due time, status and completion time. A dashboard is live data, not a snapshot: its as-of instant and saved filters appear on every view and CSV download. URL query changes do not change that saved selection. Dates in these selected fields are UTC.
