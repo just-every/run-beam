@@ -80,7 +80,7 @@ export function page(title: string, actor: Actor | null, body: Html, { current =
   const document = h`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/site/fonts.css"><link rel="stylesheet" href="/site/theme.css"><link rel="stylesheet" href="/beam.css">${script ? h`<script src="${script}" defer></script>` : ''}</head><body>
 <div class="app${actor ? '' : ' bare'}">${actor ? h`<input type="checkbox" id="menu-toggle" class="menu-toggle" aria-hidden="true" tabindex="-1"><aside class="rail">${brand}<label for="menu-toggle" class="menu-button">${raw(icon('menu', { size: 22 }))}<span>Menu</span></label>${rail(actor, current, shell)}</aside>` : h`<aside class="rail">${brand}</aside>`}
 <header class="topbar">${clock}${tools ?? ''}</header>
-<main class="work${wide ? ' wide' : ''}">${notice ? h`<p class="flash" role="status">${notice}</p>` : ''}${error ? h`<p class="flash error" role="alert">That did not work: ${describeError(error)}</p>` : ''}${body}</main></div></body></html>`
+<main class="work${wide ? ' wide' : ''}">${actor?.viewAs ? viewBanner(actor) : ''}${notice ? h`<p class="flash" role="status">${notice}</p>` : ''}${error ? h`<p class="flash error" role="alert">That did not work: ${describeError(error)}</p>` : ''}${body}</main></div></body></html>`
   // A page that needs its own script (the timed quiz's countdown) may load it from this origin only.
   return new Response(document.html, { status, headers: script ? { ...headers, 'content-security-policy': headers['content-security-policy'].replace("default-src 'none';", "default-src 'none'; script-src 'self';") } : headers })
 }
@@ -167,6 +167,12 @@ const ERRORS: Record<string, string> = {
 export const describeError = (code: string) => ERRORS[code] ?? code.replace(/_/g, ' ') + '.'
 
 export const hidden = (name: string, value: unknown) => h`<input type="hidden" name="${name}" value="${value}">`
+
+/** ORG-012: whose view this is, read-only, until when, and the way out. */
+function viewBanner(actor: Actor) {
+  const zone = actor.shell?.zone ?? 'UTC'
+  return h`<div class="flash" role="status"><p>Viewing Beam as <strong>${actor.name}</strong>, read-only, until ${formatClock(actor.viewAs!.expiresAt, zone)}. You see their pages as they do; nothing here changes their training.</p><form method="post" action="/app/view/end"><button type="submit" class="secondary">Exit view</button></form></div>`
+}
 
 /** A POST form to the shared action door; returnTo may contain {id} for the created record. */
 export function form(action: string, returnTo: string, fields: unknown, submit: string, { multipart = false, secondary = false, className = '' } = {}) {

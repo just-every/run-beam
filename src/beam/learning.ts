@@ -69,7 +69,8 @@ export async function closeAllExpired(env: Bindings, actor: Actor) {
 
 export async function assignmentView(env: Bindings, actor: Actor, id: string) {
   await loadAssignment(env, actor, id, { manage: true })
-  await closeExpired(env, actor, id)
+  // A read-only view (ORG-012) never scores an expired timed quiz; the learner's or a manager's next request does.
+  if (!actor.viewAs) await closeExpired(env, actor, id)
   const assignment = await loadAssignment(env, actor, id, { manage: true })
   const state = await progress(env, assignment)
   const timed = state.quizRequired ? await timedView(env, assignment, state.content.assessment!) : null

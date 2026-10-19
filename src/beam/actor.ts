@@ -39,6 +39,8 @@ export interface Actor {
   grants: Partial<Record<Permission, Reach>>
   /** ORG-005: holds an active auditor grant (read-only shared evidence). */
   auditor: boolean
+  /** ORG-012: set while a viewer sees Beam as this learner, read-only (view-as.ts); the request runs as the learner. */
+  viewAs?: { session: string; viewer: { id: string; name: string }; expiresAt: number }
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
   shell?: { people: number; waiting: number; now: number; zone: string }
 }

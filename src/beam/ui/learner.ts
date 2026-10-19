@@ -40,7 +40,8 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
     ...due.map(row => ({ title: row.courseTitle, meta: `${row.kind === 'overdue' ? 'Overdue since' : 'Due'} ${when(row.dueAt, row.timezone, zone)}`, href: `/app/learn/${row.id}` })),
     ...messages.map(row => ({ title: row.courseTitle, meta: h`Message from ${row.approvedBy}: ${row.body}`, href: `/app/learn/${row.assignment}` })),
   ])}<p class="muted foot-note">Training that is part of your work is done in paid working time.</p>`, { id: 'reminders' }) : ''
-  const asks = asked.length ? card('Questions for you', rows(asked.map(row => ({ title: row.title, meta: `Optional · closes ${day(row.closesOn)}`, href: `/app/questions/${row.id}` }))), { id: 'asked' }) : ''
+  // Anonymous questions stay the learner's own (BEAM-19): a read-only view (ORG-012) does not list them.
+  const asks = asked.length && !actor.viewAs ? card('Questions for you', rows(asked.map(row => ({ title: row.title, meta: `Optional · closes ${day(row.closesOn)}`, href: `/app/questions/${row.id}` }))), { id: 'asked' }) : ''
   const agent = decidable ? card('Agent work', h`<p><a href="/app/agent">${decidable} ${decidable === 1 ? 'proposal is' : 'proposals are'} waiting for your decision</a></p>`, { id: 'agent' }) : ''
   const review = work.reviews.length || work.notices.length ? card('Waiting for my review', rows([
     ...work.reviews.map(row => ({ title: `${row.title} revision ${row.number}`, href: `/app/revisions/${row.id}` })),
@@ -64,7 +65,8 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const a = view.assignment
   const launchable = a.status === 'open' && view.access.state === 'open'
   const resume = view.resumeLesson ? `/app/learn/${id}/lessons/${view.resumeLesson}` : null
-  const practice = a.learner === actor.id ? await scenariosFor(env, a.revision) : []
+  // Practice is private to the learner: a read-only view (ORG-012) does not list it.
+  const practice = a.learner === actor.id && !actor.viewAs ? await scenariosFor(env, a.revision) : []
   const lessons = card('Lessons', h`<ol class="rows numbered">${view.lessons.map(lesson => h`<li><a class="row row-link" href="/app/learn/${id}/lessons/${lesson.id}"><span class="row-text"><span class="row-title">${lesson.title}</span></span>${lesson.completed ? h`<span class="tag done">done</span>` : ''}${raw(icon('chevron', { size: 20, className: 'chevron' }))}</a></li>`)}</ol>`)
   const timeLimit = view.quiz?.timeLimitMinutes ? ` Time limit ${view.quiz.timeLimitMinutes} minutes${view.quiz.extraMinutes ? `, plus ${view.quiz.extraMinutes} minutes extra time (${accommodationLabel(view.quiz.accommodation!)})` : ''}.` : ''
   const quiz = view.quiz ? card('Quiz', h`<p>Pass mark ${view.quiz.passPercent}%. ${view.quiz.passed ? 'Passed.' : `${view.quiz.attemptsLeft} attempt${view.quiz.attemptsLeft === 1 ? '' : 's'} left.`}${timeLimit}</p>${!view.quiz.passed && launchable && a.learner === actor.id ? (view.lessonsComplete ? h`<a class="button" href="/app/learn/${id}/quiz">${view.quiz.session ? 'Return to the timed quiz' : 'Take the quiz'}</a>` : h`<p class="muted">Available after every lesson is done.</p>`) : ''}`) : ''
@@ -145,7 +147,9 @@ export async function recordPage(env: Bindings, actor: Actor, memberId: string, 
   const record = await learnerRecord(env, actor, memberId)
   const zone = (await business(env))!.timezone
   const extraTime = actor.owner || actor.roles.has('manager') ? accommodationCard(memberId, await accommodations(env, memberId), await listCourses(env) as { id: string; title: string }[], zone) : ''
-  const body = h`${backLink('/app/manage', 'Manage')}<h1>${record.member.name}</h1><p class="subtitle">${record.member.email}</p>
+  // ORG-012: anyone who may manage this person can open their pages read-only; the server refuses the rest.
+  const viewAs = memberId !== actor.id && !actor.viewAs ? h`<form method="post" action="/app/view/start">${hidden('learner', memberId)}${hidden('returnTo', `/app/records/${memberId}`)}<button type="submit" class="secondary">View as ${record.member.name}</button></form>` : ''
+  const body = h`${backLink('/app/manage', 'Manage')}<h1>${record.member.name}</h1><p class="subtitle">${record.member.email}</p>${viewAs}
 <section class="card table-card" aria-labelledby="assignments"><h2 class="card-title table-title" id="assignments">Assignments</h2>${record.assignments.length ? h`<div class="table-wrap"><table class="stacked"><thead><tr><th scope="col">Course</th><th scope="col">Revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th></tr></thead><tbody>${record.assignments.map(row => h`<tr><td>${cellLabel('Course')}<a href="/app/learn/${row.id}">${row.courseTitle}</a></td><td>${cellLabel('Revision')}${row.revisionNumber}</td><td class="cell-status">${cellLabel('Status')}${pill(row.state, statusLabel(row))}</td><td>${cellLabel('Due')}${when(row.dueAt, row.timezone, zone)}</td><td>${cellLabel('Lessons')}${row.lessonsDone} of ${row.lessonsTotal}</td></tr>`)}</tbody></table></div>` : h`<p class="muted table-empty">Nothing assigned.</p>`}</section>
 ${card('Completions', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} revision ${row.revisionNumber}`, meta: h`Completed ${formatDate(row.completedAt, zone)} (${METHOD[row.method] ?? row.method}) · <a href="/app/certificates/${row.certificate}">certificate</a>` }))) : h`<p class="muted">No completions yet.</p>`)}
 ${extraTime}

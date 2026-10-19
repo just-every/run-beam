@@ -27,6 +27,7 @@ import { reportCsvResponse, reportPage } from './ui/report'
 import { auditCsvResponse, auditPage } from './ui/audit'
 import { describeError, page, h } from './ui/html'
 import { route } from './views'
+import { VIEW_PAGES, VIEW_READS, exitView, startView, viewCookie, viewing } from './view-as'
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
 
@@ -50,6 +51,9 @@ export async function beamResponse(request: Request, original: Bindings): Promis
   try {
     actor = await currentActor(env, request)
     if (!actor) return api ? json({ error: 'authentication_required' }, 401) : Response.redirect(`${env.AUTH_ORIGIN}/signin?returnTo=${encodeURIComponent(url.pathname)}`, 303)
+    actor = await viewing(env, request, actor) ?? actor
+    const view = await viewDoor(env, actor, request, url, api)
+    if (view) return view
     if (api) return await apiResponse(env, actor, request, url)
     return await pageResponse(env, actor, request, url)
   } catch (error) {
@@ -58,6 +62,37 @@ export async function beamResponse(request: Request, original: Bindings): Promis
     if (status === 404) return notFound(actor)
     return page('Something went wrong', actor, h`<h1>That did not work</h1><p>${describeError(code).replace(/^./, letter => letter.toUpperCase())}</p><p><a href="/app/learning">Back to My learning</a></p>`, { status })
   }
+}
+
+// ORG-012: starting and exiting a view set its cookie; while viewing, only the learner's own pages and reads answer and
+// every other write, form and download is refused.
+async function viewDoor(env: Bindings, actor: Actor, request: Request, url: URL, api: boolean): Promise<Response | null> {
+  const path = api ? url.pathname.slice('/api/beam/'.length) : url.pathname
+  const post = request.method === 'POST'
+  if (post && (path === 'view.start' || path === '/app/view/start')) {
+    const input = await Input.from(request)
+    if (!api && actor.viewAs) return redirect(env, '/app/learning', 'error', 'view_as_read_only')
+    try {
+      const started = await startView(env, actor, input)
+      const response = api ? json(started) : redirect(env, '/app/learning', 'notice', 'Viewing as this learner, read-only.')
+      response.headers.append('set-cookie', viewCookie(env, started.id))
+      return response
+    } catch (error) {
+      const { code, status } = failure(error)
+      if (api || status >= 500) throw error
+      return redirect(env, safeReturnTo(input.text('returnTo', { optional: true, max: 300 }) || '/app', '/app'), 'error', code)
+    }
+  }
+  if (post && (path === 'view.end' || path === '/app/view/end')) {
+    const ended = await exitView(env, request, actor)
+    const response = api ? json(ended) : redirect(env, `/app/records/${ended.learner}`, 'notice', 'View ended.')
+    response.headers.append('set-cookie', viewCookie(env, null))
+    return response
+  }
+  if (!actor.viewAs) return null
+  if (post) throw new BeamError('view_as_read_only', 403)
+  if (!(api ? VIEW_READS.test(path) : VIEW_PAGES.test(path))) throw new BeamError('view_as_learner_pages_only', 403)
+  return null
 }
 
 async function apiResponse(env: Bindings, actor: Actor, request: Request, url: URL) {
