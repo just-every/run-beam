@@ -37,6 +37,10 @@ export async function managersCheck(f) {
   }
   const csv = await page('/app/reports.csv', 'mara')
   assert.ok(csv.text.includes('Pat Example') && !csv.text.includes('Quinn Example'))
+  // The owner's People page sets members, managers, units and roles; a direct manager hands their own team over.
+  const ownerPeople = await page('/app/people', 'owner'), maraPeople = await page('/app/people', 'mara')
+  assert.ok(ownerPeople.status === 200 && ['Save managers', 'Business units and administrators', 'Custom roles'].every(text => ownerPeople.text.includes(text)))
+  assert.ok(maraPeople.status === 200 && maraPeople.text.includes('Hand this team to someone') && !maraPeople.text.includes('Save managers') && !maraPeople.text.includes('Beta shift'))
   const manage = await page('/app/manage?status=open', 'mara')
   assert.ok(manage.status === 200 && manage.text.includes('Pat Example') && !manage.text.includes('Quinn Example'))
 
@@ -55,6 +59,7 @@ export async function managersCheck(f) {
 
   // A due-date exception: reasoned, in the assignment's zone, with the earlier date kept.
   const before = (await api('mara', `assignments/${pats}`)).assignment
+  assert.ok((await page(`/app/learn/${pats}`, 'mara')).text.includes('Due date exception'))
   assert.equal((await h.submit('assignment.due', cookies.mara, { assignment: pats, dueDate: '2030-11-15', reason: 'Back from leave on Nov 1' }, `/app/learn/${pats}`)).searchParams.get('error'), null)
   await api('ben', 'assignment.due', { assignment: pats, dueDate: '2030-12-01', reason: 'Not mine' }, 403)
   const moved = await api('pat', `assignments/${pats}`)
@@ -117,6 +122,8 @@ export async function customRoleCheck(f) {
   const csv = await page(`/app/reports.csv?course=${c.id}`, 'cora')
   assert.ok(csv.status === 200 && csv.text.includes('Fresno Person') && !csv.text.includes('Joliet Person'))
   assert.equal((await page('/app/reports', 'cora')).status, 200)
+  const coraManage = await page('/app/manage?status=open', 'cora')
+  assert.ok(coraManage.status === 200 && coraManage.text.includes('Fresno Person') && !coraManage.text.includes('Joliet Person'))
   // Nothing the role does not tick: people administration, provider credentials, publication.
   await api('cora', 'people', undefined, 403)
   await api('cora', 'person.invite', { email: 'y@example.test', name: 'Y', roles: ['learner'] }, 403)

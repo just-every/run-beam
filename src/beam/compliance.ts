@@ -24,6 +24,8 @@ export interface Standing { label: string; tone: 'done' | 'waiting' | 'late' }
 
 export async function complianceView(env: Bindings, actor: Actor, filters: ComplianceFilters) {
   insist(permits(actor, 'reports'), 'forbidden', 403)
+  // Agent work belongs to authors, reviewers and managers; a custom role's reports show none of it.
+  const preparer = actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
   const at = now()
   const [report, teams, memberTeams, work, blocked, reminded, proposals, approved, declined] = await Promise.all([
     trainingReport(env, actor, { course: filters.course, team: filters.team, status: 'all' }),
@@ -33,7 +35,7 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
     all<{ id: string }>(env, `SELECT a.id FROM beam_assignments a WHERE a.status = 'open' AND a.prerequisite_course_id IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM beam_completions c WHERE c.learner_id = a.learner_id AND c.course_id = a.prerequisite_course_id AND (c.expires_at IS NULL OR c.expires_at > ?))`, at),
     all<{ assignment: string; at: number }>(env, 'SELECT assignment_id AS assignment, MAX(created_at) AS at FROM beam_reminder_messages GROUP BY assignment_id'),
-    listProposals(env, actor, 'waiting'), listProposals(env, actor, 'approved'), listProposals(env, actor, 'declined'),
+    ...['waiting', 'approved', 'declined'].map(state => preparer ? listProposals(env, actor, state) : Promise.resolve([] as Awaited<ReturnType<typeof listProposals>>)),
   ])
   const waiting = proposals.filter(proposal => proposal.canDecide)
   const rows = report.rows.filter(row => row.status !== 'cancelled')

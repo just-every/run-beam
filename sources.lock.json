@@ -857,7 +857,7 @@
       "executable": false
     },
     "src/beam/compliance.ts": {
-      "sha256": "685dedb01f480d005ea8fe7f7e1aaaa3b0a2d0276984a1b2c04ad5312752720e",
+      "sha256": "481f423dfd1432f77fa0aa14ef2bf6a8f6edb143a0811ff29f24e7a4dd5a5155",
       "executable": false
     },
     "src/beam/core.ts": {
@@ -917,7 +917,7 @@
       "executable": false
     },
     "src/beam/people.ts": {
-      "sha256": "d3b8b71dc0de38fb82bd8c4d316c17afe5f28746f332a4e6f9f367aaf6fb1cb2",
+      "sha256": "ca767013349997dfce6f2a90dbf20c16dfca4c45a8e1a65a6f48da66a2b21903",
       "executable": false
     },
     "src/beam/plans.ts": {
@@ -981,7 +981,7 @@
       "executable": false
     },
     "src/beam/ui/compliance.ts": {
-      "sha256": "755a963cce025008ccdc925187733ed77a4932511ee7d4b73f2e1fad10350907",
+      "sha256": "00258096d08ca961a0a9dca072497fcd00d1938432ef3b32d0693f942e7ba265",
       "executable": false
     },
     "src/beam/ui/course-access.ts": {
@@ -2777,7 +2777,7 @@
       "executable": false
     },
     "tests/beam/regression-managers.mjs": {
-      "sha256": "b8e581f5786e79ee175b1afebef03c8eb196407b84a8a72063c301efed0c76f0",
+      "sha256": "05de71daacd2596782cc23600fb5c90f5fff12215c97548aae1651ecce4c1aab",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {

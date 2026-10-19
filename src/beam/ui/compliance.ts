@@ -1,10 +1,11 @@
 // Manage training (/app/manage), the manager's main screen: team chips, the four count cards, the agent strip, one
 // status's queue, course coverage and the decision panel for the selected record; then assigning and offline training.
 import type { Bindings } from '../../auth.server'
-import { requireRole, type Actor } from '../actor'
+import type { Actor } from '../actor'
+import { permits } from '../scope'
 import { complianceFilters, complianceView, type ComplianceFilters, type ComplianceView, type Queue, type Standing } from '../compliance'
 import { listCourses } from '../courses'
-import { all } from '../core'
+import { all, insist } from '../core'
 import { people } from '../people'
 import { calendarDays, formatClock, formatDate, formatWeekday, localDate } from '../time'
 import { agentName, area, card, cellLabel, checks, count, field, fileField, form, h, hidden, page, raw, select, type Html } from './html'
@@ -27,9 +28,9 @@ const by = (proposal: any) => proposal.viaAgent || proposal.agent ? `${proposal.
 type Link = (changes: Partial<ComplianceFilters>, anchor?: string) => string
 
 export async function managePage(env: Bindings, actor: Actor, request: Request, url: URL) {
-  requireRole(actor, 'manager')
+  insist(permits(actor, 'reports'), 'forbidden', 403)
   const filters = complianceFilters(url)
-  const [view, list, courses, attestedRevisions] = await Promise.all([complianceView(env, actor, filters), people(env, request, actor), listCourses(env),
+  const [view, list, courses, attestedRevisions] = await Promise.all([complianceView(env, actor, filters), people(env, request, actor, 'people', 'enrollment', 'reports'), listCourses(env),
     all(env, "SELECT id, title, number FROM beam_course_revisions WHERE state IN ('published', 'superseded') ORDER BY title, number DESC")])
   const zone = actor.shell!.zone
   const link = (changes: Partial<ComplianceFilters>, anchor = '') => {
