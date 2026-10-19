@@ -27,6 +27,7 @@
           "migrations/core/0020_beam_acknowledgments.sql",
           "migrations/core/0021_beam_access_windows.sql",
           "migrations/core/0022_beam_timed_attempts.sql",
+          "migrations/core/0023_beam_units.sql",
           "src/auth.server.ts",
           "src/identity.ts",
           "src/server.ts",

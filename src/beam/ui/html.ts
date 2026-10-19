@@ -24,16 +24,18 @@ function render(value: unknown): string {
 // so it leads their rail and their own learning follows the work; everyone else's rail starts at My learning.
 const preparer = (actor: Actor) => actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
 const manager = (actor: Actor) => actor.owner || actor.roles.has('manager')
+// A learning administrator (ORG-002) opens People, Courses and Reports for their units.
+const administrator = (actor: Actor) => actor.adminUnits.length > 0
 type NavItem = { href: string; label: string; icon: IconName; show: (actor: Actor) => boolean; count?: (shell: Shell) => number }
 const LEARNING: NavItem = { href: '/app/learning', label: 'My learning', icon: 'home', show: () => true }
 const NAV: NavItem[] = [
   { href: '/app/manage', label: 'Manage', icon: 'document', show: manager },
-  { href: '/app/people', label: 'People', icon: 'people', show: manager, count: shell => shell.people },
-  { href: '/app/courses', label: 'Courses', icon: 'book', show: preparer },
+  { href: '/app/people', label: 'People', icon: 'people', show: actor => manager(actor) || administrator(actor), count: shell => shell.people },
+  { href: '/app/courses', label: 'Courses', icon: 'book', show: actor => preparer(actor) || administrator(actor) },
   { href: '/app/paths', label: 'Paths', icon: 'route', show: manager },
   { href: '/app/sources', label: 'Sources', icon: 'database', show: preparer },
   { href: '/app/agent', label: 'Agent work', icon: 'spark', show: preparer, count: shell => shell.waiting },
-  { href: '/app/reports', label: 'Reports', icon: 'chart', show: manager },
+  { href: '/app/reports', label: 'Reports', icon: 'chart', show: actor => manager(actor) || administrator(actor) },
   LEARNING,
   { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
   { href: '/app/business', label: 'Settings', icon: 'gear', show: actor => actor.owner },
@@ -52,7 +54,7 @@ const headers = {
 }
 
 const ROLE_NAMES: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
-const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...actor.roles].filter(role => role !== 'learner').map(role => ROLE_NAMES[role]).join(', ') || 'Learner'
+const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...(administrator(actor) ? ['Learning administrator'] : []), ...[...actor.roles].filter(role => role !== 'learner').map(role => ROLE_NAMES[role])].join(', ') || 'Learner'
 
 function rail(actor: Actor, current: string, shell?: Shell): Html {
   // Until the owner names the business every /app page leads to it, so the rail shows only the brand and the person.
@@ -153,6 +155,10 @@ const ERRORS: Record<string, string> = {
   quiz_not_started: 'start the timed quiz first.',
   quiz_not_timed: 'this quiz has no time limit.',
   window_closes_before_it_opens: 'the closing date must be on or after the opening date.',
+  outside_your_units: 'this is outside the business units you administer.',
+  owner_required: 'only the owner can do this.',
+  grant_exists: 'this person already administers that unit.',
+  expiry_in_past: 'the end date must be in the future.',
 }
 export const describeError = (code: string) => ERRORS[code] ?? code.replace(/_/g, ' ') + '.'
 

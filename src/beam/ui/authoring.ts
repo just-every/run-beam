@@ -1,9 +1,9 @@
 // Author and reviewer pages: sources, courses, the draft editor, revisions,
 // source-change notices and proposals.
 import type { Bindings } from '../../auth.server'
-import { requireRole, type Actor } from '../actor'
+import type { Actor } from '../actor'
 import { courseDetail, listCourses, revisionDetail } from '../courses'
-import { BeamError } from '../core'
+import { BeamError, insist } from '../core'
 import { business, memberNames, membersWithRole } from '../people'
 import { listSources } from '../sources'
 import { compareForm } from './history'
@@ -34,19 +34,26 @@ ${canAuthor ? h`<section class="card settings"><h2>Add a source</h2>${form('sour
   return page('Sources', actor, body, { current: '/app/sources', url })
 }
 
+const staff = (actor: Actor) => actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
+
 export async function coursesPage(env: Bindings, actor: Actor, url: URL) {
-  requireRole(actor, 'author', 'reviewer', 'manager')
-  const [courses, reviewers] = await Promise.all([listCourses(env), membersWithRole(env, 'reviewer')])
+  // A learning administrator sees and creates only their units' courses (ORG-002).
+  if (!staff(actor)) insist(actor.adminUnits.length, 'forbidden', 403)
+  const [courses, reviewers, units] = await Promise.all([listCourses(env, staff(actor) ? null : actor.adminUnits), membersWithRole(env, 'reviewer'), all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name')])
+  const author = actor.owner || actor.roles.has('author')
+  const unitOptions = units.filter(unit => author || actor.adminUnits.includes(unit.id)).map(unit => ({ value: unit.id, label: unit.name }))
   const body = h`<h1>Courses</h1>${card('Course list', courses.length ? rows(courses.map(course => ({ title: course.title, meta: `${course.publishedNumber ? `published revision ${course.publishedNumber}` : 'not published'}${course.inReview ? ' · revision in review' : ''}`, href: `/app/courses/${course.id}` }))) : h`<p class="muted">No courses yet.</p>`)}
-${actor.owner || actor.roles.has('author') ? h`<section class="card settings"><h2>New course</h2>${form('course.create', '/app/courses/{id}', [field('Title', 'title'), area('Summary', 'summary', '', false), select('Reviewer who publishes it', 'reviewer', reviewers.map(member => ({ value: member.id, label: member.name })))], 'Create course')}</section>` : ''}`
+${author || actor.adminUnits.length ? h`<section class="card settings"><h2>New course</h2>${form('course.create', '/app/courses/{id}', [field('Title', 'title'), area('Summary', 'summary', '', false), select('Reviewer who publishes it', 'reviewer', reviewers.map(member => ({ value: member.id, label: member.name }))), unitOptions.length ? select('Business unit', 'unit', unitOptions, '', author ? { required: false, blank: 'No unit' } : {}) : ''], 'Create course')}</section>` : ''}`
   return page('Courses', actor, body, { current: '/app/courses', url })
 }
 
 export async function coursePage(env: Bindings, actor: Actor, id: string, url: URL) {
-  const [course, sources, names, assessors, window] = await Promise.all([courseDetail(env, actor, id), listSources(env, actor), memberNames(env), membersWithRole(env, 'assessor'), accessRule(env, 'course', id)])
+  const course = await courseDetail(env, actor, id)
+  // Sources stay with staff: a learning administrator writes lessons without citing the library.
+  const [sources, names, assessors, window, units] = await Promise.all([staff(actor) ? listSources(env, actor) : [], memberNames(env), membersWithRole(env, 'assessor'), accessRule(env, 'course', id), actor.owner ? all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name') : []])
   const zone = (await business(env))!.timezone
   const versions = sources.flatMap(source => source.versions.map((version: any) => ({ value: version.id, label: `${source.title} v${version.number}` })))
-  const author = actor.owner || actor.roles.has('author')
+  const author = actor.owner || actor.roles.has('author') || actor.adminUnits.includes(course.unit)
   const draft = course.draft
   const base = [hidden('course', id), hidden('draftVersion', course.draftVersion)]
   const back = `/app/courses/${id}`
@@ -60,13 +67,14 @@ ${course.proposals.filter((proposal: any) => proposal.state === 'open').map((pro
 <section class="card"><h2>Quiz</h2>${draft.questions.map((question, index) => h`<details><summary>${index + 1}. ${question.prompt}</summary>${author ? h`${questionForm(question)}${form('course.question.remove', back, [...base, hidden('question', question.id)], 'Remove question', { secondary: true })}` : ''}</details>`)}${author ? h`<h3>Add a question</h3>${questionForm()}` : ''}</section>
 ${author ? h`<section class="card"><h2>Assessment rules</h2>${form('course.assessment', back, [...base, field('Pass mark (%)', 'passPercent', { type: 'number', value: draft.passPercent ?? '', required: false }), field('Quiz attempts allowed', 'maxAttempts', { type: 'number', value: draft.maxAttempts ?? '', required: false }), field('Time limit in minutes (leave empty for none)', 'timeLimitMinutes', { type: 'number', value: draft.timeLimitMinutes ?? '', required: false }), area('Practical assessment instructions (leave empty for none)', 'practicalInstructions', draft.practical?.instructions ?? '', false), select('Named assessor', 'assessor', assessors.map(member => ({ value: member.id, label: member.name })), draft.practical?.assessor ?? '', { required: false, blank: 'None' })], 'Save rules')}</section>
 <section class="card"><h2>Send for review</h2><p>Freezes this draft as a new revision for ${names.get(course.reviewer)} to publish or return.</p>${form('course.submit', back, base, 'Submit for review')}</section>` : ''}
+${actor.owner && units.length ? card('Business unit', form('course.unit', back, [hidden('course', id), select('Business unit', 'unit', units.map(unit => ({ value: unit.id, label: unit.name })), course.unit ?? '', { required: false, blank: 'No unit' })], 'Save unit')) : ''}
 ${card('Access window', h`<p>${describeRule(window)} A path’s window, or one set on an assignment, takes precedence; each new assignment takes its window when it is created.</p>${actor.owner ? windowForm('access.rule', back, [hidden('scope', 'course'), hidden('target', id)], window, 'Save window') : ''}`)}
 ${card('Revisions', course.revisions.length ? h`${rows(course.revisions.map((revision: any) => ({ title: h`<a href="/app/revisions/${revision.id}">Revision ${revision.number}</a>`, meta: `${state(revision.state)}, submitted ${when(revision.submittedAt, zone)} by ${names.get(revision.submittedBy)}${revision.reviewNote ? ` · note: ${revision.reviewNote}` : ''}`, aside: author ? form('course.restore', back, [...base, hidden('revision', revision.id)], 'Restore into draft', { secondary: true }) : '' })))}${course.revisions.length > 1 ? h`<h3>Compare revisions</h3>${compareForm(id, course.revisions)}` : ''}` : h`<p class="muted">No revisions yet.</p>`)}`
   return page(course.title, actor, body, { current: '/app/courses', url })
 }
 
 export async function revisionPage(env: Bindings, actor: Actor, id: string, url: URL) {
-  requireRole(actor, 'author', 'reviewer', 'manager')
+  if (!staff(actor)) insist(actor.adminUnits.length, 'forbidden', 403)
   const detail = await revisionDetail(env, id)
   const course = await courseDetail(env, actor, detail.revision.course_id).catch(() => { throw new BeamError('not_found', 404) })
   const names = await memberNames(env)

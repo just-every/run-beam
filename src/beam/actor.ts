@@ -19,6 +19,8 @@ export interface Actor {
   owner: boolean
   agent: boolean
   roles: Set<Role>
+  /** ORG-002: the business units this person administers under an active grant, read on every request. */
+  adminUnits: string[]
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
   shell?: { people: number; waiting: number; now: number; zone: string }
 }
@@ -34,7 +36,9 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   if (!member) throw new BeamError('not_a_member', 403)
   const roles = new Set((await all<{ role: Role }>(env, 'SELECT role FROM beam_member_roles WHERE member_id = ?', member.id)).map(row => row.role))
   if (owner) ROLES.forEach(role => roles.add(role))
-  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles }
+  // An agent credential never carries administration; the owner already holds every authority.
+  const adminUnits = agent || owner ? [] : (await all<{ unit_id: string }>(env, 'SELECT DISTINCT unit_id FROM beam_admin_grants WHERE member_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) ORDER BY unit_id', member.id, now())).map(row => row.unit_id)
+  return { id: member.id, sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits }
 }
 
 export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {

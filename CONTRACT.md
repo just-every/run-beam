@@ -506,7 +506,7 @@ Judged from the code and tests at commit `1953a0b66a1a76dccacbc45f63bfa0db6104c2
 | `BEAM-19` | Ask voluntary anonymous diagnostic questions | published | done | `src/beam/questions.ts`, `tests/beam/agent-flows.mjs` |  |
 | `BEAM-20` | Practise reviewed branching scenarios | published | done | `src/beam/practice.ts`, `tests/beam/agent-flows.mjs` |  |
 | `ORG-001` | Maintain the employee learning directory | target | partial | `src/beam/people.ts`, `tests/beam/flows.mjs` | Names, emails, roles and teams exist; stable HR ids, manager hierarchy, employment fields and rehire reconciliation are absent. |
-| `ORG-002` | Delegate administration with explicit rights | target | partial | `src/beam/actor.ts`, `src/beam/people.ts` | Owner/learning roles exist; delegated administrator and business-unit scopes do not. |
+| `ORG-002` | Delegate administration with explicit rights | target | done | `src/beam/units.ts`, `src/beam/actor.ts`, `src/beam/ui/units.ts`, `migrations/core/0023_beam_units.sql`, `tests/beam/regression-admin.mjs` (ORG-002) |  |
 | `ORG-003` | Scope authors and reviewers to their content | target | partial | `src/beam/courses.ts`, `src/beam/actor.ts`, `tests/beam/flows.mjs` | Named publication review works; course-scoped author access, recorded self-review for one-person teams and reviewer handover workflow are absent. |
 | `ORG-004` | Give managers only their teams’ learning authority | target | partial | `src/beam/actor.ts`, `src/beam/report.ts`, `src/beam/assignments.ts` | Managers currently have global learning access; hierarchy, team restrictions and coverage expiry are absent. |
 | `ORG-005` | Support instructors and read-only auditors | target | missing |  | Instructor/auditor grants and scoped evidence access are absent. |

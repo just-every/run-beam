@@ -1,10 +1,11 @@
 // Flow 1: one business, adult staff identities, teams and learning roles.
 import { operatorAuth, type Bindings } from '../auth.server'
 import { normalizeEmail } from '../modules/operator-auth/index.mjs'
-import { ROLES, ensureMember, isManager, requireOwner, requireRole, type Actor, type Role } from './actor'
+import { ROLES, ensureMember, requireOwner, requireRole, type Actor, type Role } from './actor'
 import { all, commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
 import { validTimezone } from './time'
+import { UNIT_MEMBERS, learnerScope } from './units'
 
 export interface Business { name: string; timezone: string }
 
@@ -110,13 +111,15 @@ export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) 
   return { team, members }
 }
 
+/** Everyone for a manager or the owner; a learning administrator sees their units' people and teams (ORG-002). */
 export async function people(env: Bindings, request: Request, actor: Actor) {
-  insist(isManager(actor), 'forbidden', 403)
-  const members = await all(env, 'SELECT m.id, m.email, m.name, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m ORDER BY m.name')
+  const scope = learnerScope(actor)
+  const members = await all(env, `SELECT m.id, m.email, m.name, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
+    WHERE (? IS NULL OR m.id IN (${UNIT_MEMBERS})) ORDER BY m.name`, scope, scope)
   const statuses = actor.owner ? new Map((await operatorAuth(env).listOperators(request)).map(operator => [operator.email.toLowerCase(), operator])) : new Map()
   return {
     members: members.map(member => ({ id: member.id, email: member.email, name: member.name, roles: statuses.get(member.email)?.role === 'owner' ? [...ROLES] : JSON.parse(member.roles), teams: JSON.parse(member.teams), status: statuses.get(member.email)?.status ?? null, owner: statuses.get(member.email)?.role === 'owner' })),
-    teams: await all(env, 'SELECT id, name FROM beam_teams ORDER BY name'),
+    teams: await all(env, 'SELECT id, name, unit_id AS unit FROM beam_teams WHERE (? IS NULL OR unit_id IN (SELECT value FROM json_each(?))) ORDER BY name', scope, scope),
   }
 }
 

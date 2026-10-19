@@ -7,6 +7,7 @@ import { all, commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
 import { DAY, addDays, localDate, validTimezone, zonedInstant } from './time'
+import { requireCourseRole, requireLearnerScope } from './units'
 
 export interface NewAssignment {
   learner: string
@@ -53,14 +54,17 @@ async function learnersFrom(env: Bindings, input: Input) {
 }
 
 export async function assignCourse(env: Bindings, actor: Actor, input: Input) {
-  requireRole(actor, 'manager')
+  insist(isManager(actor) || actor.adminUnits.length, 'forbidden', 403)
   const business = await requireBusiness(env)
   const course = input.text('course')
+  // A learning administrator enrolls only their units' people in their units' courses (ORG-002).
+  await requireCourseRole(env, actor, course, 'manager')
   const timezone = input.text('timezone', { optional: true }) || business.timezone
   insist(validTimezone(timezone), 'invalid_timezone')
   const dueDate = input.text('dueDate'), dueTime = input.text('dueTime', { optional: true }) || '17:00'
   zonedInstant(dueDate, dueTime, timezone)
   const learners = await learnersFrom(env, input)
+  for (const learner of learners) await requireLearnerScope(env, actor, learner)
   return await insertAssignments(env, actor, learners.map(learner => ({ learner, course, dueDate, dueTime, timezone, reason: 'assigned' })), 'assignment.create')
 }
 
@@ -177,8 +181,14 @@ export async function grantAttempt(env: Bindings, actor: Actor, input: Input) {
 }
 
 export async function cancelAssignment(env: Bindings, actor: Actor, input: Input) {
-  insist(isManager(actor), 'forbidden', 403)
+  insist(isManager(actor) || actor.adminUnits.length, 'forbidden', 403)
   const id = input.text('assignment')
+  if (!isManager(actor)) {
+    const assignment = await one(env, 'SELECT learner_id, course_id FROM beam_assignments WHERE id = ?', id)
+    insist(assignment, 'assignment_not_found', 404)
+    await requireCourseRole(env, actor, assignment.course_id)
+    await requireLearnerScope(env, actor, assignment.learner_id)
+  }
   const reason = input.text('reason', { max: 500 })
   const result = await env.DB.batch([stmt(env, "UPDATE beam_assignments SET status = 'cancelled' WHERE id = ? AND status = 'open'", id), stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, 'assignment.cancel', id, JSON.stringify({ reason }))])
   insist(result[0].meta.changes === 1, 'assignment_not_found', 404)

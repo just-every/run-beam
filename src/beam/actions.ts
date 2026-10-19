@@ -20,6 +20,7 @@ import { recordOffline } from './records'
 import { resetAssignment } from './resets'
 import { grantAccommodation } from './timing'
 import { addSourceVersion, createSource } from './sources'
+import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
 type Handler = (env: Bindings, actor: Actor, input: Input, request: Request) => Promise<unknown>
 
@@ -30,6 +31,11 @@ export const actions: Record<string, Handler> = {
   'person.access': (env, actor, input, request) => setAccess(env, request, actor, input),
   'team.create': (env, actor, input) => createTeam(env, actor, input),
   'team.members': (env, actor, input) => setTeamMembers(env, actor, input),
+  'unit.create': (env, actor, input) => createUnit(env, actor, input),
+  'unit.teams': (env, actor, input) => setUnitTeams(env, actor, input),
+  'course.unit': (env, actor, input) => setCourseUnit(env, actor, input),
+  'admin.grant': (env, actor, input) => grantAdministration(env, actor, input),
+  'admin.revoke': (env, actor, input) => revokeAdministration(env, actor, input),
   'source.create': (env, actor, input) => createSource(env, actor, input),
   'source.version': (env, actor, input) => addSourceVersion(env, actor, input),
   'acknowledgment.request': (env, actor, input) => requestAcknowledgments(env, actor, input),

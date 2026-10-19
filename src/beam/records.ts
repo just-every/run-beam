@@ -11,6 +11,7 @@ import { recordCompletion } from './learning'
 import { requireBusiness } from './people'
 import { recordStatus } from './report'
 import { DAY, calendarDays, localDate, zonedInstant } from './time'
+import { learnerInUnits } from './units'
 
 export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
   requireRole(actor, 'manager', 'assessor')
@@ -57,9 +58,9 @@ export async function certificate(env: Bindings, actor: Actor, id: string) {
   return { id: row.id, number: row.number, issuer: row.issuer, learner: row.learner_name, course: row.course_title, revision: row.revision_number, method: row.method, completedAt: row.completed_at, issuedAt: row.issued_at, expiresAt: row.expires_at }
 }
 
-/** A learner's own record, or any learner's for a manager. */
+/** A learner's own record, any learner's for a manager, or one in their units for a learning administrator. */
 export async function learnerRecord(env: Bindings, actor: Actor, memberId: string) {
-  if (!(memberId === actor.id || isManager(actor))) throw new BeamError('not_found', 404)
+  if (!(memberId === actor.id || isManager(actor) || await learnerInUnits(env, actor, memberId))) throw new BeamError('not_found', 404)
   const member = await one(env, 'SELECT id, name, email FROM beam_members WHERE id = ?', memberId)
   if (!member) throw new BeamError('not_found', 404)
   const assignments = await all(env, `SELECT a.id, a.course_id AS course, c.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,

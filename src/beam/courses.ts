@@ -1,10 +1,11 @@
 // Flow 3: editable courses with one version-checked draft; submission freezes
 // an immutable revision that only the course's named reviewer can publish.
 import type { Bindings } from '../auth.server'
-import { requireRole, type Actor } from './actor'
+import type { Actor } from './actor'
 import { reassignAfterPublish } from './assignments'
 import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
+import { newCourseUnit, requireCourseRole } from './units'
 
 export interface Lesson { id: string; title: string; body: string; sources: string[] }
 export interface Question { id: string; prompt: string; choices: string[]; correct: number[] }
@@ -23,13 +24,13 @@ export interface Draft {
 export const emptyDraft = (title: string, summary: string): Draft => ({ title, summary, lessons: [], questions: [], passPercent: null, maxAttempts: null, timeLimitMinutes: null, practical: null })
 
 export async function createCourse(env: Bindings, actor: Actor, input: Input) {
-  requireRole(actor, 'author')
+  const unit = await newCourseUnit(env, actor, input)
   const title = input.text('title', { max: 160 })
   const summary = input.text('summary', { max: 1000, optional: true })
   const reviewer = input.text('reviewer')
   insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', reviewer), 'reviewer_not_found', 404)
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_courses (id, title, reviewer_id, created_by, created_at, draft_json, draft_version) VALUES (?, ?, ?, ?, ?, ?, 1)', id, title, reviewer, actor.id, now(), JSON.stringify(emptyDraft(title, summary)))], { actor: actor.id, action: 'course.create', subject: id, detail: { title, reviewer } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_courses (id, title, reviewer_id, created_by, created_at, draft_json, draft_version, unit_id) VALUES (?, ?, ?, ?, ?, ?, 1, ?)', id, title, reviewer, actor.id, now(), JSON.stringify(emptyDraft(title, summary)), unit)], { actor: actor.id, action: 'course.create', subject: id, detail: { title, reviewer } })
   return { id, draftVersion: 1 }
 }
 
@@ -74,7 +75,7 @@ export async function normaliseDraft(env: Bindings, value: unknown): Promise<Dra
 }
 
 export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}) {
-  requireRole(actor, 'author')
+  await requireCourseRole(env, actor, input.text('course'), 'author')
   const course = await loadCourse(env, input.text('course'))
   const expected = input.integer('draftVersion', { min: 1, max: 1_000_000 })
   insist(expected === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
@@ -144,7 +145,7 @@ export const saveAssessment = (env: Bindings, actor: Actor, input: Input) => edi
 })
 
 export async function submitForReview(env: Bindings, actor: Actor, input: Input) {
-  requireRole(actor, 'author')
+  await requireCourseRole(env, actor, input.text('course'), 'author')
   const course = await loadCourse(env, input.text('course'))
   insist(input.integer('draftVersion', { min: 1, max: 1_000_000 }) === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
   const draft = await normaliseDraft(env, course.draft)
@@ -187,11 +188,13 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
   return { id: revision.id, state: 'published', reassigned }
 }
 
-export async function listCourses(env: Bindings) {
-  return await all(env, `SELECT c.id, c.title, c.reviewer_id AS reviewer, c.draft_version AS draftVersion, c.published_revision_id AS publishedRevision,
+/** Every course, or only those in the given units (a learning administrator's catalog, ORG-002). */
+export async function listCourses(env: Bindings, units: string[] | null = null) {
+  const scope = units && JSON.stringify(units)
+  return await all(env, `SELECT c.id, c.title, c.unit_id AS unit, c.reviewer_id AS reviewer, c.draft_version AS draftVersion, c.published_revision_id AS publishedRevision,
     (SELECT number FROM beam_course_revisions WHERE id = c.published_revision_id) AS publishedNumber,
     (SELECT COUNT(*) FROM beam_course_revisions WHERE course_id = c.id AND state = 'in_review') AS inReview
-    FROM beam_courses c ORDER BY c.title`)
+    FROM beam_courses c WHERE (? IS NULL OR c.unit_id IN (SELECT value FROM json_each(?))) ORDER BY c.title`, scope, scope)
 }
 
 export async function revisionDetail(env: Bindings, id: string) {
@@ -203,10 +206,10 @@ export async function revisionDetail(env: Bindings, id: string) {
 }
 
 export async function courseDetail(env: Bindings, actor: Actor, id: string) {
-  requireRole(actor, 'author', 'reviewer', 'manager')
+  await requireCourseRole(env, actor, id, 'author', 'reviewer', 'manager')
   const course = await loadCourse(env, id)
   const revisions = await all(env, 'SELECT id, number, title, state, submitted_by AS submittedBy, submitted_at AS submittedAt, reviewed_by AS reviewedBy, reviewed_at AS reviewedAt, review_note AS reviewNote, reassignment FROM beam_course_revisions WHERE course_id = ? ORDER BY number DESC', id)
   const notices = await all(env, 'SELECT n.*, s.title AS source_title, pv.number AS previous_number, nv.number AS new_number FROM beam_source_notices n JOIN beam_sources s ON s.id = n.source_id JOIN beam_source_versions pv ON pv.id = n.previous_version_id JOIN beam_source_versions nv ON nv.id = n.new_version_id WHERE n.course_id = ? ORDER BY n.created_at DESC', id)
   const proposals = await all(env, 'SELECT id, base_draft_version AS baseDraftVersion, input_version_ids AS inputs, prepared_by AS preparedBy, agent, summary, draft_json AS draft, passages_json AS passages, missing_json AS missing, state, decided_by AS decidedBy, created_at AS createdAt FROM beam_proposals WHERE course_id = ? ORDER BY created_at DESC', id)
-  return { id: course.id, title: course.title, reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft, publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
+  return { id: course.id, title: course.title, unit: course.unit_id ?? null, reviewer: course.reviewer_id, draftVersion: course.draft_version, draft: course.draft, publishedRevision: course.published_revision_id, revisions, notices, proposals: proposals.map(proposal => ({ ...proposal, inputs: JSON.parse(proposal.inputs), draft: JSON.parse(proposal.draft), passages: JSON.parse(proposal.passages), missing: JSON.parse(proposal.missing) })) }
 }

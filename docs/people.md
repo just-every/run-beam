@@ -22,6 +22,12 @@ To change someone's roles later, open their roles in the **People** table, tick 
 
 Teams group people who need the same training, such as a front desk. Add one under **Teams** with **Add team**, then open it and tick its **Members**. You can assign a course to a whole team, and a [role path](/docs/assign#role-paths) belongs to one team.
 
+## Business units and learning administrators
+
+A business unit groups teams, such as every team in one region. As the owner, open **Business units and administrators** on **People**, add a unit under **New business unit** and tick its **Teams**. Put a course in a unit from its course page under **Business unit**.
+
+Under **Grant administration**, choose a person and a unit to make them that unit's learning administrator, with an optional end date. They manage the unit's courses, assign its people and read its reports and CSV, and nothing else: other units, people administration, settings, sign-in and providers stay with you. **Revoke** ends a grant at once; an ended or revoked grant stays listed with when and by whom.
+
 ## Remove or restore access
 
 **Remove access** signs the person out everywhere and stops them signing in. Their records stay. **Restore access** lets them sign in again with a fresh sign-in link.
