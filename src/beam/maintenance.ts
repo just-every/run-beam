@@ -9,17 +9,9 @@ import type { Input } from './input'
 
 export async function proposeDraft(env: Bindings, actor: Actor, input: Input, draftValue: unknown) {
   requireRole(actor, 'author')
-  const course = await loadCourse(env, input.text('course'))
-  const base = input.integer('draftVersion', { min: 1, max: 1_000_000 })!
-  insist(base === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
-  const inputs = input.list('inputs')
-  for (const version of inputs) insist(await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', version), 'source_version_not_found', 404)
-  const draft = await normaliseDraft(env, draftValue)
-  const id = newId()
-  const agent = input.text('agent', { max: 120, optional: true }) || null
-  const summary = input.text('summary', { max: 2000 })
   // The passages a proposal relies on must quote one of its named inputs; the
   // reviewer sees them next to what the preparer found missing.
+  const inputs = input.list('inputs')
   const passagesValue = input.json('passages') ?? []
   insist(Array.isArray(passagesValue) && passagesValue.length <= 50, 'invalid_passages')
   const passages = passagesValue.map(passage => {
@@ -30,8 +22,25 @@ export async function proposeDraft(env: Bindings, actor: Actor, input: Input, dr
   })
   const missingValue = input.json('missing') ?? []
   insist(Array.isArray(missingValue) && missingValue.length <= 20 && missingValue.every(item => typeof item === 'string' && item.trim() && item.length <= 300), 'invalid_missing')
-  const missing = (missingValue as string[]).map(item => item.trim())
-  await commit(env, [stmt(env, "INSERT INTO beam_proposals (id, course_id, base_draft_version, input_version_ids, prepared_by, agent, summary, draft_json, state, created_at, passages_json, missing_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)", id, course.id, base, JSON.stringify(inputs), actor.id, agent, summary, JSON.stringify(draft), now(), JSON.stringify(passages), JSON.stringify(missing))], { actor, action: 'proposal.create', subject: id, detail: { course: course.id, base, inputs, agent, viaAgent: actor.agent } })
+  return await createProposal(env, actor, {
+    course: input.text('course'), draftVersion: input.integer('draftVersion', { min: 1, max: 1_000_000 })!, inputs, draft: draftValue,
+    agent: input.text('agent', { max: 120, optional: true }) || null, summary: input.text('summary', { max: 2000 }), passages, missing: (missingValue as string[]).map(item => item.trim()),
+  })
+}
+
+export interface ProposalFields { course: string; draftVersion: number; inputs: string[]; draft: unknown; agent: string | null; summary: string; passages: { sourceVersion: string; quote: string; lesson: string | null }[]; missing: string[] }
+
+/** Records a proposed draft against the course's current draft version; the caller has checked who may propose. */
+export async function createProposal(env: Bindings, actor: Actor, fields: ProposalFields, link: { thread?: string } = {}) {
+  const course = await loadCourse(env, fields.course)
+  const base = fields.draftVersion
+  insist(base === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
+  const inputs = fields.inputs
+  for (const version of inputs) insist(await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', version), 'source_version_not_found', 404)
+  const draft = await normaliseDraft(env, fields.draft)
+  const id = newId()
+  const { agent, summary, passages, missing } = fields
+  await commit(env, [stmt(env, "INSERT INTO beam_proposals (id, course_id, base_draft_version, input_version_ids, prepared_by, agent, summary, draft_json, state, created_at, passages_json, missing_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)", id, course.id, base, JSON.stringify(inputs), actor.id, agent, summary, JSON.stringify(draft), now(), JSON.stringify(passages), JSON.stringify(missing))], { actor, action: 'proposal.create', subject: id, detail: { course: course.id, base, inputs, agent, viaAgent: actor.agent, ...link } })
   return { id }
 }
 

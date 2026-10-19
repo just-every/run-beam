@@ -28,6 +28,7 @@ import { receivedCard } from './announcements'
 import { business, memberNames } from '../people'
 import { certificate, learnerRecord, queues, reminders } from '../records'
 import { formatDate } from '../time'
+import { discussionCard } from './discussions'
 import branding from '../../branding.json'
 import { formatDay } from '../time'
 import { bookStack, documentSheet } from './drawings'
@@ -66,7 +67,7 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
   const completed = card('Completed', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} (revision ${row.revisionNumber})`, meta: h`${formatDate(row.completedAt, zone)}${row.expiresAt ? h` · renew by ${formatDate(row.expiresAt, zone)}` : ''} · <a href="/app/certificates/${row.certificate}">Certificate</a>` }))) : h`<p>No completions yet.</p>${raw(documentSheet)}`, { id: 'done', className: record.completions.length ? '' : 'empty' })
   const side = [review, assess].filter(Boolean)
   const body = h`<h1>My learning</h1>
-${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${externalCard(external)}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
+${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${externalCard(external)}${await discussionCard(env, actor)}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
 ${open.length ? assigned : ''}
 <div class="grid">${open.length ? '' : assigned}${completed}${side}</div>`
   return page('My learning', actor, body, { current: '/app/learning', url })
@@ -130,7 +131,7 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
   const action = view.assignment.status === 'open' && view.assignment.learner === actor.id && !view.blocked
     ? form('lesson.complete', next ? `/app/learn/${id}/lessons/${next.id}` : `/app/learn/${id}`, [hidden('assignment', id), hidden('lesson', lesson.id)], lesson.completed ? (next ? 'Next lesson' : 'Back to course') : next ? 'Mark done and continue' : 'Mark done')
     : ''
-  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">Lesson ${index + 1} of ${view.lessons.length}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">Lesson reading</p><div class="lesson-body">${lessonText(lesson.body, { lead: true })}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`) : ''}`
+  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">Lesson ${index + 1} of ${view.lessons.length}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">Lesson reading</p><div class="lesson-body">${lessonText(lesson.body, { lead: true })}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? h`${feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`)}<p><a href="/app/discussions/${view.assignment.course}?lesson=${lessonId}">Ask about this lesson or discuss it</a></p>` : ''}`
   return page(lesson.title, actor, body, { current: '/app/learning', url })
 }
 

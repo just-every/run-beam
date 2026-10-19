@@ -44,6 +44,7 @@ import { importBank, previewBank } from './bank-import'
 import { excludeFromAudience, includeInAudience, previewAudience, saveAudience, setAudienceState, syncAudience, syncAudiences } from './audiences'
 import { applyBatch, previewBatch } from './roster-batch'
 import { editDirectory, importRoster, resolveConflict as resolveRosterConflict, saveDirectoryField } from './directory'
+import { askQuestion, decideFile, hidePost, proposeFromThread, reply, resolveQuestion } from './discussions'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
 type Handler = (env: Bindings, actor: Actor, input: Input, request: Request) => Promise<unknown>
@@ -198,4 +199,10 @@ export const actions: Record<string, Handler> = {
   'questions.answer': (env, actor, input) => answerQuestions(env, actor, input),
   'questions.decline': (env, actor, input) => declineQuestions(env, actor, input),
   'questions.close': (env, actor, input) => closeQuestions(env, actor, input),
+  'discussion.ask': (env, actor, input) => askQuestion(env, actor, input),
+  'discussion.reply': (env, actor, input) => reply(env, actor, input),
+  'discussion.resolve': (env, actor, input) => resolveQuestion(env, actor, input),
+  'discussion.propose': (env, actor, input) => proposeFromThread(env, actor, input),
+  'discussion.file': (env, actor, input) => decideFile(env, actor, input),
+  'discussion.hide': (env, actor, input) => hidePost(env, actor, input),
 }

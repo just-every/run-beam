@@ -36,6 +36,8 @@ import { externalFile } from './external'
 import { certificatePdfResponse } from './certificates'
 import { certificatePage, templatesPage, verifyPage } from './ui/certificates'
 import { externalPage } from './ui/external'
+import { discussionsPage } from './ui/discussions'
+import { discussionFile } from './discussions'
 import { sessionForCalendar } from './live'
 import { transcriptCsvResponse, transcriptPage, transcriptXlsxResponse } from './ui/transcript'
 import { describeError, page, h } from './ui/html'
@@ -199,6 +201,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/catalog') return catalogPage(env, actor, url)
   if (path === '/app/sessions') return sessionsPage(env, actor, url)
   if (path === '/app/external') return externalPage(env, actor, url)
+  if ((match = path.match(/^\/app\/discussions\/([\w-]+)$/))) return discussionsPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/roster$/))) return rosterPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/calendar\.ics$/))) return calendarResponse(env, actor, match[1])
   if (path === '/app/audit.csv') return auditCsvResponse(env, actor, url)
@@ -208,6 +211,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/files\/source\/([\w-]+)$/))) return sourceFile(env, actor, match[1], url.searchParams.has('download'))
   if ((match = path.match(/^\/app\/files\/attachment\/([\w-]+)$/))) return attachmentFile(env, actor, match[1])
   if ((match = path.match(/^\/app\/files\/external\/([\w-]+)$/))) return externalFile(env, actor, match[1])
+  if ((match = path.match(/^\/app\/files\/discussion\/([\w-]+)$/))) return discussionFile(env, actor, match[1])
   throw new BeamError('not_found', 404)
 }
 

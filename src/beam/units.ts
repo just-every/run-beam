@@ -14,7 +14,7 @@ import { courseUnits } from './scope'
 const outside = (actor: Actor) => courseUnits(actor).length ? 'outside_your_units' : actor.authorOf.length ? 'outside_your_courses' : 'forbidden'
 
 /** A course in a unit whose catalog this person manages: as its learning administrator, or by a courses permission (ORG-010). */
-async function courseInUnits(env: Bindings, actor: Actor, course: string) {
+export async function courseInUnits(env: Bindings, actor: Actor, course: string) {
   const units = courseUnits(actor)
   return units.length > 0 && !!await one(env, 'SELECT 1 FROM beam_courses WHERE id = ? AND unit_id IN (SELECT value FROM json_each(?))', course, JSON.stringify(units))
 }
