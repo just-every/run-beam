@@ -95,6 +95,8 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
     const [person] = await all<{ email: string }>(env, 'SELECT email FROM beam_members WHERE id = ?', selected.learner)
     detail = { email: person?.email, assessor: null, assessorName: null, maxAttempts: null, extra: 0, prerequisiteTitle: null, exhausted: false, blocked: false, remindedAt: null }
   }
-  return { filters, counts, total: rows.length, teams, queue, selected, detail, coverage, waiting, activity, renewals: work.renewals.length, at }
+  // AUTO-006: blockers waiting for a decision and the records a deferral or exemption holds now.
+  const excepted = shaped.filter(row => row.status === 'deferred' || row.status === 'exempt')
+  return { filters, counts, total: rows.length, teams, queue, selected, detail, coverage, waiting, activity, renewals: work.renewals.length, blockers: work.blockers, excepted, at }
 }
 export type ComplianceView = Awaited<ReturnType<typeof complianceView>>

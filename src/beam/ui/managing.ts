@@ -15,6 +15,8 @@ import { timingCard } from './timing'
 import { unitsCard } from './units'
 import { rolesCard } from './roles'
 import { auditorsCard } from './evidence'
+import { policyCard } from './exceptions'
+import { exceptionPolicy } from '../exceptions'
 
 const ROLE_LABELS: Record<string, string> = { author: 'Author', reviewer: 'Reviewer', learner: 'Learner', manager: 'Manager', assessor: 'Assessor' }
 const roleOptions = ROLES.map(role => ({ value: role, label: ROLE_LABELS[role] }))
@@ -24,7 +26,7 @@ export async function businessPage(env: Bindings, actor: Actor, url: URL) {
   requireOwner(actor)
   const current = await business(env)
   const zones = Intl.supportedValuesOf('timeZone')
-  const body = h`<h1>${current ? 'Business settings' : 'Set up your business'}</h1>${current ? '' : h`<p class="subtitle">Name your business and its time zone before anything else.</p>`}<div class="card settings">${form('business.configure', '/app', [field('Business name', 'name', { value: current?.name ?? '' }), select('Time zone for due dates', 'timezone', zones.map(zone => ({ value: zone, label: zone })), current?.timezone ?? 'America/Chicago')], 'Save')}</div>`
+  const body = h`<h1>${current ? 'Business settings' : 'Set up your business'}</h1>${current ? '' : h`<p class="subtitle">Name your business and its time zone before anything else.</p>`}<div class="card settings">${form('business.configure', '/app', [field('Business name', 'name', { value: current?.name ?? '' }), select('Time zone for due dates', 'timezone', zones.map(zone => ({ value: zone, label: zone })), current?.timezone ?? 'America/Chicago')], 'Save')}</div>${current ? policyCard(await exceptionPolicy(env)) : ''}`
   return page('Business', actor, body, { url })
 }
 

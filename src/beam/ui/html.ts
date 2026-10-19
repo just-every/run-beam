@@ -130,6 +130,12 @@ export function bytes(value: number) {
 
 const ERRORS: Record<string, string> = {
   stale_draft: 'someone else saved this draft first. Reload and apply your change again.',
+  exemption_not_allowed: 'the owner’s exception policy lets managers defer this, not exempt it. Ask a learning administrator or the owner.',
+  exception_too_long: 'that end date is longer than the exception policy allows.',
+  exception_ends_in_past: 'the end date has already passed.',
+  exception_active: 'an exception already holds this assignment until its end date.',
+  blocker_already_reported: 'a blocker is already waiting for a decision on this assignment.',
+  backdated_completion: 'this attendance is dated before the due date of an assignment that was already overdue, so it cannot close it. Cancel that assignment with a reason first, then record the attendance.',
   proposal_stale: 'what this proposal was prepared from changed after it was prepared, so it cannot be applied as is.',
   lessons_incomplete: 'finish every lesson first.',
   prerequisite_incomplete: 'the prerequisite course must be completed first.',

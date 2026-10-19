@@ -13,6 +13,8 @@ import { assignmentView } from '../learning'
 import { acknowledgmentList } from '../acknowledgments'
 import { acknowledgmentCard } from './acknowledgments'
 import { reminderMessages } from '../plans'
+import { permits } from '../scope'
+import { blockerCard, exceptionCard, exceptionNotice } from './exceptions'
 import { scenariosFor } from '../practice'
 import { myQuestions } from '../questions'
 import { announcements } from '../announcements'
@@ -26,7 +28,7 @@ import { bookStack, documentSheet } from './drawings'
 import { area, backLink, card, cellLabel, field, lessonCount, fileField, form, h, hidden, lessonText, page, pill, progress, raw, rows, when, type Html } from './html'
 import { icon } from './icons'
 
-const STATUS: Record<string, string> = { open: 'Open', completed: 'Completed', expiring: 'Expiring', overdue: 'Overdue', cancelled: 'Canceled', replaced: 'Replaced' }
+const STATUS: Record<string, string> = { open: 'Open', completed: 'Completed', expiring: 'Expiring', overdue: 'Overdue', cancelled: 'Canceled', replaced: 'Replaced', deferred: 'Deferred', exempt: 'Exempt' }
 const statusLabel = (row: any) => row.state === 'overdue' ? `Overdue, ${row.daysOverdue} ${row.daysOverdue === 1 ? 'day' : 'days'}` : STATUS[row.state] ?? row.state
 const METHOD: Record<string, string> = { lessons: 'lessons', assessed: 'lessons and assessment', offline: 'attested offline training' }
 const attemptState = (state: string) => ({ awaiting_review: 'waiting for the assessor', accepted: 'accepted', rejected: 'returned for resubmission' } as Record<string, string>)[state] ?? state.replace(/_/g, ' ')
@@ -84,15 +86,18 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   // A learning administrator's own enrollments carry their window forms (ORG-002, AUTO-009).
   const ownEnrollment = actor.adminUnits.length > 0 && a.assignedBy === actor.id
   const access = a.learner !== actor.id && (actor.owner || actor.roles.has('manager') || ownEnrollment) && (a.status === 'open' || view.access.closesAt) ? accessCard(id, view.access, zone, { owner: actor.owner || ownEnrollment, open: a.status === 'open' }) : ''
+  // AUTO-006: the learner reports a blocker; whoever may enroll them defers, exempts or declines it.
+  const blockers = a.learner === actor.id ? blockerCard(view, id, zone) : ''
+  const exceptions = a.learner !== actor.id && permits(actor, 'enrollment') ? exceptionCard(view, id, zone) : ''
   const completion = view.completion ? card('Completion', h`<p><mark class="hl">Completed</mark> ${when(view.completion.completedAt, a.timezone, zone)} against revision ${a.revisionNumber}. <a href="/app/certificates/${view.completion.certificate}">Certificate</a></p>`) : ''
   const body = h`${backLink('/app/learning', 'My learning')}<h1>${a.courseTitle}</h1>
 <p class="subtitle">Revision ${a.revisionNumber} · ${a.status} · due ${when(a.dueAt, a.timezone, zone)}${a.status === 'open' && accessNote(view.access, zone) ? ` · ${accessNote(view.access, zone)}` : ''}${a.learner !== actor.id ? h` · learner ${names.get(a.learner)}` : ''}</p>
 ${view.dueExceptions.length ? h`<p class="muted">${view.dueExceptions.map(change => `Due date moved from ${when(change.previousDueAt, a.timezone, zone)} by ${change.approvedByName}: ${change.reason}`).join(' · ')}</p>` : ''}
 ${view.blocked ? h`<p class="flash">Complete the prerequisite course first; your manager can see this requirement.</p>` : ''}
-${resetNotice}${a.status === 'open' ? accessBanner(view.access, zone) : ''}
+${resetNotice}${exceptionNotice(view, a, zone)}${a.status === 'open' ? accessBanner(view.access, zone) : ''}
 ${launchable && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? 'Resume' : 'Start'}</a></p>` : ''}
 ${completion}
-<div class="split">${lessons}<div class="stack">${quiz}${practical}${practiceCard}${attempts}${history}${access}${manage}</div></div>`
+<div class="split">${lessons}<div class="stack">${quiz}${practical}${practiceCard}${attempts}${history}${access}${blockers}${manage}${exceptions}</div></div>`
   return page(a.courseTitle, actor, body, { current: '/app/learning', url })
 }
 

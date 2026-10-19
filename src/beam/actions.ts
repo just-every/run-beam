@@ -8,6 +8,7 @@ import { decideAcknowledgment, requestAcknowledgments } from './acknowledgments'
 import { decide, propose } from './agent-work'
 import { assignCourse, assignPath, assignRenewals, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
+import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
 import { grantRole, revokeRole, saveRole } from './roles'
 import { grantAuditor, revokeAuditor } from './auditors'
 import { correctAudit } from './audit'
@@ -42,6 +43,10 @@ export const actions: Record<string, Handler> = {
   'team.coverage': (env, actor, input) => grantCoverage(env, actor, input),
   'team.coverage.end': (env, actor, input) => endCoverage(env, actor, input),
   'assignment.due': (env, actor, input) => moveDueDate(env, actor, input),
+  'blocker.report': (env, actor, input) => reportBlocker(env, actor, input),
+  'blocker.decline': (env, actor, input) => declineBlocker(env, actor, input),
+  'exception.grant': (env, actor, input) => grantException(env, actor, input),
+  'exception.policy': (env, actor, input) => setExceptionPolicy(env, actor, input),
   'auditor.grant': (env, actor, input) => grantAuditor(env, actor, input),
   'auditor.revoke': (env, actor, input) => revokeAuditor(env, actor, input),
   'role.save': (env, actor, input) => saveRole(env, actor, input),

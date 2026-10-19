@@ -10,8 +10,10 @@ Open **Reports**. Filter by **Course**, **Team** and **Status**, then press **Ap
 | Overdue | Assigned and past its due time. |
 | Completed | Completed against the named revision, and current for more than 30 days. |
 | Expiring | Completed, and the completion expires within 30 days. |
+| Deferred | Assigned, with a deferral that still holds: not counted overdue until its end date. |
+| Exempt | Assigned, with an exemption that still holds: the requirement is waived until its end date. |
 
-Every record has exactly one status, the same as on **Manage**, so the line above the table adds up: records = completed + expiring + overdue + open.
+Every record has exactly one status, the same as on **Manage**, so the line above the table adds up: records = completed + expiring + overdue + open + deferred + exempt. A deferral or exemption never moves the due date: the row keeps its due date, shows the original one before any due-date exception, and names the exception, its end date, its reason and who granted it, also after it ends.
 
 Each row shows the learner, the course and revision, the due time in its time zone, lessons done, quiz attempts, the practical decision, the completion date with its certificate number, and when it expires.
 

@@ -9,7 +9,8 @@ import { store } from './files'
 import type { Input } from './input'
 import { recordCompletion } from './learning'
 import { requireBusiness } from './people'
-import { recordStatus } from './report'
+import { parseException, recordStatus } from './report'
+import { EXCEPTED, LATEST_EXCEPTION, openBlockers } from './exceptions'
 import { DAY, calendarDays, localDate, zonedInstant } from './time'
 import { inScope, manages, permits, requireLearnerScope } from './scope'
 import { sharesCertificate } from './auditors'
@@ -35,6 +36,12 @@ export async function recordOffline(env: Bindings, actor: Actor, input: Input) {
   // A manager records attendance for their own teams (ORG-004); an assessor attests under their separate grant.
   if (!actor.roles.has('assessor')) for (const learner of learners) requireLearnerScope(actor, learner, 'live_sessions')
   insist(!learners.includes(actor.id), 'self_attestation_refused', 403)
+  // AUTO-006: attendance never closes an assignment that was already overdue when it is recorded with a date before
+  // that due instant; the overdue record stays (cancel it with a reason, then record the attendance).
+  for (const learner of learners) {
+    const late = await one(env, "SELECT id FROM beam_assignments WHERE learner_id = ? AND course_id = ? AND course_revision_id = ? AND status = 'open' AND due_at < ? AND due_at > ?", learner, course.id, revision, now(), completedAt)
+    insist(!late, 'backdated_completion', 409, { learner, assignment: late?.id })
+  }
   const file = await input.file('file', { optional: true })
   const attachment = file ? { id: newId(), ...await store(env, file) } : null
   // The form carries a one-time submission key, so a double click or a retried form records the attendance once.
@@ -68,11 +75,14 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
   if (!member) throw new BeamError('not_found', 404)
   const assignments = await all(env, `SELECT a.id, a.course_id AS course, c.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,
     (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone, (SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id = a.course_revision_id) AS lessonsTotal,
-    k.id AS completion, k.expires_at AS expiresAt, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt
+    k.id AS completion, k.expires_at AS expiresAt, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt, ${LATEST_EXCEPTION('a.id')} AS exception
     FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id LEFT JOIN beam_completions k ON k.assignment_id = a.id WHERE a.learner_id = ? ORDER BY a.status = 'open' DESC, a.due_at`, memberId)
   // `state` is the record's one status, the same as Manage and the report show; `status` stays the stored assignment state.
   const at = now()
-  const shaped = assignments.map(row => ({ ...row, access: accessState({ access_opens_at: row.accessOpensAt, access_closes_at: row.accessClosesAt }, at), state: recordStatus({ ...row, assignmentStatus: row.status } as any, at), daysOverdue: row.status === 'open' && row.dueAt < at ? calendarDays(row.dueAt, at, row.timezone) : null }) as Row)
+  const shaped = assignments.map(row => {
+    const exception = parseException(row.exception, at), state = recordStatus({ ...row, exception, assignmentStatus: row.status } as any, at)
+    return { ...row, exception, access: accessState({ access_opens_at: row.accessOpensAt, access_closes_at: row.accessClosesAt }, at), state, daysOverdue: state === 'overdue' ? calendarDays(row.dueAt, at, row.timezone) : null } as Row
+  })
   const completions = await all(env, `SELECT c.id, c.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, c.course_revision_id AS revision, c.assessment_revision_id AS assessmentRevision, c.method, c.evidence_json AS evidence, c.completed_at AS completedAt, c.expires_at AS expiresAt, k.id AS certificate
     FROM beam_completions c JOIN beam_course_revisions r ON r.id = c.course_revision_id LEFT JOIN beam_certificates k ON k.completion_id = c.id WHERE c.learner_id = ? ORDER BY c.completed_at DESC`, memberId)
   const history = (await all(env, "SELECT id, payload FROM beam_imported_history WHERE kind = 'completion'")).map(row => ({ id: row.id, ...JSON.parse(row.payload) })).filter(row => row.member === memberId)
@@ -82,7 +92,7 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
 export async function reminders(env: Bindings, actor: Actor) {
   const soon = now() + 3 * DAY
   return await all(env, `SELECT a.id, c.title AS courseTitle, a.due_at AS dueAt, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, CASE WHEN a.due_at < ? THEN 'overdue' ELSE 'due_soon' END AS kind
-    FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.learner_id = ? AND a.status = 'open' AND a.due_at <= ? ORDER BY a.due_at`, now(), actor.id, soon)
+    FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.learner_id = ? AND a.status = 'open' AND a.due_at <= ? AND NOT ${EXCEPTED('a.id')} ORDER BY a.due_at`, now(), actor.id, soon, now())
 }
 
 export async function queues(env: Bindings, actor: Actor) {
@@ -90,7 +100,8 @@ export async function queues(env: Bindings, actor: Actor) {
   const mine = <T extends { learner: string }>(rows: T[]) => rows.filter(row => inScope(actor, row.learner))
   return {
     overdue: manager ? mine(await all<any>(env, `SELECT a.id, a.learner_id AS learner, m.name AS learnerName, c.title AS courseTitle, a.due_at AS dueAt, a.timezone FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id
-      WHERE a.status = 'open' AND a.due_at < ? ORDER BY a.due_at`, now())) : [],
+      WHERE a.status = 'open' AND a.due_at < ? AND NOT ${EXCEPTED('a.id')} ORDER BY a.due_at`, now(), now())) : [],
+    blockers: await openBlockers(env, actor),
     attemptsExhausted: manager ? mine(await all<any>(env, `SELECT a.id, a.learner_id AS learner, m.name AS learnerName, c.title AS courseTitle FROM beam_assignments a JOIN beam_members m ON m.id = a.learner_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_assessment_revisions s ON s.course_revision_id = a.course_revision_id
       WHERE a.status = 'open' AND s.max_attempts IS NOT NULL AND (SELECT COUNT(*) FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.reset_id IS NULL) >= s.max_attempts + a.extra_attempts
       AND NOT EXISTS (SELECT 1 FROM beam_attempts t WHERE t.assignment_id = a.id AND t.kind = 'quiz' AND t.passed = 1 AND t.reset_id IS NULL)`)) : [],

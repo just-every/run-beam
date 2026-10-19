@@ -10,6 +10,7 @@ import { people } from '../people'
 import { calendarDays, formatClock, formatDate, formatWeekday, localDate } from '../time'
 import { agentName, area, card, cellLabel, checks, count, field, fileField, form, h, hidden, page, raw, select, type Html } from './html'
 import { icon, type IconName } from './icons'
+import { manageExceptions } from './exceptions'
 
 const CARDS: { status: Queue; label: string; icon: IconName; tone: string }[] = [
   { status: 'completed', label: 'Completed', icon: 'person', tone: 'done' },
@@ -45,7 +46,7 @@ export async function managePage(env: Bindings, actor: Actor, request: Request, 
   const cards = h`<ul class="counts" aria-label="Training records by status">${CARDS.map(item => h`<li><a class="count-card tone-${item.tone}" href="${link({ status: item.status })}"${item.status === filters.status ? raw(' aria-current="true"') : ''}><strong>${count(view.counts[item.status])}</strong><span>${item.label}</span><i class="disc">${raw(icon(item.icon, { size: 22 }))}</i></a></li>`)}</ul>`
   const courseList = courses.filter(course => course.publishedRevision).map(course => ({ id: course.id, title: course.title }))
   const body = h`<div class="manage">${head}${cards}${agentStrip(view, zone)}${queue(view, link, zone, courseList)}${decision(view, link, zone)}
-${coverage(view)}
+${coverage(view)}${manageExceptions(view, zone)}
 <div class="manage-forms">${assignCard(courses, list, zone)}${offlineCard(courses, list, attestedRevisions, zone)}</div></div>`
   return page('Manage', actor, body, { current: '/app/manage', url, tools, wide: true })
 }

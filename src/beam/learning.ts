@@ -16,6 +16,7 @@ import { DAY } from './time'
 import { inScope, manages } from './scope'
 import { sharesFile } from './auditors'
 import { dueExceptions } from './assignments'
+import { assignmentExceptions } from './exceptions'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
   const assignment = await one(env, 'SELECT a.*, c.title AS course_title FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.id = ?', id)
@@ -94,6 +95,8 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     resets: learner || isManager(actor) ? (await resetHistory(env, assignment.id)).map(reset => ({ ...reset, attempts: state.earlier.filter(attempt => attempt.reset === reset.id).map(attempt => ({ ...attempt, closedByReset: attempt.state === 'awaiting_review' }) as Row) })) : [],
     // ORG-004: every due-date exception, with the earlier due date, who approved it and why.
     dueExceptions: await dueExceptions(env, assignment.id),
+    // AUTO-006: blockers the learner reported and every deferral or exemption, kept after they end.
+    ...await assignmentExceptions(env, assignment.id),
     completion: completion ? { id: completion.id, method: completion.method, completedAt: completion.completed_at, expiresAt: completion.expires_at, certificate: completion.certificate, revision: completion.course_revision_id, assessmentRevision: completion.assessment_revision_id } : null,
   }
 }
