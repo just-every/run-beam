@@ -39,7 +39,7 @@ export async function resetAssignment(env: Bindings, actor: Actor, input: Input)
 
 /** Resets of one assignment, oldest first, with the lesson records each moved to history. */
 export async function resetHistory(env: Bindings, assignmentId: string) {
-  const resets = await all<{ id: string; resetBy: string; resetByName: string; reason: string; resetAt: number; extraAttempts: number }>(env, 'SELECT r.id, r.reset_by AS resetBy, m.name AS resetByName, r.reason, r.reset_at AS resetAt, r.extra_attempts AS extraAttempts FROM beam_assignment_resets r JOIN beam_members m ON m.id = r.reset_by WHERE r.assignment_id = ? ORDER BY r.reset_at, r.rowid', assignmentId)
+  const resets = await all<{ id: string; resetBy: string; resetByName: string; reason: string; resetAt: number; extraAttempts: number; kind: string }>(env, 'SELECT r.id, r.reset_by AS resetBy, m.name AS resetByName, r.reason, r.reset_at AS resetAt, r.extra_attempts AS extraAttempts, r.kind FROM beam_assignment_resets r JOIN beam_members m ON m.id = r.reset_by WHERE r.assignment_id = ? ORDER BY r.reset_at, r.rowid', assignmentId)
   const lessons = await all(env, 'SELECT reset_id AS reset, lesson_revision_id AS lesson, completed_at AS completedAt FROM beam_lesson_progress_history WHERE assignment_id = ? ORDER BY completed_at', assignmentId)
   return resets.map(reset => ({ ...reset, lessons: lessons.filter(row => row.reset === reset.id).map(({ lesson, completedAt }) => ({ lesson, completedAt })) }))
 }

@@ -1,5 +1,6 @@
 // Flows 4, 5 and renewals: role paths with prerequisites and renewal intervals,
 // assignments to individuals and teams with due dates in an explicit time zone.
+import { moveOpenAssignments } from './moves'
 import type { Bindings } from '../auth.server'
 import { accessRule, enrolmentWindow, type Window } from './access'
 import { isManager, requireRole, type Actor } from './actor'
@@ -141,16 +142,16 @@ export async function listPaths(env: Bindings, actor: Actor) {
 export async function reassignAfterPublish(env: Bindings, actor: Actor, course: string, revision: string, mode: string, dueDays: number) {
   if (mode === 'none') return 0
   const business = await requireBusiness(env)
-  const open = await all(env, "SELECT * FROM beam_assignments WHERE course_id = ? AND status = 'open' AND course_revision_id != ?", course, revision)
-  await commit(env, open.map(row => stmt(env, "UPDATE beam_assignments SET status = 'replaced' WHERE id = ? AND status = 'open'", row.id)), { actor, action: 'assignment.replace', subject: course, detail: { revision, replaced: open.map(row => row.id) } })
-  const items: NewAssignment[] = open.map(row => ({ learner: row.learner_id, course, dueDate: row.due_date, dueTime: row.due_time, timezone: row.timezone, reason: 'revision', pathRevision: row.path_revision_id, prerequisite: row.prerequisite_course_id, renewalDays: row.renewal_days, access: { opensAt: row.access_opens_at, closesAt: row.access_closes_at, rule: row.access_rule } }))
+  // AUTHOR-010: open assignments move with their unchanged progress (moves.ts).
+  const moved = await moveOpenAssignments(env, actor, course, revision)
+  const items: NewAssignment[] = []
   if (mode === 'everyone') {
     const completed = await all(env, `SELECT DISTINCT learner_id FROM beam_completions WHERE course_id = ? AND course_revision_id != ?
       AND learner_id NOT IN (SELECT learner_id FROM beam_assignments WHERE course_id = ? AND status = 'open')`, course, revision, course)
     const dueDate = addDays(localDate(now(), business.timezone), dueDays)
     for (const row of completed) if (!items.some(item => item.learner === row.learner_id)) items.push({ learner: row.learner_id, course, dueDate, dueTime: '17:00', timezone: business.timezone, reason: 'revision' })
   }
-  return (await insertAssignments(env, actor, items, 'assignment.revision')).created.length
+  return moved + (await insertAssignments(env, actor, items, 'assignment.revision')).created.length
 }
 
 /** Latest completion per learner/course, with no open assignment. The durable

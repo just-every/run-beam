@@ -7,6 +7,7 @@
 // completes only the exact revision of the learner's assignment, and only when that reviewed revision requires
 // attendance and its online parts are also done (learning.ts); a course without the requirement is never completed by
 // attendance, and other courses of a blended path stay outstanding.
+import { MOVE_CHAIN } from './moves'
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
@@ -92,5 +93,5 @@ export async function roster(env: Bindings, actor: Actor, id: string) {
 }
 
 /** Every attendance record of an assignment, amendments included, for the learner and their managers (learning.ts). */
-export const attendanceRecords = (env: Bindings, assignment: string) => all(env, `SELECT t.id, s.title AS sessionTitle, t.status, t.minutes, t.decision, t.note, t.attachment_id AS attachment, t.recorded_at AS recordedAt, b.name AS recordedByName, t.amends_id AS amends, t.amend_reason AS reason, t.superseded_at AS supersededAt
-  FROM beam_attendance t JOIN beam_sessions s ON s.id = t.session_id JOIN beam_members b ON b.id = t.recorded_by WHERE t.assignment_id = ? ORDER BY t.recorded_at, t.rowid`, assignment)
+export const attendanceRecords = (env: Bindings, assignment: string) => all(env, `${MOVE_CHAIN} SELECT t.id, s.title AS sessionTitle, t.status, t.minutes, t.decision, t.note, t.attachment_id AS attachment, t.recorded_at AS recordedAt, b.name AS recordedByName, t.amends_id AS amends, t.amend_reason AS reason, t.superseded_at AS supersededAt
+  FROM beam_attendance t JOIN beam_sessions s ON s.id = t.session_id JOIN beam_members b ON b.id = t.recorded_by WHERE t.assignment_id IN (SELECT id FROM chain) ORDER BY t.recorded_at, t.rowid`, assignment)

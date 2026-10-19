@@ -4,11 +4,11 @@ Only a course's named reviewer publishes its revisions. A published revision nev
 
 Revisions waiting for you appear under **Waiting for my review** on **My learning**. Open one to read every lesson and the assessment as learners will see them.
 
-To publish, choose what happens **When published**:
+To publish, choose what happens **When published**. **If you move open assignments** above the form shows, before you publish, who would move, which lessons each keeps or reopens, what happens to their attempts, and who has finished an earlier revision:
 
 - **Keep current assignments on their revision**: people finish the revision they started.
-- **Move open assignments to this revision**: people still working move to the new revision.
-- **Also reassign everyone who completed an earlier revision**: everyone takes the new revision, including those already done.
+- **Move open assignments to this revision, keeping unchanged progress**: people still working move to the new revision. Lessons whose title, text and sources did not change stay done; changed and new lessons open again. If the quiz and practical are unchanged, attempts carry over (a pass stays a pass, and a practical waiting for its assessor still counts); if they changed, earlier attempts no longer count and an unfinished practical or timed quiz is voided, kept in the learner's history.
+- **Move open assignments and reassign everyone who completed an earlier revision (a material change)**: as above, and people already done get a new assignment due in the number of days you set. Their earlier completions and certificates never change.
 
 Set the **Days to complete a reassignment**, add a note if you like, and press **Publish this revision**.
 

@@ -1,6 +1,7 @@
 // Flows 6-9: learners resume lessons, take deterministic quizzes and submit
 // practical evidence; completion is recorded only when every requirement of the
 // exact assigned revision is met, and is bound to that revision.
+import { ATTEMPT_CHAIN, MOVE_CHAIN, countingAssignment, movesOf } from './moves'
 import { attendanceRecords, keepsRoster } from './attendance'
 import type { Bindings } from '../auth.server'
 import { accessView, requireAccess } from './access'
@@ -36,7 +37,8 @@ async function progress(env: Bindings, assignment: any) {
   const content = await revisionDetail(env, assignment.course_revision_id)
   const done = new Set((await all<{ lesson_revision_id: string }>(env, 'SELECT lesson_revision_id FROM beam_lesson_progress WHERE assignment_id = ?', assignment.id)).map(row => row.lesson_revision_id))
   // Attempts closed by a reset (LEARN-019) stay as history and no longer count.
-  const recorded = await all(env, 'SELECT id, kind, number, submitted_at AS submittedAt, score, max_score AS maxScore, passed, scoring_rule AS scoringRule, retry_decision AS retryDecision, state, evidence_text AS evidenceText, attachment_id AS attachment, reset_id AS reset, close_reason AS closeReason FROM beam_attempts WHERE assignment_id = ? ORDER BY submitted_at', assignment.id)
+  // AUTHOR-010: attempts of earlier assignments moved here with an unchanged assessment count too.
+  const recorded = await all(env, `${ATTEMPT_CHAIN} SELECT id, kind, number, submitted_at AS submittedAt, score, max_score AS maxScore, passed, scoring_rule AS scoringRule, retry_decision AS retryDecision, state, evidence_text AS evidenceText, attachment_id AS attachment, reset_id AS reset, close_reason AS closeReason FROM beam_attempts WHERE assignment_id IN (SELECT id FROM chain) ORDER BY submitted_at`, assignment.id)
   const attempts = recorded.filter(attempt => !attempt.reset), earlier = recorded.filter(attempt => attempt.reset)
   const nextNumber = (kind: string) => recorded.filter(attempt => attempt.kind === kind).length + 1
   const assessment = content.assessment
@@ -61,7 +63,7 @@ async function progress(env: Bindings, assignment: any) {
  * attendance stay separate requirements; neither stands in for the other. */
 export async function attendanceState(env: Bindings, assignment: string, percent: number | null) {
   if (percent === null) return { required: null, met: true, record: null }
-  const record = await one(env, 'SELECT t.id, t.session_id AS session, t.status, t.minutes, t.decision, s.minutes * s.meetings AS scheduled FROM beam_attendance t JOIN beam_sessions s ON s.id = t.session_id WHERE t.assignment_id = ? AND t.superseded_at IS NULL ORDER BY t.recorded_at DESC LIMIT 1', assignment)
+  const record = await one(env, `${MOVE_CHAIN} SELECT t.id, t.session_id AS session, t.status, t.minutes, t.decision, s.minutes * s.meetings AS scheduled FROM beam_attendance t JOIN beam_sessions s ON s.id = t.session_id WHERE t.assignment_id IN (SELECT id FROM chain) AND t.superseded_at IS NULL ORDER BY t.recorded_at DESC LIMIT 1`, assignment)
   return { required: percent, record, met: !!record && record.decision === 'complete' && record.minutes * 100 >= percent * record.scheduled }
 }
 
@@ -109,6 +111,8 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     attendanceRecords: learner || isManager(actor) ? await attendanceRecords(env, assignment.id) : [],
     // Everything before each reset, marked with who reset it and why.
     resets: learner || isManager(actor) ? (await resetHistory(env, assignment.id)).map(reset => ({ ...reset, attempts: state.earlier.filter(attempt => attempt.reset === reset.id).map(attempt => ({ ...attempt, closedByReset: attempt.state === 'awaiting_review' }) as Row) })) : [],
+    // AUTHOR-010: the moves that brought this assignment to its revision.
+    moves: await movesOf(env, assignment.id),
     // ORG-004: every due-date exception, with the earlier due date, who approved it and why.
     dueExceptions: await dueExceptions(env, assignment.id),
     // AUTO-006: blockers the learner reported and every deferral or exemption, kept after they end.
@@ -263,7 +267,9 @@ export async function decidePractical(env: Bindings, actor: Actor, input: Input)
     stmt(env, 'INSERT INTO beam_review_decisions (id, attempt_id, assessor_id, decision, note, decided_at) VALUES (?, ?, ?, ?, ?, ?)', newId(), attempt.id, actor.id, decision, note, now()),
     stmt(env, "UPDATE beam_attempts SET state = ?, passed = ?, retry_decision = ? WHERE id = ? AND state = 'awaiting_review'", decision, decision === 'accepted' ? 1 : 0, decision === 'accepted' ? 'accepted by the named assessor' : 'resubmission allowed', attempt.id),
   ], { actor, action: `practical.${decision}`, subject: attempt.id, detail: { note } })
-  const completion = attempt.assignment_status === 'open' ? await tryComplete(env, actor, attempt.assignment_id) : null
+  // AUTHOR-010: a practical carried over by a move counts on the assignment it was moved to.
+  const counting = await countingAssignment(env, attempt.assignment_id)
+  const completion = counting ? await tryComplete(env, actor, counting) : null
   return { id: attempt.id, decision, completion }
 }
 
