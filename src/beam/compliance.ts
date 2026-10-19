@@ -61,7 +61,7 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
   }
   // Whole days between the record's due date and today, on the calendar of the record's own zone.
   const daysFromDue = (row: any) => row.dueAt ? calendarDays(row.dueAt, at, row.timezone) : null
-  const shaped: any[] = rows.map((row: any) => ({ ...row, key: row.assignment ?? row.completion, team: teamOf.get(row.learner) ?? null, standing: standing(row), days: daysFromDue(row), plan: planFor(row) ?? null }))
+  const shaped: any[] = rows.map((row: any) => ({ ...row, key: row.assignment ?? row.completion ?? `${row.course}:${row.learner}`, team: teamOf.get(row.learner) ?? null, standing: standing(row), days: daysFromDue(row), plan: planFor(row) ?? null }))
   const needle = filters.q.toLowerCase()
   const order: Record<Queue, (a: any, b: any) => number> = {
     overdue: (a, b) => b.days - a.days || a.learnerName.localeCompare(b.learnerName),

@@ -70,7 +70,8 @@ export async function emittedWorker() {
     const href = mail && `${mail.text ?? ''} ${mail.html ?? ''}`.match(/https:\/\/[^\s"<>]*\/auth\/confirm\?token=[^\s"<>]+/)?.[0]
     return href ? new URL(href.replaceAll('&amp;', '&')) : null
   }
-  /** The Worker's D1, for checks that move an assignment's clock (AUTO-009); everything else goes through the doors. */
-  const db = await mf.getD1Database('DB')
-  return { origin, vars, mails, fetch, linkFor, close, db }
+  /** The Worker's D1, for checks that move an assignment's clock (AUTO-009), and its D1 and R2 together for the
+   * installation archive `rer export` writes (BEAM-16); everything else goes through the doors. */
+  const db = await mf.getD1Database('DB'), files = await mf.getR2Bucket('FILES')
+  return { origin, vars, mails, fetch, linkFor, close, db, files }
 }

@@ -36,6 +36,7 @@ import { recordOffline } from './records'
 import { resetAssignment } from './resets'
 import { grantAccommodation } from './timing'
 import { addSourceVersion, createSource } from './sources'
+import { decideCertificate, saveRequirement, uploadCertificate } from './external'
 import { replaceReviewer, setCourseAuthors, setSelfReview } from './course-access'
 import { createUnit, grantAdministration, revokeAdministration, setCourseUnit, setUnitTeams } from './units'
 
@@ -47,6 +48,9 @@ export const actions: Record<string, Handler> = {
   'person.roles': (env, actor, input) => setRoles(env, actor, input),
   'person.access': (env, actor, input, request) => setAccess(env, request, actor, input),
   'team.create': (env, actor, input) => createTeam(env, actor, input),
+  'external.requirement': (env, actor, input) => saveRequirement(env, actor, input),
+  'external.upload': (env, actor, input) => uploadCertificate(env, actor, input),
+  'external.decide': (env, actor, input) => decideCertificate(env, actor, input),
   'team.members': (env, actor, input) => setTeamMembers(env, actor, input),
   'team.managers': (env, actor, input) => setTeamManagers(env, actor, input),
   'team.coverage': (env, actor, input) => grantCoverage(env, actor, input),

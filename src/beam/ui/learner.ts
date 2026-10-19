@@ -1,5 +1,7 @@
 // Learner pages: my learning, lessons with resume, quiz, practical evidence,
 // certificates and a learner's record.
+import { externalView } from '../external'
+import { externalCard } from './external'
 import { myFeedback } from '../feedback'
 import { feedbackForm, myFeedbackCard } from './collab'
 import { myWaits } from '../registrations'
@@ -41,7 +43,7 @@ const day = formatDay
 export async function dashboard(env: Bindings, actor: Actor, url: URL) {
   const zone = (await business(env))!.timezone
   const preparer = actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
-  const [record, due, work, messages, asked, proposals, acknowledgments, notices] = await Promise.all([learnerRecord(env, actor, actor.id), reminders(env, actor), queues(env, actor), reminderMessages(env, actor), myQuestions(env, actor), preparer ? listProposals(env, actor) : [], acknowledgmentList(env, actor), announcements(env, actor)])
+  const [record, due, work, messages, asked, proposals, acknowledgments, notices, external] = await Promise.all([learnerRecord(env, actor, actor.id), reminders(env, actor), queues(env, actor), reminderMessages(env, actor), myQuestions(env, actor), preparer ? listProposals(env, actor) : [], acknowledgmentList(env, actor), announcements(env, actor), externalView(env, actor)])
   const decidable = proposals.filter(proposal => proposal.canDecide).length
   // LIVE-002: an open seat offer waits for the learner's answer on Sessions.
   const offers = (await myWaits(env, actor)).filter(wait => wait.state === 'offered')
@@ -63,7 +65,7 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
   const completed = card('Completed', record.completions.length ? rows(record.completions.map(row => ({ title: `${row.courseTitle} (revision ${row.revisionNumber})`, meta: h`${formatDate(row.completedAt, zone)}${row.expiresAt ? h` · renew by ${formatDate(row.expiresAt, zone)}` : ''} · <a href="/app/certificates/${row.certificate}">Certificate</a>` }))) : h`<p>No completions yet.</p>${raw(documentSheet)}`, { id: 'done', className: record.completions.length ? '' : 'empty' })
   const side = [review, assess].filter(Boolean)
   const body = h`<h1>My learning</h1>
-${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
+${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${externalCard(external)}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine)}${asks}${agent}
 ${open.length ? assigned : ''}
 <div class="grid">${open.length ? '' : assigned}${completed}${side}</div>`
   return page('My learning', actor, body, { current: '/app/learning', url })

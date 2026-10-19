@@ -7,6 +7,7 @@ import type { Actor } from './actor'
 import { all, now, type Row } from './core'
 import { learnerRecord } from './records'
 import { requireBusiness } from './people'
+import { externalTranscript } from './external'
 
 export interface TranscriptEntry { at: number; kind: string; course: string; revision: number | null; detail: string; by: string; record: string }
 
@@ -17,7 +18,7 @@ export async function transcript(env: Bindings, actor: Actor, memberId: string) 
   const zone = (await requireBusiness(env)).timezone, asOf = now()
   const of = 'JOIN beam_assignments a ON a.id = x.assignment_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id'
   const name = (column: string) => `(SELECT name FROM beam_members WHERE id = ${column})`
-  const [assigned, attempts, decisions, completions, dues, extensions, resets, cancels] = await Promise.all([
+  const [assigned, attempts, decisions, completions, dues, extensions, resets, cancels, external] = await Promise.all([
     all(env, `SELECT a.id, a.assigned_at AS at, c.title, r.number, a.due_at AS dueAt, a.reason, ${name('a.assigned_by')} AS by FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.id, x.submitted_at AS at, x.kind, x.number, x.score, x.max_score AS maxScore, x.passed, x.state, x.reset_id AS reset, x.close_reason AS closeReason, c.title, r.number AS revision FROM beam_attempts x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT d.id, d.decided_at AS at, d.decision, d.note, ${name('d.assessor_id')} AS by, c.title, r.number AS revision, t.number FROM beam_review_decisions d JOIN beam_attempts t ON t.id = d.attempt_id JOIN beam_assignments a ON a.id = t.assignment_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE a.learner_id = ?`, memberId),
@@ -26,6 +27,7 @@ export async function transcript(env: Bindings, actor: Actor, memberId: string) 
     all(env, `SELECT x.id, x.extended_at AS at, x.days, x.reason, ${name('x.extended_by')} AS by, c.title, r.number AS revision FROM beam_access_extensions x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.id, x.reset_at AS at, x.reason, x.kind, ${name('x.reset_by')} AS by, c.title, r.number AS revision FROM beam_assignment_resets x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.subject AS id, x.at, x.detail, ${name('x.actor')} AS by, c.title, r.number AS revision FROM beam_audit x JOIN beam_assignments a ON a.id = x.subject JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE x.action = 'assignment.cancel' AND a.learner_id = ?`, memberId),
+    externalTranscript(env, memberId),
   ])
   const day = (at: number) => new Date(at).toISOString()
   const entries: TranscriptEntry[] = [
@@ -38,6 +40,7 @@ export async function transcript(env: Bindings, actor: Actor, memberId: string) 
     ...resets.map(row => ({ at: row.at, kind: row.kind === 'move' ? 'moved to a new revision' : 'progress reset', course: row.title, revision: row.revision, detail: row.reason, by: row.by ?? '', record: row.id })),
     ...cancels.map(row => ({ at: row.at, kind: 'assignment cancelled', course: row.title, revision: row.revision, detail: JSON.parse(row.detail).reason ?? '', by: row.by ?? '', record: row.id })),
     ...record.history.map((row: Row) => ({ at: Date.parse(`${row.completedOn}T00:00:00Z`) || 0, kind: 'imported history', course: row.sourceCourseName ?? '', revision: null, detail: `completed ${row.completedOn} in ${row.source}${row.accepted ? ', reviewed' : ''}; provenance ${pick(row, ['id', 'kind', 'member', 'sourceCourseName', 'completedOn', 'source', 'accepted'])}; never counts as a Beam completion`, by: '', record: row.id })),
+    ...external,
   ].sort((a, b) => a.at - b.at || a.kind.localeCompare(b.kind))
   return { member: record.member, zone, asOf, filters: 'every record of this person; nothing left out', count: entries.length, entries }
 }

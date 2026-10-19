@@ -10,8 +10,9 @@ import { LATEST_EXCEPTION } from './exceptions'
 import { DAY } from './time'
 import { workbook } from './xlsx'
 import { IN_SCOPE, learnerScope, requireTeamScope } from './scope'
+import { externalReportRows } from './external'
 
-export const STATUSES = ['all', 'open', 'overdue', 'completed', 'expiring', 'deferred', 'exempt'] as const
+export const STATUSES = ['all', 'open', 'overdue', 'completed', 'expiring', 'deferred', 'exempt', 'missing'] as const
 export interface Filters { course: string; team: string; status: string }
 
 /** A record's one status, as the report, Manage and the learner record show it: a completion is completed (expiring
@@ -70,9 +71,9 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
     const exception = parseException(row.exception, at)
     const status = recordStatus({ ...row, exception } as any, at)
     return { ...row, practical: practicalState ? { state: practicalState, assessor: assessor || null } : null, extension: row.extension ? JSON.parse(row.extension) : null, exception, status } as Row
-  }).filter(row => filters.status === 'all' || row.status === filters.status)
+  }).concat(await externalReportRows(env, scope, filters, at)).filter(row => filters.status === 'all' || row.status === filters.status)
   const count = (status: string) => shaped.filter(row => row.status === status).length
-  return { filters, asOf: at, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open'), deferred: count('deferred'), exempt: count('exempt') } }
+  return { filters, asOf: at, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open'), deferred: count('deferred'), exempt: count('exempt'), missing: count('missing') } }
 }
 
 const COLUMNS: [string, (row: any) => unknown][] = [
@@ -83,7 +84,7 @@ const COLUMNS: [string, (row: any) => unknown][] = [
   ['Access extended (days)', row => row.extension?.days ?? ''], ['Extension reason', row => row.extension?.reason ?? ''], ['Extended by', row => row.extension?.by ?? ''],
   ['Lessons done', row => row.lessonsDone], ['Lessons total', row => row.lessonsTotal], ['Quiz attempts', row => row.quizAttempts], ['Best quiz %', row => row.bestPercent ?? ''],
   ['Quiz passed', row => row.quizPassed === 1 ? 'yes' : row.quizAttempts ? 'no' : ''], ['Practical', row => row.practical?.state ?? ''], ['Practical assessor', row => row.practical?.assessor ?? ''],
-  ['Completion method', row => row.method ?? ''], ['Completed (UTC)', row => row.completedAt ? new Date(row.completedAt).toISOString() : ''], ['Certificate', row => row.certificate ?? ''],
+  ['Kind', row => row.external ? 'external certificate' : 'course'], ['Completion method', row => row.method ?? ''], ['Completed (UTC)', row => row.completedAt ? new Date(row.completedAt).toISOString() : ''], ['Certificate', row => row.certificate ?? ''],
   ['Expires (UTC)', row => row.expiresAt ? new Date(row.expiresAt).toISOString() : ''], ['Assignment id', row => row.assignment ?? ''], ['Revision id', row => row.revision], ['Completion id', row => row.completion ?? ''],
 ]
 

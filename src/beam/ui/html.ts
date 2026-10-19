@@ -44,6 +44,7 @@ const NAV: NavItem[] = [
   LEARNING,
   { href: '/app/catalog', label: 'Catalog', icon: 'book', show: () => true },
   { href: '/app/sessions', label: 'Sessions', icon: 'calendar', show: () => true },
+  { href: '/app/external', label: 'Certificates', icon: 'clipboard', show: actor => !!actor.business },
   { href: '/app/evidence', label: 'Shared evidence', icon: 'document', show: actor => actor.auditor },
   { href: '/app/audit', label: 'Audit', icon: 'clipboard', show: actor => actor.owner || administrator(actor) || actor.auditor },
   { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
@@ -198,7 +199,7 @@ export function form(action: string, returnTo: string, fields: unknown, submit: 
 
 // Several forms share a page, so every control gets its own id.
 let sequence = 0
-const uid = (name: string) => `f-${name}-${(sequence = (sequence + 1) % 1_000_000)}`
+export const uid = (name: string) => `f-${name}-${(sequence = (sequence + 1) % 1_000_000)}`
 
 export function field(label: string, name: string, { type = 'text', value = '', required = true, hint = '' }: { type?: string; value?: unknown; required?: boolean; hint?: string } = {}) {
   const id = uid(name)
