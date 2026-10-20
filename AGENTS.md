@@ -225,3 +225,11 @@ with `POST /api/beam/escalation.run` and `{}`; current policy, route, access,
 leave, exceptions, completion and resolution plus AUTO-008 controls are checked
 again. No unresolved work is sent after the policy is disabled. These are public
 human API/form doors; preparation credentials cannot configure, run or resolve.
+
+Escalation also supports AUTO-008's per-rule approval mode. Read the current
+`automation-controls` policy version and post `automation.policy` with
+`{ "version": N, "kind": "escalation", "rule": "overdue-work", "mode": "approval" }`
+(or `automatic`). A held execution appears in `automation-controls`; only the
+owner approves it with `automation.approve` (`execution`, current policy `version`),
+then explicitly replays with `escalation.run`. A policy version change invalidates
+prior approvals. Migration 0069 preserves every existing automation control.

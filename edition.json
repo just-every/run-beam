@@ -54,7 +54,8 @@
           "migrations/core/0055_scheduled_policy.sql",
           "migrations/core/0056_last_signin.sql",
           "migrations/core/0058_beam_dashboards.sql",
-          "migrations/core/0068_beam_escalations.sql"
+          "migrations/core/0068_beam_escalations.sql",
+          "migrations/core/0069_beam_escalation_control.sql"
         ]
       }
     },

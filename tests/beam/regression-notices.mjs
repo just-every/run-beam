@@ -177,9 +177,21 @@ export async function escalationCheck(f) {
   assert.equal(mails().length, 0, 'learner reminders pause on leave')
   assert.equal((await item('manager', a)).onLeave, true)
   await api('owner', 'person.directory', { member: ids.learner, employment: 'active' })
-  h.edge.refuse = true
+  // AUTO-008 per-rule approval is available on this new unattended door too.
+  const automation = (await api('owner', 'automation-controls')).policy
+  await api('owner', 'automation.policy', { version: automation.version, kind: 'escalation', rule: 'overdue-work', mode: 'approval' })
   await tick()
+  let controls = await api('owner', 'automation-controls')
+  const waiting = controls.executions.find(row => row.kind === 'escalation' && row.input.assignment === a)
+  assert.equal(waiting.outcome, 'approval_required')
+  assert.equal(mails().length, 0, 'approval mode never calls the provider before a human decision')
+  await api('manager', 'automation.approve', { execution: waiting.id, version: controls.policy.version }, 403)
+  await api('owner', 'automation.approve', { execution: waiting.id, version: controls.policy.version })
+  h.edge.refuse = true
+  await api('owner', 'escalation.run', {})
   h.edge.refuse = false
+  controls = await api('owner', 'automation-controls')
+  await api('owner', 'automation.policy', { version: controls.policy.version, kind: 'escalation', rule: 'overdue-work', mode: 'automatic' })
   let row = await item('manager', a)
   assert.match(row.failures[0].failure, /^mail_rejected:/)
   assert.equal(row.messages.length, 0, 'rejected mail is never labelled accepted')

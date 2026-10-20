@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "dcf61c17abafaf786ae5d31d4a0c9b5fb823eb4c5091d57537a01099093c9b60",
+  "manifest": "4195db144b35f204baeb330ee5e4eba8976dabd6bd636f571deab90a36b49425",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -54,7 +54,8 @@
           "migrations/core/0055_scheduled_policy.sql",
           "migrations/core/0056_last_signin.sql",
           "migrations/core/0058_beam_dashboards.sql",
-          "migrations/core/0068_beam_escalations.sql"
+          "migrations/core/0068_beam_escalations.sql",
+          "migrations/core/0069_beam_escalation_control.sql"
         ]
       },
       "baseline": null
@@ -194,7 +195,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "ebdb1b79ddd61987d94ad0c3dd3b2db1cd2ace05c6edea5bfd1cadb6da920b6e",
+      "sha256": "5ec8f1ae5e81a9a4f993ff4c47def4e5a570ccda9525c16ec6e1573559c7cc37",
       "executable": false
     },
     "base-copies.json": {
@@ -206,7 +207,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "fd7f58d1403055dbcd2692bdc0fa9f166d667ac555337d48afdb0586275d31a9",
+      "sha256": "289a2e7e6cbb16bab652fcdda3d94d267b8ece0191adbce77ed14dc20aac7514",
       "executable": false
     },
     "DEMO.md": {
@@ -274,7 +275,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "dcf61c17abafaf786ae5d31d4a0c9b5fb823eb4c5091d57537a01099093c9b60",
+      "sha256": "4195db144b35f204baeb330ee5e4eba8976dabd6bd636f571deab90a36b49425",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -551,6 +552,10 @@
     },
     "migrations/core/0068_beam_escalations.sql": {
       "sha256": "16b5584e9d3bfc3bd0a6f9266ae76406d77e2a2ca38f6369716b5e52a338da4c",
+      "executable": false
+    },
+    "migrations/core/0069_beam_escalation_control.sql": {
+      "sha256": "78155af010a807aae815a1cc342c819e8d8e6b97d2168cf6db37246aab08f14b",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1074,7 +1079,7 @@
       "executable": false
     },
     "src/beam/automation-policy.ts": {
-      "sha256": "bb6b59b7915543b99de89752fce05db203e53f12ff23a101b7f3556da1d000b3",
+      "sha256": "416652a48dc448177d03b2dcc999acf801b89ef56d8114f20d17bcb4b0a9fbbc",
       "executable": false
     },
     "src/beam/automation.ts": {
@@ -3474,7 +3479,7 @@
       "executable": false
     },
     "tests/beam/regression-notices.mjs": {
-      "sha256": "d678a37cd2bfd402fd3f20e3043692ee0dff47f764f8b1a0f428d3d8b6a92063",
+      "sha256": "b8795b6b376e15fda3a82f27fcbee77bcf9a55fc3a2413cbb31deb258a97c2be",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
