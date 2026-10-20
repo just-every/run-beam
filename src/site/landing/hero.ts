@@ -32,7 +32,7 @@ const alternatives = () => h`<p class="hero-alt">100% free, open source alternat
 
 export function heroSection(): Html {
   return h`<section class="hero" id="top" aria-labelledby="top-heading">
-<div class="hero-band"><div class="hero-bar">${lockup('site-brand hero-brand')}<nav class="site-nav hero-nav" aria-label="Site"><a href="/docs">Docs</a><a href="${run.repository}">Source</a></nav></div></div>
+<div class="hero-band"><div class="hero-bar">${lockup('site-brand hero-brand')}<nav class="site-nav hero-nav" aria-label="Site"><a href="/docs">Docs</a><a href="/contract">Contract</a><a href="${run.repository}">Source</a></nav></div></div>
 <div class="hero-stage">
 ${painting({ name: 'hero', widths: [410, 615, 820], sizes: '(max-width: 1279px) 100vw, 54vw', alt: hero.art, width: 820, height: 964, eager: true, className: 'hero-art', phone: { name: 'hero-phone', widths: [400, 684], width: 684, height: 806, below: 1279 } })}
 ${cards()}

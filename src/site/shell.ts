@@ -22,9 +22,9 @@ export function siteDocument({ title, description, styles, body, path }: { title
 export const lockup = (className = 'site-brand') => h`<a class="${className}" href="/"><img src="/brand/mark.svg" alt="" width="28" height="33"><span>Beam</span></a>`
 
 export function siteHeader(current: 'home' | 'docs' = 'home'): Html {
-  return h`<header class="site-header"><div class="site-bar">${lockup()}<nav class="site-nav" aria-label="Site"><a href="/docs"${current === 'docs' ? raw(' aria-current="page"') : ''}>Docs</a><a href="${run.repository}">Source</a></nav></div></header>`
+  return h`<header class="site-header"><div class="site-bar">${lockup()}<nav class="site-nav" aria-label="Site"><a href="/docs"${current === 'docs' ? raw(' aria-current="page"') : ''}>Docs</a><a href="/contract">Contract</a><a href="${run.repository}">Source</a></nav></div></header>`
 }
 
 export function siteFooter(): Html {
-  return h`<footer class="site-footer"><div class="site-bar">${lockup()}<p class="site-footer-line">${words.line}</p><nav class="site-nav" aria-label="Footer"><a href="/docs">Docs</a><a href="${run.repository}">Source</a><a href="${licenceUrl}">${words.licence}</a></nav></div></footer>`
+  return h`<footer class="site-footer"><div class="site-bar">${lockup()}<p class="site-footer-line">${words.line}</p><nav class="site-nav" aria-label="Footer"><a href="/docs">Docs</a><a href="/contract">Contract</a><a href="${run.repository}">Source</a><a href="${licenceUrl}">${words.licence}</a></nav></div></footer>`
 }
