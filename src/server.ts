@@ -1,3 +1,4 @@
+import { runEscalations } from './beam/escalations'
 import { withDemo } from './modules/demo/index.mjs'
 import start from '@tanstack/react-start/server-entry'
 import { Hono } from 'hono'
@@ -30,7 +31,7 @@ export default withDemo({
   async scheduled(_controller, env) {
     const bindings = runtimeBindings(env)
     // One job's failure never skips the other; both are still reported as failures.
-    for (const result of await Promise.allSettled([scheduledInactivity(bindings), runUpkeep(bindings)])) if (result.status === 'rejected') throw result.reason
+    for (const result of await Promise.allSettled([scheduledInactivity(bindings), runUpkeep(bindings), runEscalations(bindings)])) if (result.status === 'rejected') throw result.reason
   },
   async fetch(request, env, execution) {
     const imported = await beamImportDoor(request, runtimeBindings(env))

@@ -146,3 +146,126 @@ export async function notificationRulesCheck(f) {
   await api('owner', 'team.managers', { team: ids.team, members: [ids.manager] })
   await api('owner', 'person.directory', { member: ids.learner, manager: '', location: '' })
 }
+
+// NOTICE-004: every policy/routing/delivery/resolution assertion uses the Worker
+// doors. Only the stored due instant moves to advance the scenario's clock.
+export async function escalationCheck(f) {
+  const { api, h, ids, course, assign, lessons } = f
+  const hour = 3_600_000
+  const tick = async () => assert.equal((await h.scheduled()).outcome, 'ok')
+  const due = async (id, hours) => h.db.prepare('UPDATE beam_assignments SET due_at=? WHERE id=?').bind(Date.now() - hours * hour, id).run()
+  const mails = () => h.mails.filter(mail => mail.subject === 'Overdue learning needs attention')
+  const queue = async role => (await api(role, 'queues')).escalations
+  const item = async (role, id) => (await queue(role)).find(row => row.assignment === id)
+  const policy = { version: 0, enabled: true, reminderHours: 1, managerHours: 3, fallbackHours: 6 }
+  await api('manager', 'escalation.policy', policy, 403)
+  await api('owner', 'escalation.policy', { ...policy, managerHours: 0 }, 400)
+  assert.equal((await api('owner', 'escalation.policy', policy)).version, 1)
+  await api('owner', 'escalation.policy', policy, 409)
+  await api('learner', 'escalation-policy', undefined, 403)
+  await api('manager', 'escalation.run', {}, 403)
+  const c = await course('Escalated training'), a = await assign(c)
+  const original = (await api('learner', `assignments/${a}`)).assignment
+  await due(a, 0.5)
+  await tick()
+  assert.equal(mails().length, 0, 'no reminder before its delay')
+  await due(a, 2)
+  await api('owner', 'person.directory', { member: ids.learner, employment: 'leave' })
+  await tick()
+  assert.equal(mails().length, 0, 'learner reminders pause on leave')
+  assert.equal((await item('manager', a)).onLeave, true)
+  await api('owner', 'person.directory', { member: ids.learner, employment: 'active' })
+  h.edge.refuse = true
+  await tick()
+  h.edge.refuse = false
+  let row = await item('manager', a)
+  assert.match(row.failures[0].failure, /^mail_rejected:/)
+  assert.equal(row.messages.length, 0, 'rejected mail is never labelled accepted')
+  await tick()
+  assert.equal(mails().length, 0, 'no hidden automatic retry')
+  await api('owner', 'person.directory', { member: ids.learner, employment: 'leave' })
+  const blocker = await api('learner', 'blocker.report', { assignment: a, kind: 'leave', note: 'Return date not yet confirmed.' })
+  await api('owner', 'team.managers', { team: ids.team, members: [ids.other] })
+  await due(a, 4)
+  await tick()
+  row = await item('other', a)
+  assert.deepEqual(row.reachesNow, [{ id: ids.other, route: 'direct' }])
+  assert.equal(row.onLeave, true)
+  assert.ok(row.failures.some(failure => failure.route === 'learner'))
+  assert.ok((await api('other', 'queues')).blockers.some(row => row.id === blocker.id))
+  assert.deepEqual(await queue('manager'), [], 'former manager loses the private queue immediately')
+  assert.equal(mails().length, 1)
+  assert.ok(mails()[0].to.includes('other@example.test') && mails()[0].text.includes('paid work time'))
+  assert.ok(!mails()[0].text.includes('Return date'), 'blocker text stays behind current sign-in authority')
+  await tick()
+  assert.equal(mails().length, 1, 'manager delivery is deduplicated')
+  // A temporary cover supersedes the direct manager; revoking it rechecks the route.
+  const cover = await api('owner', 'team.coverage', { team: ids.team, member: ids.manager, expiresOn: '2030-12-01', reason: 'Cover the shift' })
+  await tick()
+  assert.deepEqual((await item('manager', a)).reachesNow, [{ id: ids.manager, route: 'coverage' }])
+  assert.equal(mails().length, 2)
+  await api('owner', 'team.coverage.end', { grant: cover.id })
+  assert.deepEqual(await queue('manager'), [])
+  await due(a, 7)
+  await tick()
+  row = await item('other', a)
+  assert.deepEqual(row.reachesNow, [{ id: ids.owner, route: 'owner' }])
+  assert.equal(mails().length, 3)
+  assert.ok(mails()[2].to.includes('owner@example.test'))
+  // Resolve the reported blocker under the existing exception policy, then the
+  // escalation with a reason; neither operation rewrites the original due date.
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+  await api('other', 'exception.grant', { assignment: a, blocker: blocker.id, kind: 'deferral', endsOn: tomorrow, reason: 'Leave approved; manager arranged a return session.' })
+  assert.deepEqual(await queue('other'), [])
+  await api('learner', 'escalation.resolve', { assignment: a, reason: 'Self approval' }, 404)
+  await api('manager', 'escalation.resolve', { assignment: a, reason: 'Former manager' }, 404)
+  await api('other', 'escalation.resolve', { assignment: a, reason: 'Replacement session arranged on return.' })
+  await h.db.prepare('UPDATE beam_exceptions SET ends_at=? WHERE assignment_id=?').bind(Date.now() - 1000, a).run()
+  await tick()
+  assert.deepEqual(await queue('other'), [])
+  assert.equal(mails().length, 3)
+  assert.equal((await api('learner', `assignments/${a}`)).assignment.dueDate, original.dueDate)
+  // No email has no SMS delivery capability today: expose no contact route, not a
+  // fictitious send. Attempt exhaustion and full assessor sessions are actionable.
+  const practical = await course('Full practical calendar', true)
+  const pa = await assign(practical)
+  await api('owner', 'assignment.create', { course: practical.id, learners: [ids.assessor], dueDate: '2030-10-01' })
+  await api('owner', 'instructor.grant', { member: ids.assessor, expiresOn: '2030-12-31' })
+  const session = await api('owner', 'session.schedule', { course: practical.id, title: 'Assessor fully booked', instructor: ids.assessor, date: '2030-12-03', time: '09:00', minutes: 60, timezone: 'UTC', format: 'classroom', location: 'Yard', capacity: 1 })
+  await api('assessor', 'session.register', { session: session.id })
+  await due(pa, 2)
+  assert.equal((await item('other', pa)).missingAssessorCapacity, true)
+  await api('owner', 'session.seats', { session: session.id, capacity: 2 })
+  assert.equal((await item('other', pa)).missingAssessorCapacity, false)
+  await api('owner', 'person.directory', { member: ids.learner, email: '' })
+  assert.equal((await item('other', pa)).noContactRoute, true)
+  await api('owner', 'person.directory', { member: ids.learner, email: 'learner@example.test', employment: 'active' })
+  const quiz = await api('author', 'course.create', { title: 'Exhausted retry', reviewer: ids.reviewer })
+  let version = (await api('author', 'course.lesson', { course: quiz.id, draftVersion: quiz.draftVersion, title: 'Stop safely', body: 'Stop first.', sources: [] })).draftVersion
+  version = (await api('author', 'course.question', { course: quiz.id, draftVersion: version, prompt: 'First action?', choices: 'Stop\nContinue', correct: '1' })).draftVersion
+  version = (await api('author', 'course.assessment', { course: quiz.id, draftVersion: version, passPercent: 100, maxAttempts: 1 })).draftVersion
+  await f.publish((await api('author', 'course.submit', { course: quiz.id, draftVersion: version })).id)
+  const qa = await assign(quiz)
+  await lessons(qa)
+  const question = (await api('learner', `assignments/${qa}`)).quiz.questions[0]
+  await api('learner', 'quiz.submit', { assignment: qa, [`q_${question.id}`]: ['1'] })
+  await due(qa, 4)
+  assert.equal((await item('other', qa)).attemptsExhausted, true)
+  await api('other', 'escalation.resolve', { assignment: qa, reason: 'Manager is arranging a supported retry.' })
+  // Completion before replay suppresses the formerly failed queued reminder.
+  const done = await course('Complete before queued mail'), da = await assign(done)
+  await due(da, 2)
+  h.edge.refuse = true
+  await tick()
+  h.edge.refuse = false
+  const before = mails().length
+  await lessons(da)
+  await api('owner', 'escalation.run', {})
+  assert.equal(mails().length, before + 1, 'only the other open practical reminder replays')
+  assert.ok(!(await queue('other')).some(row => row.assignment === da))
+  assert.ok((await api('owner', 'audit?q=escalation')).events.some(event => event.action === 'escalation.resolve'))
+  const p = await api('owner', 'escalation-policy')
+  await api('owner', 'escalation.policy', { ...policy, version: p.version, enabled: false })
+  await tick()
+  assert.deepEqual(await queue('owner'), [])
+}

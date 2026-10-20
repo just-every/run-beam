@@ -1,3 +1,4 @@
+import { escalationPolicy } from './escalations'
 import { compareErrors } from './diagnosis-comparison'
 // Read models served at GET /api/beam/... and rendered by the pages.
 import { noticeImpact } from './impact'
@@ -60,6 +61,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  'escalation-policy': async (env, actor) => { requireOwner(actor); return await escalationPolicy(env) },
   notifications: (env, actor) => notificationInbox(env, actor),
   'notification-rules': (env, actor) => notificationRulesView(env, actor),
   'automation-controls': (env, actor) => automationControlView(env, actor),
