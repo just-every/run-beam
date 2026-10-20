@@ -6,7 +6,8 @@ import { requireRole, type Actor } from './actor'
 import { loadCourse, normaliseDraft } from './courses'
 import { commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
-import { DECISIONS, nextReviewDate } from './upkeep'
+import { noticeImpact } from './impact'
+import { DECISIONS, futureDate, nextReviewDate } from './upkeep'
 
 export async function proposeDraft(env: Bindings, actor: Actor, input: Input, draftValue: unknown) {
   requireRole(actor, 'author')
@@ -32,7 +33,7 @@ export async function proposeDraft(env: Bindings, actor: Actor, input: Input, dr
 export interface ProposalFields { course: string; draftVersion: number; inputs: string[]; draft: unknown; agent: string | null; summary: string; passages: { sourceVersion: string; quote: string; lesson: string | null }[]; missing: string[] }
 
 /** Records a proposed draft against the course's current draft version; the caller has checked who may propose. */
-export async function createProposal(env: Bindings, actor: Actor, fields: ProposalFields, link: { thread?: string } = {}) {
+export async function createProposal(env: Bindings, actor: Actor, fields: ProposalFields, link: { thread?: string; notice?: string } = {}) {
   const course = await loadCourse(env, fields.course)
   const base = fields.draftVersion
   insist(base === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
@@ -67,6 +68,16 @@ export async function decideProposal(env: Bindings, actor: Actor, input: Input) 
   return { id: proposal.id, state: 'accepted', draftVersion: proposal.base_draft_version + 1 }
 }
 
+async function retrainingDecision(env: Bindings, actor: Actor, notice: string, input: Input) {
+  const decision = input.text('retraining')
+  insist(decision === 'none' || decision === 'required', 'invalid_retraining')
+  if (decision === 'none') return { decision, roles: [] as string[], dueOn: null }
+  const affected = new Set((await noticeImpact(env, actor, notice)).roles.map(role => role.jobRole))
+  const roles = [...new Set(input.list('retrainRoles').map(role => role.toLowerCase()))]
+  insist(roles.length > 0 && roles.every(role => affected.has(role)), 'invalid_retrain_roles')
+  return { decision, roles, dueOn: await futureDate(env, input.text('retrainDueOn', { max: 10 })) }
+}
+
 export async function decideNotice(env: Bindings, actor: Actor, input: Input) {
   const notice = await one(env, 'SELECT n.*, c.reviewer_id FROM beam_source_notices n JOIN beam_courses c ON c.id = n.course_id WHERE n.id = ?', input.text('notice'))
   insist(notice, 'notice_not_found', 404)
@@ -76,9 +87,11 @@ export async function decideNotice(env: Bindings, actor: Actor, input: Input) {
   insist((DECISIONS as readonly string[]).includes(decision), 'invalid_decision')
   // AUTHOR-006: the decision also sets the course's next review date.
   const note = input.text('note', { max: 2000 }), nextReviewOn = await nextReviewDate(env, input)
+  // AGENT-004: a material change also carries the retraining decision, over the impact's affected job roles.
+  const retraining = decision === 'draft_updated' ? await retrainingDecision(env, actor, notice.id, input) : { decision: 'none', roles: [] as string[], dueOn: null as string | null }
   await commit(env, [
-    stmt(env, "UPDATE beam_source_notices SET state = ?, note = ?, next_review_on = ?, decided_by = ?, decided_at = ? WHERE id = ? AND state = 'open'", decision, note, nextReviewOn, actor.id, now(), notice.id),
+    stmt(env, "UPDATE beam_source_notices SET state = ?, note = ?, next_review_on = ?, decided_by = ?, decided_at = ?, retraining = ?, retrain_roles = ?, retrain_due_on = ? WHERE id = ? AND state = 'open'", decision, note, nextReviewOn, actor.id, now(), retraining.decision, JSON.stringify(retraining.roles), retraining.dueOn, notice.id),
     stmt(env, 'UPDATE beam_courses SET next_review_on = ? WHERE id = ?', nextReviewOn, notice.course_id),
-  ], { actor, action: `notice.${decision}`, subject: notice.id, detail: { note, nextReviewOn } })
-  return { id: notice.id, state: decision, nextReviewOn }
+  ], { actor, action: `notice.${decision}`, subject: notice.id, detail: { note, nextReviewOn, retraining } })
+  return { id: notice.id, state: decision, nextReviewOn, retraining }
 }

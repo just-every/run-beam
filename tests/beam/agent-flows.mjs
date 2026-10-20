@@ -456,4 +456,105 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     await call(roster, 'v1/people', undefined, 401)
     assert.deepEqual((await h.api('app-credentials', people.owner)).filter(item => item.state !== 'active').map(item => [item.name, item.state]).sort(), [['Directory sync', 'expired'], ['Payroll BI', 'revoked']])
   })
+
+  await check('AGENT-004', async () => {
+    // One procedure step changes; Beam shows what it invalidates in a course citing it, and who holds earlier evidence.
+    const v1 = 'Vaccine fridge procedure\n\nWash your hands.\nKeep vaccines between 2 and 8 degrees.\nLog the reading at opening.\n'
+    const source = await h.api('source.create', people.author, { title: 'Vaccine fridge procedure', licence: 'owned', licenceEvidence: 'Written by the clinical lead.', reviewer: ids.reviewer, provenance: 'Clinic binder', file: file('fridge.txt', v1) })
+    const course = await h.api('course.create', people.author, { title: 'Vaccine fridge', summary: 'Keeping vaccines safe.', reviewer: ids.reviewer })
+    let draftVersion = course.draftVersion
+    const edit = async (action, fields) => { draftVersion = (await h.api(action, people.author, { course: course.id, draftVersion, ...fields })).draftVersion }
+    for (const [title, body, sources] of [['Hygiene', 'Wash your hands.', [source.versionId]], ['Temperature', 'Keep vaccines between 2 and 8 degrees.', [source.versionId]], ['Logging', 'Write the reading in the log at opening.', [source.versionId]], ['Parking', 'Park behind the clinic.', []]]) await edit('course.lesson', { title, body, sources })
+    await edit('course.question', { prompt: 'What is the safe range?', choices: '2 to 8 degrees\n0 to 4 degrees', correct: '1' })
+    await edit('course.question', { prompt: 'What do you do first?', choices: 'Wash your hands\nCheck email', correct: '1' })
+    await edit('course.assessment', { passPercent: 100, maxAttempts: 2 })
+    const first = await h.api('course.submit', people.author, { course: course.id, draftVersion })
+    await publish(first.id)
+    // The course teaches a reviewed skill the Dispensary role needs (LEARN-007); Lee completes revision 1 on a yearly renewal.
+    const skill = (await h.api('skill.create', people.owner, { name: 'Cold chain', description: 'Keep vaccines in range.' })).id
+    await h.api('skill.review', people.reviewer, { skill })
+    await h.api('skill.course', people.owner, { course: course.id, skills: [skill] })
+    await h.api('skill.role', people.owner, { jobRole: 'Dispensary', skills: [skill] })
+    const path = (await h.api('path.create', people.manager, { name: 'Vaccine handling', team: ids.team })).id
+    await h.api('path.revise', people.manager, { path, courses: [course.id], prerequisites: [''], dueDays: ['14'], renewalDays: ['365'] })
+    await h.api('path.assign', people.manager, { path })
+    const leeAssignment = (await h.api('records/me', people.lee)).assignments.find(row => row.course === course.id).id
+    for (const lesson of await (async () => (await h.api(`assignments/${leeAssignment}`, people.lee)).lessons)()) await h.api('lesson.complete', people.lee, { assignment: leeAssignment, lesson: lesson.id })
+    const quiz = (await h.api(`assignments/${leeAssignment}`, people.lee)).quiz.questions
+    assert.ok((await h.api('quiz.submit', people.lee, Object.fromEntries([['assignment', leeAssignment], ...quiz.map(question => [`q_${question.id}`, ['0']])]))).completion)
+    const before = (await h.api('records/me', people.lee)).completions.find(row => row.course === course.id)
+    const renewsOn = new Date(before.expiresAt).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' })
+
+    const v2 = await h.api('source.version', people.author, { source: source.id, provenance: 'New manufacturer range', file: file('fridge.txt', v1.replace('2 and 8 degrees', '2 and 6 degrees')) })
+    assert.ok(v2.flaggedCourses.includes(course.id))
+    const notice = (await h.api(`courses/${course.id}`, people.author)).notices.find(row => row.state === 'open')
+    const impact = await h.api(`impact/${notice.id}`, people.author)
+    assert.deepEqual(impact.changes, [{ removed: ['Keep vaccines between 2 and 8 degrees.'], added: ['Keep vaccines between 2 and 6 degrees.'] }])
+    assert.deepEqual(impact.lessons.affected.map(lesson => [lesson.title, lesson.passages.map(passage => passage.text)]), [['Temperature', ['Keep vaccines between 2 and 8 degrees.']]])
+    assert.deepEqual(impact.lessons.untouched.map(lesson => [lesson.title, lesson.cites]), [['Hygiene', true], ['Logging', true], ['Parking', false]])
+    assert.deepEqual(impact.questions.affected.map(question => [question.prompt, question.part]), [['What is the safe range?', 'answer']])
+    assert.deepEqual(impact.questions.untouched.map(question => question.prompt), ['What do you do first?'])
+    // Roles: mapped by skill, and held by people with earlier evidence, as counts and renewal dates only.
+    assert.deepEqual(impact.roles.find(role => role.jobRole === 'front desk'), { jobRole: 'front desk', mapped: false, people: 2, completed: 1, withoutRenewal: 0, renewals: [{ on: renewsOn, count: 1 }] })
+    assert.equal(impact.roles.find(role => role.jobRole === 'dispensary').mapped, true)
+    assert.ok(!JSON.stringify(impact.roles).includes(ids.lee))
+    // Readers: the course's authors, its named reviewer and the owner (and the author's preparation agent); nobody else.
+    await h.api(`impact/${notice.id}`, people.reviewer)
+    await (await agentOf(people.author))(`impact/${notice.id}`)
+    await h.api(`impact/${notice.id}`, people.manager, undefined, 403)
+    await h.api(`impact/${notice.id}`, people.lee, undefined, 403)
+    const page = await pageOf(`/app/courses/${course.id}`, people.reviewer)
+    assert.ok(page.includes('Untouched') && page.includes('Roles to retrain'))
+
+    // Beam's impact proposal, prepared by rule: only the exact quote is rewritten and re-cited; the rest is for a person.
+    await h.api('impact.propose', people.author, { notice: notice.id, draftVersion: draftVersion - 1 }, 409)
+    const ruled = await h.api('impact.propose', people.author, { notice: notice.id, draftVersion })
+    assert.equal(ruled.rewritten, 1)
+    const detail = await h.api(`courses/${course.id}`, people.author)
+    const proposal = detail.proposals.find(row => row.id === ruled.id)
+    assert.match(proposal.summary, /^Prepared by rule, not by a model\./)
+    assert.deepEqual(proposal.inputs, [v2.id])
+    assert.deepEqual(proposal.draft.lessons.map(lesson => [lesson.title, lesson.body, lesson.sources]), [['Hygiene', 'Wash your hands.', [source.versionId]], ['Temperature', 'Keep vaccines between 2 and 6 degrees.', [v2.id]], ['Logging', 'Write the reading in the log at opening.', [source.versionId]], ['Parking', 'Park behind the clinic.', []]])
+    assert.deepEqual(proposal.draft.questions, detail.draft.questions)
+    assert.ok(proposal.missing.some(item => item.includes('What is the safe range?')))
+
+    // The named reviewer decides materiality and declines retraining; a role outside the impact is refused.
+    await h.api('notice.decide', people.author, { notice: notice.id, decision: 'draft_updated', note: 'x', nextReviewOn: '2031-06-30', retraining: 'none' }, 403)
+    await h.api('notice.decide', people.reviewer, { notice: notice.id, decision: 'draft_updated', note: 'x', nextReviewOn: '2031-06-30', retraining: 'required', retrainRoles: ['Kitchen'], retrainDueOn: '2031-01-31' }, 400)
+    await h.api('notice.decide', people.reviewer, { notice: notice.id, decision: 'draft_updated', note: 'Range narrowed; existing staff keep their renewal.', nextReviewOn: '2031-06-30', retraining: 'none' })
+    assert.deepEqual((await h.api(`impact/${notice.id}`, people.reviewer)).retraining, { decision: 'none', roles: [], dueOn: null, assignedWith: null })
+
+    // The author revises the rule's proposal (the answer too); the exact revised draft is approved and the rule's own goes stale.
+    const revised = structuredClone(proposal.draft)
+    revised.questions[0].choices[0] = '2 to 6 degrees'
+    const exact = await h.api('proposal.create', people.author, { course: course.id, draftVersion, summary: 'Narrow the range to 2-6 degrees', agent: 'Human preparation', inputs: [v2.id], draft: revised })
+    await h.api('proposal.decide', people.reviewer, { proposal: exact.id, decision: 'accept' })
+    await h.api('proposal.decide', people.reviewer, { proposal: ruled.id, decision: 'accept' }, 409)
+    const second = await h.api('course.submit', people.author, { course: course.id, draftVersion: draftVersion + 1 })
+    await publish(second.id)
+    const compared = await h.api(`compare?from=${first.id}&to=${second.id}`, people.author)
+    assert.deepEqual(compared.lessons.map(row => [row.change, (row.to ?? row.from).title]), [['same', 'Hygiene'], ['changed', 'Temperature'], ['same', 'Logging'], ['same', 'Parking']])
+    // No retraining was assigned, and Lee's evidence stays bound to revision 1.
+    assert.deepEqual((await h.api('records/me', people.lee)).assignments.filter(row => row.course === course.id).map(row => row.status), ['completed'])
+    const after = (await h.api('records/me', people.lee)).completions.find(row => row.course === course.id)
+    assert.deepEqual(after, before)
+    assert.equal(after.revision, first.id)
+
+    // A later change whose retraining is required assigns the next revision to the chosen role's earlier completers.
+    const v3 = await h.api('source.version', people.author, { source: source.id, provenance: 'Logging moved to closing', file: file('fridge.txt', v1.replace('2 and 8 degrees', '2 and 6 degrees').replace('at opening', 'at closing')) })
+    const later = (await h.api(`courses/${course.id}`, people.author)).notices.find(row => row.state === 'open')
+    assert.equal(later.new_version_id, v3.id)
+    assert.deepEqual((await h.api(`impact/${later.id}`, people.author)).lessons.affected.map(lesson => lesson.title), ['Logging'])
+    await h.api('impact.propose', people.author, { notice: notice.id, draftVersion: draftVersion + 1 }, 409)
+    await h.api('notice.decide', people.reviewer, { notice: later.id, decision: 'draft_updated', note: 'Logging time changed.', nextReviewOn: '2031-06-30', retraining: 'required', retrainRoles: ['Front desk'], retrainDueOn: '2031-01-31' })
+    const logging = (await h.api(`courses/${course.id}`, people.author)).draft.lessons[2]
+    const fixed = await h.api('course.lesson', people.author, { course: course.id, draftVersion: draftVersion + 1, lesson: logging.id, title: 'Logging', body: 'Write the reading in the log at closing.', sources: [v3.id] })
+    const third = await h.api('course.submit', people.author, { course: course.id, draftVersion: fixed.draftVersion })
+    await publish(third.id)
+    const retrained = (await h.api('records/me', people.lee)).assignments.filter(row => row.course === course.id && row.status === 'open')
+    assert.deepEqual(retrained.map(row => [row.reason, row.revisionNumber, row.dueDate]), [['retraining', 3, '2031-01-31']])
+    assert.ok(!(await h.api('records/me', people.sam)).assignments.some(row => row.course === course.id && row.reason === 'retraining'), 'Sam holds no earlier completion')
+    assert.equal((await h.api(`impact/${later.id}`, people.reviewer)).retraining.assignedWith, third.id)
+    assert.deepEqual((await h.api('records/me', people.lee)).completions.find(row => row.course === course.id), before)
+  })
 }

@@ -22,10 +22,12 @@ Nobody decides their own revision unless the owner presses **Allow self-review**
 
 ## When a source changes
 
-When an author uploads a new version of a source, every course whose published lessons cite the earlier version shows **Source changed** to its reviewer, naming the old and new version numbers. Read the change and record your decision:
+When an author uploads a new version of a source, every course whose published lessons cite the earlier version shows **Source changed** to its reviewer, naming the old and new version numbers. The card shows the changed passages and, under **Affected**, the lessons that cite the source and teach a changed passage, the questions whose answer or wording depends on one, and any practical instructions or practice scenario that do; everything else is listed under **Untouched**. **Affected job roles** counts the people in each role the course's skills are mapped to, or who completed an earlier revision, with their renewal dates (never names). Beam compares text sources line by line by rule, not by a model; other files are not compared, so everything citing them is listed for you to read.
+
+An author can use **Draft only the affected changes**: Beam proposes a draft that rewrites only lesson lines quoting a changed line exactly and lists everything else (paraphrases, questions, practical instructions) for a person. Accepting it, or a revised proposal, changes only the draft. Then record your decision:
 
 - **No material change to the training**: the course stays as it is.
-- **Training needs updating (the draft is being revised)**: the author updates the lessons and submits a new revision, which you publish with the reassignment you choose.
+- **Training needs updating (the draft is being revised)**: the author updates the lessons and submits a new revision, which you publish with the reassignment you choose. Choose **Retraining** too: *No retraining* keeps everyone's earlier completion until its own renewal date; *Retraining required* for the roles you tick, by a date, assigns the next revision you publish to the active people in those roles who completed an earlier one. Earlier completions never change.
 
 Each decision also sets the course's **Next review date**, which must come after today.
 

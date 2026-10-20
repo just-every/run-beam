@@ -25,8 +25,10 @@ const AVAILABLE = `SELECT m.id, m.name, m.email FROM beam_members m JOIN oa_oper
   WHERE o.status = 'active' AND m.employment <> 'terminated'`
 
 /** A next review date: a real calendar date after today in the business time zone. */
-export async function nextReviewDate(env: Bindings, input: Input) {
-  const value = input.text('nextReviewOn', { max: 10 })
+export const nextReviewDate = (env: Bindings, input: Input) => futureDate(env, input.text('nextReviewOn', { max: 10 }))
+
+/** A real calendar date after today in the business time zone. */
+export async function futureDate(env: Bindings, value: string) {
   insist(DATE.test(value) && new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), 'invalid_review_date')
   insist(value > localDate(now(), (await requireBusiness(env)).timezone), 'review_date_not_after_today')
   return value

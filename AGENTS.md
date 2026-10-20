@@ -139,6 +139,13 @@ refused if the draft changed meanwhile, and it never publishes anything. Add
 `passages: [{ sourceVersion, quote, lesson }]` (each from one of `inputs`) and
 `missing: ["..."]` so the reviewer sees what the draft relies on and lacks.
 
+When a source changes (AGENT-004), read `/api/beam/impact/:noticeId` (notice ids are in `courses/:id` `notices`): the changed
+passages, `lessons.affected`/`untouched`, `questions.affected` (with `part`: `answer` or `prompt`)/`untouched`, `practical`,
+`scenarios`, and affected `roles` as counts with renewal dates. `POST /api/beam/impact.propose` with `{ notice, draftVersion }`
+creates Beam's own rule-based proposal (exact quotes of a changed line rewritten and re-cited; the rest under `missing`).
+Only the named reviewer or the owner decides the notice: `notice.decide` with `decision`, `note`, `nextReviewOn` and, for
+`draft_updated`, `retraining: 'none'` or `'required'` with `retrainRoles` (affected roles) and `retrainDueOn`.
+
 Other prepared work goes to `POST /api/beam/agent.propose` with `{ kind, title,
 agent, inputs: [{ type, id }], reasons: ["..."], excluded: [{ item, reason }],
 payload }`. Input types are `source_version`, `course_revision`,

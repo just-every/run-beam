@@ -40,6 +40,7 @@ import { restoreRevision } from './history'
 import type { Input } from './input'
 import { completeLesson, decidePractical, gradeQuiz, saveQuizAnswers, startQuiz, submitPractical, submitQuiz } from './learning'
 import { decideNotice, decideProposal, proposeDraft } from './maintenance'
+import { proposeImpact } from './impact'
 import { acceptHistory } from './movein/talentlms'
 import { saveImportSettings } from './movein/door'
 import { configureBusiness, createTeam, invitePerson, setAccess, setRoles, setTeamMembers } from './people'
@@ -183,6 +184,7 @@ export const actions: Record<string, Handler> = {
   'proposal.create': (env, actor, input) => proposeDraft(env, actor, input, input.json('draft')),
   'proposal.decide': (env, actor, input) => decideProposal(env, actor, input),
   'notice.decide': (env, actor, input) => decideNotice(env, actor, input),
+  'impact.propose': (env, actor, input) => proposeImpact(env, actor, input),
   'course.upkeep': (env, actor, input) => saveUpkeep(env, actor, input),
   'review.decide': (env, actor, input) => decideReview(env, actor, input),
   'upkeep.run': (env, actor) => runUpkeepNow(env, actor),

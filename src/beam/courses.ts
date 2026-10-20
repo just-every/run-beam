@@ -8,6 +8,7 @@ import type { Input } from './input'
 import { newCourseUnit, requireCourseRole } from './units'
 import { courseAccess } from './course-access'
 import { courseUpkeep } from './upkeep'
+import { retrainAfterPublish } from './impact'
 
 export interface Lesson { id: string; title: string; body: string; sources: string[] }
 import { normaliseQuestion, questionFromInput, type Question } from './question-types'
@@ -271,7 +272,9 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
     stmt(env, 'UPDATE beam_courses SET published_revision_id = ? WHERE id = ?', revision.id, revision.course_id),
   ], { actor, action: 'revision.publish', subject: revision.id, detail: { reassignment, previous: revision.published_revision_id, selfReviewed: self === 1 } })
   const reassigned = revision.published_revision_id ? await reassignAfterPublish(env, actor, revision.course_id, revision.id, reassignment, dueDays) : 0
-  return { id: revision.id, state: 'published', reassigned }
+  // AGENT-004: retraining the named reviewer required on a source change.
+  const retrained = await retrainAfterPublish(env, actor, revision.course_id, revision.id)
+  return { id: revision.id, state: 'published', reassigned, retrained }
 }
 
 /** Every course, or only those in the given units (a learning administrator's catalog, ORG-002) and the given

@@ -70,7 +70,7 @@ export async function compareRevisions(env: Bindings, actor: Actor, fromId: stri
 
 const TEXT_LIMIT = 1_000_000
 
-async function sourceText(env: Bindings, version: Row) {
+export async function sourceText(env: Bindings, version: Row) {
   if (version.media_type !== 'text/plain' || version.size > TEXT_LIMIT) return null
   const object = await env.FILES.get(`sha256/${version.sha256}`)
   insist(object, 'file_missing', 503)

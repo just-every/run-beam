@@ -11,11 +11,11 @@ const encoder = new TextEncoder()
 const PREPARATION_ACTIONS = new Set([
   'course.create', 'course.details', 'course.lesson', 'course.lesson.remove',
   'course.lesson.move', 'course.question', 'course.question.remove',
-  'course.assessment', 'course.survey', 'course.submit', 'proposal.create', 'agent.propose', 'outcome.plan',
+  'course.assessment', 'course.survey', 'course.submit', 'proposal.create', 'impact.propose', 'agent.propose', 'outcome.plan',
 ])
 // Each handler still checks the specific role its action or view needs.
 const PREPARERS = ['author', 'reviewer', 'manager'] as const
-const PREPARATION_READ = /^(me|members|sources|courses|courses\/[\w-]+|revisions\/[\w-]+|source-files\/[\w-]+|people|paths|report|proposals|proposals\/[\w-]+|questions\/[\w-]+)$/
+const PREPARATION_READ = /^(me|members|sources|courses|courses\/[\w-]+|revisions\/[\w-]+|source-files\/[\w-]+|people|paths|report|proposals|proposals\/[\w-]+|impact\/[\w-]+|questions\/[\w-]+)$/
 
 async function signingKey(env: Bindings) {
   return crypto.subtle.importKey('raw', encoder.encode(env.SESSION_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])

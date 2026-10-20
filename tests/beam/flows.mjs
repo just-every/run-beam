@@ -326,7 +326,7 @@ try {
     assert.deepEqual(updated.proposals.find(row => row.id === fresh.id).inputs, [version.id])
     assert.equal(updated.publishedRevision, ids.openingRev3, 'an accepted proposal changes the draft, never the published revision')
     await h.api('notice.decide', people.author, { notice: notice.id, decision: 'draft_updated', note: 'x' }, 403)
-    await h.api('notice.decide', people.reviewer, { notice: notice.id, decision: 'draft_updated', note: 'The fridge step changed; revising.', nextReviewOn: '2031-06-30' })
+    await h.api('notice.decide', people.reviewer, { notice: notice.id, decision: 'draft_updated', note: 'The fridge step changed; revising.', nextReviewOn: '2031-06-30', retraining: 'none' })
     assert.ok(!(await h.api('queues', people.reviewer)).notices.length)
   })
 
