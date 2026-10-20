@@ -8,6 +8,7 @@ import { controlledExecution } from './automation-execution'
 import { all, commit, insist, now, one, stmt, type Row } from './core'
 import { EXCEPTED } from './exceptions'
 import type { Input } from './input'
+import { instructs } from './instructors'
 import { manages } from './scope'
 
 const HOUR = 3_600_000
@@ -48,7 +49,7 @@ async function facts(env: Bindings, item: Row) {
   if (item.assessor) {
     const assessor = await one(env, `SELECT 1 FROM beam_members m JOIN oa_operators o ON o.id=m.operator_id JOIN beam_member_roles r ON r.member_id=m.id AND r.role='assessor' WHERE m.id=? AND m.employment='active' AND o.status='active'`, item.assessor)
     const sessions = await all(env, `SELECT s.capacity,(SELECT COUNT(*) FROM beam_session_registrations r WHERE r.session_id=s.id AND r.state='registered')+(SELECT COUNT(*) FROM beam_session_waitlist w WHERE w.session_id=s.id AND w.state='offered' AND w.offer_expires_at>?) AS seats FROM beam_sessions s WHERE s.course_id=? AND s.instructor_id=? AND s.state='scheduled' AND EXISTS(SELECT 1 FROM beam_session_meetings d WHERE d.session_id=s.id AND d.starts_at>?)`, now(), item.course, item.assessor, now())
-    capacity = !assessor || !sessions.some(row => row.capacity === null || row.seats < row.capacity)
+    capacity = !assessor || !await instructs(env, item.assessor, item.course) || !sessions.some(row => row.capacity === null || row.seats < row.capacity)
   }
   return { noContactRoute: !item.email, attemptsExhausted: item.exhausted > 0, missingAssessorCapacity: capacity, onLeave: item.employment === 'leave', failures }
 }
