@@ -76,13 +76,24 @@ export async function restoreJourney({ root, target, port }) {
     }
     assert.equal(certificates, 2)
     // Archives carry no sign-in accounts. Restoring a learner's access sends them an ordinary invitation;
-    // until they accept it from their mailbox (a hosted installation's mail) they cannot sign in.
+    // accepting it needs ordinary mail proof in production or this checkout's privileged local key.
     const learner = learners.find(member => member.email.startsWith('learner@'))
     const restore = new URLSearchParams({ returnTo: '/app/people', member: learner.id, status: 'active' })
     const restored = await fetch(`${origin}/app/do/person.access`, { method: 'POST', redirect: 'manual', headers: { cookie, origin, 'content-type': 'application/x-www-form-urlencoded' }, body: restore })
     assert.equal(restored.status, 303)
     assert.equal(new URL(restored.headers.get('location'), origin).searchParams.get('error'), null, 'restoring access is accepted')
-    assert.equal((await enter(origin, key, 'learner')).status, 403, 'the restored learner signs in only by accepting the invitation')
+    const invited = (await get('people')).members.find(member => member.id === learner.id)
+    assert.equal(invited.status, 'invited', 'restoring access creates an invitation, not an active account')
+    const unkeyed = await fetch(`${origin}/auth/dev/enter?as=learner`, { redirect: 'manual' })
+    assert.equal(unkeyed.status, 404, 'the invitation cannot be accepted without the local key')
+    // Base's keyed local door consumes the live invitation, just as the local
+    // sign-in screen does. It does not require a mailbox in local development.
+    const accepted = await enter(origin, key, 'learner')
+    assert.equal(accepted.status, 303, 'the local key accepts the owner-issued invitation')
+    assert.equal((await get('people')).members.find(member => member.id === learner.id).status, 'active')
+    const record = await fetch(`${origin}/api/beam/records/me`, { headers: { cookie: accepted.cookie } })
+    assert.equal(record.status, 200)
+    assert.equal((await record.json()).completions.length, 1, 'the new sign-in reaches the restored learning history')
   } finally {
     await server.stop()
   }

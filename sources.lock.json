@@ -3354,6 +3354,10 @@
       "sha256": "329d9863a32ada79163fd4ff0e12f1ae1a2fa81ed3f22072d1cd9c3a9ad16919",
       "executable": false
     },
+    "tests/beam/cloudflare-dry-run.mjs": {
+      "sha256": "f11ac353a1dd5acb47cae00c7da71029b1633b0cc2b45fdde9bb631e14e1ff31",
+      "executable": false
+    },
     "tests/beam/fixtures.mjs": {
       "sha256": "13f812e337d4f82b78ce0d83e38cdf08628ea1a7d127da15420469c58d883be4",
       "executable": false
@@ -3371,7 +3375,7 @@
       "executable": false
     },
     "tests/beam/journey.mjs": {
-      "sha256": "de8d2afa5b4452d0ea05cc0527fa6492410355b91b4f5366e8fda8e146ad197f",
+      "sha256": "c13d0ab91168d66bfa6142f25470aa834b54c9c73e360c2d684ba75c5958a474",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
@@ -3527,7 +3531,7 @@
       "executable": false
     },
     "tests/beam/restore.mjs": {
-      "sha256": "9bcb82539f91071ef413977d0ef2ec1039c9dc0932bb06a3d83d420a5bbf906e",
+      "sha256": "1d1a12d5f34e8bf7664eff6127742c233e22870c69d706ae0d7db49287da033a",
       "executable": false
     },
     "tests/email-link.mjs": {
