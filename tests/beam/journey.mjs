@@ -3,14 +3,17 @@
 // identity, the owner publishing a reviewed course, a learner completing it,
 // then build, preview, export and restore into a second fresh clone.
 import assert from 'node:assert/strict'
-import { chromium } from '@playwright/test'
 import { access, chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { command, serving } from './cli.mjs'
 import { procedureV1 } from './fixtures.mjs'
 import { restoreJourney } from './restore.mjs'
+
+// A local runner can use its current Playwright without changing the seed's pin.
+const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
 
 assert.equal(process.env.BEAM_TEST_CHECKOUT, '1', 'Set BEAM_TEST_CHECKOUT=1 only in a disposable fresh git clone')
 const root = process.cwd()
@@ -60,7 +63,7 @@ async function journey(width, ownerOpen, learnerOpen, learnerName) {
   await shot(owner, 'business')
   await owner.getByLabel('Business name').fill('Harbour Physio')
   await owner.getByLabel('Time zone for due dates').selectOption('Australia/Sydney')
-  await owner.getByRole('button', { name: 'Save' }).click()
+  await owner.getByRole('button', { name: 'Save', exact: true }).click()
   // The owner manages training, so /app takes them to Manage.
   await owner.waitForURL(`${origin}/app/manage?notice=Saved.`)
 
@@ -84,10 +87,13 @@ async function journey(width, ownerOpen, learnerOpen, learnerName) {
   await owner.getByLabel(`Opening procedure (${width}) v1`).last().check()
   await owner.getByRole('button', { name: 'Add lesson' }).click()
   await owner.getByText('1. Opening steps').waitFor()
-  await owner.getByLabel('Question').last().fill('What do you do first?')
-  await owner.getByLabel('Choices, one per line').last().fill('Disarm the alarm\nOpen the till')
-  await owner.getByLabel('Correct choice numbers').last().fill('1')
-  await owner.getByRole('button', { name: 'Add question' }).click()
+  const multipleChoice = owner.locator('details').filter({ has: owner.locator('summary', { hasText: /^Multiple choice$/ }) })
+  await multipleChoice.locator('summary').click()
+  const question = multipleChoice.locator('form[action="/app/do/course.question"]')
+  await question.getByLabel('Question', { exact: true }).fill('What do you do first?')
+  await question.getByLabel('Choices, one per line').fill('Disarm the alarm\nOpen the till')
+  await question.getByLabel('Correct choice numbers').fill('1')
+  await question.getByRole('button', { name: 'Add question' }).click()
   await owner.getByText('1. What do you do first?').waitFor()
   await owner.getByLabel('Pass mark (%)').fill('100')
   await owner.getByLabel('Quiz attempts allowed').fill('2')
@@ -119,7 +125,7 @@ async function journey(width, ownerOpen, learnerOpen, learnerName) {
   await learner.getByLabel('Disarm the alarm').check()
   await shot(learner, 'quiz')
   await learner.getByRole('button', { name: 'Submit answers' }).click()
-  await learner.getByRole('link', { name: 'Certificate' }).click()
+  await learner.getByRole('link', { name: 'Certificate', exact: true }).click()
   await learner.getByText('Issued by Harbour Physio').waitFor()
   await learner.getByRole('heading', { name: course }).waitFor()
   await shot(learner, 'certificate')
@@ -189,7 +195,7 @@ try {
   const ownerOpen = server.open()
   assert.ok(ownerOpen && server.output().includes('RER_SIGNED_IN owner@example.test'))
   const personaOpen = async as => (await command(root, ['dev', '--port', String(port), '--as', as])).match(/RER_OPEN (\S+)/)[1]
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
   for (const [width, persona, name] of [[1440, 'learner', 'Sam Lee (new staff)'], [390, 'author', 'Ana Ruiz (author)']]) {
     try { await journey(width, ownerOpen, await personaOpen(persona), name) } catch (error) {
       for (const [index, page] of browser.contexts().flatMap(context => context.pages()).entries()) await page.screenshot({ path: join(evidence, `${width}-failure-${index}.png`), fullPage: true }).catch(() => {})
@@ -206,7 +212,15 @@ try {
   assert.equal((await fetch(`${origin}/signin`)).status, 200)
   await server.stop(); server = null
   // A production deploy needs its declared mail provider's key (rer refuses production without sign-in mail).
-  await command(root, ['deploy', '--dry-run'], { extraEnv: { MAIL_API_KEY: 'synthetic-fixture-dry-run-mail-key' } })
+  // rer also reads the target's provider metadata. Fixture only those Cloudflare GETs;
+  // the real deploy command still builds, validates production settings and completes its dry run.
+  const cloudflareFixture = fileURLToPath(new URL('./cloudflare-dry-run.mjs', import.meta.url))
+  await command(root, ['deploy', '--dry-run'], { extraEnv: {
+    MAIL_API_KEY: 'synthetic-fixture-dry-run-mail-key',
+    CLOUDFLARE_ACCOUNT_ID: '11111111111111111111111111111111',
+    CLOUDFLARE_API_TOKEN: 'synthetic-fixture-dry-run-cloudflare-token',
+    NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --import ${JSON.stringify(cloudflareFixture)}`,
+  } })
   await restoreJourney({ root, target: join(scratch, 'target'), port })
 } finally {
   await browser?.close()
