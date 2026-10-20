@@ -150,7 +150,8 @@ export async function notificationRulesCheck(f) {
 // NOTICE-004: every policy/routing/delivery/resolution assertion uses the Worker
 // doors. Only the stored due instant moves to advance the scenario's clock.
 export async function escalationCheck(f) {
-  const { api, h, ids, course, assign, lessons } = f
+  const { api, h, ids, course, lessons } = f
+  const assign = async c => (await api('owner', 'assignment.create', { course: c.id, learners: [ids.learner], dueDate: '2030-10-01' })).created[0]
   const hour = 3_600_000
   const tick = async () => assert.equal((await h.scheduled()).outcome, 'ok')
   const due = async (id, hours) => h.db.prepare('UPDATE beam_assignments SET due_at=? WHERE id=?').bind(Date.now() - hours * hour, id).run()
@@ -237,7 +238,7 @@ export async function escalationCheck(f) {
   assert.equal((await item('other', pa)).missingAssessorCapacity, true)
   await api('owner', 'session.seats', { session: session.id, capacity: 2 })
   assert.equal((await item('other', pa)).missingAssessorCapacity, false)
-  await api('owner', 'person.directory', { member: ids.learner, email: '' })
+  await api('owner', 'person.directory', { member: ids.learner, email: '', emailSent: true })
   assert.equal((await item('other', pa)).noContactRoute, true)
   await api('owner', 'person.directory', { member: ids.learner, email: 'learner@example.test', employment: 'active' })
   const quiz = await api('author', 'course.create', { title: 'Exhausted retry', reviewer: ids.reviewer })
