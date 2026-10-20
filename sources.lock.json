@@ -185,7 +185,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "7444f39a51934ff395c95f31b729fff281ae506e5ee588b9703e0ad70421f81d",
+      "sha256": "0fff7b0c105062884e3b3de01c95a03ba1aa386351f90675409dcd3b7e96de4e",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -193,7 +193,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "08ee71c9e20c66406704b747830bc97eeb809f8aa9a67e9a6ec01a920b5ffc8d",
+      "sha256": "30699d2f5e052d45a30c20063ae77f73342bf760b3f37e26e9b02f639dc1547e",
       "executable": false
     },
     "base-copies.json": {
@@ -205,7 +205,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9f25cacf8abea5b3466294499a67f5bafa5f26ee9d401ad08da023e6751106b8",
+      "sha256": "8e6aa980655fc54db284f1bdef98af67033312a9788e4f0a008d465730144dce",
       "executable": false
     },
     "DEMO.md": {
@@ -530,6 +530,10 @@
     },
     "migrations/core/0064_beam_impact.sql": {
       "sha256": "51debe181bf6cd035398a3b8a62463a1859106ca8e1fa2cf4755d57f60f6a78f",
+      "executable": false
+    },
+    "migrations/core/0065_beam_mcp_grants.sql": {
+      "sha256": "ef878d8a788e2d6d12111690e4400f2c26b661689d237b33d9f25e58258ae789",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1005,7 +1009,7 @@
       "executable": false
     },
     "src/beam/actor.ts": {
-      "sha256": "0321c8c8f4314f8b522fd313f22c967351987be86399b89db675a3225054535a",
+      "sha256": "24bd5d6780e92bfd65d0bcd3c420ec2d95369ee20cc7b71e44bdc83ed34da336",
       "executable": false
     },
     "src/beam/agent-credentials.ts": {
@@ -1025,7 +1029,7 @@
       "executable": false
     },
     "src/beam/app-credentials.ts": {
-      "sha256": "3be0d96952764302d1344d937c3273db0a442fca7deca95d6e109e31b2dbe0f8",
+      "sha256": "608bfac98501f8235589f5c2d5da786206d477fcd01b322819bbb76fbc3101ad",
       "executable": false
     },
     "src/beam/assignments.ts": {
@@ -1141,7 +1145,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "1a512624570fdea00ba39d71d16e758f1c3e5c1e1565579a2a077a4060b47aee",
+      "sha256": "cd2246ccba431b205bc9130ed2d9368041ee572d7a5783083965a3a678ac44c4",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -1186,6 +1190,10 @@
     },
     "src/beam/managers.ts": {
       "sha256": "e8edc87430eff81a6402278b51267562d0f5fd495774f6a46a7a267edb16c6d4",
+      "executable": false
+    },
+    "src/beam/mcp.ts": {
+      "sha256": "bac6f762c3c89f6f425d0a9b44a4705bd3d9db7fc4e434e68205844a614853bf",
       "executable": false
     },
     "src/beam/movein/browser.ts": {
@@ -1349,7 +1357,7 @@
       "executable": false
     },
     "src/beam/ui/app-access.ts": {
-      "sha256": "9e660f89018cc4bd054114e7f21edabf8b719147f5ffe2dc3f56b90961af4613",
+      "sha256": "2582fd730d12057b411113afdb5e81cd2cc6fec82a6f5cae07e83ea4657ed791",
       "executable": false
     },
     "src/beam/ui/attendance.ts": {
@@ -3285,7 +3293,7 @@
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
-      "sha256": "fefb0150a1f28d5ea49a930634ace27a176863900e7acebca2c0d40f2826e2de",
+      "sha256": "752b5192542dbfd1e1b01337aa5a140866694e5ee4740f63e2a43739b6a0f845",
       "executable": false
     },
     "tests/beam/cli.mjs": {

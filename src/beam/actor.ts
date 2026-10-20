@@ -41,7 +41,7 @@ export interface Actor {
   /** ORG-005: holds an active auditor grant (read-only shared evidence). */
   auditor: boolean
   /** CONNECT-014: set for an application credential's request (app-credentials.ts); agent is also true. */
-  app?: { id: string; name: string; audience: string }
+  app?: { id: string; name: string; audience: string; tools: string[] }
   /** ORG-012: set while a viewer sees Beam as this learner, read-only (view-as.ts); the request runs as the learner. */
   viewAs?: { session: string; viewer: { id: string; name: string }; expiresAt: number }
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */

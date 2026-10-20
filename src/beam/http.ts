@@ -8,6 +8,7 @@ import { acknowledgmentDocument, acknowledgmentEvidence } from './acknowledgment
 import { issueAgentCredential, requireAgentScope } from './agent-credentials'
 import { exemptFromOriginCheck, requireAppScope } from './app-credentials'
 import { applicationCall } from './app-api'
+import { mcpCall } from './mcp'
 import { accessPage, issuedPage } from './ui/app-access'
 import { actions } from './actions'
 import { currentActor, isManager, type Actor } from './actor'
@@ -138,8 +139,11 @@ async function viewDoor(env: Bindings, actor: Actor, request: Request, url: URL,
 
 async function apiResponse(env: Bindings, actor: Actor, request: Request, url: URL) {
   const path = url.pathname.slice('/api/beam/'.length)
+  // CONNECT-016: a browser session never rides the MCP door, even alongside a grant.
+  if (path === 'mcp') insist(!request.headers.has('cookie'), 'mcp_session_refused', 403)
   if (actor.app) {
     requireAppScope(actor, path, request.method)
+    if (path === 'mcp') return await mcpCall(env, actor, actor.app.tools, request)
     return json(await applicationCall(env, actor, request, url, path))
   }
   insist(!path.startsWith('v1/'), 'application_credential_required', 403)
