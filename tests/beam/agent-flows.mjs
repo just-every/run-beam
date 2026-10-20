@@ -429,7 +429,7 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     const results = await access({ name: 'Training provider', audience: 'results.write', teams: ids.team })
     const result = { requirement, issuer: 'Red Cross', number: 'CPR-77', issuedOn: '2026-01-15', expiresOn: '2028-01-15', file: file('cpr.pdf', pdf, 'application/pdf') }
     assert.equal((await call(results, 'v1/results', { ...result, learner: ids.sam })).state, 'pending')
-    assert.equal((await h.api('external', people.sam)).mine.find(item => item.requirement === requirement).pending.number, 'CPR-77')
+    assert.equal((await h.api('external', people.sam)).mine.find(item => item.requirement.id === requirement).pending.number, 'CPR-77')
     assert.equal((await call(results, 'v1/results', { ...result, learner: ids.author }, 403)).error, 'learner_outside_your_team')
     // Roster and catalog credentials read their own routes; past 60 requests a minute a credential is refused.
     const roster = await access({ name: 'Directory sync', audience: 'roster.read', teams: leads })
