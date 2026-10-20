@@ -10,7 +10,7 @@ const planLine = (plan: any) => h`<p><strong>${plan.metric}</strong> (${plan.uni
 function groupRows(label: string, group: any, unit: string): Html {
   if (!group) return h``
   const counts = `${group.people} people; ${group.missingBefore} missing before, ${group.missingAfter} missing after`
-  if (group.hidden) return h`<tr><th scope="row">${label}</th><td colspan="4">Hidden: fewer than the privacy bound with both periods (${counts})</td></tr>`
+  if (group.hidden) return h`<tr><th scope="row">${label}</th><td colspan="4">Hidden: ${group.reason === 'below_privacy_bound' ? 'fewer people with both periods than the privacy bound' : 'differs from an earlier plan’s group by fewer people than the privacy bound'} (${counts})</td></tr>`
   return h`<tr><th scope="row">${label}</th><td>${group.before} ${unit}</td><td>${group.after} ${unit}</td><td>${group.change} (${group.interval[0]} to ${group.interval[1]})</td><td>${counts}</td></tr>`
 }
 

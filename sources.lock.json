@@ -205,7 +205,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "eb4decb020b4f19adedcaf1ce192bf7c7c22569b47f0b02f61fa35fe5305a031",
+      "sha256": "aa0918d0b588105d2a2c3091bbc69f05d07a3711e3e6344e8fa928a0580b1add",
       "executable": false
     },
     "DEMO.md": {
@@ -225,7 +225,7 @@
       "executable": false
     },
     "docs/agent-work.md": {
-      "sha256": "43af0ad631289a1227668b246a71bdb0c3d5027808cd23700f4031c63f66f342",
+      "sha256": "0807c7046b7b3204096cdc4a995c6f39d38d1f7dfed922a097a316c081f84af1",
       "executable": false
     },
     "docs/assign.md": {
@@ -1221,7 +1221,7 @@
       "executable": false
     },
     "src/beam/outcomes.ts": {
-      "sha256": "0ae5ff926a55adc0b4c522e8e8c4d513879b063372678f0ed9747cba6b4325d4",
+      "sha256": "d8bce183dee5f35956196fe2ad092afffac1cbc064cfb52054b4f021cf68689e",
       "executable": false
     },
     "src/beam/pdf.ts": {
@@ -1445,7 +1445,7 @@
       "executable": false
     },
     "src/beam/ui/outcomes.ts": {
-      "sha256": "87f159924bfd01ca3bc1dc6a4e82874f5ee5af8c9fee1c48e3d99fb17e305273",
+      "sha256": "7ff0aa4be0cf830dae7f3c7941b7e2d5d73027c45febbf4d0b7d537b9d42d541",
       "executable": false
     },
     "src/beam/ui/practice.ts": {
@@ -3257,7 +3257,7 @@
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
-      "sha256": "23f917bc103a7f2c083de1bbf9a4c5e3ed76c8335151d8d538bde3144c120823",
+      "sha256": "38b1da71800565edf45b72ace8b42cadebb3da9e66c5f22fdefb013638cda422",
       "executable": false
     },
     "tests/beam/cli.mjs": {

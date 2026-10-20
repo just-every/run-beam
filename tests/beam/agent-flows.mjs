@@ -346,6 +346,21 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     assert.ok(created.every(id => !JSON.stringify(view).includes(id)))
     assert.equal((await h.api(`outcomes/${prepared}?rank=change`, people.manager, undefined, 400)).error, 'individual_results_refused')
     await h.api(`outcomes/${prepared}`, people.sam, undefined, 403)
+    // Readers are the owner, the approving manager and managers whose teams include cohort people.
+    await h.api('person.invite', people.owner, { email: 'mia@example.test', name: 'Mia Chen', roles: ['manager', 'learner'] })
+    await h.api(`outcomes/${prepared}`, await h.signIn('mia@example.test', { requested: true }), undefined, 403)
+    assert.equal((await h.api(`outcomes/${prepared}`, people.owner)).difference.value, -3.33)
+    // A later plan whose groups differ from this plan's by fewer people than the bound shows neither group nor difference.
+    const again = await agent('agent.propose', { kind: 'intervention', title: 'Second check, three people', agent: 'claude-code', inputs: [{ type: 'diagnosis', id: diagnosis }], reasons: ['Three still miss it.'], excluded: [], payload: { diagnosis, recommended: 'three', options: [
+      { id: 'three', kind: 'cohort_assignment', summary: 'Refresher for three', expectedBenefit: 'Fewer missed checks', people: created.slice(0, 3), paidMinutesPerPerson: 20, ...due },
+      { id: 'all', kind: 'broad_course', summary: 'Everyone in the dispensary', expectedBenefit: 'Everyone revisits the check', people: [...created].sort(), paidMinutesPerPerson: 45, ...due },
+    ] } })
+    const second = (await h.api('outcome.plan', people.manager, { ...plan, intervention: again.id })).id
+    await h.api('outcome.approve', people.manager, { plan: second })
+    await h.api('agent.decide', people.manager, { proposal: again.id, decision: 'approve', sha256: again.sha256, option: 'three' })
+    await h.api('outcome.import', people.manager, { plan: second, csv })
+    const differenced = await h.api(`outcomes/${second}`, people.manager)
+    assert.deepEqual([differenced.exposed.hidden, differenced.exposed.reason, differenced.comparisonGroup.reason, differenced.difference, differenced.exposed.change], [true, 'differs_from_earlier_plan', 'differs_from_earlier_plan', null, undefined])
     const page = await pageOf('/app/agent?state=approved', people.manager)
     assert.ok(page.includes('Difference in change: -3.33') && page.includes('New dispensing checklist for all staff') && page.includes('does not show that the intervention caused any change'))
   })

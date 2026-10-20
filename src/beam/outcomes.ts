@@ -8,11 +8,13 @@
 // inside the two periods; a blank value is recorded as missing. Process changes are recorded as confounders.
 // The comparison is per group, never per person: each person's values are averaged per period, a group's change is the
 // mean of its people's after-minus-before changes with an approximate 95% interval (mean ± 1.96 standard errors), and a
-// group smaller than the privacy bound is hidden. Results are rounded to two decimals. Beam never ranks or lists
+// group smaller than the privacy bound, or differing from an earlier plan's group by fewer people than the bound, is
+// hidden, and so is the difference when either side is. Readers are the owner, the approving manager and managers whose
+// teams include cohort people. Results are rounded to two decimals. Beam never ranks or lists
 // employees and never claims the training caused a change: completion proves neither competence nor causation.
 import type { Bindings } from '../auth.server'
 import { isManager, type Actor } from './actor'
-import { all, BeamError, commit, insist, newId, now, one, stmt } from './core'
+import { all, BeamError, commit, insist, newId, now, one, stmt, type Row } from './core'
 import { parseCsv, key } from './directory'
 import type { Input } from './input'
 import { roleMembers } from './interventions'
@@ -67,16 +69,26 @@ export async function approvePlan(env: Bindings, actor: Actor, input: Input) {
   return { id: plan.id, approved: true, cohort: cohort.length }
 }
 
+function groupsOf(plan: Row, reached: string[]) {
+  const cohort: string[] = JSON.parse(plan.cohort_json)
+  const exposed = reached.filter(person => cohort.includes(person))
+  return { cohort, exposed, comparison: plan.comparison === 'rest_of_role' ? cohort.filter(person => !exposed.includes(person)) : [] }
+}
+
 async function approvedPlan(env: Bindings, id: string) {
   const plan = await one(env, 'SELECT * FROM beam_outcome_plans WHERE id = ? AND approved_at IS NOT NULL', id)
   insist(plan, 'plan_not_found', 404)
   const target = await intervention(env, plan.intervention)
   insist(target.state === 'approved' && target.result, 'intervention_not_applied', 409)
-  const cohort: string[] = JSON.parse(plan.cohort_json)
-  const exposed: string[] = target.result.people.filter((person: string) => cohort.includes(person))
-  const comparison = plan.comparison === 'rest_of_role' ? cohort.filter(person => !exposed.includes(person)) : []
-  return { plan, target, exposed, comparison }
+  return { plan, target, ...groupsOf(plan, target.result.people) }
 }
+
+/** Groups of earlier approved, applied plans: a group differing from one of them by fewer than the bound is hidden. */
+async function earlierGroups(env: Bindings, plan: Row) {
+  const rows = await all(env, "SELECT p.cohort_json, p.comparison, a.result_json FROM beam_outcome_plans p JOIN beam_agent_proposals a ON a.id = p.intervention WHERE p.id <> ? AND p.approved_at IS NOT NULL AND p.approved_at <= ? AND a.state = 'approved' AND a.result_json IS NOT NULL", plan.id, plan.approved_at)
+  return rows.flatMap(row => { const groups = groupsOf(row, JSON.parse(row.result_json).people); return [groups.exposed, groups.comparison].filter(group => group.length) })
+}
+const differing = (one: string[], other: string[]) => one.filter(person => !other.includes(person)).length + other.filter(person => !one.includes(person)).length
 
 export async function importOutcomes(env: Bindings, actor: Actor, input: Input) {
   insist(isManager(actor), 'forbidden', 403)
@@ -122,12 +134,16 @@ export async function importOutcomes(env: Bindings, actor: Actor, input: Input) 
 }
 
 type Values = Map<string, number[]>
-function group(people: string[], before: Values, after: Values, minGroup: number) {
+const hiddenLimit = (label: string, reason: string, bound: number) => reason === 'below_privacy_bound'
+  ? `The ${label} has fewer than ${bound} people with both periods, so its result is hidden.`
+  : `The ${label} differs from an earlier plan's group by fewer than ${bound} people, so its result is hidden.`
+function group(people: string[], before: Values, after: Values, minGroup: number, earlier: string[][]) {
   const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length
   const reported = (values: Values) => people.filter(person => values.get(person)?.length).length
   const changes = people.filter(person => before.get(person)?.length && after.get(person)?.length).map(person => mean(after.get(person)!) - mean(before.get(person)!))
   const counts = { people: people.length, reportedBefore: reported(before), reportedAfter: reported(after), missingBefore: people.length - reported(before), missingAfter: people.length - reported(after), paired: changes.length }
-  if (changes.length < minGroup) return { ...counts, hidden: true as const }
+  if (changes.length < minGroup) return { ...counts, hidden: true as const, reason: 'below_privacy_bound' }
+  if (earlier.some(other => { const count = differing(people, other); return count > 0 && count < minGroup })) return { ...counts, hidden: true as const, reason: 'differs_from_earlier_plan' }
   const average = mean(changes)
   const se = Math.sqrt(changes.reduce((sum, value) => sum + (value - average) ** 2, 0) / (changes.length - 1) / changes.length)
   const pick = (values: Values) => people.filter(person => values.get(person)?.length).map(person => mean(values.get(person)!))
@@ -136,9 +152,11 @@ function group(people: string[], before: Values, after: Values, minGroup: number
 
 /** The comparison for one approved plan: group results only, never a person's value or rank. */
 export async function outcomeComparison(env: Bindings, actor: Actor, id: string, url?: URL) {
-  insist(isManager(actor), 'forbidden', 403)
+  insist(isManager(actor) && !actor.agent, 'forbidden', 403)
   if (url && ['person', 'member', 'by', 'rank', 'sort', 'employee'].some(name => url.searchParams.has(name))) throw new BeamError('individual_results_refused', 400)
-  const { plan, target, exposed, comparison } = await approvedPlan(env, id)
+  const { plan, target, cohort, exposed, comparison } = await approvedPlan(env, id)
+  // Readers: the owner, the approving manager, and managers whose teams include cohort people.
+  insist(actor.owner || plan.approved_by === actor.id || await one(env, 'SELECT 1 FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?)) AND member_id IN (SELECT value FROM json_each(?))', JSON.stringify(actor.managedTeams), JSON.stringify(cohort)), 'forbidden', 403)
   const rows = await all<{ member: string; observed_on: string; value: number | null }>(env, 'SELECT member, observed_on, value FROM beam_outcome_values WHERE plan = ?', plan.id)
   const before: Values = new Map(), after: Values = new Map()
   for (const row of rows) {
@@ -147,8 +165,9 @@ export async function outcomeComparison(env: Bindings, actor: Actor, id: string,
     into.set(row.member, [...into.get(row.member) ?? [], row.value])
   }
   const blankRows = rows.filter(row => row.value === null).length
-  const exposedGroup = group(exposed, before, after, plan.min_group)
-  const comparisonGroup = plan.comparison === 'rest_of_role' ? group(comparison, before, after, plan.min_group) : null
+  const earlier = await earlierGroups(env, plan)
+  const exposedGroup = group(exposed, before, after, plan.min_group, earlier)
+  const comparisonGroup = plan.comparison === 'rest_of_role' ? group(comparison, before, after, plan.min_group, earlier) : null
   const comparable = !exposedGroup.hidden && comparisonGroup && !comparisonGroup.hidden
   const difference = comparable ? (() => {
     const se = Math.sqrt(exposedGroup.standardError ** 2 + comparisonGroup.standardError ** 2), value = exposedGroup.mean - comparisonGroup.mean
@@ -161,8 +180,8 @@ export async function outcomeComparison(env: Bindings, actor: Actor, id: string,
     return { ...shown, standardError: round(value.standardError) }
   }
   const limits = [
-    ...exposedGroup.hidden ? [`The exposed group has fewer than ${plan.min_group} people with both periods, so its result is hidden.`] : [],
-    ...plan.comparison === 'none' ? ['No comparison group was chosen, so the before/after change cannot be separated from what would have happened anyway.'] : comparisonGroup?.hidden ? [`The comparison group has fewer than ${plan.min_group} people with both periods, so its result is hidden.`] : [],
+    ...exposedGroup.hidden ? [hiddenLimit('exposed group', exposedGroup.reason, plan.min_group)] : [],
+    ...plan.comparison === 'none' ? ['No comparison group was chosen, so the before/after change cannot be separated from what would have happened anyway.'] : comparisonGroup?.hidden ? [hiddenLimit('comparison group', comparisonGroup.reason, plan.min_group)] : [],
     ...exposedGroup.missingBefore + exposedGroup.missingAfter + (comparisonGroup ? comparisonGroup.missingBefore + comparisonGroup.missingAfter : 0) + blankRows ? [`Missing data: ${blankRows} blank ${blankRows === 1 ? 'row' : 'rows'}; people without a value are left out of the change.`] : [],
     ...exposedGroup.paired < 30 ? ['Small sample: with fewer than 30 people the interval is rough.'] : [],
   ]
