@@ -10,6 +10,7 @@ import { EXCEPTED } from './exceptions'
 import type { Input } from './input'
 import { instructs } from './instructors'
 import { manages } from './scope'
+import { requireCourseRole } from './units'
 
 const HOUR = 3_600_000
 export const escalationPolicy = (env: Bindings) => one(env, 'SELECT * FROM beam_escalation_policy WHERE id=1')
@@ -70,8 +71,9 @@ export async function escalationQueue(env: Bindings, actor: Actor) {
 }
 
 export async function resolveEscalation(env: Bindings, actor: Actor, input: Input) {
-  const assignment = await one(env, 'SELECT id,learner_id FROM beam_assignments WHERE id=?', input.text('assignment'))
+  const assignment = await one(env, 'SELECT id,learner_id,course_id FROM beam_assignments WHERE id=?', input.text('assignment'))
   insist(assignment && manages(actor, assignment.learner_id, 'enrollment'), 'assignment_not_found', 404)
+  if (!actor.grants.enrollment) await requireCourseRole(env, actor, assignment.course_id, 'manager')
   const reason = input.text('reason', { max: 500 })
   await commit(env, [stmt(env, 'INSERT OR IGNORE INTO beam_escalation_resolutions VALUES(?,?,?,?)', assignment.id, reason, actor.id, now())], { actor, action: 'escalation.resolve', subject: assignment.id, detail: { reason } })
   return { assignment: assignment.id, resolved: true }

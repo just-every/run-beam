@@ -1159,7 +1159,7 @@
       "executable": false
     },
     "src/beam/escalations.ts": {
-      "sha256": "73a76242393986bf31d3c5fb9417059ef4ea6e7639efd36dbfd255d9846a43d0",
+      "sha256": "bc608aea5193176e929d6a2b2d2918dc9d0e83b343f54e19d8d59c28f4cb8bbf",
       "executable": false
     },
     "src/beam/estate.ts": {
@@ -3479,7 +3479,7 @@
       "executable": false
     },
     "tests/beam/regression-notices.mjs": {
-      "sha256": "be059ca7709b119e9fd6588e45a0000eff74104ecbc0c31d758cf7ab9f2d0538",
+      "sha256": "fbd9d75dd4006d89f515074bfb95fd32c5ddde90da933b9082eb5d66e923394c",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {

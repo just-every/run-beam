@@ -233,6 +233,10 @@ export async function escalationCheck(f) {
   assert.deepEqual(row.reachesNow, [{ id: ids.owner, route: 'owner' }])
   assert.equal(mails().length, 3)
   assert.ok(mails()[2].to.includes('owner@example.test'))
+  // Unit administration keeps the existing course boundary on enrollment writes.
+  const unit = await api('owner', 'unit.create', { name: 'Escalation unit', teams: [ids.team] })
+  await api('owner', 'admin.grant', { unit: unit.id, member: ids.author, expiresOn: '2030-12-31' })
+  await api('author', 'escalation.resolve', { assignment: a, reason: 'Course outside the administered unit' }, 403)
   // Resolve the reported blocker under the existing exception policy, then the
   // escalation with a reason; neither operation rewrites the original due date.
   const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
