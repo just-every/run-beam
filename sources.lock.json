@@ -3351,7 +3351,7 @@
       "executable": false
     },
     "tests/beam/cli.mjs": {
-      "sha256": "c95c8ea0cb6d9b94985c584245844a1fb9f49a824b2f5bd048017763fa229df7",
+      "sha256": "329d9863a32ada79163fd4ff0e12f1ae1a2fa81ed3f22072d1cd9c3a9ad16919",
       "executable": false
     },
     "tests/beam/fixtures.mjs": {
@@ -3371,7 +3371,7 @@
       "executable": false
     },
     "tests/beam/journey.mjs": {
-      "sha256": "1ad63d3bfc9720bd82ba5431b44d4ca2efa23453915237cfeb9e9fade9f65114",
+      "sha256": "de8d2afa5b4452d0ea05cc0527fa6492410355b91b4f5366e8fda8e146ad197f",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
@@ -3479,7 +3479,7 @@
       "executable": false
     },
     "tests/beam/regression-notices.mjs": {
-      "sha256": "fbd9d75dd4006d89f515074bfb95fd32c5ddde90da933b9082eb5d66e923394c",
+      "sha256": "839a55600e2bc3a9658affb79edd8cbad83116549cc13f5033941af4ffeaf435",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {

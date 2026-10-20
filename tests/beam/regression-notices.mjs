@@ -242,6 +242,8 @@ export async function escalationCheck(f) {
   const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
   await api('other', 'exception.grant', { assignment: a, blocker: blocker.id, kind: 'deferral', endsOn: tomorrow, reason: 'Leave approved; manager arranged a return session.' })
   assert.deepEqual(await queue('other'), [])
+  await tick()
+  assert.equal(mails().length, 3, 'active deferral pauses scheduled escalation')
   await api('learner', 'escalation.resolve', { assignment: a, reason: 'Self approval' }, 404)
   await api('manager', 'escalation.resolve', { assignment: a, reason: 'Former manager' }, 404)
   await api('other', 'escalation.resolve', { assignment: a, reason: 'Replacement session arranged on return.' })
@@ -302,6 +304,42 @@ export async function escalationCheck(f) {
   }
   assert.ok(exported.records.beam_escalation_messages.rows.some(row => row.assignment_id === a && row.recipient_id === ids.other && row.status === 'accepted'))
   assert.ok(exported.records.beam_escalation_resolutions.rows.some(row => row.assignment_id === a && row.resolved_by === ids.other))
+  // The same NOTICE-004 provider door must obey every shared AUTO-008 hold.
+  const saveControls = async fields => {
+    const current = (await api('owner', 'automation-controls')).policy
+    return api('owner', 'automation.policy', { ...current, ...fields })
+  }
+  await api('owner', 'assignment.cancel', { assignment: pa, reason: 'Practical moved to supervised program.' })
+  const heldCourse = await course('Escalation controls'), held = await assign(heldCourse)
+  await due(held, 4)
+  const sentBeforeHold = mails().length
+  for (const [settings, outcome] of [
+    [{ paused: true }, 'paused'],
+    [{ paused: false, quietStart: new Date().getUTCHours(), quietEnd: (new Date().getUTCHours() + 1) % 24 }, 'quiet_hours'],
+    [{ quietStart: 0, quietEnd: 0, dailyLimit: 0 }, 'rate_limited'],
+  ]) {
+    await saveControls(settings)
+    await api('owner', 'escalation.run', {})
+    const execution = (await api('owner', 'automation-controls')).executions.find(row => row.input.assignment === held)
+    assert.equal(execution.outcome, outcome)
+    assert.equal(mails().length, sentBeforeHold)
+  }
+  await saveControls({ dailyLimit: 100 })
+  await tick()
+  assert.equal(mails().length, sentBeforeHold, 'lifting a hold does not silently replay')
+  // No active manager: the owner is reached before the fallback delay, even if
+  // a directory manager field points elsewhere. Restoring grants never duplicates.
+  await api('owner', 'team.managers', { team: ids.team, members: [] })
+  await api('owner', 'person.directory', { member: ids.learner, manager: ids.other })
+  assert.deepEqual((await item('owner', held)).reachesNow, [{ id: ids.owner, route: 'owner' }])
+  await api('owner', 'escalation.run', {})
+  assert.equal(mails().length, sentBeforeHold + 1)
+  assert.ok(mails().at(-1).to.includes('owner@example.test'))
+  await api('owner', 'assignment.cancel', { assignment: held, reason: 'Requirement replaced.' })
+  await tick()
+  await api('owner', 'escalation.run', {})
+  assert.equal(mails().length, sentBeforeHold + 1, 'cancellation stops future sends')
+  assert.ok(!(await queue('owner')).some(row => row.assignment === held))
   const p = await api('owner', 'escalation-policy')
   await api('owner', 'escalation.policy', { ...policy, version: p.version, enabled: false })
   await tick()
