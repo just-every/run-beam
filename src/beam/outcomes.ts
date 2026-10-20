@@ -1,3 +1,4 @@
+import { importErrors } from './diagnosis-evidence'
 // AGENT-005: whether learning transfers into work. Before an intervention is applied, a manager approves its
 // measurement plan: the operational metric and its unit and better direction, a baseline period and an after period
 // (calendar dates in the business time zone, both ends inclusive, the baseline ending before the after period
@@ -91,6 +92,9 @@ async function earlierGroups(env: Bindings, plan: Row) {
 const differing = (one: string[], other: string[]) => one.filter(person => !other.includes(person)).length + other.filter(person => !one.includes(person)).length
 
 export async function importOutcomes(env: Bindings, actor: Actor, input: Input) {
+  const purpose = input.text('purpose', { optional: true, max: 20 })
+  insist(!purpose || purpose === 'diagnosis', 'invalid_import_purpose')
+  if (purpose === 'diagnosis') return importErrors(env, actor, input)
   insist(isManager(actor), 'forbidden', 403)
   insist(!actor.agent, 'human_import_required', 403)
   const { plan, exposed, comparison } = await approvedPlan(env, input.text('plan', { max: 64 }))

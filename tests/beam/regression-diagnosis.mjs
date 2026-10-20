@@ -35,9 +35,9 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  const questionPlan = (await api('manager', `proposals/${proposed.id}`)).result.plan
  assert.ok((await (await h.raw('/app', { cookie: sessions[0] })).text()).includes('Packing clarity'))
  for (let i = 0; i < 3; i++) await h.api('questions.answer', sessions[i], { plan: questionPlan, answer1: 'PRIVATE STAFF ANSWER: label printer is across the building.' })
- const parameters = { course: c.id, jobRole: 'Packing', metric: 'Labels missed per 100 crates', unit: 'misses / 100 crates', from: '2030-02-01', to: '2030-02-28', questionPlan }
+ const parameters = { purpose: 'diagnosis', course: c.id, jobRole: 'Packing', metric: 'Labels missed per 100 crates', unit: 'misses / 100 crates', from: '2030-02-01', to: '2030-02-28', questionPlan }
  const csv = 'Employee ID,Date,Value,Private customer note\n' + members.map((_, i) => `DX${i + 1},2030-02-${i === 0 ? '01' : '28'},${i < 3 ? 1 : 8},CUSTOMER SECRET`).join('\n') + '\nUNKNOWN,2030-02-05,9,secret\nDX1,2030-03-01,9,secret\nDX1,2030-02-30,9,secret\nDX1,2030-02-05,-1,secret\nDX-OUT,2030-02-05,7,secret'
- const imported = await api('manager', 'diagnosis.import', { ...parameters, file: file('packing-errors.csv', csv, 'text/csv') })
+ const imported = await api('manager', 'outcome.import', { ...parameters, file: file('packing-errors.csv', csv, 'text/csv') })
  assert.deepEqual([imported.actor, imported.filename, imported.rows, imported.kept, imported.refused.length], [ids.manager, 'packing-errors.csv', 11, 6, 5])
  assert.ok(imported.importedAt > 0)
  assert.deepEqual(imported.refused.map(r => r.reason), ['outside_managed_cohort', 'outside_window', 'invalid_date', 'invalid_value', 'outside_managed_cohort'])
@@ -72,7 +72,7 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
   const text = await r.text(); assert.equal(r.status, status, text.slice(0, 300)); return JSON.parse(text)
  }
  await agent(`diagnosis-imports/${imported.id}`)
- await agent('diagnosis.import', { ...parameters, csv }, 403)
+ await agent('outcome.import', { ...parameters, csv }, 403)
  const prepared = await agent('diagnosis.prepare', { import: imported.id })
  await api('reviewer', 'diagnosis.review', { diagnosis: prepared.id })
  const option = { id: 'targeted', kind: 'cohort_assignment', summary: 'Short label refresher', expectedBenefit: 'Reduce errors where knowledge is missing', people: members.slice(3), paidMinutesPerPerson: 5, course: c.id, courseRevision: c.revision, dueDate: '2030-04-01', dueTime: '17:00', timezone: 'UTC' }
@@ -81,7 +81,7 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  assert.ok(allowed.id)
  // Now every error-making person is already trained: the same public import/diagnosis path must recommend process.
  for (let i = 3; i < 6; i++) await complete(i)
- const processImport = await api('manager', 'diagnosis.import', { ...parameters, csv })
+ const processImport = await api('manager', 'outcome.import', { ...parameters, csv })
  const processDiagnosis = await agent('diagnosis.prepare', { import: processImport.id })
  assert.deepEqual([processDiagnosis.comparison.finding, processDiagnosis.comparison.trainingRefused, processDiagnosis.comparison.groups.trained.n, processDiagnosis.comparison.groups.untrained.n], ['process', true, 6, 0])
  await api('reviewer', 'diagnosis.review', { diagnosis: processDiagnosis.id })
@@ -89,19 +89,29 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  const choices = intervention(processDiagnosis.id); choices.payload.recommended = 'process'
  const processProposal = await agent('agent.propose', choices)
  assert.equal((await api('manager', 'agent.decide', { proposal: processProposal.id, decision: 'approve', sha256: processProposal.sha256, option: 'broad' }, 409)).error, 'training_unsupported')
+ // The same AGENT-005 door still imports ordinary approved intervention outcomes when purpose is omitted.
+ const ordinary = structuredClone(choices)
+ ordinary.payload.options.find(option => option.id === 'process').people = members
+ const measured = await agent('agent.propose', ordinary)
+ const plan = (await api('manager', 'outcome.plan', { intervention: measured.id, metric: 'Packing errors', unit: 'errors / 100 crates', direction: 'lower', baselineFrom: '2030-02-01', baselineTo: '2030-02-28', afterFrom: '2030-03-01', afterTo: '2030-03-31', comparison: 'none', minGroup: 3 })).id
+ await api('manager', 'outcome.approve', { plan })
+ await api('manager', 'agent.decide', { proposal: measured.id, decision: 'approve', sha256: measured.sha256 })
+ const ordinaryReceipt = await api('manager', 'outcome.import', { plan, csv: 'Employee ID,Date,Value\n' + members.flatMap((_, i) => [`DX${i + 1},2030-02-05,2`, `DX${i + 1},2030-03-05,1`]).join('\n') })
+ assert.deepEqual([ordinaryReceipt.stored, ordinaryReceipt.refused.length], [12, 0])
+ assert.equal((await api('manager', `outcomes/${plan}`)).exposed.change, -1)
  // Missing values stay missing, never zero; an all-blank period stays unmeasured.
- const blank = await api('manager', 'diagnosis.import', { ...parameters, csv: 'Employee ID,Date,Value\n' + members.map((_, i) => `DX${i + 1},2030-02-05,${i < 3 ? '' : 4}`).join('\n') })
+ const blank = await api('manager', 'outcome.import', { ...parameters, csv: 'Employee ID,Date,Value\n' + members.map((_, i) => `DX${i + 1},2030-02-05,${i < 3 ? '' : 4}`).join('\n') })
  const missing = await read(blank.id)
  assert.deepEqual([missing.groups.trained.measured, missing.groups.trained.missing, missing.groups.trained.mean], [3, 3, 4])
  // No individual inference via a near-duplicate cohort or groups below three.
  await api('owner', 'person.directory', { member: members[5], jobRole: 'Other role' })
- const near = await api('manager', 'diagnosis.import', { ...parameters, csv })
+ const near = await api('manager', 'outcome.import', { ...parameters, csv })
  const protectedView = await read(near.id)
  assert.equal(protectedView.groups.trained.hidden, 'privacy_bound')
  assert.equal(protectedView.groups.trained.mean, null)
  await api('owner', 'person.directory', { member: members[5], jobRole: 'Packing' })
  for (const member of members.slice(0, 2)) await api('owner', 'person.directory', { member, jobRole: 'Small cohort' })
- const small = await api('manager', 'diagnosis.import', { ...parameters, jobRole: 'Small cohort', csv })
+ const small = await api('manager', 'outcome.import', { ...parameters, jobRole: 'Small cohort', csv })
  assert.equal((await read(small.id)).groups.trained.hidden, 'privacy_bound')
  for (const member of members.slice(0, 2)) await api('owner', 'person.directory', { member, jobRole: 'Packing' })
  // A closed plan with only two respondents contributes no answer totals.
@@ -110,7 +120,7 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  const fewPlan = (await api('manager', `proposals/${tooFew.id}`)).result.plan
  for (let i = 0; i < 2; i++) await h.api('questions.answer', sessions[i], { plan: fewPlan, answer1: 'Private concern' })
  await api('manager', 'questions.close', { plan: fewPlan })
- const fewImport = await api('manager', 'diagnosis.import', { ...parameters, questionPlan: fewPlan, csv })
+ const fewImport = await api('manager', 'outcome.import', { ...parameters, questionPlan: fewPlan, csv })
  assert.deepEqual((await read(fewImport.id)).questions.totals, [])
  // Browser proof covers both populated findings, the receipt, withdrawal, and empty state using the real Worker.
  if (process.env.BEAM_DIAGNOSIS_BROWSER === '1') await browserProof(h, cookies.manager, [imported.id, processImport.id])

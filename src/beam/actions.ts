@@ -1,4 +1,4 @@
-import { importErrors, withdrawErrors } from './diagnosis-evidence'
+import { withdrawErrors } from './diagnosis-evidence'
 import { prepareDiagnosis } from './diagnosis-comparison'
 // Every state change in Beam, by name. The same handler serves the HTML form
 // door (/app/do/NAME) and JSON door (/api/beam/NAME), subject to the
@@ -199,7 +199,6 @@ export const actions: Record<string, Handler> = {
   'skill.personalization': (env, actor, input) => setPersonalization(env, actor, input),
   'skill.diagnostic': (env, actor, input) => recordDiagnostic(env, actor, input),
   'skill.path.approve': (env, actor, input) => approvePath(env, actor, input),
-  'diagnosis.import': (env, actor, input) => importErrors(env, actor, input),
   'diagnosis.withdraw': (env, actor, input) => withdrawErrors(env, actor, input),
   'diagnosis.prepare': (env, actor, input) => prepareDiagnosis(env, actor, input),
   'diagnosis.record': (env, actor, input) => recordDiagnosis(env, actor, input),
