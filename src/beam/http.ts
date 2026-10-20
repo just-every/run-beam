@@ -1,3 +1,4 @@
+import { diagnosesPage } from './ui/diagnoses'
 // Beam's public doors: /app pages, /app/do/ACTION form posts, /api/beam JSON,
 // and access-checked file downloads. Every request resolves the signed-in
 // member first; private data is never served to a signed-out request.
@@ -255,6 +256,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/roster$/))) return rosterPage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/sessions\/([\w-]+)\/calendar\.ics$/))) return calendarResponse(env, actor, match[1])
   if (path === '/app/audit.csv') return auditCsvResponse(env, actor, url)
+  if (path === '/app/diagnoses') return diagnosesPage(env, actor, url)
   if (path === '/app/agent') return agentPage(env, actor, url, (await business(env))!.timezone)
   if ((match = path.match(/^\/app\/practice\/([\w-]+)$/))) return practicePage(env, actor, match[1], url)
   if ((match = path.match(/^\/app\/questions\/([\w-]+)$/))) return questionsPage(env, actor, match[1], url)

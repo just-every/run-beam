@@ -1,3 +1,5 @@
+import { diagnosisTrainingGate } from './diagnosis-comparison'
+import { diagnosisImport } from './diagnosis-evidence'
 // AGENT-003: the smallest useful intervention. A manager (or the owner) records a diagnosis of an error pattern for
 // one directory job role with its evidence; a reviewer or the owner who did not record it reviews it. From a reviewed
 // diagnosis an agent (or person) proposes options (clarification, targeted practice, assessor session, limited cohort
@@ -30,6 +32,8 @@ export async function reviewDiagnosis(env: Bindings, actor: Actor, input: Input)
   insist(actor.owner || actor.roles.has('reviewer'), 'reviewer_required', 403)
   const diagnosis = await one(env, 'SELECT * FROM beam_diagnoses WHERE id = ?', input.text('diagnosis'))
   insist(diagnosis, 'diagnosis_not_found', 404)
+  const basis = await one(env, 'SELECT import_id FROM beam_diagnosis_basis WHERE diagnosis = ?', diagnosis.id)
+  if (basis) { const imported = await diagnosisImport(env, actor, basis.import_id); insist(actor.owner || imported.reviewer === actor.id, 'reviewer_required', 403); insist(!imported.withdrawn_at, 'diagnosis_basis_withdrawn', 409) }
   insist(diagnosis.recorded_by !== actor.id, 'own_diagnosis', 403)
   insist(!diagnosis.reviewed_at, 'diagnosis_reviewed', 409)
   await commit(env, [stmt(env, 'UPDATE beam_diagnoses SET reviewed_by = ?, reviewed_at = ? WHERE id = ? AND reviewed_at IS NULL', actor.id, now(), diagnosis.id)], { actor, action: 'diagnosis.review', subject: diagnosis.id })
@@ -38,7 +42,7 @@ export async function reviewDiagnosis(env: Bindings, actor: Actor, input: Input)
 
 export async function listDiagnoses(env: Bindings, actor: Actor) {
   insist(isManager(actor) || actor.roles.has('reviewer'), 'forbidden', 403)
-  return await all(env, 'SELECT id, title, finding, job_role AS jobRole, evidence, recorded_by AS recordedBy, recorded_at AS recordedAt, reviewed_by AS reviewedBy, reviewed_at AS reviewedAt FROM beam_diagnoses ORDER BY recorded_at DESC LIMIT 200')
+  return await all(env, `SELECT d.id, d.title, d.finding, d.job_role AS jobRole, d.evidence, d.recorded_by AS recordedBy, d.recorded_at AS recordedAt, d.reviewed_by AS reviewedBy, d.reviewed_at AS reviewedAt, i.id AS importId, i.withdrawn_at AS withdrawnAt FROM beam_diagnoses d LEFT JOIN beam_diagnosis_basis b ON b.diagnosis = d.id LEFT JOIN beam_diagnosis_imports i ON i.id = b.import_id WHERE b.diagnosis IS NULL OR (i.withdrawn_at IS NULL AND (? = 1 OR i.actor = ? OR i.reviewer = ?)) ORDER BY d.recorded_at DESC LIMIT 200`, actor.owner ? 1 : 0, actor.id, actor.id)
 }
 
 const object = (value: unknown): Record<string, any> => { insist(value && typeof value === 'object' && !Array.isArray(value), 'invalid_payload'); return value as Record<string, any> }
@@ -48,10 +52,11 @@ export const roleMembers = async (env: Bindings, role: string) => (await all(env
 export const interventionKind: Kind = {
   label: 'Intervention',
   prepare: ['manager'],
-  async validate(env, _actor, value) {
+  async validate(env, actor, value) {
     const payload = object(value)
     const diagnosis = await one(env, 'SELECT id, job_role FROM beam_diagnoses WHERE id = ? AND reviewed_at IS NOT NULL', text(payload.diagnosis, 'invalid_diagnosis', 64))
     insist(diagnosis, 'diagnosis_not_reviewed', 409)
+    const trainingRefused = await diagnosisTrainingGate(env, actor, diagnosis.id)
     const role = await roleMembers(env, diagnosis.job_role)
     insist(Array.isArray(payload.options) && payload.options.length >= 2 && payload.options.length <= 6, 'invalid_options')
     const options: Record<string, any>[] = []
@@ -88,6 +93,7 @@ export const interventionKind: Kind = {
     const recommended = text(payload.recommended, 'invalid_recommended', 40)
     const chosen = options.find(option => option.id === recommended)
     insist(chosen, 'invalid_recommended')
+    insist(!trainingRefused || !ASSIGNING.includes(chosen.kind), 'training_unsupported', 409)
     insist(chosen.kind !== 'broad_course', 'broad_training_not_recommendable')
     return { diagnosis: diagnosis.id, role: diagnosis.job_role, options, recommended }
   },
@@ -96,6 +102,8 @@ export const interventionKind: Kind = {
     insist(await one(env, 'SELECT 1 FROM beam_diagnoses WHERE id = ? AND reviewed_at IS NOT NULL', payload.diagnosis), 'proposal_stale', 409)
     const option = payload.options.find((item: any) => item.id === (selection?.text('option', { optional: true, max: 40 }) || payload.recommended))
     insist(option, 'invalid_option')
+    const trainingRefused = await diagnosisTrainingGate(env, actor, payload.diagnosis)
+    insist(!trainingRefused || !ASSIGNING.includes(option.kind), 'training_unsupported', 409)
     const chosen = selection?.list('people') ?? []
     const people: string[] = chosen.length ? [...new Set(chosen)] : option.people
     insist(people.every(person => option.people.includes(person)), 'person_not_in_option')

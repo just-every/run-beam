@@ -58,6 +58,7 @@ export async function agentPage(env: Bindings, actor: Actor, url: URL, zone: str
   const count = (waiting ?? proposals).length
   const by = (proposal: any) => proposal.viaAgent || proposal.agent ? `${proposal.preparedByName}'s agent${proposal.agent ? ` (${agentName(proposal.agent)})` : ''}` : proposal.preparedByName
   const body = h`<h1>Agent work</h1><p class="lede">Your agent prepares; nothing reaches staff until you approve it.</p>
+<p><a href="/app/diagnoses">Compare error evidence</a></p>
 <nav class="tabs" aria-label="Proposal state"><ul>${TABS.map(([value, label]) => h`<li><a href="/app/agent?state=${value}"${value === state ? h` aria-current="page"` : ''}>${label}${value === 'waiting' ? ` (${count + drafts.length})` : ''}</a></li>`)}</ul></nav>
 ${proposals.length || drafts.length ? '' : h`<p class="card">${state === 'waiting' ? 'Nothing is waiting for you.' : `No ${state} proposals.`}</p>`}
 ${proposals.map(proposal => h`<article class="card proposal" aria-labelledby="p-${proposal.id}">
