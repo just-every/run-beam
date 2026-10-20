@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 
 // NOTICE-006 (in-app): a manager announces to their team and to a course's learners; each recipient sees it with the
 // sender and never the other recipients, replies privately, and only the sender reads the reply; a team outside the
@@ -268,6 +269,17 @@ export async function escalationCheck(f) {
   assert.equal(mails().length, before + 1, 'only the other open practical reminder replays')
   assert.ok(!(await queue('other')).some(row => row.assignment === da))
   assert.ok((await api('owner', 'audit?q=escalation')).events.some(event => event.action === 'escalation.resolve'))
+  // OPS-002 remains true as NOTICE-004 adds record kinds: independently read
+  // populated policy, delivery and resolution records through the owner export.
+  const exported = await (await h.raw('/app/data-export.json', { cookie: f.cookies.owner })).json()
+  for (const table of ['beam_escalation_policy', 'beam_escalation_messages', 'beam_escalation_resolutions']) {
+    const record = exported.records[table]
+    assert.ok(record.count > 0)
+    assert.equal(record.count, record.rows.length)
+    assert.equal(record.sha256, createHash('sha256').update(JSON.stringify(record.rows)).digest('hex'))
+  }
+  assert.ok(exported.records.beam_escalation_messages.rows.some(row => row.assignment_id === a && row.recipient_id === ids.other && row.status === 'accepted'))
+  assert.ok(exported.records.beam_escalation_resolutions.rows.some(row => row.assignment_id === a && row.resolved_by === ids.other))
   const p = await api('owner', 'escalation-policy')
   await api('owner', 'escalation.policy', { ...policy, version: p.version, enabled: false })
   await tick()

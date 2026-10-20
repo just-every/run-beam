@@ -3474,7 +3474,7 @@
       "executable": false
     },
     "tests/beam/regression-notices.mjs": {
-      "sha256": "8d202e36f66c92bc801ad707c2349fff3336a581e815b9a541c7e85aec2e9899",
+      "sha256": "d678a37cd2bfd402fd3f20e3043692ee0dff47f764f8b1a0f428d3d8b6a92063",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
