@@ -29,8 +29,8 @@ export const stmt = (env: Bindings, sql: string, ...params: unknown[]) => env.DB
 
 /** Runs the statements atomically with an audit event appended to the same batch. */
 /** OPS-001: the route a change took, for the audit's via column: null for a person's own session, otherwise the
- * preparation credential's delegating session (BEAM-14). */
-export const auditVia = (actor: Actor) => actor.agent ? JSON.stringify({ kind: 'agent_credential', session: actor.sessionId }) : null
+ * preparation credential's delegating session (BEAM-14) or the application credential (CONNECT-014). */
+export const auditVia = (actor: Actor) => actor.app ? JSON.stringify({ kind: 'application_credential', session: actor.sessionId, name: actor.app.name }) : actor.agent ? JSON.stringify({ kind: 'agent_credential', session: actor.sessionId }) : null
 
 /** Writes the statements and their audit event in one batch. Pass the actor itself so an agent's route is recorded. */
 export async function commit(env: Bindings, statements: D1PreparedStatement[], audit: { actor: string | Actor; action: string; subject: string; detail?: unknown }) {

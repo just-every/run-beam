@@ -78,3 +78,7 @@ Open **Announcements** to write to the people of a team you look after, or to ev
 ## Instructors
 
 Under **Instructors** on **People**, **Give instructor access** to a person for every course or one business unit's courses, with an optional end date. Only people with that access can be named on a session, and they keep its roster and attendance while it lasts; **Revoke** ends it at once. Instructor access changes no course, assignment, completion or person.
+
+## Connect other systems
+
+The owner gives another system (an HR system, a BI tool, an intranet) its own credential under **Access**. Each credential does one thing: read the roster, read the catalog, enroll people, read the training report, or submit external certificates (they wait for their reviewer like any upload), for the whole business or only the teams you tick. It expires after the days you choose (up to 90), is shown once, and is limited to 60 requests a minute. **Rotate** gives a new token and stops the old one at once; **Revoke** ends it. A credential can never publish a course, change roles or access, or act as a person, and everything it changes appears in the audit under its name.

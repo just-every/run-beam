@@ -49,6 +49,7 @@ const NAV: NavItem[] = [
   { href: '/app/recognition', label: 'Recognition', icon: 'rosette', show: actor => !!actor.business },
   { href: '/app/external', label: 'Certificates', icon: 'clipboard', show: actor => !!actor.business },
   { href: '/app/evidence', label: 'Shared evidence', icon: 'document', show: actor => actor.auditor },
+  { href: '/app/access', label: 'Access', icon: 'database', show: actor => actor.owner },
   { href: '/app/audit', label: 'Audit', icon: 'clipboard', show: actor => actor.owner || administrator(actor) || actor.auditor },
   { href: '/app/import', label: 'Move in', icon: 'plug', show: actor => actor.owner },
   { href: '/app/business', label: 'Settings', icon: 'gear', show: actor => actor.owner },

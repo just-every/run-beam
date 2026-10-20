@@ -2,6 +2,7 @@
 // a Beam member and that member's learning roles. The owner holds every role.
 import { operatorAuth, type Bindings } from '../auth.server'
 import { delegatedSession } from './agent-credentials'
+import { applicationActor, isAppRequest } from './app-credentials'
 import { BeamError, all, insist, newId, now, one, stmt } from './core'
 
 export const ROLES = ['author', 'reviewer', 'learner', 'manager', 'assessor'] as const
@@ -39,6 +40,8 @@ export interface Actor {
   grants: Partial<Record<Permission, Reach>>
   /** ORG-005: holds an active auditor grant (read-only shared evidence). */
   auditor: boolean
+  /** CONNECT-014: set for an application credential's request (app-credentials.ts); agent is also true. */
+  app?: { id: string; name: string; audience: string }
   /** ORG-012: set while a viewer sees Beam as this learner, read-only (view-as.ts); the request runs as the learner. */
   viewAs?: { session: string; viewer: { id: string; name: string }; expiresAt: number }
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
@@ -46,6 +49,7 @@ export interface Actor {
 }
 
 export async function currentActor(env: Bindings, request: Request): Promise<Actor | null> {
+  if (isAppRequest(request)) return await applicationActor(env, request)
   const agent = request.headers.has('authorization')
   const session = agent ? await delegatedSession(env, request) : await operatorAuth(env).getSession(request)
   if (!session) return null

@@ -13,6 +13,7 @@ import { createSkill, mapCourse, mapRole, recordDiagnostic, reviewSkill, setGoal
 import { approvePath } from './recommendations'
 import { recordDiagnosis, reviewDiagnosis } from './interventions'
 import { approvePlan, importOutcomes, proposePlan } from './outcomes'
+import { issueCredential, revokeCredential, rotateCredential } from './app-credentials'
 import { assignCourse, assignPath, assignRenewals, previewPath, cancelAssignment, createPath, grantAttempt, moveDueDate, revisePath } from './assignments'
 import { endCoverage, grantCoverage, setTeamManagers } from './managers'
 import { declineBlocker, grantException, reportBlocker, setExceptionPolicy } from './exceptions'
@@ -198,6 +199,9 @@ export const actions: Record<string, Handler> = {
   'outcome.plan': (env, actor, input) => proposePlan(env, actor, input),
   'outcome.approve': (env, actor, input) => approvePlan(env, actor, input),
   'outcome.import': (env, actor, input) => importOutcomes(env, actor, input),
+  'app.issue': (env, actor, input) => issueCredential(env, actor, input),
+  'app.rotate': (env, actor, input) => rotateCredential(env, actor, input),
+  'app.revoke': (env, actor, input) => revokeCredential(env, actor, input),
   'path.create': (env, actor, input) => createPath(env, actor, input),
   'path.revise': (env, actor, input) => revisePath(env, actor, input),
   'path.assign': (env, actor, input) => assignPath(env, actor, input),

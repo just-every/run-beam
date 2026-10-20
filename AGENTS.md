@@ -163,6 +163,24 @@ payload }`. Input types are `source_version`, `course_revision`,
 A human decides at `/app/agent` (or `agent.decide` with the payload's
 `sha256`); the decision and its result are recorded on the proposal.
 
+## Application API (CONNECT-014)
+
+Other systems use application credentials, not people's sessions. The owner issues one per system on **Access**
+(`/app/access`): a name, one audience, optional teams (none: the whole business) and an expiry of 1-90 days. The token
+`beam-app-v1.<id>.<secret>` is shown once and stored only as a SHA-256 digest; rotating replaces the secret at once and
+revoking ends it. Send `Authorization: Bearer <token>` (no Origin is needed; a request that also carries a session cookie keeps the same-origin check). Each credential
+answers only its audience's route below, inside its teams; every other route (publication, roles, access, another
+audience, another team) is 403, a missing, revoked, rotated-out or expired token is 401, and more than 60 requests in a
+minute is 429 `{ error: 'rate_limited', detail: { limit: 60, per: 'minute' } }`. Changes are audited under the
+credential's name. Reads are cursor-paged: `?limit=1..200` (default 50) and `?cursor=<next>`; the answer is
+`{ data: [...], next: string | null }` in a stable order. Preparation credentials (above) cannot call these routes.
+
+- `roster.read` · `GET /api/beam/v1/people` → `data: [{ id, name, employeeId, jobRole, employment, teams: [teamId] }]`.
+- `catalog.read` · `GET /api/beam/v1/courses` → `data: [{ id, title, publishedRevision }]` (published, not retired or archived).
+- `reports.read` · `GET /api/beam/v1/report` (filters `course`, `team`, `status` as in `/api/beam/report`) → `{ summary, data: [report row], next }`, rows ordered by `assignment`.
+- `results.write` · `POST /api/beam/v1/results` `{ learner, requirement, issuer, number, issuedOn, expiresOn?, file: { filename, base64, type } }` (JPEG, PNG, WebP, GIF or PDF) → `{ id, state: 'pending' }`: an external certificate waiting for its requirement's reviewer, never approved automatically.
+- `enrollments.write` · `POST /api/beam/v1/enrollments` `{ idempotencyKey, learner, course, dueDate, dueTime?, timezone? }` → `{ idempotencyKey, learner, course, dueDate, dueTime, timezone, created: [assignmentId], kept: [assignmentId], replayed }`. Replaying a key returns the first answer with `replayed: true`; the same key with a different enrollment is 409 `idempotency_key_reused`.
+
 ## Tests
 
 Keep tests to flows a person would notice breaking, through public doors, one

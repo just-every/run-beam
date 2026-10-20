@@ -13,6 +13,7 @@ import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from 
 import { audienceMembers } from './audiences'
 import { serve, store } from './files'
 import type { Input } from './input'
+import { inScope } from './scope'
 import { requireBusiness } from './people'
 import { manages } from './scope'
 import { DAY, addDays, localDate, zonedInstant } from './time'
@@ -72,11 +73,13 @@ export async function reviews(env: Bindings, actor: Actor, item: Requirement, le
 
 /** A learner uploads their own certificate; one of their managers uploads one for them. */
 export async function uploadCertificate(env: Bindings, actor: Actor, input: Input) {
-  insist(!actor.agent, 'forbidden', 403)
+  insist(!actor.agent || actor.app, 'forbidden', 403)
   const item = await requirement(env, input.text('requirement', { max: 100 }))
-  const learner = input.text('learner', { optional: true, max: 100 }) || actor.id
-  // The person's own managers upload for them (the owner for anyone); nobody else does.
-  if (learner !== actor.id) insist(actor.owner || (await teamsOf(env, learner)).some(row => actor.managedTeams.includes(row.team_id)), 'forbidden', 403)
+  const learner = input.text('learner', { optional: !actor.app, max: 100 }) || actor.id
+  // The person's own managers upload for them (the owner for anyone); nobody else does. A results.write application
+  // credential (CONNECT-014) submits for the people inside its teams.
+  if (actor.app) insist(inScope(actor, learner), 'learner_outside_your_team', 403)
+  else if (learner !== actor.id) insist(actor.owner || (await teamsOf(env, learner)).some(row => actor.managedTeams.includes(row.team_id)), 'forbidden', 403)
   insist(await applies(env, item, learner), 'requirement_does_not_apply', 403)
   const zone = (await requireBusiness(env)).timezone, today = localDate(now(), zone)
   const issuer = input.text('issuer', { max: 160 }), number = input.text('number', { max: 80 })

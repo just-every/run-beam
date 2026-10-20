@@ -23,6 +23,7 @@ import { programQuality } from './quality'
 import { providerCosts } from './costs'
 import { listDiagnoses } from './interventions'
 import { outcomeComparison } from './outcomes'
+import { listCredentials } from './app-credentials'
 import { skillTaxonomy } from './skills'
 import { recommendations } from './recommendations'
 import { listSources } from './sources'
@@ -98,6 +99,7 @@ export const views: Record<string, View> = {
   costs: async (env, actor) => providerCosts(env, actor),
   diagnoses: (env, actor) => listDiagnoses(env, actor),
   outcome: (env, actor, request, id) => outcomeComparison(env, actor, id, new URL(request.url)),
+  'app-credentials': (env, actor) => listCredentials(env, actor),
   skills: env => skillTaxonomy(env),
   'skill-recommendations': (env, actor, _request, id) => recommendations(env, actor, id === 'me' ? actor.id : id),
   proposals: (env, actor, request) => listProposals(env, actor, new URL(request.url).searchParams.get('state') ?? 'waiting'),
@@ -133,7 +135,7 @@ const ROUTES: [RegExp, string][] = [
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^directory$/, 'directory-fields'], [/^directory\/([\w-]+)$/, 'directory'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^import-settings$/, 'import-settings'], [/^history$/, 'history'],
-  [/^dashboards$/, 'dashboards'], [/^dashboards\/([\w-]+)$/, 'dashboard'], [/^messages$/, 'messages'], [/^report$/, 'report'], [/^quality$/, 'quality'], [/^costs$/, 'costs'], [/^diagnoses$/, 'diagnoses'], [/^outcomes\/([\w-]+)$/, 'outcome'], [/^skills$/, 'skills'], [/^skills\/([\w-]+)$/, 'skill-recommendations'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^audiences$/, 'audiences'], [/^roster-batches$/, 'roster-batches'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'], [/^recognition$/, 'recognition'], [/^discussions\/([\w-]+)$/, 'discussions'], [/^discussion-notices$/, 'discussion-notices'],
+  [/^dashboards$/, 'dashboards'], [/^dashboards\/([\w-]+)$/, 'dashboard'], [/^messages$/, 'messages'], [/^report$/, 'report'], [/^quality$/, 'quality'], [/^costs$/, 'costs'], [/^diagnoses$/, 'diagnoses'], [/^outcomes\/([\w-]+)$/, 'outcome'], [/^app-credentials$/, 'app-credentials'], [/^skills$/, 'skills'], [/^skills\/([\w-]+)$/, 'skill-recommendations'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^audiences$/, 'audiences'], [/^roster-batches$/, 'roster-batches'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'], [/^recognition$/, 'recognition'], [/^discussions\/([\w-]+)$/, 'discussions'], [/^discussion-notices$/, 'discussion-notices'],
 ]
 
 export function route(path: string): { view: View; id: string } {

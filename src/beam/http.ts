@@ -6,6 +6,9 @@ import { runtimeBindings, type Bindings } from '../auth.server'
 import { AuthError, safeReturnTo } from '../modules/operator-auth/index.mjs'
 import { acknowledgmentDocument, acknowledgmentEvidence } from './acknowledgments'
 import { issueAgentCredential, requireAgentScope } from './agent-credentials'
+import { exemptFromOriginCheck, requireAppScope } from './app-credentials'
+import { applicationCall } from './app-api'
+import { accessPage, issuedPage } from './ui/app-access'
 import { actions } from './actions'
 import { currentActor, isManager, type Actor } from './actor'
 import { BeamError, insist, one } from './core'
@@ -82,7 +85,7 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
   const verify = url.pathname.match(/^\/verify\/([^/]+)$/)
   if (verify && ['GET', 'HEAD'].includes(request.method)) return await verifyPage(env, verify[1]).catch(() => new Response('Not found', { status: 404 }))
   if (!api && url.pathname !== '/app' && !url.pathname.startsWith('/app/')) return null
-  if (request.method === 'POST' && request.headers.get('origin') !== env.AUTH_ORIGIN) return api ? json({ error: 'invalid_origin' }, 403) : new Response('Forbidden', { status: 403 })
+  if (request.method === 'POST' && request.headers.get('origin') !== env.AUTH_ORIGIN && !exemptFromOriginCheck(request)) return api ? json({ error: 'invalid_origin' }, 403) : new Response('Forbidden', { status: 403 })
   if (!['GET', 'HEAD', 'POST'].includes(request.method)) return new Response(null, { status: 405, headers: { allow: 'GET, HEAD, POST' } })
   let actor: Actor | null = null
   try {
@@ -135,6 +138,11 @@ async function viewDoor(env: Bindings, actor: Actor, request: Request, url: URL,
 
 async function apiResponse(env: Bindings, actor: Actor, request: Request, url: URL) {
   const path = url.pathname.slice('/api/beam/'.length)
+  if (actor.app) {
+    requireAppScope(actor, path, request.method)
+    return json(await applicationCall(env, actor, request, url, path))
+  }
+  insist(!path.startsWith('v1/'), 'application_credential_required', 403)
   requireAgentScope(actor, path, request.method)
   if (request.method === 'POST') {
     if (path === 'agent.issue') return json(await issueAgentCredential(env, actor, await Input.from(request)))
@@ -157,6 +165,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/import/client.js' && request.method === 'GET') return importBrowserResponse()
   if (request.method === 'POST') {
     if (path === '/app/dashboards/link') return dashboardLinkPage(env, actor, await Input.from(request), url)
+    if (path === '/app/access/issue' || path === '/app/access/rotate') return await issuedPage(env, actor, await Input.from(request), url, path.endsWith('rotate'))
     if (path === '/app/import/preview') return await previewPage(env, actor, await Input.from(request), url, request)
     const importAction = path.match(/^\/app\/import\/(apply|reconcile|undo)$/)?.[1]
     if (importAction) return await importProgressPage(env, actor, await Input.from(request), url, request, importAction)
@@ -223,6 +232,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/import') return importPage(env, actor, url)
   if (path === '/app/reports') return reportPage(env, actor, url)
   if (path === '/app/quality') return qualityPage(env, actor, url)
+  if (path === '/app/access') return accessPage(env, actor, url)
   if (path === '/app/skills') return skillsPage(env, actor, url)
   const skillsOf = path.match(/^\/app\/skills\/([\w-]+)$/)
   if (skillsOf) return personSkillsPage(env, actor, skillsOf[1], url)

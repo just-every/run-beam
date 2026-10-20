@@ -69,12 +69,12 @@ export async function auditLog(env: Bindings, actor: Actor, filters: AuditFilter
   return {
     zone,
     events: rows.map(row => {
-      const via = row.via ? JSON.parse(row.via) as { kind: string; session: string } : null
+      const via = row.via ? JSON.parse(row.via) as { kind: string; session: string; name?: string } : null
       return {
         id: row.id, at: row.at, action: row.action, subject: row.subject, subjectName: row.subjectName, detail: JSON.parse(row.detail),
         actor: row.actor, actorName: row.actor === 'respondent' ? 'Anonymous respondent' : row.actorName ?? row.actor,
         // An agent's change is attributed to the person whose session delegated the credential (BEAM-14).
-        via: via ? { kind: via.kind, session: via.session, delegatedBy: row.actorName ?? row.actor } : null,
+        via: via ? { kind: via.kind, session: via.session, delegatedBy: row.actorName ?? row.actor, ...(via.name ? { credential: via.name } : {}) } : null,
         automatic: AUTOMATIC[row.action] ?? null,
         corrections: corrections.filter(correction => correction.subject === String(row.id)).map(correction => ({ id: correction.id, at: correction.at, by: correction.actorName, explanation: JSON.parse(correction.detail).explanation as string })),
       }
@@ -113,7 +113,7 @@ export async function correctAudit(env: Bindings, actor: Actor, input: Input) {
 type Event = Awaited<ReturnType<typeof auditLog>>['events'][number]
 const COLUMNS: [string, (event: Event) => unknown][] = [
   ['Event', event => event.id], ['At (UTC)', event => new Date(event.at).toISOString()], ['Actor', event => event.actorName], ['Actor id', event => event.actor],
-  ['Route', event => event.via ? `agent preparation credential delegated by ${event.via.delegatedBy}` : 'signed-in session'], ['Action', event => event.action], ['Subject person', event => event.subjectName ?? ''],
+  ['Route', event => event.via?.kind === 'application_credential' ? `application credential ${event.via.credential} issued by ${event.via.delegatedBy}` : event.via ? `agent preparation credential delegated by ${event.via.delegatedBy}` : 'signed-in session'], ['Action', event => event.action], ['Subject person', event => event.subjectName ?? ''],
   ['Automatic rule', event => event.automatic ?? ''], ['Subject', event => event.subject], ['Inputs', event => JSON.stringify(event.detail)],
   ['Corrections', event => event.corrections.map(correction => `${new Date(correction.at).toISOString()} ${correction.by}: ${correction.explanation}`).join(' | ')],
 ]

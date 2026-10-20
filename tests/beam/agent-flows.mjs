@@ -4,6 +4,7 @@
 // author's ordinary session; no model is involved.
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
+import { pdf } from './fixtures.mjs'
 
 export async function agentFlows({ h, check, people, ids, publish }) {
   const agentOf = async cookie => {
@@ -363,5 +364,96 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     assert.deepEqual([differenced.exposed.hidden, differenced.exposed.reason, differenced.comparisonGroup.reason, differenced.difference, differenced.exposed.change], [true, 'differs_from_earlier_plan', 'differs_from_earlier_plan', null, undefined])
     const page = await pageOf('/app/agent?state=approved', people.manager)
     assert.ok(page.includes('Difference in change: -3.33') && page.includes('New dispensing checklist for all staff') && page.includes('does not show that the intervention caused any change'))
+  })
+
+  // CONNECT-014: the owner issues separate application credentials on Access; each reaches only its audience's route
+  // and teams, pages reports, replays enrollments idempotently, rotates and revokes, and is rate limited and expiring.
+  await check('CONNECT-014', async () => {
+    const access = async (fields, path = '/app/access/issue') => {
+      const form = new URLSearchParams()
+      for (const [name, value] of Object.entries(fields)) for (const item of [value].flat()) form.append(name, item)
+      const response = await h.raw(path, { cookie: people.owner, form })
+      assert.equal(response.status, 200, path)
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+      return (await response.text()).match(/<code data-token>([^<]+)<\/code>/)[1]
+    }
+    // Servers calling with a credential send no Origin.
+    const call = async (token, path, body, status = 200) => {
+      const response = await h.fetch(`/api/beam/${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) })
+      const text = await response.text()
+      assert.equal(response.status, status, `${path}: ${response.status} ${text.slice(0, 300)}`)
+      return text ? JSON.parse(text) : null
+    }
+    assert.ok((await pageOf('/app/access', people.owner)).includes('Issue credential'))
+    assert.equal((await h.raw('/app/access', { cookie: people.manager })).status, 403)
+    await h.api('app.issue', people.manager, { name: 'Mine', audience: 'reports.read' }, 403)
+    const teams = (await h.api('people', people.owner)).teams
+    const leads = teams.find(team => team.name === 'Clinic leads').id
+    const reports = await access({ name: 'Payroll BI', audience: 'reports.read', teams: ids.team, expiresInDays: '30' })
+    const enrollments = await access({ name: 'HR system', audience: 'enrollments.write', expiresInDays: '7' })
+    assert.notEqual(reports, enrollments)
+    // Reports page through the credential's team only, in a stable order, matching the owner's report for that team.
+    const full = (await h.api(`report?team=${ids.team}`, people.owner)).rows.map(row => row.assignment).sort()
+    const seen = []
+    let next = null
+    do {
+      const page = await call(reports, `v1/report?limit=2${next ? `&cursor=${encodeURIComponent(next)}` : ''}`)
+      assert.ok(page.data.length <= 2)
+      seen.push(...page.data.map(row => row.assignment))
+      next = page.next
+    } while (next)
+    assert.ok(full.length > 2)
+    assert.deepEqual(seen, full)
+    // Cross-scope reads, foreign audiences, publication and every other route are refused.
+    assert.equal((await call(reports, `v1/report?team=${leads}`, undefined, 403)).error, 'learner_outside_your_team')
+    assert.equal((await call(reports, 'v1/enrollments', { idempotencyKey: 'x', learner: ids.lee, course: ids.opening, dueDate: '2030-01-01' }, 403)).error, 'audience_forbidden')
+    assert.equal((await call(enrollments, 'v1/report', undefined, 403)).error, 'audience_forbidden')
+    assert.equal((await call(enrollments, 'revision.decide', { revision: ids.openingRev3, decision: 'publish' }, 403)).error, 'application_scope_forbidden')
+    assert.equal((await call(reports, 'people', undefined, 403)).error, 'application_scope_forbidden')
+    assert.equal((await (await agentOf(people.manager))('v1/report', undefined, 403)).error, 'application_credential_required')
+    // Enrollment replays idempotently; a reused key for another enrollment is refused.
+    const course = await h.api('course.create', people.author, { title: 'Using the HR system', reviewer: ids.reviewer })
+    await publish((await h.api('course.submit', people.author, { course: course.id, draftVersion: (await h.api('course.lesson', people.author, { course: course.id, draftVersion: course.draftVersion, title: 'Logging in', body: 'Sign in with your work account.', sources: [] })).draftVersion })).id)
+    const enrollment = { idempotencyKey: 'hr-1001', learner: ids.lee, course: course.id, dueDate: '2030-05-01', timezone: 'UTC' }
+    const first = await call(enrollments, 'v1/enrollments', enrollment)
+    const again = await call(enrollments, 'v1/enrollments', enrollment)
+    assert.deepEqual([first.created.length, first.replayed, again.replayed, again.created], [1, false, true, first.created])
+    assert.equal((await h.api('records/me', people.lee)).assignments.filter(row => row.course === course.id).length, 1)
+    assert.equal((await call(enrollments, 'v1/enrollments', { ...enrollment, dueDate: '2030-06-01' }, 409)).error, 'idempotency_key_reused')
+    assert.ok((await h.api('audit?q=app.enroll', people.owner)).events.some(event => event.via?.kind === 'application_credential' && event.via.credential === 'HR system'))
+    // A cookie still needs the same origin, credential or not.
+    assert.equal((await h.fetch('/api/beam/v1/enrollments', { method: 'POST', headers: { authorization: `Bearer ${enrollments}`, cookie: people.owner, 'content-type': 'application/json' }, body: JSON.stringify({ ...enrollment, idempotencyKey: 'hr-1002' }) })).status, 403)
+    // An external result goes into LIB-006 review, pending for its reviewer, and only for the credential's teams.
+    await h.api('external.requirement', people.owner, { name: 'CPR card', teams: [ids.team], reviewer: 'manager', reminderDays: 30 })
+    const requirement = (await h.api('external', people.owner)).requirements.find(item => item.name === 'CPR card').id
+    const results = await access({ name: 'Training provider', audience: 'results.write', teams: ids.team })
+    const result = { requirement, issuer: 'Red Cross', number: 'CPR-77', issuedOn: '2026-01-15', file: file('cpr.pdf', pdf, 'application/pdf') }
+    assert.equal((await call(results, 'v1/results', { ...result, learner: ids.sam })).state, 'pending')
+    assert.equal((await h.api('external', people.sam)).mine.find(item => item.requirement === requirement).pending.number, 'CPR-77')
+    assert.equal((await call(results, 'v1/results', { ...result, learner: ids.author }, 403)).error, 'learner_outside_your_team')
+    // Roster and catalog credentials read their own routes; past 60 requests a minute a credential is refused.
+    const roster = await access({ name: 'Directory sync', audience: 'roster.read', teams: leads })
+    const directory = (await call(roster, 'v1/people?limit=200')).data
+    assert.ok(directory.some(person => person.id === ids.author) && directory.every(person => person.teams.includes(leads)))
+    const catalog = await access({ name: 'Intranet', audience: 'catalog.read' })
+    assert.ok((await call(catalog, 'v1/courses?limit=200')).data.some(item => item.id === course.id))
+    let limited = null
+    for (let n = 0; n < 125 && !limited; n++) {
+      const response = await h.fetch('/api/beam/v1/courses?limit=1', { headers: { authorization: `Bearer ${catalog}` } })
+      if (response.status === 429) limited = await response.json()
+      else assert.equal(response.status, 200)
+    }
+    assert.deepEqual(limited, { error: 'rate_limited', detail: { limit: 60, per: 'minute' } })
+    // Rotation replaces the secret at once; revocation and expiry end the credential.
+    const listed = await h.api('app-credentials', people.owner)
+    const id = name => listed.find(item => item.name === name).id
+    const rotated = await access({ credential: id('Payroll BI') }, '/app/access/rotate')
+    await call(reports, 'v1/report', undefined, 401)
+    await call(rotated, 'v1/report?limit=1')
+    await h.api('app.revoke', people.owner, { credential: id('Payroll BI') })
+    await call(rotated, 'v1/report?limit=1', undefined, 401)
+    await h.db.prepare('UPDATE beam_app_credentials SET expires_at = ? WHERE id = ?').bind(Date.now() - 1, id('Directory sync')).run()
+    await call(roster, 'v1/people', undefined, 401)
+    assert.deepEqual((await h.api('app-credentials', people.owner)).filter(item => item.state !== 'active').map(item => [item.name, item.state]).sort(), [['Directory sync', 'expired'], ['Payroll BI', 'revoked']])
   })
 }
