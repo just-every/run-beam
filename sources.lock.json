@@ -528,6 +528,10 @@
       "sha256": "31ba64275cd92d016fbc170a9f07bef9b7dd35fe181bd301c10431e901ee8117",
       "executable": false
     },
+    "migrations/core/0064_beam_impact.sql": {
+      "sha256": "51debe181bf6cd035398a3b8a62463a1859106ca8e1fa2cf4755d57f60f6a78f",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "714a1ee9ff4fcfdda67fce5b33206dd2b74d27149dd33de2daab276d2cae7c85",
       "executable": false
@@ -1144,6 +1148,10 @@
       "sha256": "43376c0d40541363cf2811697f9f9425a211691e5f5371f7ae2a96d10d764d36",
       "executable": false
     },
+    "src/beam/impact.ts": {
+      "sha256": "f9427112bbecd7b978beb95fce5848aedb513895f6c29febf4d3f7ae42f3ecfe",
+      "executable": false
+    },
     "src/beam/inactivity-scheduled.ts": {
       "sha256": "73c3f7d25b36bc0f8c4f722dfa52be5c3a86e7cf5d8849a71da75a7e8b5664e2",
       "executable": false
@@ -1430,6 +1438,10 @@
     },
     "src/beam/ui/icons.ts": {
       "sha256": "fb331cbab7d71c7247d7c63cc18820a47587c486339ed15ac45d595d8f1ea9cd",
+      "executable": false
+    },
+    "src/beam/ui/impact.ts": {
+      "sha256": "e8ee47c5fa33e631df5a1bb6ee9c1d45195cb77f81cfe018e9093f1a0d70392d",
       "executable": false
     },
     "src/beam/ui/inactivity.ts": {
