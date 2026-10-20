@@ -14,15 +14,16 @@ export const AUDIENCES = ['roster.read', 'catalog.read', 'enrollments.write', 'r
 export type Audience = typeof AUDIENCES[number]
 export const RATE_PER_MINUTE = 60
 const DAY = 86_400_000
-// The one route each audience opens: GET for reads, POST for the enrollment write.
-const ROUTES: Record<Audience, { method: 'GET' | 'POST'; path: string }> = {
-  'roster.read': { method: 'GET', path: 'v1/people' },
-  'catalog.read': { method: 'GET', path: 'v1/courses' },
-  'enrollments.write': { method: 'POST', path: 'v1/enrollments' },
-  'reports.read': { method: 'GET', path: 'v1/report' },
-  'results.write': { method: 'POST', path: 'v1/results' },
+// The routes each audience opens: GET for reads, POST for the writes.
+const ROUTES: Record<Audience, { method: 'GET' | 'POST'; paths: string[] }> = {
+  'roster.read': { method: 'GET', paths: ['v1/people'] },
+  'catalog.read': { method: 'GET', paths: ['v1/courses'] },
+  'enrollments.write': { method: 'POST', paths: ['v1/enrollments'] },
+  // REPORT-004: the BI feed beside the paged report.
+  'reports.read': { method: 'GET', paths: ['v1/report', 'v1/report/feed.json', 'v1/report/feed.csv'] },
+  'results.write': { method: 'POST', paths: ['v1/results'] },
   // CONNECT-016: the MCP endpoint; the grant's tool list narrows it further (mcp.ts).
-  'mcp': { method: 'POST', path: 'mcp' },
+  'mcp': { method: 'POST', paths: ['mcp'] },
 }
 const TOKEN = /^Bearer beam-app-v1\.([0-9a-f-]{36})\.([A-Za-z0-9_-]{43})$/
 const encoder = new TextEncoder()
@@ -104,7 +105,7 @@ export async function applicationActor(env: Bindings, request: Request): Promise
 /** An application reaches only its audience's route; everything else, publication included, is refused. */
 export function requireAppScope(actor: Actor, path: string, method: string) {
   const route = ROUTES[actor.app!.audience as Audience]
-  if (route.path === path && route.method === method) return
-  const other = Object.values(ROUTES).some(item => item.path === path)
+  if (route.paths.includes(path) && route.method === method) return
+  const other = Object.values(ROUTES).some(item => item.paths.includes(path))
   throw new BeamError(other ? 'audience_forbidden' : 'application_scope_forbidden', 403)
 }

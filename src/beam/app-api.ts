@@ -9,6 +9,7 @@ import { uploadCertificate } from './external'
 import { all, BeamError, commit, insist, now, one, sha256Hex, stmt } from './core'
 import { Input } from './input'
 import { reportFilters, trainingReport } from './report'
+import { reportFeed, reportFeedCsv } from './report-feed'
 
 function paged<T>(rows: T[], key: (row: T) => string, url: URL) {
   const limit = Number(url.searchParams.get('limit') ?? 50)
@@ -55,6 +56,8 @@ export async function applicationCall(env: Bindings, actor: Actor, request: Requ
     const report = await trainingReport(env, actor, reportFilters(url))
     return { summary: report.summary, ...paged(report.rows as any[], row => row.assignment, url) }
   }
+  if (path === 'v1/report/feed.json') return await reportFeed(env, actor, url)
+  if (path === 'v1/report/feed.csv') return await reportFeedCsv(env, actor, url)
   if (path === 'v1/people') return await people(env, actor, url)
   if (path === 'v1/courses') return await courses(env, url)
   if (path === 'v1/enrollments') return await enroll(env, actor, request)

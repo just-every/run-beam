@@ -185,7 +185,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "398e3ea827a095e42df6786f9a3d9b35db9540ee09a5d93a20ecffcd861bac40",
+      "sha256": "764e7fa895f832f0a3694f5237c3be4a38ccb5c2a18f52ee567e1c1c2979c6f8",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -193,7 +193,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "ae3ac2438d2b3f6dcbd8b936c00bd694e8ec9415149e16edcb4f356eaf21ac8e",
+      "sha256": "033394de10b05b948a00f92a8a9a96b15be417eea0cb07062345f441e1d4d478",
       "executable": false
     },
     "base-copies.json": {
@@ -205,7 +205,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4654f62e9eb31d53524d3e15dff703c0beb0c1d5584b79c7bd664f6b915ae6fa",
+      "sha256": "bc71d611baebdc3b2b3443c3e0dee4b1f7c79aed22e80506e5634aae0a6c8f43",
       "executable": false
     },
     "DEMO.md": {
@@ -257,7 +257,7 @@
       "executable": false
     },
     "docs/reports.md": {
-      "sha256": "8a0a339ca8922454129795fa5fd117ba1d6102349a9dd6e336847d0cb8058ab4",
+      "sha256": "374f7125c2a2b96e0e3d9bf86251d1781dbf2d0db81025afd54591ef404ccbe9",
       "executable": false
     },
     "docs/review.md": {
@@ -1029,11 +1029,11 @@
       "executable": false
     },
     "src/beam/app-api.ts": {
-      "sha256": "c41b16161a7d5b23dc38e66bdf77bbafe9a32bf5b06624098ecbf1f0f6de49f5",
+      "sha256": "f19a2fdda11d3e5c753969f13a650741e1efd18a34bf412f92260538a6fa0dfc",
       "executable": false
     },
     "src/beam/app-credentials.ts": {
-      "sha256": "608bfac98501f8235589f5c2d5da786206d477fcd01b322819bbb76fbc3101ad",
+      "sha256": "7ba4c68c89cf027a6058c0b721f597abd2bb8dc5d140aa53ed84d9f4c1b4a26a",
       "executable": false
     },
     "src/beam/assignments.ts": {
@@ -1153,7 +1153,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "cd2246ccba431b205bc9130ed2d9368041ee572d7a5783083965a3a678ac44c4",
+      "sha256": "2c99bc5f89ac8bd80076bd8f2822132062ba866c3eee057eeb4d9c66c537f97d",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -1304,8 +1304,12 @@
       "sha256": "8e7f57d0a661436ed66fe4b609d7ea0b68714715c98e7e000144b022e70be3ac",
       "executable": false
     },
+    "src/beam/report-feed.ts": {
+      "sha256": "57a78e6a8436b51395b0bc6fd7b9145d8b48a0b9cbf8d0a13bbfab82d18b6001",
+      "executable": false
+    },
     "src/beam/report.ts": {
-      "sha256": "6b035a0d3766c43e3e4d6bc125cef835bb8efb6ae5598c00adc84f14ec05a66c",
+      "sha256": "8d76c683af713fbb974d0649855d94bb7a0aa4126ba91c4fd4b30ef042ce99e8",
       "executable": false
     },
     "src/beam/resets.ts": {
@@ -3301,7 +3305,7 @@
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
-      "sha256": "823a80e9423a5d4b3cc8efb41794cab883f368dee12deeb146217e02e9a8eb39",
+      "sha256": "a80e429650185c5e517ad4f8924d49e7e598333dcab71f791192dcaa75e241fd",
       "executable": false
     },
     "tests/beam/cli.mjs": {

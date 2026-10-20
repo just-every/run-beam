@@ -19,6 +19,8 @@ Each row shows the learner, the course and revision, the due time in its time zo
 
 **Download CSV** or **Download XLSX** gives you the same rows as a spreadsheet; every row (or the workbook's Definitions sheet) says when it was produced, the time zone and the filters, and nothing is left out.
 
+For a BI tool, the owner issues a **reports.read** credential on **Access** (optionally for some teams). The tool reads the whole report over HTTPS at `/api/beam/v1/report/feed.csv` or `/api/beam/v1/report/feed.json` with the header `Authorization: Bearer <token>` and the same course, team and status filters. Each refresh is a full snapshot as of its watermark; the schema id `beam.report-feed.v1` keeps the field names and types stable, and evidence files, answers and contact details are never in it. Revoke the credential on Access and the next refresh is refused. Beam has not yet been checked against Power BI Desktop, Excel Power Query or Google Sheets themselves.
+
 ## Course quality
 
 **Course quality and effort** (from the training report) shows, for each course, every published revision side by side over the people your report covers, or one team: how many were assigned, completed, still open or canceled; the median days from assignment to completion; how many finished each lesson and where unfinished learners stopped; how each quiz question was answered and how many learners needed a retry; and how much feedback came in. Each figure shows what it is out of, and what is missing is named rather than guessed. Per course it also shows review cycles and turnaround (Beam does not record time spent writing or reviewing) and how long ago the current revision was approved, with its next review date.

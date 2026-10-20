@@ -144,7 +144,8 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   if (actor.app) {
     requireAppScope(actor, path, request.method)
     if (path === 'mcp') return await mcpCall(env, actor, actor.app.tools, request)
-    return json(await applicationCall(env, actor, request, url, path))
+    const answer = await applicationCall(env, actor, request, url, path)
+    return answer instanceof Response ? answer : json(answer)
   }
   insist(!path.startsWith('v1/'), 'application_credential_required', 403)
   requireAgentScope(actor, path, request.method)

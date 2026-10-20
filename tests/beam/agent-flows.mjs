@@ -437,24 +437,25 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     assert.ok((await h.api('audit?q=outcome.retire', people.owner)).events.some(event => event.subject === plan && event.detail.assignments === 2))
   })
 
+  // Application credentials (CONNECT-014) are issued on Access, as the owner does.
+  const access = async (fields, path = '/app/access/issue') => {
+    const form = new URLSearchParams()
+    for (const [name, value] of Object.entries(fields)) for (const item of [value].flat()) form.append(name, item)
+    const response = await h.raw(path, { cookie: people.owner, form })
+    assert.equal(response.status, 200, path)
+    assert.equal(response.headers.get('cache-control'), 'no-store')
+    return (await response.text()).match(/<code data-token>([^<]+)<\/code>/)[1]
+  }
+  // Servers calling with a credential send no Origin.
+  const call = async (token, path, body, status = 200) => {
+    const response = await h.fetch(`/api/beam/${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) })
+    const text = await response.text()
+    assert.equal(response.status, status, `${path}: ${response.status} ${text.slice(0, 300)}`)
+    return text ? JSON.parse(text) : null
+  }
   // CONNECT-014: the owner issues separate application credentials on Access; each reaches only its audience's route
   // and teams, pages reports, replays enrollments idempotently, rotates and revokes, and is rate limited and expiring.
   await check('CONNECT-014', async () => {
-    const access = async (fields, path = '/app/access/issue') => {
-      const form = new URLSearchParams()
-      for (const [name, value] of Object.entries(fields)) for (const item of [value].flat()) form.append(name, item)
-      const response = await h.raw(path, { cookie: people.owner, form })
-      assert.equal(response.status, 200, path)
-      assert.equal(response.headers.get('cache-control'), 'no-store')
-      return (await response.text()).match(/<code data-token>([^<]+)<\/code>/)[1]
-    }
-    // Servers calling with a credential send no Origin.
-    const call = async (token, path, body, status = 200) => {
-      const response = await h.fetch(`/api/beam/${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) })
-      const text = await response.text()
-      assert.equal(response.status, status, `${path}: ${response.status} ${text.slice(0, 300)}`)
-      return text ? JSON.parse(text) : null
-    }
     assert.ok((await pageOf('/app/access', people.owner)).includes('Issue credential'))
     assert.equal((await h.raw('/app/access', { cookie: people.manager })).status, 403)
     await h.api('app.issue', people.manager, { name: 'Mine', audience: 'reports.read' }, 403)
@@ -526,6 +527,38 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     await h.db.prepare('UPDATE beam_app_credentials SET expires_at = ? WHERE id = ?').bind(Date.now() - 1, id('Directory sync')).run()
     await call(roster, 'v1/people', undefined, 401)
     assert.deepEqual((await h.api('app-credentials', people.owner)).filter(item => item.state !== 'active').map(item => [item.name, item.state]).sort(), [['Directory sync', 'expired'], ['Payroll BI', 'revoked']])
+  })
+
+  // REPORT-004 (BI feed slice): a reports.read credential refreshes the versioned CSV and JSON feed as whole snapshots
+  // with a schema id, watermark and named restricted fields, reconciling with the report; revoked, the refresh is refused.
+  await check('REPORT-004', async () => {
+    const token = await access({ name: 'Power BI', audience: 'reports.read', teams: ids.team, expiresInDays: '30' })
+    const feed = await call(token, 'v1/report/feed.json')
+    const report = await h.api(`report?team=${ids.team}`, people.owner)
+    assert.equal(feed.schema, 'beam.report-feed.v1')
+    assert.ok(Date.parse(feed.watermark) <= Date.now() && Date.parse(feed.watermark) > Date.now() - 60_000)
+    assert.deepEqual([feed.deleted, feed.restricted.map(item => item.field)], [[], ['evidence', 'answers', 'contact']])
+    // Totals and rows reconcile with the training report for the same team.
+    assert.deepEqual(feed.summary, report.summary)
+    assert.deepEqual(feed.rows.map(row => `${row.assignmentId}|${row.completionId}`).sort(), report.rows.map(row => `${row.assignment ?? null}|${row.completion ?? null}`).sort())
+    const names = feed.fields.map(field => field.name)
+    assert.ok(feed.rows.length > 2 && feed.rows.every(row => JSON.stringify(Object.keys(row)) === JSON.stringify(names)))
+    assert.ok(feed.rows.every(row => row.learnerId && row.courseId && ['string', 'number', 'object'].includes(typeof row.lessonsDone)))
+    const completed = await call(token, 'v1/report/feed.json?status=completed')
+    assert.ok(completed.rows.every(row => row.status === 'completed') && completed.rows.length === report.summary.completed)
+    // The CSV carries the same fields and rows, with its schema and watermark in headers.
+    const response = await h.fetch('/api/beam/v1/report/feed.csv', { headers: { authorization: `Bearer ${token}` } })
+    assert.equal(response.status, 200)
+    assert.deepEqual([response.headers.get('content-type'), response.headers.get('x-beam-schema'), Boolean(response.headers.get('x-beam-watermark'))], ['text/csv; charset=utf-8', 'beam.report-feed.v1', true])
+    const lines = (await response.text()).trimEnd().split('\r\n')
+    assert.deepEqual([lines[0], lines.length], [names.join(','), feed.rows.length + 1])
+    // Only its teams and audience: another team or credential is refused, and a revoked credential's next refresh is 401.
+    const leads = (await h.api('people', people.owner)).teams.find(team => team.name === 'Clinic leads').id
+    assert.equal((await call(token, `v1/report/feed.json?team=${leads}`, undefined, 403)).error, 'learner_outside_your_team')
+    const roster = await access({ name: 'Roster for feed', audience: 'roster.read' })
+    assert.equal((await call(roster, 'v1/report/feed.csv', undefined, 403)).error, 'audience_forbidden')
+    await h.api('app.revoke', people.owner, { credential: (await h.api('app-credentials', people.owner)).find(item => item.name === 'Power BI').id })
+    await call(token, 'v1/report/feed.json', undefined, 401)
   })
 
   await check('AGENT-004', async () => {

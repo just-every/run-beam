@@ -76,7 +76,7 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
   return { filters, asOf: at, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open'), deferred: count('deferred'), exempt: count('exempt'), missing: count('missing') } }
 }
 
-const COLUMNS: [string, (row: any) => unknown][] = [
+export const COLUMNS: [string, (row: any) => unknown][] = [
   ['Learner', row => row.learnerName], ['Course', row => row.courseTitle], ['Revision', row => row.revisionNumber], ['Status', row => row.status],
   ['Due (UTC)', row => row.dueAt ? new Date(row.dueAt).toISOString() : ''], ['Original due (UTC)', row => row.originalDueAt ? new Date(row.originalDueAt).toISOString() : ''], ['Due time zone', row => row.timezone ?? ''],
   ['Exception', row => row.exception ? `${row.exception.kind}${row.exception.active ? '' : ' (ended)'}` : ''], ['Exception through (due time zone)', row => row.exception?.endsOn ?? ''], ['Exception reason', row => row.exception?.reason ?? ''], ['Exception by', row => row.exception?.by ?? ''],
