@@ -7,6 +7,7 @@ import { listProposals } from '../agent-work'
 import { all } from '../core'
 import { memberNames } from '../people'
 import { outcomeComparison, plansFor } from '../outcomes'
+import { evaluationsFor } from '../evaluations'
 import { measurement } from './outcomes'
 import { formatDay, formatInstant, zonedInstant } from '../time'
 import { agentName, area, checks, h, hidden, page, select, when, type Html } from './html'
@@ -52,6 +53,7 @@ export async function agentPage(env: Bindings, actor: Actor, url: URL, zone: str
   const labels = new Map(revisions.map(row => [row.id, `${row.title} — revision ${row.number}`]))
   const plans = await plansFor(env, proposals.filter(proposal => proposal.kind === 'intervention').map(proposal => proposal.id))
   const comparisons = new Map(await Promise.all(plans.filter(plan => plan.approvedAt && state === 'approved').map(async plan => [plan.intervention, await outcomeComparison(env, actor, plan.id).catch(() => null)] as const)))
+  const evaluations = state === 'approved' ? await evaluationsFor(env, actor, plans.filter(plan => plan.approvedAt).map(plan => plan.id)) : new Map()
   const assignments = new Map(assignmentRows.map(row => [row.id, row]))
   const count = (waiting ?? proposals).length
   const by = (proposal: any) => proposal.viaAgent || proposal.agent ? `${proposal.preparedByName}'s agent${proposal.agent ? ` (${agentName(proposal.agent)})` : ''}` : proposal.preparedByName
@@ -61,7 +63,7 @@ ${proposals.length || drafts.length ? '' : h`<p class="card">${state === 'waitin
 ${proposals.map(proposal => h`<article class="card proposal" aria-labelledby="p-${proposal.id}">
 <div class="proposal-who"><span class="tag">${proposal.label}</span><h2 id="p-${proposal.id}">${proposal.title}</h2><p class="muted">Prepared by ${by(proposal)}${proposal.inputs.length ? h`<br>from: ${proposal.inputs.map((input: any) => input.label).join(', ')}` : ''}</p></div>
 <div class="proposal-why"><h3>Reasons</h3><ul>${proposal.reasons.map((reason: string) => h`<li>${reason}</li>`)}</ul>${proposal.excluded.length ? h`<h3>Excluded</h3><ul>${proposal.excluded.map((item: any) => h`<li>${item.item} — ${item.reason}</li>`)}</ul>` : ''}</div>
-<div class="proposal-what"><h3>Preview (will ${proposal.kind === 'process_change' ? 'record' : 'create'})</h3>${preview(proposal, names, labels, assignments, zone)}${proposal.state !== 'waiting' ? decided(proposal, zone) : proposal.canDecide ? decisionForm(proposal, names) : h`<p class="muted">Waiting for a decision.</p>`}${measurement(actor, proposal, plans.filter(plan => plan.intervention === proposal.id), comparisons.get(proposal.id), names)}</div>
+<div class="proposal-what"><h3>Preview (will ${proposal.kind === 'process_change' ? 'record' : 'create'})</h3>${preview(proposal, names, labels, assignments, zone)}${proposal.state !== 'waiting' ? decided(proposal, zone) : proposal.canDecide ? decisionForm(proposal, names) : h`<p class="muted">Waiting for a decision.</p>`}${measurement(actor, proposal, plans.filter(plan => plan.intervention === proposal.id), comparisons.get(proposal.id), names, evaluations)}</div>
 </article>`)}
 ${drafts.map(draft => h`<article class="card proposal" aria-labelledby="d-${draft.id}"><div class="proposal-who"><span class="tag">Course draft</span><h2 id="d-${draft.id}">${draft.title}</h2><p class="muted">Prepared by ${names.get(draft.preparedBy)}${draft.agent ? `'s agent (${agentName(draft.agent)})` : ''}</p></div><div class="proposal-why"><h3>Summary</h3><p>${draft.summary}</p></div><div class="proposal-what"><p><a class="button" href="/app/courses/${draft.course}">Review on the course page</a></p></div></article>`)}`
   return page('Agent work', actor, body, { current: '/app/agent', url })

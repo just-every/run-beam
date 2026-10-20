@@ -323,6 +323,7 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     const plan = { intervention: made.id, metric: 'Missed second checks', unit: 'misses per 100 scripts', direction: 'lower', baselineFrom: '2030-01-01', baselineTo: '2030-01-31', afterFrom: '2030-03-01', afterTo: '2030-03-31', comparison: 'rest_of_role', minGroup: 3 }
     assert.equal((await agent('outcome.plan', { ...plan, baselineTo: '2030-03-05' }, 400)).error, 'baseline_must_precede_after')
     const prepared = (await agent('outcome.plan', plan)).id
+    ids.measuredPlan = prepared
     await agent('outcome.approve', { plan: prepared }, 403)
     const waiting = await pageOf('/app/agent', people.manager)
     assert.ok(waiting.includes('Measuring the outcome') && waiting.includes('Approve this measurement plan') && waiting.includes('Missed second checks'))
@@ -364,6 +365,76 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     assert.deepEqual([differenced.exposed.hidden, differenced.exposed.reason, differenced.comparisonGroup.reason, differenced.difference, differenced.exposed.change], [true, 'differs_from_earlier_plan', 'differs_from_earlier_plan', null, undefined])
     const page = await pageOf('/app/agent?state=approved', people.manager)
     assert.ok(page.includes('Difference in change: -3.33') && page.includes('New dispensing checklist for all staff') && page.includes('does not show that the intervention caused any change'))
+  })
+
+  // AGENT-008: once its window has ended, a measured intervention with no observed improvement is closed into Beam's
+  // rule-made evaluation; a manager retires only its still-open assignments, and outcomes, completions and evidence stay.
+  await check('AGENT-008', async () => {
+    const agent = await agentOf(people.manager)
+    const roster = [['Employee ID', 'Name', 'Role', 'Team'], ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => [`E-80${n}`, `Packer ${n}`, 'Packing', 'Front desk'])]
+    const created = (await h.api('people.import', people.owner, { file: file('packers.csv', roster.map(row => row.join(',')).join('\n'), 'text/csv') })).created
+    const exposed = created.slice(0, 4)
+    const diagnosis = (await h.api('diagnosis.record', people.manager, { title: 'Cold packs leave unlabelled', finding: 'Four packers skip the cold label.', jobRole: 'Packing', evidence: 'Packing audit, December' })).id
+    await h.api('diagnosis.review', people.reviewer, { diagnosis })
+    const course = await h.api('course.create', people.author, { title: 'Cold pack labels', reviewer: ids.reviewer })
+    await publish((await h.api('course.submit', people.author, { course: course.id, draftVersion: (await h.api('course.lesson', people.author, { course: course.id, draftVersion: course.draftVersion, title: 'The label', body: 'Label every cold pack before it leaves.', sources: [] })).draftVersion })).id)
+    const revision = (await h.api(`courses/${course.id}`, people.manager)).publishedRevision
+    const due = { course: course.id, courseRevision: revision, dueDate: '2030-04-10', dueTime: '17:00', timezone: 'UTC' }
+    const made = await agent('agent.propose', { kind: 'intervention', title: 'Cold pack labels', agent: 'claude-code', inputs: [{ type: 'diagnosis', id: diagnosis }], reasons: ['Four packers skip the label.'], excluded: [], payload: { diagnosis, recommended: 'four', options: [
+      { id: 'four', kind: 'cohort_assignment', summary: 'Label course for the four', expectedBenefit: 'Fewer unlabelled packs', people: exposed, paidMinutesPerPerson: 15, ...due },
+      { id: 'all', kind: 'broad_course', summary: 'Everyone packing', expectedBenefit: 'Everyone revisits labels', people: [...created].sort(), paidMinutesPerPerson: 15, ...due },
+    ] } })
+    const plan = (await h.api('outcome.plan', people.manager, { intervention: made.id, metric: 'Unlabelled cold packs', unit: 'per 100 packs', direction: 'lower', baselineFrom: '2025-01-01', baselineTo: '2025-01-31', afterFrom: '2025-03-01', afterTo: '2025-03-31', comparison: 'rest_of_role', minGroup: 3 })).id
+    await h.api('outcome.approve', people.manager, { plan })
+    const assigned = (await h.api('agent.decide', people.manager, { proposal: made.id, decision: 'approve', sha256: made.sha256, option: 'four' })).result.assignments
+    assert.equal(assigned.length, 4)
+    // One packer already finished the course: attested attendance completes their assignment with evidence and a certificate.
+    await h.api('offline.record', people.manager, { course: course.id, revision, learners: [exposed[0]], heldOn: '2025-02-15', instructor: 'Tom Okafor', location: 'Packing bench', attestation: 'Labelled ten cold packs under observation.' })
+    const evidenceOf = async () => (await h.api(`records/${exposed[0]}`, people.manager)).completions.filter(row => row.course === course.id)
+    const evidence = await evidenceOf()
+    assert.ok(evidence.length === 1 && evidence[0].certificate && evidence[0].method === 'offline')
+    const finishedRow = (await h.api(`records/${exposed[0]}`, people.manager)).assignments.find(row => row.course === course.id)
+    const finished = finishedRow.id
+    assert.deepEqual([assigned.includes(finished), finishedRow.status], [true, 'completed'])
+    // Both groups improve alike: the difference's interval includes zero.
+    const csv = ['Employee ID,Date,Value', ...[6, 5, 7, 6].map((value, n) => `E-80${n + 1},2025-01-10,${value}`), ...[5, 5, 6, 6].map((value, n) => `E-80${n + 1},2025-03-10,${value}`),
+      ...[6, 6, 5, 7].map((value, n) => `E-80${n + 5},2025-01-10,${value}`), ...[6, 5, 5, 6].map((value, n) => `E-80${n + 5},2025-03-10,${value}`)].join('\n')
+    await h.api('outcome.import', people.manager, { plan, csv, processChanges: '2025-02-20 Label printer moved into the cold room' })
+    const measured = await h.api(`outcomes/${plan}`, people.manager)
+    assert.deepEqual([measured.difference.value, measured.difference.interval], [0, [-0.8, 0.8]])
+    // Only after the window, only a person, and only the owner or the manager who approved the plan closes it.
+    assert.equal((await h.api('outcome.close', people.manager, { plan: ids.measuredPlan }, 409)).error, 'measurement_window_open')
+    await agent('outcome.close', { plan }, 403)
+    await h.api('outcome.close', people.sam, { plan }, 403)
+    await h.api('outcome.close', await h.signIn('mia@example.test'), { plan }, 403)
+    assert.equal((await h.api(`evaluations/${plan}`, people.manager, undefined, 404)).error, 'measurement_open')
+    assert.equal((await h.api('outcome.close', people.manager, { plan })).finding, 'no_improvement')
+    assert.equal((await h.api('outcome.close', people.manager, { plan }, 409)).error, 'measurement_closed')
+    assert.equal((await h.api('outcome.import', people.manager, { plan, csv }, 409)).error, 'measurement_closed')
+    // The evaluation compares intended and observed outcomes with their uncertainty, names the changed process and offers alternatives.
+    const evaluation = await h.api(`evaluations/${plan}`, people.manager)
+    assert.deepEqual([evaluation.finding, evaluation.intended.direction, evaluation.observed.kind, evaluation.observed.interval, evaluation.processChanged], ['no_improvement', 'lower', 'difference', [-0.8, 0.8], true])
+    assert.deepEqual(evaluation.alternatives.map(item => item.kind), ['revised_practice', 'process_fix', 'retire_future'])
+    assert.ok(evaluation.alternatives[1].summary.includes('Label printer moved into the cold room') && evaluation.preparedBy === 'Prepared by rule, not by a model.')
+    assert.ok(evaluation.comparison.limits.some(limit => limit.startsWith('Small sample')) && evaluation.causation.includes('neither competence nor causation'))
+    const retirable = evaluation.retirable.map(item => item.assignment)
+    assert.deepEqual([retirable.length, retirable.includes(finished)], [3, false])
+    assert.ok(created.every(id => !JSON.stringify({ ...evaluation, retirable: [] }).includes(id)), 'the evaluation names nobody beyond the assignments it may retire')
+    const page = await pageOf('/app/agent?state=approved', people.manager)
+    assert.ok(page.includes('Evaluation: No observed improvement') && page.includes('Prepared by rule, not by a model.') && page.includes('action="/app/do/outcome.retire"'))
+    // Only a person retires, and only the intervention's still-open assignments: the completed one is refused.
+    await agent('outcome.retire', { plan, assignments: retirable.slice(0, 2) }, 403)
+    assert.equal((await h.api('outcome.retire', people.manager, { plan, assignments: [finished] }, 409)).error, 'assignment_not_retirable')
+    const retired = await h.api('outcome.retire', people.manager, { plan, assignments: retirable.slice(0, 2), note: 'The label course did not help; fix the printer first.' })
+    assert.deepEqual(retired.retired, retirable.slice(0, 2))
+    const statuses = async () => Object.fromEntries(await Promise.all(exposed.map(async person => [person, (await h.api(`records/${person}`, people.manager)).assignments.find(row => row.course === course.id).status])))
+    assert.deepEqual(Object.values(await statuses()).sort(), ['cancelled', 'cancelled', 'completed', 'open'])
+    // History stays: the completion, its evidence and certificate, the outcomes and the negative finding are unchanged.
+    assert.deepEqual(await evidenceOf(), evidence)
+    assert.deepEqual(await h.api(`outcomes/${plan}`, people.manager), measured)
+    const after = await h.api(`evaluations/${plan}`, people.manager)
+    assert.deepEqual([after.finding, after.observed, after.retirable.length, after.retirements.length, after.retirements[0].assignments], ['no_improvement', evaluation.observed, 1, 1, retirable.slice(0, 2)])
+    assert.ok((await h.api('audit?q=outcome.retire', people.owner)).events.some(event => event.subject === plan && event.detail.assignments === 2))
   })
 
   // CONNECT-014: the owner issues separate application credentials on Access; each reaches only its audience's route

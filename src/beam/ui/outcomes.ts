@@ -1,8 +1,10 @@
 // AGENT-005 on an intervention card: choose and approve the measurement plan while the intervention waits, then import
 // outcomes and read the group comparison once it is applied. Nothing here names or ranks a person.
+// AGENT-008: after the window the measurement is closed into Beam's rule-made evaluation, where a manager retires the
+// intervention's remaining open assignments for their own people.
 import type { Actor } from '../actor'
 import { formatDay } from '../time'
-import { field, fileField, form, area, h, hidden, select, type Html } from './html'
+import { checks, field, fileField, form, area, h, hidden, select, type Html } from './html'
 
 const period = (from: string, to: string) => `${formatDay(from)} to ${formatDay(to)}`
 const planLine = (plan: any) => h`<p><strong>${plan.metric}</strong> (${plan.unit}, ${plan.direction === 'higher' ? 'higher is better' : 'lower is better'}) · baseline ${period(plan.baselineFrom ?? plan.baseline[0], plan.baselineTo ?? plan.baseline[1])} · after ${period(plan.afterFrom ?? plan.after[0], plan.afterTo ?? plan.after[1])} · ${plan.comparison === 'rest_of_role' ? 'compared with the rest of the role' : 'no comparison group'} · groups under ${plan.minGroup} people hidden</p>`
@@ -22,7 +24,21 @@ ${view.confounders.length ? h`<h4>Process changes (possible confounders)</h4><ul
 ${view.limits.length ? h`<h4>Limits</h4><ul>${view.limits.map((limit: string) => h`<li>${limit}</li>`)}</ul>` : ''}<p class="muted"><strong>${view.causation}</strong> ${view.ranking}</p></div>`
 }
 
-export function measurement(actor: Actor, proposal: any, plans: any[], comparison: any, names: Map<string, string>): Html {
+const FINDINGS: Record<string, string> = { improved: 'Improved', no_improvement: 'No observed improvement', worse: 'Worse', not_measurable: 'Not measurable' }
+
+function evaluationView(actor: Actor, view: any, back: string, names: Map<string, string>): Html {
+  const observed = view.observed.interval ? h`${view.observed.kind === 'difference' ? 'Difference against the comparison group' : 'Change in the reached group'}: ${view.observed.value} ${view.intended.unit} (approx. 95% interval ${view.observed.interval[0]} to ${view.observed.interval[1]})` : h`No result can be shown.`
+  const retire = view.retirable.length && !actor.agent && ['no_improvement', 'worse'].includes(view.finding) ? form('outcome.retire', back, [hidden('plan', view.plan),
+    checks('Future assignments to retire (completed ones are never changed)', 'assignments', view.retirable.map((item: any) => ({ value: item.assignment, label: `${item.name} — ${item.course}` }))), area('Note (optional)', 'note', '', false)], 'Retire the selected assignments', { secondary: true }) : h``
+  return h`<div class="outcome-evaluation"><h4>Evaluation: ${FINDINGS[view.finding]}</h4><p class="muted">${view.preparedBy} Closed by ${names.get(view.closedBy)}.</p>
+<p>Intended: ${view.intended.metric} ${view.intended.direction === 'lower' ? 'lower' : 'higher'}. ${observed}.</p><p>${view.reading}</p>
+${view.processChanged ? h`<p>Conditions changed during the measurement: ${view.confounders.map((change: any) => `${formatDay(change.date)} ${change.description}`).join('; ')}.</p>` : ''}
+<h4>Alternatives</h4><ul>${view.alternatives.map((item: any) => h`<li>${item.summary}</li>`)}</ul>
+${view.retirements.map((item: any) => h`<p>${names.get(item.decidedBy)} retired ${item.assignments.length} ${item.assignments.length === 1 ? 'assignment' : 'assignments'}${item.note ? ` — “${item.note}”` : ''}.</p>`)}
+${retire}<p class="muted">This finding stays on the intervention; completions, certificates and imported outcomes are never changed by it.</p></div>`
+}
+
+export function measurement(actor: Actor, proposal: any, plans: any[], comparison: any, names: Map<string, string>, evaluations: Map<string, any> = new Map()): Html {
   if (proposal.kind !== 'intervention') return h``
   const approved = plans.find(plan => plan.approvedAt)
   const back = '/app/agent?state=' + proposal.state
@@ -33,8 +49,10 @@ export function measurement(actor: Actor, proposal: any, plans: any[], compariso
     field('Baseline from', 'baselineFrom', { type: 'date' }), field('Baseline to', 'baselineTo', { type: 'date' }), field('After from', 'afterFrom', { type: 'date' }), field('After to', 'afterTo', { type: 'date' }),
     select('Comparison group', 'comparison', [{ value: 'rest_of_role', label: 'The rest of the diagnosed role' }, { value: 'none', label: 'None' }]),
     field('Privacy bound (smallest group shown)', 'minGroup', { type: 'number', value: 5 })], 'Propose measurement plan', { secondary: true }) : h``
-  const importForm = approved && proposal.state === 'approved' && !actor.agent ? form('outcome.import', back, [hidden('plan', approved.id), fileField('Outcomes CSV (Employee ID, Date, Value; a blank value is missing)', 'file', { accept: '.csv,text/csv' }), area('Process changes in these periods (one per line: YYYY-MM-DD what changed)', 'processChanges', '', false)], 'Import outcomes', { multipart: true, secondary: true }) : h``
+  const evaluated = approved ? evaluations.get(approved.id) : null
+  const closeForm = approved && comparison && !evaluated && !actor.agent ? form('outcome.close', back, hidden('plan', approved.id), 'Close the measurement and evaluate', { secondary: true }) : h``
+  const importForm = approved && proposal.state === 'approved' && !actor.agent && !evaluated ? form('outcome.import', back, [hidden('plan', approved.id), fileField('Outcomes CSV (Employee ID, Date, Value; a blank value is missing)', 'file', { accept: '.csv,text/csv' }), area('Process changes in these periods (one per line: YYYY-MM-DD what changed)', 'processChanges', '', false)], 'Import outcomes', { multipart: true, secondary: true }) : h``
   return h`<section class="outcome-plan" aria-label="Measuring the outcome"><h3>Measuring the outcome</h3>
 ${approved ? h`${planLine(approved)}<p class="muted">Approved by ${names.get(approved.approvedBy)} before the intervention was decided.</p>` : proposal.state === 'waiting' ? h`<p class="muted">Choose the outcome, periods, comparison and privacy bound before deciding the intervention.</p>` : h`<p class="muted">No measurement plan was approved before this intervention was decided.</p>`}
-${offered.length ? h`<ul class="plain">${offered}</ul>` : ''}${planForm}${comparison ? comparisonView(comparison) : ''}${importForm}</section>`
+${offered.length ? h`<ul class="plain">${offered}</ul>` : ''}${planForm}${comparison ? comparisonView(comparison) : ''}${evaluated ? evaluationView(actor, evaluated, back, names) : ''}${importForm}${closeForm}</section>`
 }

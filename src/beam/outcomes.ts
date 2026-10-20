@@ -94,6 +94,8 @@ export async function importOutcomes(env: Bindings, actor: Actor, input: Input) 
   insist(isManager(actor), 'forbidden', 403)
   insist(!actor.agent, 'human_import_required', 403)
   const { plan, exposed, comparison } = await approvedPlan(env, input.text('plan', { max: 64 }))
+  // AGENT-008: a closed measurement keeps the values it was evaluated on.
+  insist(!await one(env, 'SELECT 1 FROM beam_outcome_evaluations WHERE plan = ?', plan.id), 'measurement_closed', 409)
   const file = await input.file('file', { optional: true, maxBytes: 2_000_000 })
   const text = file ? new TextDecoder().decode(file.bytes) : input.text('csv', { max: 2_000_000, optional: true })
   const changes = input.text('processChanges', { max: 4000, optional: true }).split('\n').map(line => line.trim()).filter(Boolean).map(line => {
