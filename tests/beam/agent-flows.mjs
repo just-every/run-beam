@@ -427,7 +427,7 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     await h.api('external.requirement', people.owner, { name: 'CPR card', teams: [ids.team], reviewer: 'manager', reminderDays: 30 })
     const requirement = (await h.api('external', people.owner)).requirements.find(item => item.name === 'CPR card').id
     const results = await access({ name: 'Training provider', audience: 'results.write', teams: ids.team })
-    const result = { requirement, issuer: 'Red Cross', number: 'CPR-77', issuedOn: '2026-01-15', file: file('cpr.pdf', pdf, 'application/pdf') }
+    const result = { requirement, issuer: 'Red Cross', number: 'CPR-77', issuedOn: '2026-01-15', expiresOn: '2028-01-15', file: file('cpr.pdf', pdf, 'application/pdf') }
     assert.equal((await call(results, 'v1/results', { ...result, learner: ids.sam })).state, 'pending')
     assert.equal((await h.api('external', people.sam)).mine.find(item => item.requirement === requirement).pending.number, 'CPR-77')
     assert.equal((await call(results, 'v1/results', { ...result, learner: ids.author }, 403)).error, 'learner_outside_your_team')

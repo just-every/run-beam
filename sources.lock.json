@@ -3273,7 +3273,7 @@
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
-      "sha256": "566b2d33736379362329f1f19a5a163095974c2d455d2493b15bedb73948f6bb",
+      "sha256": "15c7f510189ba8506a15192e838d171c2667a8b0bc2cee637ec240a9debf24ec",
       "executable": false
     },
     "tests/beam/cli.mjs": {
