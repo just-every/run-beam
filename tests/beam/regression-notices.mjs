@@ -187,6 +187,12 @@ export async function escalationCheck(f) {
   assert.equal(mails().length, 0, 'approval mode never calls the provider before a human decision')
   await api('manager', 'automation.approve', { execution: waiting.id, version: controls.policy.version }, 403)
   await api('owner', 'automation.approve', { execution: waiting.id, version: controls.policy.version })
+  await api('owner', 'automation.policy', { version: controls.policy.version, kind: 'escalation', rule: 'overdue-work', mode: 'approval' })
+  await api('owner', 'escalation.run', {})
+  assert.equal(mails().length, 0, 'a policy version change invalidates the old approval')
+  controls = await api('owner', 'automation-controls')
+  assert.equal(controls.executions.find(row => row.id === waiting.id).outcome, 'approval_required')
+  await api('owner', 'automation.approve', { execution: waiting.id, version: controls.policy.version })
   h.edge.refuse = true
   await api('owner', 'escalation.run', {})
   h.edge.refuse = false
