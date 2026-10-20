@@ -1590,7 +1590,7 @@
       "executable": false
     },
     "src/beam/views.ts": {
-      "sha256": "a78bf7f1396ab224ceeb2ac848055ca7ffbf4cbe139dea76ce275e5112d2a784",
+      "sha256": "3134d67e68c17fd8b1750c8b01925a142c757e79dd70ab6a58b58ad107ebe029",
       "executable": false
     },
     "src/beam/xlsx.ts": {
