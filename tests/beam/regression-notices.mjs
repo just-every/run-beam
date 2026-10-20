@@ -192,6 +192,7 @@ export async function escalationCheck(f) {
   row = await item('other', a)
   assert.deepEqual(row.reachesNow, [{ id: ids.other, route: 'direct' }])
   assert.equal(row.onLeave, true)
+  assert.deepEqual(row.messages.map(message => [message.recipient, message.route, message.status]), [[ids.other, 'direct', 'accepted']])
   assert.ok(row.failures.some(failure => failure.route === 'learner'))
   assert.ok((await api('other', 'queues')).blockers.some(row => row.id === blocker.id))
   assert.deepEqual(await queue('manager'), [], 'former manager loses the private queue immediately')
