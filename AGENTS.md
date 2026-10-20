@@ -196,3 +196,40 @@ Keep tests to flows a person would notice breaking, through public doors, one
 check per clause, with fakes only at provider edges (there are none in phase
 one). No pin tests (hashes, versions, file lists, UI copy, thresholds). Prove a
 one-off fix with before/after evidence instead of a new permanent test.
+
+## Overdue escalation (NOTICE-004)
+
+Using an ordinary human owner session with the exact app Origin, read
+`GET /api/beam/escalation-policy` (null before configuration), then
+`POST /api/beam/escalation.policy` with
+`{ "version": 0, "enabled": true, "reminderHours": 24, "managerHours": 48, "fallbackHours": 96 }`.
+Use the returned version for later saves, including disabling. Delays are elapsed
+hours from the original due instant, with reminder ≤ manager ≤ fallback.
+The daily scheduled job sends each assignment/recipient/route at most once.
+Learner reminders pause on leave; active deferrals/exemptions pause all sends.
+Current temporary cover takes precedence over direct team managers; unavailable
+managers or the fallback delay route to the owner. Directory manager_id grants
+no authority. No email means no contact route; no SMS is simulated.
+
+`GET /api/beam/queues` adds `escalations` within the reader's existing enrollment
+scope: current routes, leave, no-contact, exhausted attempts, scheduled assessor
+capacity, accepted/development mail facts and held/failed execution outcomes.
+Accepted means provider acceptance, not delivered. Capacity counts only future
+sessions named to the practical assessor, including unexpired reserved offers.
+The manager or administrator currently in scope resolves with
+`POST /api/beam/escalation.resolve` and `{ "assignment": "ID", "reason": "..." }`.
+Resolution never rewrites the due date, assessment or completion.
+
+A failed or held send never retries automatically. The owner explicitly replays
+with `POST /api/beam/escalation.run` and `{}`; current policy, route, access,
+leave, exceptions, completion and resolution plus AUTO-008 controls are checked
+again. No unresolved work is sent after the policy is disabled. These are public
+human API/form doors; preparation credentials cannot configure, run or resolve.
+
+Escalation also supports AUTO-008's per-rule approval mode. Read the current
+`automation-controls` policy version and post `automation.policy` with
+`{ "version": N, "kind": "escalation", "rule": "overdue-work", "mode": "approval" }`
+(or `automatic`). A held execution appears in `automation-controls`; only the
+owner approves it with `automation.approve` (`execution`, current policy `version`),
+then explicitly replays with `escalation.run`. A policy version change invalidates
+prior approvals. Migration 0069 preserves every existing automation control.

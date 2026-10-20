@@ -1,5 +1,8 @@
 // OPS-002: explicit columns keep later auth/provider fields out of learning interchange.
 export const LEARNING_INVENTORY = {
+  beam_escalation_policy: 'id, version, enabled, reminder_hours, manager_hours, fallback_hours, updated_by, updated_at',
+  beam_escalation_messages: 'id, assignment_id, recipient_id, route, status, sent_at',
+  beam_escalation_resolutions: 'assignment_id, reason, resolved_by, resolved_at',
   beam_business: 'singleton, name, timezone, updated_at',
   beam_members: 'id, email, name, created_at, employee_id, preferred_name, mobile, language, employment, manager_id, job_role, department, location, hire_date, custom_json, transfer_date, username, time_zone',
   beam_member_roles: 'member_id, role',

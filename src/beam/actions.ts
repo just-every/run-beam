@@ -1,3 +1,4 @@
+import { saveEscalationPolicy, resolveEscalation, runEscalationsNow } from './escalations'
 import { withdrawErrors } from './diagnosis-evidence'
 import { prepareDiagnosis } from './diagnosis-comparison'
 // Every state change in Beam, by name. The same handler serves the HTML form
@@ -73,6 +74,9 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'escalation.policy': saveEscalationPolicy,
+  'escalation.resolve': resolveEscalation,
+  'escalation.run': runEscalationsNow,
   'dashboard.create': createDashboard,
   'dashboard.share': shareDashboard,
   'dashboard.link': linkDashboard,
