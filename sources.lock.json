@@ -3205,7 +3205,7 @@
       "executable": false
     },
     "src/site/landing/hero.ts": {
-      "sha256": "e3e36287a115992bcf3fd7eb513d087c1da1fd61363ba0deee0addde348bc3ad",
+      "sha256": "0ed2839def093a7cef2693ef480a8c7dee6a6a4ec81834c4fd2dc1ea741b657f",
       "executable": false
     },
     "src/site/landing/landing.ts": {
@@ -3273,11 +3273,11 @@
       "executable": false
     },
     "src/site/shell.ts": {
-      "sha256": "323e6fd245f0c10f9d8705dd9723bb735e47d9fed3a03c9854a1ece9ed08056c",
+      "sha256": "0d8180f0c9eb4197015a3309f5b54ba9f001ae30acf54952d362ac8f5cda2fee",
       "executable": false
     },
     "src/site/styles/base.css": {
-      "sha256": "de90e68cc483a896de01ccce60ffd298fa31e348d5745b56d3cd3f66647f6ba5",
+      "sha256": "ddcda0749f5d413af0096e2084e87345f54ce7070bcf9d03607af05a2bd46d12",
       "executable": false
     },
     "src/site/styles/docs.css": {
@@ -3285,7 +3285,7 @@
       "executable": false
     },
     "src/site/styles/hero.css": {
-      "sha256": "347bd139ecef64c70d1477111bc1bf2d5e7095b81461d510517da58475d04e06",
+      "sha256": "1e284527d842ed7781a7e4ad2265780102379761d026477221a21e2e672ad0f4",
       "executable": false
     },
     "src/site/styles/sections.css": {
