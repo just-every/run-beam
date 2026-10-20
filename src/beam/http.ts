@@ -1,3 +1,4 @@
+import { dataExport, dataExportFile } from './data-export'
 import { diagnosesPage } from './ui/diagnoses'
 // Beam's public doors: /app pages, /app/do/ACTION form posts, /api/beam JSON,
 // and access-checked file downloads. Every request resolves the signed-in
@@ -168,6 +169,9 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
 
 async function pageResponse(env: Bindings, actor: Actor, request: Request, url: URL): Promise<Response> {
   const path = url.pathname
+  if (request.method !== 'POST' && path === '/app/data-export.json') return dataExport(env, actor)
+  const exportFile = path.match(/^\/app\/data-export\/files\/([a-f0-9]{64})$/)
+  if (request.method !== 'POST' && exportFile) return dataExportFile(env, actor, exportFile[1])
   if (path === '/app/import/client.js' && request.method === 'GET') return importBrowserResponse()
   if (request.method === 'POST') {
     if (path === '/app/dashboards/link') return dashboardLinkPage(env, actor, await Input.from(request), url)

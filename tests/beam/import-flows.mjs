@@ -67,6 +67,14 @@ export async function importFlows({h, people, ids, trust}) {
     const sam = await h.api('records/me', people.sam)
     assert.equal(sam.history.length, 2)
     assert.equal(sam.completions.length, 1, 'imports never satisfy current assignments')
+    // OPS-002: interchange retains labelled source history and IDs, independently readable without Beam.
+    const exported = await (await h.raw('/app/data-export.json', { cookie: people.owner })).json()
+    const records = exported.records.beam_imported_history
+    assert.equal(records.count, history.length)
+    assert.deepEqual(records.rows.map(row => ({ id: row.id, kind: row.kind, revision: row.revision, ...JSON.parse(row.payload) })).sort((a, b) => a.id.localeCompare(b.id)), history)
+    assert.ok(records.rows.filter(row => row.kind === 'completion').every(row => JSON.parse(row.payload).historical))
+    assert.equal(records.sha256, hash(Buffer.from(JSON.stringify(records.rows))))
+    console.log('OPS-002 labelled imported history and source lineage passed')
   }
   const conformance = async request => {
     const before = await nativeSnapshot(), uploadId = await upload(request, bytes)
