@@ -172,6 +172,13 @@ export async function courseScopeCheck(f) {
   assert.equal(await decide('reviewer2', third, 'publish', { reassignment: 'open' }), null)
   const detail = await api('expert', `courses/${cold.id}`)
   assert.deepEqual(detail.revisions.map(row => [row.id, row.state, row.reviewedBy, row.selfReviewed]), [[third, 'published', ids.reviewer2, 0], [second, 'superseded', ids.reviewer, 0], [first, 'returned', ids.reviewer, 0]])
+  // AUTHOR-004: the course's own author compares its revisions and restores one through the page, and only its own course's.
+  const history = await page(`/app/courses/${cold.id}/compare?from=${second}&to=${third}`, 'expert')
+  assert.ok(history.status === 200 && history.text.includes('Restore revision') && (await api('expert', `compare?from=${second}&to=${third}`)).changed === false)
+  const restoredByExpert = await h.submit('course.restore', cookies.expert, { course: cold.id, draftVersion: (await api('expert', `courses/${cold.id}`)).draftVersion, revision: first }, `/app/courses/${cold.id}`)
+  assert.equal(restoredByExpert.searchParams.get('error'), null)
+  assert.deepEqual((await api('expert', `courses/${cold.id}`)).draft.lessons.map(lesson => lesson.title), ['Receiving', 'Storage'])
+  await api('expert', `compare?from=${unrelated.revision}&to=${unrelated.revision}`, undefined, 403)
   assert.deepEqual(detail.reviewerChanges.map(row => [row.previousReviewer, row.reviewer, row.reason, row.changedBy]), [[ids.reviewer, ids.reviewer2, 'Priya is on leave', ids.owner]])
 
   // Self-review: off by default, so a reviewer cannot publish their own revision.

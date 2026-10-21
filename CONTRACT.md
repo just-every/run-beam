@@ -475,13 +475,13 @@ removed or changed by this contract-only round.
 
 ## Status
 
-Judged from the code and tests at commit `db50f2330d4c47f6ab3c1fa5c2aded6ab835c122` (21 October 2026).
+Judged from the code and tests at commit `e0c14b684df7a232d0ce56328698b2c7031990d0` (21 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 45 | 32 | 49 | 126 |
-| All | 65 | 32 | 49 | 146 |
+| Target and push further | 46 | 31 | 49 | 126 |
+| All | 66 | 31 | 49 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -520,7 +520,7 @@ Judged from the code and tests at commit `db50f2330d4c47f6ab3c1fa5c2aded6ab835c1
 | `AUTHOR-001` | Author multimedia courses without rebuilding files | target | partial | `src/beam/courses.ts`, `src/beam/sources.ts`, `tests/beam/flows.mjs` | Text lessons and uploaded sources work; rich reusable media blocks, author preview and allowlisted sandboxed embeds (YouTube, Vimeo, Loom, Google, Microsoft 365) are absent. |
 | `AUTHOR-002` | Turn existing SOP documents into editable learning | target | partial | `src/beam/sources.ts`, `src/beam/files.ts` | Original bytes are stored; document parsing, OCR and editable lesson conversion are absent. |
 | `AUTHOR-003` | Collect expert feedback before publication | target | done | `src/beam/collab.ts`, `src/beam/feedback.ts`, `src/beam/courses.ts`, `src/beam/ui/collab.ts`, `migrations/core/0041_beam_collaboration.sql`, `tests/beam/regression-collab.mjs` (AUTHOR-003) |  |
-| `AUTHOR-004` | Compare and restore earlier content safely | target | partial | `src/beam/history.ts`, `src/beam/diff.ts`, `tests/beam/flows.mjs` | Revision comparison omits assessment draw count, shuffle and feedback settings, so changing only those settings reports no change. Course-only authors also lack the comparison door available to global authors. |
+| `AUTHOR-004` | Compare and restore earlier content safely | target | done | `src/beam/history.ts`, `src/beam/ui/history.ts`, `tests/beam/flows.mjs` (AUTHOR-004), `tests/beam/regression-admin.mjs` (AUTHOR-004) |  |
 | `AUTHOR-005` | Organize and reuse the course estate | target | done | `src/beam/estate.ts`, `src/beam/assignments.ts`, `src/beam/ui/authoring.ts`, `migrations/core/0030_beam_course_retirement.sql`, `migrations/core/0031_beam_course_catalog.sql`, `tests/beam/regression-estate.mjs` (AUTHOR-005) |  |
 | `AUTHOR-006` | Schedule content upkeep and accountable review | target | done | `src/beam/upkeep.ts`, `src/beam/maintenance.ts`, `src/beam/sources.ts`, `src/beam/ui/upkeep.ts`, `migrations/core/0059_beam_content_upkeep.sql`, `tests/beam/regression-upkeep.mjs` (AUTHOR-006) |  |
 | `AUTHOR-007` | Generate source-grounded course drafts with AI | target | partial | `src/beam/maintenance.ts`, `src/beam/agent-credentials.ts`, `tests/beam/agent-flows.mjs` | Externally prepared source-bound proposals work; embedded model calls, document-to-outline generation and cost controls are absent. |
