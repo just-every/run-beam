@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { harness } from './harness.mjs'
-export async function fixture() {
-  const h = await harness(), cookies = {}, ids = {}
+export async function fixture(options) {
+  const h = await harness(options), cookies = {}, ids = {}
   try {
     const api = (role, path, body, status = 200) => h.api(path, cookies[role], body, status)
     assert.equal((await h.raw('/auth/bootstrap', { body: { token: h.vars.SETUP_TOKEN, displayName: 'Owner' } })).status, 303)

@@ -1,0 +1,21 @@
+# Signed lifecycle webhooks (preview)
+
+The installation owner can subscribe an HTTPS receiver through `POST /api/beam/webhook.subscribe`:
+
+```json
+{"name":"Training sync","endpoint":"https://receiver.example.com/hooks","courses":["course-id"],"teams":["team-id"],"events":["enrollment","progress","completion","renewal","publication"],"consent":true}
+```
+
+The server operator must first admit the trusted public receiver's exact hostname in the comma-separated `BEAM_WEBHOOK_HOSTS` binding. It starts empty. Do not admit a hostname controlled by an untrusted party, an internal service or a hostname with private/split-horizon DNS. Public DNS-pinned arbitrary endpoints are not qualified yet. Only HTTPS on port 443 qualifies; credentials, query strings, fragments, literal IPs and internal/local names are refused. Redirects are never followed.
+
+The response shows a base64 signing `key` once. Store it at the receiver, then post `webhook.state` with `subscription`, `enabled: true`, `consent: true`. No earlier events are backfilled. Course scopes are required; person events also require a team scope. Reads, setup, state, rotation, sends and replay require a signed-in owner; application/preparation credentials cannot use them.
+
+The exact JSON envelope has `specversion: "1.0"`, `schema: "beam.lifecycle.v1"`, `id`, `type`, ISO `time` and `data`. Event data contains opaque assignment/learner/course/revision ids (plus a completion id or lessons-done count as applicable); publication contains course/revision only. No answer, score, evidence, name or address is sent. An event is captured atomically with its learning change, only for currently enabled subscriptions. Current learner team/active status and enabling owner authority are checked again before send/replay.
+
+Verify `x-beam-signature: t=UNIX_SECONDS,v1=LOWERCASE_HEX` using HMAC-SHA256 with the decoded base64 key over `UNIX_SECONDS + "." + exactBody`. Compare in constant time, enforce a short timestamp tolerance and deduplicate `x-beam-event-id` before applying effects. `x-beam-key-version` identifies rotation. Retries keep the same event id and body; timestamps/signatures may change. A signature refusal is an ordinary recorded provider failure.
+
+`GET /api/beam/webhooks` returns owner-only subscription metadata, the latest 200 deliveries and 200 attempts; it never returns a key or provider response body. `POST webhook.run {}` processes at most 50 new events, as does the scheduled job. AUTO-008 holds paused, quiet, rate-exhausted or approval-required work without a network request; external spend has a hard USD 0 ceiling (no paid relay is used). Failed/held sends never retry automatically. Post `webhook.replay {"delivery":"id"}` after backoff: 1 minute after attempt one, 5 minutes after attempt two. Three failed provider attempts make a dead letter. After its 30-minute hold, explicit `confirm: true` starts a new bounded cycle. Safe replay rechecks the current policy, approval, owner, scope and host admission, and uses the stable receiver deduplication id. A process interrupted while sending remains outcome unknown and is not automatically resent.
+
+Use `automation.policy` with the current `version`, `kind: "webhook"`, `rule: subscriptionId` and `mode: "approval"` or `"automatic"`. Existing AUTO-008 owner approvals and version invalidation apply per delivery attempt. Inspect `automation-controls` and Audit for policy/input/outcomes.
+
+`webhook.rotate {"subscription":"id"}` shows the replacement key once and disables delivery until explicitly enabled again. `webhook.state {"subscription":"id","revoke":true}` permanently revokes the subscription, suppressing pending work. A new subscription never inherits earlier events. Archives withhold signing material and disable subscriptions after restore; the owner must rotate and re-enable. Losing the installation session-secret root also requires key rotation. Live external sandbox and interrupted-send recovery are still pending; this feature remains partial.

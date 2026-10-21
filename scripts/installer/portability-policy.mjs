@@ -13,6 +13,7 @@ export default {
   buckets: { files: { prefix: 'sha256/' } },
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   exportRow(table, row) {
+    if (table === 'beam_webhook_subscriptions') return { ...row, key_cipher: WITHHELD, enabled: 0 }
     if (table === 'beam_app_credentials') return { ...row, secret_sha256: WITHHELD }
     // A named report viewer has no token; only link rows carry one.
     if (LINKS.has(table) && row.token_hash !== null) return { ...row, token_hash: `${WITHHELD}:${row.id}` }

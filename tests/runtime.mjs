@@ -34,7 +34,7 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const secret = () => randomBytes(32).toString('base64url')
   const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret(), ...bindings }
   // `edge.refuse` makes the provider refuse every message, as Resend does a message it will not accept.
-  const mails = [], edge = { refuse: false, attempts: [] }
+  const mails = [], edge = { refuse: false, attempts: [], webhooks: [], webhookStatus: 204 }
   const options = convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
     modules: [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) })),
@@ -43,6 +43,10 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },
     bindings: vars,
     outboundService: async request => {
+      if (request.url === 'https://synthetic-beam-1.example.test/hooks') {
+        edge.webhooks.push({ url: request.url, headers: Object.fromEntries(request.headers), body: await request.text() })
+        return new Response(null, { status: edge.webhookStatus, headers: edge.webhookStatus === 302 ? { location: 'http://127.0.0.1/private' } : {} })
+      }
       if (request.url !== 'https://api.resend.com/emails') throw new Error(`Unexpected test network destination ${new URL(request.url).origin}`)
       const message = await request.json()
       edge.attempts.push(message)

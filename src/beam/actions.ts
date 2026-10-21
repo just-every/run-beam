@@ -1,3 +1,5 @@
+import { requireOwner } from './actor'
+import { subscribeWebhook, rotateWebhook, setWebhookState, replayWebhook, runWebhooks } from './webhooks'
 import { saveBlock, changeBlock, reuseBlock } from './blocks'
 import { saveEmbedPolicy } from './media'
 import { convertSource } from './source-extraction'
@@ -78,6 +80,11 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'webhook.subscribe': subscribeWebhook,
+  'webhook.rotate': rotateWebhook,
+  'webhook.state': setWebhookState,
+  'webhook.replay': replayWebhook,
+  'webhook.run': async (env, actor) => { requireOwner(actor); return { results: await runWebhooks(env) } },
   'course.block': saveBlock,
   'course.block.change': changeBlock,
   'course.block.reuse': reuseBlock,

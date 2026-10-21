@@ -16,8 +16,8 @@ export async function saveAutomationPolicy(env: Bindings, actor: Actor, input: I
   let policy = current
   if (input.has('rule')) {
     const kind = input.text('kind'), rule = input.text('rule'), mode = input.text('mode')
-    insist(['follow_on', 'audience', 'notification', 'escalation', 'renewal'].includes(kind) && ['automatic', 'approval'].includes(mode), 'invalid_control')
-    const exists = kind === 'renewal' ? await one(env, 'SELECT 1 FROM beam_renewal_rules WHERE id=?', rule) : kind === 'escalation' ? await one(env, "SELECT 1 FROM beam_escalation_policy WHERE id=1 AND ?='overdue-work'", rule) : await one(env, `SELECT 1 FROM ${kind === 'follow_on' ? 'beam_automation_rules' : kind === 'audience' ? 'beam_audiences' : 'beam_notification_rules'} WHERE id=?`, rule)
+    insist(['follow_on', 'audience', 'notification', 'escalation', 'renewal', 'webhook'].includes(kind) && ['automatic', 'approval'].includes(mode), 'invalid_control')
+    const exists = kind === 'webhook' ? await one(env, 'SELECT 1 FROM beam_webhook_subscriptions WHERE id=?', rule) : kind === 'renewal' ? await one(env, 'SELECT 1 FROM beam_renewal_rules WHERE id=?', rule) : kind === 'escalation' ? await one(env, "SELECT 1 FROM beam_escalation_policy WHERE id=1 AND ?='overdue-work'", rule) : await one(env, `SELECT 1 FROM ${kind === 'follow_on' ? 'beam_automation_rules' : kind === 'audience' ? 'beam_audiences' : 'beam_notification_rules'} WHERE id=?`, rule)
     insist(exists, 'rule_not_found', 404)
     controls.push(stmt(env, 'INSERT INTO beam_automation_controls VALUES(?,?,?) ON CONFLICT(kind,rule_id) DO UPDATE SET mode=excluded.mode', kind, rule, mode))
   } else policy = { ...current, paused: input.flag('paused') ? 1 : 0, quietStart: input.integer('quietStart', { max: 23 })!, quietEnd: input.integer('quietEnd', { max: 23 })!, dailyLimit: input.integer('dailyLimit', { max: 100000 })! }

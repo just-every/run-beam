@@ -11,6 +11,8 @@ import type { ScheduledPolicy } from './modules/operator-auth/scheduled/index.mj
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ /** Server-managed trusted HTTPS receiver hostnames, comma-separated; empty denies outbound webhooks. */
+ BEAM_WEBHOOK_HOSTS?: string
  DB: D1Database
  /** Content-addressed source, evidence and attachment bytes. */
  FILES: R2Bucket

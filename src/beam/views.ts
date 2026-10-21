@@ -1,3 +1,4 @@
+import { webhookView } from './webhooks'
 import { sourceExtraction } from './source-extraction'
 import { renewalView } from './renewals'
 import { escalationPolicy } from './escalations'
@@ -63,6 +64,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  webhooks: webhookView,
   'escalation-policy': async (env, actor) => { requireOwner(actor); return await escalationPolicy(env) },
   notifications: (env, actor) => notificationInbox(env, actor),
   'notification-rules': (env, actor) => notificationRulesView(env, actor),
@@ -142,6 +144,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
+  [/^webhooks$/, 'webhooks'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],
   [/^escalation-policy$/, 'escalation-policy'],
   [/^notifications$/, 'notifications'], [/^notification-rules$/, 'notification-rules'],
