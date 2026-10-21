@@ -102,8 +102,8 @@ export async function setAssignmentWindow(env: Bindings, actor: Actor, input: In
 }
 
 /** A manager (for people in one of their teams), the owner, or the learning administrator who created the assignment
- * moves an open assignment's close later, with a reason; a window that has already closed reopens for that many days
- * from now. The due date does not move. */
+ * moves an open assignment's close later, with a reason: N days are added to its current closing instant, also when
+ * that instant has passed, so a window closed longer ago than N days stays closed. The due date does not move. */
 export async function extendAccess(env: Bindings, actor: Actor, input: Input) {
   insist(isManager(actor) || actor.adminUnits.length, 'forbidden', 403)
   const assignment = await one(env, 'SELECT id, learner_id, assigned_by, status, access_closes_at FROM beam_assignments WHERE id = ?', input.text('assignment'))
@@ -113,7 +113,7 @@ export async function extendAccess(env: Bindings, actor: Actor, input: Input) {
   insist(assignment.access_closes_at, 'no_access_window', 409)
   const days = input.integer('days', { min: 1, max: 365 })!
   const reason = input.text('reason', { max: 500 })
-  const at = now(), closesAt = Math.max(assignment.access_closes_at, at) + days * DAY, id = newId()
+  const at = now(), closesAt = assignment.access_closes_at + days * DAY, id = newId()
   const result = await env.DB.batch([
     stmt(env, "UPDATE beam_assignments SET access_closes_at = ? WHERE id = ? AND status = 'open' AND access_closes_at = ?", closesAt, assignment.id, assignment.access_closes_at),
     stmt(env, 'INSERT INTO beam_access_extensions (id, assignment_id, days, reason, previous_closes_at, closes_at, extended_by, extended_at) SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1', id, assignment.id, days, reason, assignment.access_closes_at, closesAt, actor.id, at),

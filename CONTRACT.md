@@ -480,8 +480,8 @@ Judged from the code and tests at commit `1f1c8e87b04907d9c3134133b39dee6cebed23
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 44 | 33 | 49 | 126 |
-| All | 64 | 33 | 49 | 146 |
+| Target and push further | 45 | 32 | 49 | 126 |
+| All | 65 | 32 | 49 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -567,7 +567,7 @@ Judged from the code and tests at commit `1f1c8e87b04907d9c3134133b39dee6cebed23
 | `AUTO-006` | Handle leave, exceptions and deadline changes openly | target | done | `src/beam/exceptions.ts`, `src/beam/report.ts`, `src/beam/records.ts`, `src/beam/ui/exceptions.ts`, `migrations/core/0033_beam_exceptions.sql`, `tests/beam/regression-exceptions.mjs` (AUTO-006) |  |
 | `AUTO-007` | Deactivate inactive learners under a reviewed policy | target | done | `src/beam/inactivity.ts`, `src/beam/inactivity-scheduled.ts`, `src/beam/ui/inactivity.ts`, `migrations/core/0035_beam_inactivity.sql`, `migrations/core/0055_scheduled_policy.sql`, `migrations/core/0056_last_signin.sql`, `tests/beam/regression-inactivity.mjs` (AUTO-007) | |
 | `AUTO-008` | Control and inspect unattended automation | target | done | `src/beam/automation-policy.ts`, `src/beam/automation-execution.ts`, `src/beam/ui/automation-controls.ts`, `tests/beam/regression-automation.mjs` (AUTO-008) |  |
-| `AUTO-009` | Open and close course access windows | target | partial | `src/beam/access.ts`, `src/beam/learning.ts`, `src/beam/report.ts`, `migrations/core/0021_beam_access_windows.sql`, `tests/beam/regression-learning.mjs` (AUTO-009) | A closed access window is extended from the current instant rather than its existing closing day. The current regression asserts that conflicting behavior; the contracted closed-window extension remains unimplemented. |
+| `AUTO-009` | Open and close course access windows | target | done | `src/beam/access.ts`, `src/beam/learning.ts`, `src/beam/report.ts`, `migrations/core/0021_beam_access_windows.sql`, `tests/beam/regression-learning.mjs` (AUTO-009), `tests/beam/regression-admin.mjs` |  |
 | `LIVE-001` | Schedule classroom and blended learning | target | done | `src/beam/live.ts`, `src/beam/ics.ts`, `src/beam/ui/live.ts`, `migrations/core/0037_beam_live_sessions.sql`, `tests/beam/regression-live.mjs` (LIVE-001) |  |
 | `LIVE-002` | Manage capacity and waitlists | target | done | `src/beam/registrations.ts`, `src/beam/live.ts`, `src/beam/ui/live.ts`, `migrations/core/0038_beam_session_seats.sql`, `tests/beam/regression-seats.mjs` (LIVE-002) |  |
 | `LIVE-003` | Reconcile attendance and instructor evidence | target | done | `src/beam/attendance.ts`, `src/beam/ui/attendance.ts`, `src/beam/learning.ts`, `src/beam/courses.ts`, `migrations/core/0039_beam_attendance.sql`, `tests/beam/regression-attendance.mjs` (LIVE-003) |  |

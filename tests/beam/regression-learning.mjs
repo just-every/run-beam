@@ -231,12 +231,52 @@ async function windows(f) {
   assert.equal(form.searchParams.get('error'), null)
   const extended = await api('learner', `assignments/${a30}`)
   assert.equal(extended.access.state, 'open')
-  assert.ok(extended.access.closesAt > Date.now() + 6 * DAY && extended.access.closesAt <= Date.now() + 7 * DAY)
+  // The seven days are added to the closing day the window had, which had passed a day earlier.
+  assert.equal(extended.access.closesAt, ended.access.closesAt + 7 * DAY)
   assert.deepEqual(extended.access.extensions.map(row => [row.days, row.reason, row.extendedBy, row.previousClosesAt]), [[7, reason, ids.manager, ended.access.closesAt]])
   const row = await reportRow()
   assert.deepEqual([row.status, row.dueAt, row.extension], ['open', stale.dueAt, { days: 7, reason, by: 'manager', count: 1 }])
   assert.ok((await (await h.raw(`/app/reports.csv?course=${relative.id}`, { cookie: cookies.manager })).text()).includes(reason))
   assert.ok((await api('learner', 'lesson.complete', { assignment: a30, lesson: closed })).completion)
+  // Changing a course's rule leaves existing assignments' windows alone.
+  const kept = (await api('assessor', `assignments/${b30}`)).access.closesAt
+  await api('owner', 'access.rule', { scope: 'course', target: relative.id, kind: 'after_enrolment', closeDays: 5 })
+  assert.equal((await api('learner', `assignments/${a30}`)).access.closesAt, extended.access.closesAt)
+  assert.equal((await api('assessor', `assignments/${b30}`)).access.closesAt, kept)
+  // Fixed dates are the employer's local days: the opening day from 00:00 to the end of the closing day, here in Sydney.
+  const business = (await api('owner', 'me')).business
+  await api('owner', 'business.configure', { name: business.name, timezone: 'Australia/Sydney' })
+  const sydney = await course('Sydney access')
+  await api('owner', 'access.rule', { scope: 'course', target: sydney.id, kind: 'dates', openDate: '2030-03-01', closeDate: '2030-03-08' })
+  await api('owner', 'business.configure', { name: business.name, timezone: business.timezone })
+  const [local] = (await api('owner', 'assignment.create', { course: sydney.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
+  const localWindow = (await api('learner', `assignments/${local}`)).access
+  assert.deepEqual([localWindow.opensAt, localWindow.closesAt, localWindow.rule.timezone], [Date.UTC(2030, 1, 28, 13), Date.UTC(2030, 2, 8, 13), 'Australia/Sydney'])
+  // Assessments close with the lessons: the practical and quiz page, form and JSON doors refuse once the window ends.
+  const practical = await course('Closed practical', true)
+  const quizzed = await api('author', 'course.create', { title: 'Closed quiz', reviewer: ids.reviewer })
+  let draft = (await api('author', 'course.lesson', { course: quizzed.id, draftVersion: quizzed.draftVersion, title: 'Procedure', body: 'Perform the owned procedure.', sources: [] })).draftVersion
+  draft = (await api('author', 'course.question', { course: quizzed.id, draftVersion: draft, prompt: 'First step?', choices: 'Check\nSkip', correct: '1' })).draftVersion
+  draft = (await api('author', 'course.assessment', { course: quizzed.id, draftVersion: draft, passPercent: 100, maxAttempts: 2 })).draftVersion
+  await f.publish((await api('author', 'course.submit', { course: quizzed.id, draftVersion: draft })).id)
+  for (const target of [practical.id, quizzed.id]) await api('owner', 'access.rule', { scope: 'course', target, kind: 'after_enrolment', closeDays: 30 })
+  const [gated] = (await api('owner', 'assignment.create', { course: practical.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
+  const [quiz] = (await api('owner', 'assignment.create', { course: quizzed.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
+  for (const id of [gated, quiz]) for (const lesson of (await api('learner', `assignments/${id}`)).lessons) await api('learner', 'lesson.complete', { assignment: id, lesson: lesson.id })
+  await age(gated, 41 * DAY); await age(quiz, 31 * DAY)
+  assert.equal((await api('learner', 'practical.submit', { assignment: gated, evidence: 'Too late', file: file('late.txt', 'Late evidence') }, 403)).error, 'access_ended')
+  assert.equal((await h.submit('practical.submit', cookies.learner, { assignment: gated, evidence: 'Too late' }, `/app/learn/${gated}`)).searchParams.get('error'), 'access_ended')
+  assert.equal((await h.raw(`/app/learn/${gated}/practical`, { cookie: cookies.learner })).status, 403)
+  assert.equal((await api('learner', 'quiz.start', { assignment: quiz }, 403)).error, 'access_ended')
+  assert.equal((await h.submit('quiz.submit', cookies.learner, { assignment: quiz }, `/app/learn/${quiz}`)).searchParams.get('error'), 'access_ended')
+  assert.equal((await h.raw(`/app/learn/${quiz}/quiz`, { cookie: cookies.learner })).status, 403)
+  // A window that closed eleven days ago is still closed after seven more days, and open once the second seven are added.
+  const closedAt = (await api('learner', `assignments/${gated}`)).access.closesAt
+  assert.equal((await api('manager', 'access.extend', { assignment: gated, days: 7, reason: 'First week' })).closesAt, closedAt + 7 * DAY)
+  assert.equal((await api('learner', `assignments/${gated}`)).access.state, 'ended')
+  assert.equal((await api('learner', 'practical.submit', { assignment: gated, evidence: 'Still late', file: file('late.txt', 'Late evidence') }, 403)).error, 'access_ended')
+  assert.equal((await api('manager', 'access.extend', { assignment: gated, days: 7, reason: 'Second week' })).closesAt, closedAt + 14 * DAY)
+  assert.equal((await api('learner', `assignments/${gated}`)).access.state, 'open')
   // A path's rule wins over the course's, and its renewal gets a fresh window under that rule.
   const path = (await api('manager', 'path.create', { name: 'Window path', team: ids.team })).id
   await api('manager', 'path.revise', { path, courses: [relative.id], prerequisites: [''], dueDays: ['14'], renewalDays: ['1'] })
@@ -253,6 +293,10 @@ async function windows(f) {
   const renewed = await api('learner', `assignments/${renewal}`)
   assert.deepEqual([renewed.assignment.reason, renewed.access.state, renewed.access.rule.source], ['renewal', 'open', 'path'])
   assert.ok(renewed.access.closesAt >= renewalStart + 10 * DAY && renewed.access.closesAt <= Date.now() + 10 * DAY)
+  // Changing the path's rule moves neither the first assignment's window nor the renewal's.
+  await api('owner', 'access.rule', { scope: 'path', target: path, kind: 'after_enrolment', closeDays: 3 })
+  assert.equal((await api('learner', `assignments/${pathAssignment}`)).access.closesAt, first.access.closesAt - 20 * DAY)
+  assert.equal((await api('learner', `assignments/${renewal}`)).access.closesAt, renewed.access.closesAt)
   return { a30, aDated, renewal, extension: extended.access.extensions[0] }
 }
 export const learningChecks = [['BEAM-08 live named assessor authority', assessor], ['BEAM-10 exact offline revision', offline], ['BEAM-12 recurring renewal provenance', renewal], ['LEARN-019 reset with history kept', reset], ['AUTO-009 access windows', windows]]
