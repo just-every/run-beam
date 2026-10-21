@@ -78,7 +78,7 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
       block.url = block.kind === 'embed' ? (admit ? await allowedEmbed(env, item.url) : safeUrl(embedUrl(item.url)).href) : safeUrl(item.url).href
     }
     if (block.kind === 'lti') {
-      insist(typeof item.resource === 'string' && await one(env, 'SELECT 1 FROM beam_lti_resources WHERE id=?', item.resource), 'lti_resource_not_found', 404)
+      insist(typeof item.resource === 'string' && await one(env, 'SELECT 1 FROM beam_lti_resources WHERE id=? AND approved_by IS NOT NULL AND pass_percent=?', item.resource, item.passPercent), 'lti_resource_not_found', 404)
       insist(Number.isInteger(item.passPercent) && item.passPercent >= 1 && item.passPercent <= 100, 'invalid_lti_threshold')
       block.resource = item.resource; block.passPercent = item.passPercent
     }

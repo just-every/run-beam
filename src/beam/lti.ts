@@ -90,6 +90,8 @@ export async function attachLti(env: Bindings, actor: Actor, input: Input) {
   const resource = await one(env, 'SELECT * FROM beam_lti_resources WHERE id=? AND course_id=?', input.text('resource'), input.text('course'))
   insist(resource, 'lti_resource_not_found', 404); await liveTool(env, resource.tool_id)
   const threshold = input.integer('passPercent', { min: 1, max: 100 })!
+  insist(resource.pass_percent === null || resource.pass_percent === threshold, 'lti_approved_threshold_immutable', 409)
+  await commit(env, [stmt(env, 'UPDATE beam_lti_resources SET pass_percent=?,approved_by=? WHERE id=? AND (pass_percent IS NULL OR pass_percent=?)', threshold, actor.id, resource.id, threshold)], { actor, action: 'lti.resource.approve', subject: resource.id, detail: { passPercent: threshold, course: resource.course_id } })
   return await editDraft(env, actor, input, 'lti.attach', draft => {
     const lesson = draft.lessons.find(item => item.id === input.text('lesson'))
     insist(lesson, 'lesson_not_found', 404)
@@ -116,7 +118,10 @@ export async function authorizeLti(env: Bindings, actor: Actor, request: Request
     const resource = (await one(env, 'SELECT * FROM beam_lti_resources WHERE id=?', row.resource_id))!
     trustedUrl(env, resource.url)
     const assignment = (await one(env, 'SELECT * FROM beam_assignments WHERE id=?', row.assignment_id))!
+    const reset = await one(env, 'SELECT MAX(reset_at) AS at FROM beam_assignment_resets WHERE assignment_id=?', assignment.id)
+    insist(!reset?.at || row.expires_at - 300_000 >= reset.at, 'lti_launch_before_reset', 409)
     await env.DB.prepare('INSERT OR IGNORE INTO beam_lti_lineitems VALUES(?,?,?,?,?,?,?,?)').bind(newId(), tool.id, assignment.id, assignment.course_revision_id, resource.id, actor.id, subject, now()).run()
+    if (reset?.at) await env.DB.prepare('UPDATE beam_lti_lineitems SET launched_at=? WHERE assignment_id=? AND resource_id=? AND launched_at<?').bind(now(), assignment.id, resource.id, reset.at).run()
     const lineitem = (await one(env, 'SELECT id FROM beam_lti_lineitems WHERE assignment_id=? AND resource_id=?', assignment.id, resource.id))!
     claims[LTI + 'target_link_uri'] = resource.url
     claims[LTI + 'resource_link'] = { id: resource.id }
@@ -148,7 +153,7 @@ async function deepLinkResponse(env: Bindings, request: Request) {
   const id = newId()
   const consumed = await env.DB.prepare('UPDATE beam_lti_launches SET consumed_at=? WHERE id=? AND consumed_at IS NULL RETURNING id').bind(now(), pending.id).all()
   insist(consumed.results.length === 1, 'lti_deep_link_expired', 409)
-  await commit(env, [stmt(env, 'INSERT INTO beam_lti_resources VALUES(?,?,?,?,?,?,?)', id, tool.id, pending.course_id, target, items[0].title.trim(), pending.member_id, now())], { actor: pending.member_id, action: 'lti.deep_link', subject: id, detail: { tool: tool.id, course: pending.course_id, deployment: tool.deployment } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_lti_resources(id,tool_id,course_id,url,title,selected_by,selected_at) VALUES(?,?,?,?,?,?,?)', id, tool.id, pending.course_id, target, items[0].title.trim(), pending.member_id, now())], { actor: pending.member_id, action: 'lti.deep_link', subject: id, detail: { tool: tool.id, course: pending.course_id, deployment: tool.deployment } })
   return json({ id, state: 'selected_not_published', course: pending.course_id })
 }
 async function accessToken(env: Bindings, request: Request) {
@@ -172,6 +177,8 @@ async function score(env: Bindings, request: Request, id: string) {
   insist(line, 'lti_lineitem_not_found', 404)
   const assignment = await one(env, 'SELECT * FROM beam_assignments WHERE id=? AND course_revision_id=? AND learner_id=?', line.assignment_id, line.revision_id, line.learner_id)
   insist(assignment && assignment.status === 'open', 'lti_assignment_closed', 409); requireAccess(assignment)
+  const reset = await one(env, 'SELECT MAX(reset_at) AS at FROM beam_assignment_resets WHERE assignment_id=?', assignment.id)
+  insist(!reset?.at || line.launched_at >= reset.at, 'lti_launch_before_reset', 409)
   const actor = await dashboardAuthority(env, line.learner_id)
   insist(actor && !actor.agent, 'lti_learner_unavailable', 403)
   const view = await assignmentView(env, actor, assignment.id)

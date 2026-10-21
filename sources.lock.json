@@ -598,7 +598,7 @@
       "executable": false
     },
     "migrations/core/0076_beam_lti.sql": {
-      "sha256": "9b7ff18b414933dbaf4d1e49de98cad2b456f9169cf537d67ccd2f63d62ec8af",
+      "sha256": "45e47bef8045a12c5488088fa2467e035e571887f220673dcfa7b232e1944289",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1306,11 +1306,11 @@
       "executable": false
     },
     "src/beam/lti-requirements.ts": {
-      "sha256": "e74997860ddcbf3ccc97a1edb3c724e762a6041ef401829eb796f60f86e6156f",
+      "sha256": "0d71e129ec2dce15f25fcd2f626f661f3aba0a889cf81c8953fad52dd0d6fb2c",
       "executable": false
     },
     "src/beam/lti.ts": {
-      "sha256": "bfa7d4aa457bcc9a3dd3bb69860053e13883918ef8f292315619eb77ae4e108d",
+      "sha256": "768b60cddc86d86d467ca3a0e23167874b8d33e0e865ffa6232b690e8cd1a639",
       "executable": false
     },
     "src/beam/maintenance.ts": {
@@ -1326,7 +1326,7 @@
       "executable": false
     },
     "src/beam/media.ts": {
-      "sha256": "e0cd4551e9f2cb557f07ad2927728acb945f99d5adbc6528093da6ee31b5b02c",
+      "sha256": "50453b1f3da4b4aaf1ffae6567223f0c62e15705d59ce69253e120716ac469bb",
       "executable": false
     },
     "src/beam/messages.ts": {
@@ -3510,7 +3510,7 @@
       "executable": false
     },
     "tests/beam/regression-agent.mjs": {
-      "sha256": "9180367fe12f64d77677634ebff5efe73f273a68aa63f6f2c91a42e62715b193",
+      "sha256": "97a7f69f8e12f261c337b510630ec35b62392e88c487f067fb7ccb31fddd26fc",
       "executable": false
     },
     "tests/beam/regression-announcement-sessions.mjs": {

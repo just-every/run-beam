@@ -18,7 +18,7 @@ CREATE TABLE beam_lti_launches (
 CREATE TABLE beam_lti_resources (
  id TEXT PRIMARY KEY, tool_id TEXT NOT NULL REFERENCES beam_lti_tools(id),
  course_id TEXT NOT NULL, url TEXT NOT NULL, title TEXT NOT NULL,
- selected_by TEXT NOT NULL, selected_at INTEGER NOT NULL
+ selected_by TEXT NOT NULL, selected_at INTEGER NOT NULL, pass_percent INTEGER, approved_by TEXT
 );
 CREATE TABLE beam_lti_lineitems (
  id TEXT PRIMARY KEY, tool_id TEXT NOT NULL REFERENCES beam_lti_tools(id),
