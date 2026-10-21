@@ -79,7 +79,7 @@ export async function sessionAnnouncementCheck(f) {
   // Scoped learning admins use the same registered audience, never another unit.
   const unit = await api('owner', 'unit.create', { name: 'Announcement unit', teams: [] })
   await api('owner', 'course.unit', { course: ladder.id, unit: unit.id })
-  await api('owner', 'admin.grant', { member: ids.other, unit: unit.id, expiresOn: '2030-12-31' })
+  const adminGrant = await api('owner', 'admin.grant', { member: ids.other, unit: unit.id, expiresOn: '2030-12-31' })
   const admin = await api('other', 'announcement.send', { audience: `session:${session}`, title: 'Admin room notice', body: 'Same session audience.' })
   assert.equal(admin.recipients, 3)
   assert.deepEqual([admin.delivered, admin.notSent], [['in_app'], ['email', 'slack', 'teams']])
@@ -90,4 +90,5 @@ export async function sessionAnnouncementCheck(f) {
   await send(`session:${session}`, 403)
   await api('other', 'announcement.send', { audience: `session:${session}`, title: 'Canceled', body: 'No' }, 403)
   await api('assessor', 'announcement.reply', { announcement: sent.id, body: 'After cancellation' }, 403)
+  await api('owner', 'admin.revoke', { grant: adminGrant.id })
 }

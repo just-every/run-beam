@@ -570,7 +570,7 @@
       "executable": false
     },
     "migrations/core/0072_beam_session_announcements.sql": {
-      "sha256": "8ff9100bde6faba6f1f313d0756cefd7af4d629fb02e473cd0e705febf9ec323",
+      "sha256": "80339b780af6c4882730fcf9f110abdfe406f711f63dd367f9407972c0a44d30",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1070,7 +1070,7 @@
       "executable": false
     },
     "src/beam/announcement-authority.ts": {
-      "sha256": "944a10c006005dc7246246a42760d22cc1dfd7ffa762f83e8748ebc5dcb1ba26",
+      "sha256": "a368e455d39629e6b50a4bac1bab8b4bfa655b39b0b65bd995c9b37f45459933",
       "executable": false
     },
     "src/beam/announcements.ts": {
@@ -3434,7 +3434,7 @@
       "executable": false
     },
     "tests/beam/regression-announcement-sessions.mjs": {
-      "sha256": "c11755b22ea6d702dd2d9384036a497309eba5ad213e8e07c220f0c576b7e225",
+      "sha256": "c2037f9b063fdb275697faef81db549c772b5af4977b3641b66dd3c4ae6a4d2a",
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {

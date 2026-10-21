@@ -13,6 +13,6 @@ CREATE TABLE beam_announcements_next (
   instructor_grant_id TEXT REFERENCES beam_instructor_grants(id)
 );
 INSERT INTO beam_announcements_next (id, sender_id, audience_kind, audience_id, title, body, sent_at)
-  SELECT id, sender_id, audience_kind, audience_id, title, body, sent_at FROM beam_announcements;
+  SELECT id, sender_id, audience_kind, audience_id, title, body, sent_at FROM beam_announcements ORDER BY rowid;
 DROP TABLE beam_announcements;
 ALTER TABLE beam_announcements_next RENAME TO beam_announcements;
