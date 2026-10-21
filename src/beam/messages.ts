@@ -4,6 +4,9 @@ import type { Language } from './language'
 import type { Actor } from './actor'
 const spanish: Record<string, string> = {
  'My learning': 'Mi aprendizaje', 'Menu': 'Menú', 'Main': 'Principal', 'Learner': 'Estudiante',
+ 'Skills': 'Habilidades', 'Recognition': 'Reconocimiento', 'Certificates': 'Certificados',
+ 'question': 'pregunta', 'questions': 'preguntas', 'point': 'punto', 'points': 'puntos',
+ '{questions} worth {points}.': '{questions} por un total de {points}.',
  'Catalog': 'Catálogo', 'Sessions': 'Sesiones', 'My record': 'Mi expediente', 'Sign out': 'Cerrar sesión',
  'Language': 'Idioma', 'Save language': 'Guardar idioma', 'Use employer default': 'Usar el idioma predeterminado de la empresa',
  'Assigned to me': 'Mis asignaciones', 'Completed': 'Completado', 'Reminders': 'Recordatorios', 'Certificate': 'Certificado',
@@ -41,3 +44,7 @@ export function message(language: Language | undefined, key: string, values: Rec
 }
 export const t = (actor: Pick<Actor, 'locale'> | null, key: string, values: Record<string, string | number> = {}) => message(actor?.locale, key, values)
 export const localeNumber = (actor: Pick<Actor, 'locale'>, value: number) => new Intl.NumberFormat(actor.locale ?? 'en-US').format(value)
+
+export function counted(actor: Pick<Actor, 'locale'>, singular: string, plural: string, value: number) {
+ return `${localeNumber(actor, value)} ${t(actor, new Intl.PluralRules(actor.locale ?? 'en-US').select(value) === 'one' ? singular : plural)}`
+}

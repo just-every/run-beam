@@ -1,4 +1,4 @@
-import { t } from '../messages'
+import { t, counted } from '../messages'
 import { languagePreference } from '../language'
 import { one } from '../core'
 // Learner pages: my learning, lessons with resume, quiz, practical evidence,
@@ -149,7 +149,7 @@ export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL
   if (!view.quiz || view.assignment.learner !== actor.id) throw new BeamError('not_found', 404)
   requireAccess({ access_opens_at: view.access.opensAt, access_closes_at: view.access.closesAt })
   const quiz = view.quiz, zone = (await business(env))!.timezone
-  const intro = h`<p class="subtitle">${t(actor, 'Pass mark {percent}%.', { percent: quiz.passPercent })} ${t(actor, '{n} attempts left.', { n: quiz.attemptsLeft })} ${t(actor, '{n} questions worth {points} points.', { n: quiz.questions.length, points: quiz.points })}${quiz.draw ? ` (${quiz.bank})` : ''} ${t(actor, 'Each question earns its points only when every choice, blank, position or pair is right; written answers earn what the assessor awards.')}</p>`
+  const intro = h`<p class="subtitle">${t(actor, 'Pass mark {percent}%.', { percent: quiz.passPercent })} ${t(actor, '{n} attempts left.', { n: quiz.attemptsLeft })} ${t(actor, '{questions} worth {points}.', { questions: counted(actor, 'question', 'questions', quiz.questions.length), points: counted(actor, 'point', 'points', quiz.points) })}${quiz.draw ? ` (${quiz.bank})` : ''} ${t(actor, 'Each question earns its points only when every choice, blank, position or pair is right; written answers earn what the assessor awards.')}</p>`
   const back = backLink(`/app/learn/${id}`, view.assignment.courseTitle)
   // LEARN-015: matching questions add their drag-and-drop layer.
   const matching = quiz.questions.some(question => question.kind === 'match') ? ['/beam-match.js'] : []

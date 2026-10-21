@@ -43,8 +43,8 @@ CREATE TABLE beam_lti_results (
 );
 CREATE TRIGGER beam_restore_disables_lti AFTER UPDATE OF import_job ON rer_portability_state
 WHEN OLD.import_job IS NOT NULL AND NEW.import_job IS NULL AND OLD.applying=1 BEGIN
- UPDATE beam_lti_tools SET revoked_at=CAST((julianday('now')-2440587.5)*86400000 AS INTEGER);
- UPDATE beam_lti_platform_keys SET private_cipher='withheld',retired_at=CAST((julianday('now')-2440587.5)*86400000 AS INTEGER);
+ UPDATE beam_lti_tools SET revoked_at=COALESCE(revoked_at,CAST((julianday('now')-2440587.5)*86400000 AS INTEGER));
+ UPDATE beam_lti_platform_keys SET private_cipher='withheld',retired_at=COALESCE(retired_at,CAST((julianday('now')-2440587.5)*86400000 AS INTEGER));
  DELETE FROM beam_lti_tokens;
- UPDATE beam_lti_launches SET consumed_at=0,authorized_at=0;
+ UPDATE beam_lti_launches SET consumed_at=COALESCE(consumed_at,CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)),authorized_at=COALESCE(authorized_at,CAST((julianday('now')-2440587.5)*86400000 AS INTEGER));
 END;

@@ -65,4 +65,7 @@ export const LEARNING_INVENTORY = {
   beam_session_waitlist: 'id, session_id, course_id, learner_id, assignment_id, state, joined_at, offered_at, offer_expires_at, ended_at',
   beam_session_events: 'id, session_id, learner_id, at, kind, detail',
   beam_scenarios: 'id, course_id, course_revision_id, title, rubric, steps_json, proposal_id, approved_by, approved_at',
+  beam_lti_resources: 'id, tool_id, course_id, url, title, selected_by, selected_at, pass_percent, approved_by',
+  beam_lti_lineitems: 'id, tool_id, assignment_id, revision_id, resource_id, learner_id, subject, launched_at',
+  beam_lti_results: 'id, lineitem_id, score_given, score_maximum, activity_progress, grading_progress, timestamp, received_at',
 } as const

@@ -86,3 +86,39 @@ export async function archiveCheck(f) {
     }
   } finally { await rm(scratch, { recursive: true, force: true }) }
 }
+
+// New integrations use the same real archive doors; no provider grant or signing secret revives on restore.
+export async function integrationArchiveCheck(f, expected) {
+  const directory = await mkdtemp(join(tmpdir(), 'beam-integration-archive-'))
+  const target = await harness({ bindings: { BEAM_LTI_HOSTS: 'synthetic-beam-2.example.test', BEAM_WEBHOOK_HOSTS: 'synthetic-beam-1.example.test' } })
+  try {
+    const path = join(directory, 'integrations.rer'), before = await f.h.db.prepare('SELECT * FROM beam_completions WHERE id=?').bind(expected.completion).first()
+    await exportArchive(await createPortability({ db: f.h.db, buckets: { files: f.h.files }, policy }), path)
+    const records = []
+    for await (const record of fileRecords(path, readArchive)) if (record.kind === 'part') records.push(...record.items.filter(item => item.kind === 'row'))
+    const sub = records.find(item => item.table === 'beam_webhook_subscriptions' && item.row.id === expected.subscription).row
+    assert.deepEqual([sub.key_cipher, sub.enabled], [WITHHELD, 0])
+    assert.ok(records.filter(item => item.table === 'beam_lti_platform_keys').every(item => item.row.private_cipher === WITHHELD))
+    assert.ok(!records.some(item => item.table === 'beam_lti_tokens'))
+    const exported = await readFile(path, 'utf8')
+    for (const secret of [expected.token, expected.key, f.h.vars.SESSION_SECRET, f.h.vars.MAIL_API_KEY]) assert.ok(!exported.includes(secret))
+    await importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations }), path)
+    assert.equal((await target.raw('/auth/bootstrap', { body: { token: target.vars.SETUP_TOKEN, displayName: 'Owner' } })).status, 303)
+    const owner = await target.signIn('owner@example.test')
+    await target.raw('/setup', { cookie: owner, form: new URLSearchParams({ confirm: 'yes' }) })
+    const restored = (await target.api('lti', owner)).tools.find(item => item.id === expected.tool)
+    assert.ok(restored.revokedAt)
+    await target.api('lti.deep-link', owner, { tool: expected.tool, course: before.course_id }, 403)
+    await target.api('webhook.state', owner, { subscription: expected.subscription, enabled: true, consent: true }, 409)
+    await target.api('webhook.run', owner, {})
+    assert.equal(target.edge.webhooks.length, 0)
+    const after = await target.db.prepare('SELECT * FROM beam_completions WHERE id=?').bind(expected.completion).first()
+    assert.deepEqual(after, before, 'archiving and restoring preserve exact native and LTI completion lineage')
+    const originalResults = await f.h.db.prepare('SELECT * FROM beam_lti_results ORDER BY id').all(), restoredResults = await target.db.prepare('SELECT * FROM beam_lti_results ORDER BY id').all()
+    assert.deepEqual(restoredResults.results, originalResults.results)
+    const rotated = await target.api('webhook.rotate', owner, { subscription: expected.subscription })
+    assert.notEqual(rotated.key, expected.key)
+    await target.api('webhook.state', owner, { subscription: expected.subscription, enabled: true, consent: true })
+    console.log('PASS integration archives withhold keys/tokens, disable restored deployments and preserve result lineage')
+  } finally { await target.close(); await rm(directory, { recursive: true, force: true }) }
+}

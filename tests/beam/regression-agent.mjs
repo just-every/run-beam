@@ -221,7 +221,7 @@ export async function webhookCheck() {
 export async function ltiCheck() {
   const { fixture } = await import('./regression-fixture.mjs')
   const { generateKeyPairSync, sign, verify, createPublicKey } = await import('node:crypto')
-  const f = await fixture({ bindings: { BEAM_LTI_HOSTS: 'synthetic-beam-2.example.test' } })
+  const f = await fixture({ bindings: { BEAM_LTI_HOSTS: 'synthetic-beam-2.example.test', BEAM_WEBHOOK_HOSTS: 'synthetic-beam-1.example.test' } })
   const { h, api, ids, cookies, course, assign, publish } = f
   const LTI = 'https://purl.imsglobal.org/spec/lti/claim/', DL = 'https://purl.imsglobal.org/spec/lti-dl/claim/', AGS = 'https://purl.imsglobal.org/spec/lti-ags/'
   const pair = kid => {
@@ -339,6 +339,14 @@ export async function ltiCheck() {
     const evidence = JSON.parse(row.evidence_json)
     assert.ok(evidence.externalTools[0].result && evidence.externalTools[0].resource === resource.id && evidence.externalTools[0].revision === revision)
     await protocol(endpoint, { body: score(), token: token.access_token, status: 409 })
+    const openExport = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
+    assert.ok(openExport.records.beam_lti_results.rows.some(result => result.id === evidence.externalTools[0].result))
+    assert.ok(openExport.records.beam_lti_lineitems.rows.some(item => item.revision_id === revision && item.assignment_id === assignment))
+    for (const excluded of ['beam_lti_tools', 'beam_lti_platform_keys', 'beam_lti_tokens', 'beam_lti_launches']) assert.equal(openExport.records[excluded], undefined)
+    const subscription = await api('owner', 'webhook.subscribe', { name: 'Archive receiver', endpoint: 'https://synthetic-beam-1.example.test/hooks', consent: true, courses: [c.id], teams: [ids.team], events: ['completion'] })
+    await api('owner', 'webhook.state', { subscription: subscription.id, enabled: true, consent: true })
+    const { integrationArchiveCheck } = await import('./regression-archive.mjs')
+    await integrationArchiveCheck(f, { tool: tool.id, subscription: subscription.id, completion: completed.id, token: token.access_token, key: subscription.key })
     if (process.env.BEAM_LTI_BROWSER === '1') await ltiBrowserCheck(f, { course: c.id, revision, assignment, resource: resource.id, configure })
     const pendingAssignment = await assign(c)
     const pending = await authorize('learner', await api('learner', 'lti.launch', { assignment: pendingAssignment, resource: resource.id }))

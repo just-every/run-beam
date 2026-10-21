@@ -35,7 +35,7 @@ export async function dataExport(env: Bindings, actor: Actor) {
   for (const row of records.beam_acknowledgments.rows.filter(row => row.state !== 'open')) signatures.push(await derived(row.id, `/app/acknowledgments/${row.id}/evidence`, await acknowledgmentEvidence(env, actor, row.id)))
   const manifest = { format: 'beam.learning-export.v1', exportedAt: new Date().toISOString(), records, files, certificates, signatures,
     exclusions: [],
-    scope: 'Current native learning, external certificates and labelled imported history. No package or licensed-catalog capability exists yet. All stored source files are included under their recorded employer-provided rights; no export restriction is stored today.',
+    scope: 'Current native learning, approved external-tool result lineage, external certificates and labelled imported history. No package or licensed-catalog capability exists yet. All stored source files are included under their recorded employer-provided rights; no export restriction is stored today.',
     credentials: 'Authentication, sessions, application/preparation credentials, public sharing tokens, provider configuration and model credentials are not part of this format.',
     documentation: 'https://github.com/just-every/run-beam/blob/main/docs/data-export.md',
   }
