@@ -48,30 +48,30 @@ export function localDate(instant: number, zone: string): string {
 const meridiem = (text: string) => text.replace(/[\s\u202f]?([AP])M\b/g, (_match, half: string) => ` ${half.toLowerCase()}.m.`)
 
 /** Wall-clock date and time in the zone, without naming it: "Oct 16, 2026, 5:00 p.m.". */
-export function formatLocal(instant: number, zone: string): string {
-  return meridiem(new Intl.DateTimeFormat('en-US', { timeZone: zone, dateStyle: 'medium', timeStyle: 'short' }).format(instant))
+export function formatLocal(instant: number, zone: string, locale = 'en-US'): string {
+  return meridiem(new Intl.DateTimeFormat(locale, { timeZone: zone, dateStyle: 'medium', timeStyle: 'short' }).format(instant))
 }
 
 /** A clock time in the zone: "6:05 a.m.". */
-export function formatClock(instant: number, zone: string): string {
-  return meridiem(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', minute: '2-digit' }).format(instant))
+export function formatClock(instant: number, zone: string, locale = 'en-US'): string {
+  return meridiem(new Intl.DateTimeFormat(locale, { timeZone: zone, hour: 'numeric', minute: '2-digit' }).format(instant))
 }
 
 /** A date with its weekday, as the manager's queues show it: "Fri Oct 16, 2026". */
-export function formatWeekday(instant: number, zone: string): string {
-  return new Intl.DateTimeFormat('en-US', { timeZone: zone, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(instant).replace(/,(?= [A-Z])/, '')
+export function formatWeekday(instant: number, zone: string, locale = 'en-US'): string {
+  return new Intl.DateTimeFormat(locale, { timeZone: zone, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(instant).replace(/,(?= [A-Z])/, '')
 }
 
 /** A zone as people say it: "America/Los_Angeles" is "Los Angeles time". */
 export const zoneName = (zone: string) => `${zone.split('/').pop()!.replace(/_/g, ' ')} time`
 
 /** Wall-clock date and time in the zone; the zone is named only when it differs from the business's own. */
-export function formatInstant(instant: number, zone: string, home = zone): string {
-  return zone === home ? formatLocal(instant, zone) : `${formatLocal(instant, zone)} (${zoneName(zone)})`
+export function formatInstant(instant: number, zone: string, home = zone, locale = 'en-US'): string {
+  return zone === home ? formatLocal(instant, zone, locale) : `${formatLocal(instant, zone, locale)} (${zoneName(zone)})`
 }
 
-export function formatDate(instant: number, zone: string): string {
-  return new Intl.DateTimeFormat('en-US', { timeZone: zone, dateStyle: 'medium' }).format(instant)
+export function formatDate(instant: number, zone: string, locale = 'en-US'): string {
+  return new Intl.DateTimeFormat(locale, { timeZone: zone, dateStyle: 'medium' }).format(instant)
 }
 
 export const DAY = 86_400_000
@@ -80,6 +80,6 @@ export const DAY = 86_400_000
 export const calendarDays = (from: number, to: number, zone: string) => Math.round((Date.parse(localDate(to, zone)) - Date.parse(localDate(from, zone))) / DAY)
 
 /** A calendar date (YYYY-MM-DD, no time zone) as people read it: "Mar 24, 2025". */
-export function formatDay(date: string): string {
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', dateStyle: 'medium' }).format(Date.parse(`${date}T00:00:00Z`)) : date
+export function formatDay(date: string, locale = 'en-US'): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Intl.DateTimeFormat(locale, { timeZone: 'UTC', dateStyle: 'medium' }).format(Date.parse(`${date}T00:00:00Z`)) : date
 }

@@ -1,3 +1,4 @@
+import { setMyLanguage, setLanguageDefault } from './language'
 import { requireOwner } from './actor'
 import { subscribeWebhook, rotateWebhook, setWebhookState, replayWebhook, runWebhooks } from './webhooks'
 import { saveBlock, changeBlock, reuseBlock } from './blocks'
@@ -80,6 +81,8 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'language.change': setMyLanguage,
+  'language.default': setLanguageDefault,
   'webhook.subscribe': subscribeWebhook,
   'webhook.rotate': rotateWebhook,
   'webhook.state': setWebhookState,

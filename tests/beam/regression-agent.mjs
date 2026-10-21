@@ -148,7 +148,7 @@ export async function webhookCheck() {
     const hour = new Date().getUTCHours()
     await configure({ quietStart: hour, quietEnd: (hour + 1) % 24 }); await replay(d.id)
     assert.equal((await view()).deliveries.find(row => row.id === d.id).outcome, 'quiet_hours')
-    await configure({ kind: 'webhook', rule: s.id, mode: 'approval' }); await replay(d.id)
+    await configure({}); await configure({ kind: 'webhook', rule: s.id, mode: 'approval' }); await replay(d.id)
     let controls = await api('owner', 'automation-controls'), execution = controls.executions.find(x => x.input.delivery === d.id)
     assert.equal(execution.outcome, 'approval_required')
     await api('owner', 'automation.approve', { execution: execution.id, version: controls.policy.version })

@@ -1,3 +1,4 @@
+import { languageSettings } from './language'
 import { webhookView } from './webhooks'
 import { sourceExtraction } from './source-extraction'
 import { renewalView } from './renewals'
@@ -65,6 +66,7 @@ type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promi
 
 export const views: Record<string, View> = {
   webhooks: webhookView,
+  language: languageSettings,
   'escalation-policy': async (env, actor) => { requireOwner(actor); return await escalationPolicy(env) },
   notifications: (env, actor) => notificationInbox(env, actor),
   'notification-rules': (env, actor) => notificationRulesView(env, actor),
@@ -144,7 +146,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
-  [/^webhooks$/, 'webhooks'],
+  [/^webhooks$/, 'webhooks'], [/^language$/, 'language'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],
   [/^escalation-policy$/, 'escalation-policy'],
   [/^notifications$/, 'notifications'], [/^notification-rules$/, 'notification-rules'],

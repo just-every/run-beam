@@ -20,7 +20,7 @@ function literal(text: string) {
 // Average Helvetica advance widths (per 1000 em), close enough to centre a line.
 const width = (text: string, size: number, bold = false) => [...text].length * size * (bold ? 0.58 : 0.53)
 
-export function certificatePdf(title: string, lines: PdfLine[], accent: string): Uint8Array<ArrayBuffer> {
+export function certificatePdf(title: string, lines: PdfLine[], accent: string, language = 'en-US'): Uint8Array<ArrayBuffer> {
   const W = 792, H = 612
   const [r, g, b] = [1, 3, 5].map(index => parseInt(accent.slice(index, index + 2), 16) / 255)
   let y = H - 96
@@ -35,7 +35,7 @@ export function certificatePdf(title: string, lines: PdfLine[], accent: string):
   const elements = lines.map((line, mcid) => `<< /Type /StructElem /S /${line.tag} /P 8 0 R /Pg 3 0 R /K ${mcid} >>`)
   const refs = lines.map((_, index) => `${first + index} 0 R`).join(' ')
   const objects: Record<number, string> = {
-    1: `<< /Type /Catalog /Pages 2 0 R /Lang (en-US) /MarkInfo << /Marked true >> /StructTreeRoot 6 0 R /ViewerPreferences << /DisplayDocTitle true >> >>`,
+    1: `<< /Type /Catalog /Pages 2 0 R /Lang (${language}) /MarkInfo << /Marked true >> /StructTreeRoot 6 0 R /ViewerPreferences << /DisplayDocTitle true >> >>`,
     2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     3: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 7 0 R /StructParents 0 /Tabs /S >>`,
     4: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',

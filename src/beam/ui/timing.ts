@@ -1,3 +1,5 @@
+import { message } from '../messages'
+import type { Language } from '../language'
 // LEARN-018 on the pages: starting and taking a timed quiz with its countdown,
 // the time facts on an attempt, and a manager's extra-time accommodations.
 import type { Accommodation } from '../timing'
@@ -11,17 +13,17 @@ interface Quiz { passPercent: number; attemptsLeft: number; timeLimitMinutes?: n
 
 /** One fieldset per question; each blank, position and pair is its own labelled control, so every type works by
  * keyboard and screen reader on any screen (LEARN-015, LEARN-011). */
-export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {}) => quiz.questions.map((question, n) => {
+export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {}, locale: Language = 'en-US') => quiz.questions.map((question, n) => {
   const given = answers[question.id] ?? []
   // LEARN-001: a written answer goes to the named assessor.
-  if (question.kind === 'text') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(written answer, ${question.points} ${question.points === 1 ? 'point' : 'points'}, graded by the assessor)</span></legend>${area('Your answer', `q_${question.id}`, typeof given[0] === 'string' ? given[0] : '', false)}</fieldset>`
-  if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(fill in ${question.blanks === 1 ? 'the blank' : question.blanks === 2 ? 'both blanks' : `all ${question.blanks} blanks`})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(`Blank ${part + 1}`, `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
+  if (question.kind === 'text') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(written answer, ${question.points} ${question.points === 1 ? 'point' : 'points'}, graded by the assessor)</span></legend>${area(message(locale, 'Your answer'), `q_${question.id}`, typeof given[0] === 'string' ? given[0] : '', false)}</fieldset>`
+  if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(fill in ${question.blanks === 1 ? 'the blank' : question.blanks === 2 ? 'both blanks' : `all ${question.blanks} blanks`})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(message(locale, 'Blank {n}', { n: part + 1 }), `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
   const options = question.kind === 'order' || question.kind === 'match' ? question.options.map(option => ({ value: String(option.index), label: option.label })) : []
   const chosen = (part: number) => typeof given[part] === 'number' && given[part] !== -1 ? String(given[part]) : ''
-  if (question.kind === 'order') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(put the items in order)</span></legend>${Array.from({ length: question.positions }, (_, part) => select(`Position ${part + 1}`, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
+  if (question.kind === 'order') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(${message(locale, 'put the items in order')})</span></legend>${Array.from({ length: question.positions }, (_, part) => select(message(locale, 'Position {n}', { n: part + 1 }), `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
   // Matching also takes drag-and-drop where scripts run (public/beam-match.js); the selects stay the door.
-  if (question.kind === 'match') return h`<fieldset data-match><legend>${n + 1}. ${question.prompt} <span class="muted">(match each item)</span></legend>${question.lefts.map((left, part) => h`<div class="match-pair">${select(left, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' })}</div>`)}</fieldset>`
-  return h`<fieldset><legend>${n + 1}. ${question.prompt}${question.multiple ? h` <span class="muted">(choose all that apply)</span>` : ''}</legend>${question.choices.map((choice, index) => h`<label class="check"><input type="${question.multiple ? 'checkbox' : 'radio'}" name="q_${question.id}" value="${index}"${(given as number[]).includes(index) ? h` checked` : ''}> ${choice}</label>`)}</fieldset>`
+  if (question.kind === 'match') return h`<fieldset data-match><legend>${n + 1}. ${question.prompt} <span class="muted">(${message(locale, 'match each item')})</span></legend>${question.lefts.map((left, part) => h`<div class="match-pair">${select(left, `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' })}</div>`)}</fieldset>`
+  return h`<fieldset><legend>${n + 1}. ${question.prompt}${question.multiple ? h` <span class="muted">(${message(locale, 'choose all that apply')})</span>` : ''}</legend>${question.choices.map((choice, index) => h`<label class="check"><input type="${question.multiple ? 'checkbox' : 'radio'}" name="q_${question.id}" value="${index}"${(given as number[]).includes(index) ? h` checked` : ''}> ${choice}</label>`)}</fieldset>`
 })
 
 /** Before the attempt starts: the limit, any extra time and what happens when time runs out. */

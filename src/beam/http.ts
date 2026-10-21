@@ -1,3 +1,4 @@
+import { languagePreference } from './language'
 import { dataExport, dataExportFile } from './data-export'
 import { diagnosesPage } from './ui/diagnoses'
 // Beam's public doors: /app pages, /app/do/ACTION form posts, /api/beam JSON,
@@ -96,6 +97,7 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     if (!actor && !api && /^\/app\/dashboards\/[\w-]+(?:\.csv)?$/.test(url.pathname) && url.searchParams.has('key')) return page('Sign in to open dashboard', null, h`<h1>Sign in to open this dashboard</h1><p>Sign in with the named viewer’s work email, then open your original restricted dashboard link again.</p><p><a href="/signin?returnTo=%2Fapp%2Fdashboards">Sign in</a></p>`, { status: 401 })
     if (!actor) return api ? json({ error: 'authentication_required' }, 401) : Response.redirect(`${env.AUTH_ORIGIN}/signin?returnTo=${encodeURIComponent(url.pathname)}`, 303)
     actor = await viewing(env, request, actor) ?? actor
+    actor.locale = (await languagePreference(env, actor.id)).language
     const view = await viewDoor(env, actor, request, url, api)
     if (view) return view
     if (api) return await apiResponse(env, actor, request, url)

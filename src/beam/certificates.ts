@@ -1,3 +1,4 @@
+import { message } from './messages'
 // LEARN-002: certificate templates, PDFs, verification links and corrections. The owner (or a custom role with the
 // certificates permission) saves immutable templates (heading, approved wording, signatory, and the fields a
 // verification link may reveal) and names a course's template; each certificate keeps the template it was issued with
@@ -112,18 +113,18 @@ export async function verification(env: Bindings, token: string) {
 /** The certificate as an accessible PDF download, as it stands now. */
 export async function certificatePdfResponse(env: Bindings, actor: Actor, id: string) {
   const record = await certificateRecord(env, actor, id)
-  const zone = (await requireBusiness(env)).timezone, t = record.template
+  const zone = (await requireBusiness(env)).timezone, t = record.template, tr = (key: string) => message(actor.locale, key)
   const lines: PdfLine[] = [
     { text: record.issuer, size: 16, bold: true, tag: 'P' },
-    { text: t.heading, size: 30, bold: true, tag: 'H1', gapBefore: 18 },
+    { text: t.id ? t.heading : tr(t.heading), size: 30, bold: true, tag: 'H1', gapBefore: 18 },
     { text: record.current.learner, size: 26, bold: true, tag: 'H2', gapBefore: 24 },
-    { text: t.wording, size: 14, tag: 'P', gapBefore: 6 },
-    { text: `${record.course} (revision ${record.revision})`, size: 20, bold: true, tag: 'P', gapBefore: 6 },
-    { text: `Completed ${formatDate(record.completedAt, zone)}${record.expiresAt ? ` · valid until ${formatDate(record.expiresAt, zone)}` : ''}`, size: 12, tag: 'P', gapBefore: 12 },
+    { text: t.id ? t.wording : tr(t.wording), size: 14, tag: 'P', gapBefore: 6 },
+    { text: `${record.course} (${tr('revision')} ${record.revision})`, size: 20, bold: true, tag: 'P', gapBefore: 6 },
+    { text: `${tr('Completed')} ${formatDate(record.completedAt, zone, actor.locale)}${record.expiresAt ? ` · ${tr('valid until')} ${formatDate(record.expiresAt, zone, actor.locale)}` : ''}`, size: 12, tag: 'P', gapBefore: 12 },
     ...(t.signatoryName ? [{ text: `${t.signatoryName}, ${t.signatoryTitle}`, size: 13, tag: 'P' as const, gapBefore: 30 }] : []),
-    { text: `Certificate ${record.current.number}${record.current.correctedAt ? ` · corrected ${formatDate(record.current.correctedAt, zone)}, supersedes ${record.number}` : ''}`, size: 10, tag: 'P', gapBefore: t.signatoryName ? 18 : 40 },
-    { text: 'This certificate records completion of the issuer’s own training. It is not an accreditation or a statement of competence.', size: 9, tag: 'P', gapBefore: 4 },
+    { text: `${tr('Certificate')} ${record.current.number}${record.current.correctedAt ? ` · corrected ${formatDate(record.current.correctedAt, zone)}, supersedes ${record.number}` : ''}`, size: 10, tag: 'P', gapBefore: t.signatoryName ? 18 : 40 },
+    { text: tr('This certificate records completion of the issuer’s own training. It is not an accreditation or a statement of competence.'), size: 9, tag: 'P', gapBefore: 4 },
   ]
-  const bytes = certificatePdf(`${t.heading}: ${record.current.learner}, ${record.course}`, lines, branding.primaryColor)
+  const bytes = certificatePdf(`${t.heading}: ${record.current.learner}, ${record.course}`, lines, branding.primaryColor, actor.locale)
   return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="certificate-${record.current.number}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } })
 }

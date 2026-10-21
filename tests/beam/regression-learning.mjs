@@ -300,3 +300,115 @@ async function windows(f) {
   return { a30, aDated, renewal, extension: extended.access.extensions[0] }
 }
 export const learningChecks = [['BEAM-08 live named assessor authority', assessor], ['BEAM-10 exact offline revision', offline], ['BEAM-12 recurring renewal provenance', renewal], ['LEARN-019 reset with history kept', reset], ['AUTO-009 access windows', windows]]
+
+// LEARN-017's implemented language slice; other surfaces stay named in the contract Gap.
+export async function languageCheck() {
+  const { fixture } = await import('./regression-fixture.mjs')
+  const f = await fixture(), { api, h, ids, cookies, assign } = f
+  try {
+    const language = () => api('learner', 'language')
+    const defaults = (kind, scope, language) => api('owner', 'language.default', { kind, scope, language })
+    assert.deepEqual(await language(), { language: 'en-US', source: 'installation' })
+    await api('manager', 'language.default', { kind: 'installation', language: 'es-US' }, 403)
+    await defaults('installation', '', 'es-US')
+    assert.equal((await language()).language, 'es-US')
+    await defaults('team', ids.team, 'en-US')
+    assert.deepEqual(await language(), { language: 'en-US', source: 'team' })
+    await api('owner', 'person.directory', { member: ids.learner, location: 'Packing' })
+    await defaults('location', 'Packing', 'es-US')
+    assert.deepEqual(await language(), { language: 'es-US', source: 'location' })
+    await api('owner', 'person.directory', { member: ids.learner, language: 'en' })
+    assert.deepEqual(await language(), { language: 'en-US', source: 'person' })
+    // HRIS/importers inherit the existing directory preference; no unheld connector is simulated.
+    await api('owner', 'person.directory', { member: ids.learner, language: 'es-US' })
+    assert.deepEqual(await language(), { language: 'es-US', source: 'person' })
+    const c = await api('author', 'course.create', { title: 'English safety course', reviewer: ids.reviewer })
+    const lesson = await api('author', 'course.lesson', { course: c.id, draftVersion: c.draftVersion, title: 'English procedure', body: 'USER CONTENT: My learning. Use clean tools.', sources: [] })
+    const question = await api('author', 'course.question', { course: c.id, draftVersion: lesson.draftVersion, prompt: 'USER QUESTION: Choose clean', choices: ['Clean', 'Dirty'], correct: [0] })
+    await f.publish((await api('author', 'course.submit', { course: c.id, draftVersion: question.draftVersion })).id)
+    const assignment = await assign(c)
+    const page = async path => { const response = await h.raw(path, { cookie: cookies.learner }); assert.equal(response.status, 200, path); return response.text() }
+    let dashboard = await page('/app/learning')
+    assert.match(dashboard, /<html lang="es-US">/)
+    for (const label of ['Mi aprendizaje', 'Mis asignaciones', 'Guardar idioma', 'English safety course']) assert.ok(dashboard.includes(label), label)
+    const overview = await page(`/app/learn/${assignment}`)
+    assert.ok(overview.includes('No hay una versión revisada en español') && overview.includes('idioma original (en)'))
+    const view = await api('learner', `assignments/${assignment}`), lessonId = view.lessons[0].id
+    const lessonHtml = await page(`/app/learn/${assignment}/lessons/${lessonId}`)
+    assert.ok(lessonHtml.includes('Lectura de la lección') && lessonHtml.includes('Marcar como completada'))
+    assert.ok(lessonHtml.includes('USER CONTENT: My learning. Use clean tools.'), 'authored English is never translated by string coincidence')
+    if (process.env.BEAM_LANGUAGE_BROWSER === '1') await languageBrowserCheck(f, { assignment, lesson: lessonId, course: c.id })
+    else {
+      await api('learner', 'lesson.complete', { assignment, lesson: lessonId })
+      const quiz = await page(`/app/learn/${assignment}/quiz`)
+      assert.ok(quiz.includes('Calificación mínima') && quiz.includes('Enviar respuestas') && quiz.includes('USER QUESTION: Choose clean'))
+      await api('learner', 'quiz.submit', { assignment, [`q_${view.quiz.questions[0].id}`]: ['0'] })
+    }
+    const record = await api('learner', 'records/me'), certificate = record.completions.find(row => row.course === c.id).certificate
+    assert.match(await page(`/app/certificates/${certificate}`), /Certificado de finalización/)
+    const pdf = await h.raw(`/app/certificates/${certificate}.pdf`, { cookie: cookies.learner }), pdfText = Buffer.from(await pdf.arrayBuffer()).toString('latin1')
+    assert.ok(pdfText.includes('/Lang (es-US)') && pdfText.includes('Certificado de finalizaci') && pdfText.includes('ha completado'))
+    // Actually invoke Beam's existing mail door; the provider edge only captures its request/receipt.
+    const overdue = await f.course('Language reminder'), overdueAssignment = await assign(overdue)
+    await h.db.prepare('UPDATE beam_assignments SET due_at=? WHERE id=?').bind(Date.now() - 3_600_000, overdueAssignment).run()
+    let policy = await api('owner', 'escalation-policy')
+    await api('owner', 'escalation.policy', { version: policy?.version ?? 0, enabled: true, reminderHours: 0, managerHours: 48, fallbackHours: 72 })
+    await api('owner', 'escalation.run', {})
+    const learnerMail = () => h.mails.filter(m => m.to.includes('learner@example.test') && m.text?.includes('Language reminder'))
+    assert.equal(learnerMail().at(-1).subject, 'Tienes una capacitación vencida')
+    assert.ok(learnerMail().at(-1).text.includes(`/app/learn/${overdueAssignment}`))
+    const change = await h.submit('language.change', cookies.learner, { language: 'en-US' }, '/app/learning')
+    assert.equal(change.searchParams.get('error'), null)
+    assert.deepEqual(await language(), { language: 'en-US', source: 'person' })
+    assert.ok((await page('/app/learning')).includes('<h1>My learning</h1>'))
+    const second = await f.course('Language reminder 2'), secondAssignment = await assign(second)
+    await h.db.prepare('UPDATE beam_assignments SET due_at=? WHERE id=?').bind(Date.now() - 3_600_000, secondAssignment).run()
+    await api('owner', 'escalation.run', {})
+    assert.equal(learnerMail().at(-1).subject, 'Overdue learning needs attention')
+    await api('learner', 'language.change', { language: 'fr-FR' }, 400)
+    await api('learner', 'language.change', { language: 'default', member: ids.owner })
+    assert.deepEqual(await language(), { language: 'es-US', source: 'location' })
+    assert.equal((await api('owner', 'language')).source, 'installation', 'self switch cannot change another member')
+    // ORG-012 inherits the learner's effective language while refusing the setting itself.
+    const start = await h.raw('/app/view/start', { cookie: cookies.owner, form: new URLSearchParams({ learner: ids.learner }) })
+    const viewCookie = [cookies.owner, ...start.headers.getSetCookie().map(line => line.split(';')[0])].join('; ')
+    const asHtml = await (await h.raw('/app/learning', { cookie: viewCookie })).text()
+    assert.ok(asHtml.includes('Mi aprendizaje') && !asHtml.includes('action="/app/do/language.change"'))
+    await h.api('language.change', viewCookie, { language: 'en-US' }, 403)
+    assert.equal((await language()).language, 'es-US')
+  } finally { await h.close() }
+}
+
+async function languageBrowserCheck(f, item) {
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const { mkdir } = await import('node:fs/promises'), { join } = await import('node:path')
+  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  await mkdir(evidence, { recursive: true })
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
+      await context.addCookies(f.cookies.learner.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))
+      const page = await context.newPage()
+      const screenshot = async name => {
+        assert.equal(await page.locator('html').getAttribute('lang'), 'es-US')
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} overflow at ${width}`)
+        await page.screenshot({ path: join(evidence, `${width}-language-${name}.png`), fullPage: true })
+      }
+      await page.goto(f.h.origin + '/app/learning'); await page.getByRole('heading', { name: 'Mi aprendizaje', exact: true }).waitFor(); await screenshot('learning')
+      await page.goto(`${f.h.origin}/app/learn/${item.assignment}`); await page.getByText(/No hay una versión revisada en español/).waitFor(); await screenshot('course')
+      await page.goto(`${f.h.origin}/app/learn/${item.assignment}/lessons/${item.lesson}`); await page.getByText('USER CONTENT: My learning. Use clean tools.').waitFor(); await screenshot('lesson')
+      if (width === 1440) await page.getByRole('button', { name: 'Marcar como completada', exact: true }).click()
+      await page.goto(`${f.h.origin}/app/learn/${item.assignment}/quiz`)
+      await page.getByRole('button', { name: 'Enviar respuestas', exact: true }).waitFor(); await screenshot('quiz')
+      if (width === 1440) {
+        await page.getByLabel('Clean', { exact: true }).check()
+        await page.getByRole('button', { name: 'Enviar respuestas', exact: true }).click()
+      }
+      const record = await f.api('learner', 'records/me'), certificate = record.completions.find(row => row.course === item.course).certificate
+      await page.goto(`${f.h.origin}/app/certificates/${certificate}`); await page.getByText(/Certificado de finalización/).waitFor(); await screenshot('certificate')
+      await context.close()
+      console.log(`PASS language learner/course/fallback/lesson/quiz/certificate ${width}`)
+    }
+  } finally { await browser.close() }
+}

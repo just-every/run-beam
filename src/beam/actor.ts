@@ -16,6 +16,7 @@ export type Permission = typeof PERMISSIONS[number]
 export interface Reach { teams: string[]; units: string[]; locations: string[]; learners: string[] }
 
 export interface Actor {
+  locale?: import('./language').Language
   id: string
   sessionId: string
   /** How this session signed in: native (emailed link), oidc, password, dev or review; agent for a preparation credential. */

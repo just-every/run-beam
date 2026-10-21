@@ -1,3 +1,5 @@
+import { languagePreference } from './language'
+import { message } from './messages'
 // NOTICE-004: live routing, elapsed-hour delays and durable, explicitly replayed mail.
 // A directory manager field never grants learning access. Only current team grants
 // route private work; the installation owner is the final fallback.
@@ -102,8 +104,9 @@ export async function runEscalations(env: Bindings, manual = false) {
         const address = (await one(env, 'SELECT email FROM beam_members WHERE id=?', person.id))?.email
         insist(address, 'no_contact_route', 409)
         insist(await one(env, "SELECT 1 FROM beam_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.id=? AND o.status='active' AND m.employment<>'terminated'", person.id), 'recipient_unavailable', 409)
-        const text = `Overdue learning: ${live.courseTitle}. Training is paid work time. Review the current requirement after signing in: ${env.AUTH_ORIGIN}/app/${person.route === 'learner' ? `learn/${live.id}` : 'manage'}`
-        const sent = await sender.send({ deliveryId: artifact, from: env.MAIL_FROM, to: [address], subject: 'Overdue learning needs attention', text, html: `<p>${text.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}</p>`, headers: {} })
+        const locale = (await languagePreference(env, person.id)).language
+        const text = message(locale, 'Overdue learning: {course}. Training is paid work time. Review the current requirement after signing in: {link}', { course: live.courseTitle, link: `${env.AUTH_ORIGIN}/app/${person.route === 'learner' ? `learn/${live.id}` : 'manage'}` })
+        const sent = await sender.send({ deliveryId: artifact, from: env.MAIL_FROM, to: [address], subject: message(locale, 'Overdue learning needs attention'), text, html: `<p>${text.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)}</p>`, headers: {} })
         insist(sent.status === 'accepted' || sent.status === 'development', `mail_${sent.status}`, 502)
         await commit(env, [stmt(env, 'INSERT OR IGNORE INTO beam_escalation_messages VALUES(?,?,?,?,?,?)', artifact, item.id, person.id, person.route, sent.status, now())], { actor: policy.updated_by, action: 'escalation.mail', subject: item.id, detail: { recipient: person.id, route: person.route, status: sent.status } })
         return sent.status === 'accepted' ? 'mail_accepted' : 'mail_development'
