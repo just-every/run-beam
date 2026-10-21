@@ -1,3 +1,4 @@
+import { convertSource } from './source-extraction'
 import { saveRenewal, previewRenewal, setRenewalState, replayRenewal } from './renewals'
 import { saveEscalationPolicy, resolveEscalation, runEscalationsNow } from './escalations'
 import { withdrawErrors } from './diagnosis-evidence'
@@ -174,6 +175,7 @@ export const actions: Record<string, Handler> = {
   'course.selfreview': (env, actor, input) => setSelfReview(env, actor, input),
   'admin.grant': (env, actor, input) => grantAdministration(env, actor, input),
   'admin.revoke': (env, actor, input) => revokeAdministration(env, actor, input),
+  'source.convert': (env, actor, input) => convertSource(env, actor, input),
   'source.create': (env, actor, input) => createSource(env, actor, input),
   'source.version': (env, actor, input) => addSourceVersion(env, actor, input),
   'acknowledgment.request': (env, actor, input) => requestAcknowledgments(env, actor, input),

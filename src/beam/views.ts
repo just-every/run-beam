@@ -1,3 +1,4 @@
+import { sourceExtraction } from './source-extraction'
 import { renewalView } from './renewals'
 import { escalationPolicy } from './escalations'
 import { compareErrors } from './diagnosis-comparison'
@@ -77,6 +78,7 @@ export const views: Record<string, View> = {
   'directory-fields': async (env, actor) => ({ fields: await directoryFields(env), conflicts: await openConflicts(env, actor) }),
   members: async (env) => await all(env, 'SELECT id, name FROM beam_members ORDER BY name'),
   sources: (env, actor) => listSources(env, actor),
+  'source-extraction': (env, actor, _request, id) => sourceExtraction(env, actor, id),
   acknowledgments: (env, actor) => acknowledgmentList(env, actor),
   acknowledgment: (env, actor, _request, id) => acknowledgmentView(env, actor, id),
   courses: async (env, actor) => {
@@ -140,6 +142,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
+  [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],
   [/^escalation-policy$/, 'escalation-policy'],
   [/^notifications$/, 'notifications'], [/^notification-rules$/, 'notification-rules'],
   [/^renewals$/, 'renewals'],

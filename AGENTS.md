@@ -241,3 +241,24 @@ every application credential, certificate verification link and restricted repor
 rest of each grant as lineage. Migration 0070's trigger marks the grants a restore brings back (`restored_at`), so they
 stay disabled until the owner rotates the credential or creates a new link. `tests/beam/regression-archive.mjs` proves
 both through Base's portability export and restore.
+
+## Reviewed source extraction (AUTHOR-002, partial)
+
+An author reads `GET /api/beam/sources/:versionId/extraction` for DOCX or
+UTF-8 `.txt`, `.md` and `.markdown` originals. The response includes the exact
+version/provenance, an authenticated original-file URL, proposed lesson text
+and extraction warnings. Reading it writes nothing. DOCX images contribute
+only their existing descriptions; image bytes, full table formatting,
+PDF/PPTX/HTML and OCR are still owed. The existing 25 MB source admission
+remains; text extraction admits at most 1 MB, DOCX document XML 2 MB,
+50 MB total declared ZIP content and 2,000 entries. No remote document
+resources are fetched. Oversize or unsupported material is refused without
+truncation.
+
+After checking the original and correcting the text, post `source.convert`
+with `course`, `draftVersion`, `sourceVersion`, `reviewed: true` and
+`lessons: [{title, body}]`. The form door uses JSON for the `lessons` field.
+It appends editable lessons citing that immutable source version, subject
+to normal author/course authority, draft concurrency and lesson limits.
+It never publishes: submit and named-reviewer publication stay unchanged.
+These preparation doors have no dedicated UI yet.

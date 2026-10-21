@@ -20,7 +20,7 @@ function sheet(rows, strings) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.map((row, r) => `<row r="${r + 1}">${row.map((value, c) => value === '' ? '' : cell(value, r + 1, c)).join('')}</row>`).join('')}</sheetData></worksheet>`
 }
 
-function zip(files) {
+export function zip(files) {
   const locals = [], centrals = []
   let offset = 0
   for (const [name, text] of files) {

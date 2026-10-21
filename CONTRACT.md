@@ -475,7 +475,7 @@ removed or changed by this contract-only round.
 
 ## Status
 
-Judged from the code and tests at commit `37782436916c5cee1b70103840ece35be92c1931` (21 October 2026).
+Judged from the code and tests at commit `7662d4b3b2a0a3cca5ac7a107bbb86c4705d6466` (21 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
@@ -518,7 +518,7 @@ Judged from the code and tests at commit `37782436916c5cee1b70103840ece35be92c19
 | `ORG-011` | Sign in without a work email | target | partial | `src/beam/directory.ts`, `src/beam/roster-batch.ts`, `src/beam/escalations.ts`, `src/modules/operator-auth/service.mjs`, `tests/beam/regression-directory.mjs`, `tests/beam/regression-roster.mjs`, `tests/beam/regression-notices.mjs` | Email-less directory/roster records, usernames, mobile numbers, no-contact-route queues, emailed sign-in rate limiting and session revocation exist. Password/PIN/SMS sign-in, audited resets and lockout, first-sign-in sheets, shared-device mode and native-app authentication remain absent. |
 | `ORG-012` | View Beam as a learner, read-only | target | done | `src/beam/view-as.ts`, `src/beam/http.ts`, `migrations/core/0029_beam_view_sessions.sql`, `tests/beam/regression-view.mjs` (ORG-012) |  |
 | `AUTHOR-001` | Author multimedia courses without rebuilding files | target | partial | `src/beam/courses.ts`, `src/beam/sources.ts`, `tests/beam/flows.mjs` | Text lessons and uploaded sources work; rich reusable media blocks, author preview and allowlisted sandboxed embeds (YouTube, Vimeo, Loom, Google, Microsoft 365) are absent. |
-| `AUTHOR-002` | Turn existing SOP documents into editable learning | target | partial | `src/beam/sources.ts`, `src/beam/files.ts` | Original bytes are stored; document parsing, OCR and editable lesson conversion are absent. |
+| `AUTHOR-002` | Turn existing SOP documents into editable learning | target | partial | `src/beam/source-extraction.ts`, `src/beam/source-document.ts`, `tests/beam/regression-sources.mjs` (AUTHOR-002) | Author-only JSON/form extraction and reviewed draft conversion preserve UTF-8 text/Markdown headings, DOCX paragraphs/recognized headings/table cell text, version citations and warnings. Source comparison and conversion UI, full table/image structure, PDF/PPTX/HTML parsing, OCR with corrected uncertainty and complete mixed-document publication journeys remain owed. |
 | `AUTHOR-003` | Collect expert feedback before publication | target | done | `src/beam/collab.ts`, `src/beam/feedback.ts`, `src/beam/courses.ts`, `src/beam/ui/collab.ts`, `migrations/core/0041_beam_collaboration.sql`, `tests/beam/regression-collab.mjs` (AUTHOR-003) |  |
 | `AUTHOR-004` | Compare and restore earlier content safely | target | done | `src/beam/history.ts`, `src/beam/ui/history.ts`, `tests/beam/flows.mjs` (AUTHOR-004), `tests/beam/regression-admin.mjs` (AUTHOR-004) |  |
 | `AUTHOR-005` | Organize and reuse the course estate | target | done | `src/beam/estate.ts`, `src/beam/assignments.ts`, `src/beam/ui/authoring.ts`, `migrations/core/0030_beam_course_retirement.sql`, `migrations/core/0031_beam_course_catalog.sql`, `tests/beam/regression-estate.mjs` (AUTHOR-005) |  |
