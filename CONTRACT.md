@@ -480,8 +480,8 @@ Judged from the code and tests at commit `e0c14b684df7a232d0ce56328698b2c7031990
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 46 | 31 | 49 | 126 |
-| All | 66 | 31 | 49 | 146 |
+| Target and push further | 47 | 30 | 49 | 126 |
+| All | 67 | 30 | 49 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -514,7 +514,7 @@ Judged from the code and tests at commit `e0c14b684df7a232d0ce56328698b2c7031990
 | `ORG-007` | Offer an organized self-service learning catalog | target | done | `src/beam/catalog.ts`, `src/beam/ui/catalog.ts`, `migrations/core/0036_beam_learner_catalog.sql`, `tests/beam/regression-catalog.mjs` (ORG-007) |  |
 | `ORG-008` | Separate employee and external training portals | target | missing |  | Extended-enterprise portals, branding and isolated external learner identity are absent. |
 | `ORG-009` | Brand the employee portal on the employer’s own address | target | missing |  | Employer logo/color/favicon theme, themed email and certificates, custom hostname setup check and old-address redirects are absent; pages show only the employer name. |
-| `ORG-010` | Define custom administrator roles | target | partial | `src/beam/roles.ts`, `src/beam/scope.ts`, `src/beam/actor.ts`, `src/beam/ui/roles.ts`, `migrations/core/0026_beam_custom_roles.sql`, `tests/beam/regression-managers.mjs` (ORG-010) | Location-scoped enrollment and report isolation lack an existing acceptance assertion: the custom-role journey uses business units, while the location journey exercises People only. |
+| `ORG-010` | Define custom administrator roles | target | done | `src/beam/roles.ts`, `src/beam/scope.ts`, `src/beam/actor.ts`, `src/beam/ui/roles.ts`, `migrations/core/0026_beam_custom_roles.sql`, `tests/beam/regression-managers.mjs` (ORG-010), `tests/beam/regression-directory.mjs` (ORG-010) |  |
 | `ORG-011` | Sign in without a work email | target | partial | `src/beam/directory.ts`, `src/beam/roster-batch.ts`, `src/beam/escalations.ts`, `src/modules/operator-auth/service.mjs`, `tests/beam/regression-directory.mjs`, `tests/beam/regression-roster.mjs`, `tests/beam/regression-notices.mjs` | Email-less directory/roster records, usernames, mobile numbers, no-contact-route queues, emailed sign-in rate limiting and session revocation exist. Password/PIN/SMS sign-in, audited resets and lockout, first-sign-in sheets, shared-device mode and native-app authentication remain absent. |
 | `ORG-012` | View Beam as a learner, read-only | target | done | `src/beam/view-as.ts`, `src/beam/http.ts`, `migrations/core/0029_beam_view_sessions.sql`, `tests/beam/regression-view.mjs` (ORG-012) |  |
 | `AUTHOR-001` | Author multimedia courses without rebuilding files | target | partial | `src/beam/courses.ts`, `src/beam/sources.ts`, `tests/beam/flows.mjs` | Text lessons and uploaded sources work; rich reusable media blocks, author preview and allowlisted sandboxed embeds (YouTube, Vimeo, Loom, Google, Microsoft 365) are absent. |

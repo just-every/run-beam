@@ -83,4 +83,16 @@ export async function directoryCheck(f) {
   await api('owner', 'role.grant', { role, member: ids.other })
   assert.deepEqual((await api('other', 'people')).members.map(member => member.id), [ids.learner])
   await api('other', `directory/${ids.learner}`, undefined, 404)
+  // ORG-010: the same reach limits enrollment and reports to the location: the coordinator enrolls and reports on the
+  // Austin learner, is refused the Denver manager, and sees no Denver row in the report or its CSV.
+  const coordinator = (await api('owner', 'role.save', { name: 'Austin coordinators', permissions: ['enrollment', 'reports'], locations: ['Austin, TX'] })).id
+  await api('owner', 'role.grant', { role: coordinator, member: ids.other })
+  const austin = await course('Austin site induction')
+  const [enrolled] = (await api('other', 'assignment.create', { course: austin.id, learners: [ids.learner], dueDate: '2030-10-01' })).created
+  assert.equal((await api('other', 'assignment.create', { course: austin.id, learners: [ids.manager], dueDate: '2030-10-01' }, 403)).error, 'learner_outside_your_team')
+  await api('owner', 'assignment.create', { course: austin.id, learners: [ids.manager, rosa], dueDate: '2030-10-01' })
+  assert.deepEqual((await api('owner', `report?course=${austin.id}`)).rows.map(row => row.learner).sort(), [ids.learner, ids.manager, rosa].sort())
+  assert.deepEqual((await api('other', `report?course=${austin.id}`)).rows.map(row => row.assignment), [enrolled])
+  const exported = await (await h.raw(`/app/reports.csv?course=${austin.id}`, { cookie: cookies.other })).text()
+  assert.ok(exported.includes('\r\nlearner,Austin site induction') && !exported.includes('Rosa Diaz') && !exported.includes('\r\nmanager,') && exported.trim().split('\r\n').length === 2)
 }
