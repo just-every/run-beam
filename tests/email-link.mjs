@@ -6,11 +6,13 @@ const queued=await queuedEntrypoint(import.meta.url,'verify:email-link');if(queu
 // replaces this path.
 import assert from 'node:assert/strict'
 import { emittedWorker } from './runtime.mjs'
+import { configurationCheck } from './configuration.mjs'
 
 const worker = await emittedWorker()
 const { origin, vars } = worker
 const post = (path, body, cookie) => worker.fetch(path, { method: 'POST', headers: { origin, 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) })
 try {
+  configurationCheck(vars)
   assert.equal((await post('/auth/bootstrap', { token: vars.SETUP_TOKEN, displayName: 'Owner' })).status, 303, 'owner claimed')
   assert.equal((await post('/auth/magic-link', { email: vars.OWNER_EMAIL })).status, 202, 'sign-in link mailed')
   assert.equal(worker.mails.length, 1, 'one message reached the mail provider')

@@ -188,7 +188,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c4cb91da227fbec462f83f7d3577369550fe739ed0405ce5c2ac02c896323625",
+      "sha256": "8b50eb31b639832276bb8e1e0b5558a09a8abd533d918b0a1371b9839456e543",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -208,7 +208,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3611ce7e0e9039925d1822b96a52b0d463ee0d9e7fc81e8b8add0050e2483184",
+      "sha256": "ce4c095646071f119cef83217de8c87a27f2397357e8515814635d9becbdfbcc",
       "executable": false
     },
     "DEMO.md": {
@@ -572,11 +572,11 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "fbe9dbd5ab7aa3ce237bda953233778f317fe14fb6ecdb2fdd79d922827ad425",
+      "sha256": "270fd5cb4c54ee768b9d61f26868202721da5693d92c01cfae13f5bed79f9db0",
       "executable": false
     },
     "package.json": {
-      "sha256": "69c6d32635211b607cc4730314095cc31a1a83995efde7f57fac1ddb076cd65b",
+      "sha256": "b9ad2a509812a738cae712aeb3facc411675d059115905595be3ec033300b1f8",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -851,6 +851,10 @@
       "sha256": "25ead40e68c79bbba98428e57043a3ceea1e4b0491c415b6964788484880c7c2",
       "executable": false
     },
+    "scripts/diagnose-configuration.mjs": {
+      "sha256": "773f73d078b5168c47679e244b3450c1bcffc63e3d1ca240ce9cccf0130cd0cb",
+      "executable": false
+    },
     "scripts/edition-authoring/base-copies.mjs": {
       "sha256": "ca2e3b86aec67aaa5cb28d1a8311612a905fbd2116fac999a34185fa776cf876",
       "executable": false
@@ -893,6 +897,10 @@
     },
     "scripts/install.mjs": {
       "sha256": "ce9c6eb4f127e88b32d538655a3fb3a2dc9fc3e83e48782fd56ffd3377da16fd",
+      "executable": false
+    },
+    "scripts/installer/configuration.mjs": {
+      "sha256": "b0ac055c9749647bbcf18fb63e31bbb50338ec33dcb7ad0d830b70b723201c55",
       "executable": false
     },
     "scripts/installer/local.mjs": {
@@ -3547,8 +3555,12 @@
       "sha256": "1d1a12d5f34e8bf7664eff6127742c233e22870c69d706ae0d7db49287da033a",
       "executable": false
     },
+    "tests/configuration.mjs": {
+      "sha256": "31bc3fc25672be6e3400fcfa800a71191ffe0142f9ab185da886db6730d928ca",
+      "executable": false
+    },
     "tests/email-link.mjs": {
-      "sha256": "9d3c60d16de463e9d3d2fa21144aeac6e401854e37a3ebadbc51575200dd2e7b",
+      "sha256": "e7a3c7fc896df22afa94b9f840d766aaab68c63fa4de564c0279939b6304f1f2",
       "executable": false
     },
     "tests/runtime.mjs": {

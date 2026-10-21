@@ -30,7 +30,8 @@
     "test:flows": "rer queue test:flows -- sh -c \"node tests/beam/flows.mjs && node tests/beam/regressions.mjs\"",
     "test:regressions": "node tests/beam/regressions.mjs",
     "test:journey": "node tests/beam/journey.mjs",
-    "test:site": "node --test tests/site/site.test.mjs"
+    "test:site": "node --test tests/site/site.test.mjs",
+    "diagnose:configuration": "node scripts/diagnose-configuration.mjs"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.41",

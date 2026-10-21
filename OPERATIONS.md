@@ -67,3 +67,24 @@ instructions under `node_modules/@runeditrun/rer/modules/deploy-kit`; account sc
 resource ownership, migrations, receipt and health checks are defined there.
 Local validation does not prove hosted acceptance, provider delivery or remote
 health.
+
+## Offline configuration diagnostics (OPS-007)
+
+Before starting a hosted installation, put its authentication/mail settings in a
+private JSON object (file mode 0600, outside public assets) and run:
+
+```sh
+pnpm run diagnose:configuration < exports/configuration.json
+```
+
+The command reads only standard input; it does not discover environment files,
+contact a provider or print setting values. A nonzero exit identifies each
+missing/invalid setting with its corrective action. Correct those settings in
+the installation secret store and run it again. A successful result checks
+syntax only: verify sender ownership and credentials with the real provider
+and exercise ordinary sign-in before relying on delivery. Hosted installations
+need AUTH_ORIGIN, OWNER_EMAIL, SESSION_SECRET, MAIL_PROVIDER, MAIL_FROM and
+MAIL_API_KEY; Cloudflare mail also needs MAIL_ACCOUNT_ID. SETUP_TOKEN is checked
+when supplied (Base permits it to be absent after ownership is claimed).
+AUTH_LOCAL=true selects the existing local loopback/development-mail rules;
+local and demo mail do not require hosted provider credentials.
