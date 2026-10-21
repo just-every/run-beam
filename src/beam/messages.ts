@@ -34,6 +34,7 @@ const spanish: Record<string, string> = {
  'Overdue learning needs attention': 'Tienes una capacitación vencida',
  'Overdue learning: {course}. Training is paid work time. Review the current requirement after signing in: {link}': 'Capacitación vencida: {course}. La capacitación se realiza durante el horario remunerado. Inicia sesión para revisar el requisito actual: {link}',
  'Quiz rules': 'Reglas del cuestionario',
+ ', drawn from a bank of {n}': ', seleccionadas de un banco de {n}',
  '{n} questions worth {points} points.': '{n} preguntas por un total de {points} puntos.',
  'Each question earns its points only when every choice, blank, position or pair is right; written answers earn what the assessor awards.': 'Cada pregunta recibe puntos solo si todas las opciones, espacios, posiciones o parejas son correctos; la persona evaluadora califica las respuestas escritas.',
 }

@@ -1330,7 +1330,7 @@
       "executable": false
     },
     "src/beam/messages.ts": {
-      "sha256": "c05c634024a105ddc756b53861b7357dbf867bd9cc96160d1ee133ea76709024",
+      "sha256": "1ae9d2c61bdd48cdec42b898d21b5c6ddcc8510a3a176abd62f3f98f3de3e39b",
       "executable": false
     },
     "src/beam/movein/browser.ts": {
@@ -1622,7 +1622,7 @@
       "executable": false
     },
     "src/beam/ui/learner.ts": {
-      "sha256": "b3d33c2c31d4ff28bcb1ffa314d09cc0334bc4401fc1a38878aee82bf17f1ccd",
+      "sha256": "4efc920cf338e6ddf0dffed7ac1e268b12efd9444a0e823288e4de2da43b8eb4",
       "executable": false
     },
     "src/beam/ui/live.ts": {
