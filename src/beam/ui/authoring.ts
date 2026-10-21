@@ -103,6 +103,8 @@ export async function coursePage(env: Bindings, actor: Actor, id: string, url: U
   const [sources, names, assessors, window, units] = await Promise.all([staff(actor) ? listSources(env, actor) : [], memberNames(env), membersWithRole(env, 'assessor'), accessRule(env, 'course', id), actor.owner ? all<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_units ORDER BY name') : []])
   const zone = (await business(env))!.timezone
   const versions = sources.flatMap(source => source.versions.map((version: any) => ({ value: version.id, label: `${source.title} v${version.number}` })))
+  const citedIds = [...new Set(course.draft.lessons.flatMap(lesson => lesson.sources))]
+  if (!sources.length && citedIds.length) versions.push(...(await all<{ value: string; label: string }>(env, `SELECT v.id AS value, s.title || ' v' || v.number AS label FROM beam_source_versions v JOIN beam_sources s ON s.id = v.source_id WHERE v.id IN (SELECT value FROM json_each(?)) ORDER BY s.title, v.number`, JSON.stringify(citedIds))))
   const author = actor.owner || actor.roles.has('author') || courseUnits(actor).includes(course.unit) || actor.authorOf.includes(id)
   const draft = course.draft
   const policy = await embedPolicy(env)

@@ -134,10 +134,18 @@ export async function multimediaCheck(f) {
     [{ kind: 'embed', text: 'Unlisted', url: 'https://unlisted.example.test/embed' }, 'embed_host_not_allowed'],
     [{ kind: 'embed', text: 'Deceptive host', url: 'https://www.youtube.com.unlisted.example.test/embed' }, 'embed_host_not_allowed'],
     [{ kind: 'link', text: 'Unsafe link', url: 'javascript:active()' }, 'invalid_media_url'],
-    [{ kind: 'embed', text: 'Credentials', url: 'https://member:secret@www.youtube.com/embed/test' }, 'invalid_media_url'],
+    [{ kind: 'embed', text: 'Credentials', url: 'https://synthetic-beam-1:synthetic-beam-2@www.youtube.com/embed/test' }, 'invalid_media_url'],
     [{ kind: 'image', text: 'Active upload', source: assets.document }, 'media_type_mismatch'],
   ]) assert.equal((await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content }, 400)).error, error)
   assert.deepEqual(await api('author', `courses/${c.id}`), unchanged)
+  const proposed = structuredClone(unchanged.draft)
+  proposed.lessons[0].blocks.push({ kind: 'embed', text: 'Unlisted proposal', url: 'https://unlisted.example.test/embed' })
+  assert.equal((await api('author', 'proposal.create', { course: c.id, draftVersion: current.draftVersion, summary: 'Refuse unsafe preparation', inputs: [], draft: proposed }, 400)).error, 'embed_host_not_allowed')
+  const active = await api('author', 'source.create', { title: 'Active HTML', licence: 'owned', licenceEvidence: 'Synthetic refusal fixture', reviewer: ids.reviewer, provenance: 'Synthetic Beam fixture', file: file('synthetic-beam-5.html', '<html><script>active()</script></html>') })
+  assert.equal((await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content: { kind: 'document', text: 'Active source', source: active.versionId } }, 400)).error, 'media_type_mismatch')
+  const inert = await h.raw(`/app/files/source/${active.versionId}`, { cookie: cookies.author })
+  assert.equal(inert.headers.get('content-type'), 'text/plain; charset=utf-8')
+  assert.match(inert.headers.get('content-security-policy'), /sandbox; default-src 'none'/)
   await api('learner', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content: { kind: 'text', text: 'Forbidden' } }, 403)
   const original = structuredClone(current.draft.lessons[0].blocks[1])
   current = await api('author', 'course.block.change', { course: c.id, draftVersion: current.draftVersion, lesson, block: original.id, operation: 'duplicate' })
@@ -176,6 +184,14 @@ export async function multimediaCheck(f) {
     assert.equal((await h.raw(`/app/files/source/${assets[kind]}`, { cookie: cookies.other })).status, 404)
     assert.equal((await h.raw(`/app/files/source/${assets[kind]}`)).status, 303)
   }
+  await api('owner', 'course.authors', { course: c.id, members: [ids.other] })
+  assert.equal((await h.raw(`/app/files/source/${assets.image}`, { cookie: cookies.other })).status, 200)
+  assert.equal((await h.raw(`/app/files/source/${active.versionId}`, { cookie: cookies.other })).status, 404)
+  const scopedEditor = await h.raw(`/app/courses/${c.id}`, { cookie: cookies.other }).then(response => response.text())
+  assert.ok(scopedEditor.includes('Synthetic image v1'))
+  await api('other', 'sources', undefined, 403)
+  await api('owner', 'course.authors', { course: c.id, members: [] })
+  assert.equal((await h.raw(`/app/files/source/${assets.image}`, { cookie: cookies.other })).status, 404)
   // Reuse into another course retains exact immutable source attribution.
   const other = await api('author', 'course.create', { title: 'Reused course', reviewer: ids.reviewer })
   let target = await api('author', 'course.lesson', { course: other.id, draftVersion: 1, title: 'Reused procedure', body: 'A different lesson.', sources: [] })
