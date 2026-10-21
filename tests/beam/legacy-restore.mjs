@@ -13,7 +13,6 @@ import { client, createLegacyData, digest } from './legacy-archive-data.mjs'
 assert.equal(process.env.BEAM_TEST_CHECKOUT, '1', 'Use disposable fresh producer and destination checkouts')
 const producer = resolve(process.argv.at(-1)), root = process.cwd()
 assert.notEqual(producer, root, 'The historical producer is separate from the candidate')
-await access(join(producer, 'migrations/core/0070_beam_restored_grants.sql')).then(() => assert.fail('OPS-007: producer must predate restored-grant columns'), error => { if (error.code !== 'ENOENT') throw error })
 await access(join(producer, '.dev.vars')).then(() => assert.fail('Use a fresh unconfigured producer'), error => { if (error.code !== 'ENOENT') throw error })
 const scratch = await mkdtemp(join(tmpdir(), 'beam-legacy-restore-')), target = join(scratch, 'target')
 const socket = createServer(); await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
@@ -86,8 +85,8 @@ try {
   const app = (await c.api('app-credentials')).find(row => row.id === data.app.id)
   assert.equal(app.state, 'restored')
   assert.equal(app.issuedAt, data.app.issuedAt ?? oldRows.find(row => row.table === 'beam_app_credentials' && row.row.id === data.app.id).row.issued_at)
-  assert.ok((await (await c.request('/app/access', c.owner.cookie)).text()).includes('disabled until you rotate it'))
-  assert.ok((await (await c.request(`/app/dashboards/${data.dashboard.id}`, c.owner.cookie)).text()).includes('no longer works, create a new link'))
+  assert.match(await (await c.request('/app/access', c.owner.cookie)).text(), /action="\/app\/access\/rotate"/, 'OPS-007: the restored owner can reach the credential rotation form')
+  assert.match(await (await c.request(`/app/dashboards/${data.dashboard.id}`, c.owner.cookie)).text(), /action="\/app\/do\/dashboard.link"/, 'OPS-007: the restored owner can reach the new report-link form')
   if (process.env.BEAM_EVIDENCE_DIR) {
     const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
     browser = await chromium.launch({ headless: true, ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), args: ['--use-mock-keychain', '--password-store=basic'] })

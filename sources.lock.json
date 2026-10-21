@@ -3400,7 +3400,7 @@
       "executable": false
     },
     "tests/beam/legacy-restore.mjs": {
-      "sha256": "f21c1a98d3c26085db5be406ec88ec6221bf8050a02cde6a08d73e308fad2eb0",
+      "sha256": "da9e53c212a834da29f58d6bda0111affc070fd4980a92bd89e24934e539a629",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
