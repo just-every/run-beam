@@ -229,7 +229,7 @@ export async function multimediaBrowserCheck(f, media) {
       await page.goto(`${f.h.origin}/app/courses`)
       const create = page.locator('form[action="/app/do/course.create"]')
       await create.getByLabel('Title', { exact: true }).fill(`Media editor ${width}`)
-      await create.getByLabel('Reviewer', { exact: true }).selectOption(f.ids.reviewer)
+      await create.getByLabel('Reviewer who publishes it', { exact: true }).selectOption(f.ids.reviewer)
       await create.getByRole('button', { name: 'Create course' }).click()
       await page.waitForURL(/\/app\/courses\/[\w-]+/)
       const course = new URL(page.url()).pathname.split('/').at(-1)
@@ -265,7 +265,7 @@ export async function multimediaBrowserCheck(f, media) {
       // The full mixed lesson uses the identical renderer in learner and review doors.
       await as('learner')
       await page.goto(f.h.origin + media.learnerPath)
-      assert.equal(await page.locator('video').evaluate(video => video.readyState >= 1 || new Promise(resolve => video.addEventListener('loadedmetadata', () => resolve(true), { once: true }))), true)
+      await page.waitForFunction(() => document.querySelector('video').readyState >= 1, { timeout: 15000 })
       await page.locator('video').evaluate(async video => { video.muted = true; await video.play() })
       await page.waitForFunction(() => document.querySelector('video').currentTime > 0)
       await page.locator('video').evaluate(video => video.pause())
