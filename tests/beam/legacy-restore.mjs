@@ -37,6 +37,9 @@ try {
   server = await serving(producer, 'dev', port)
   const data = await createLegacyData(producer, origin)
   await server.stop(); server = null
+  await command(producer, ['build'])
+  const before = spawn(process.execPath, [join(root, 'tests/email-link.mjs')], { cwd: root, stdio: 'inherit', env: { ...process.env, BEAM_WORKER_CHECKOUT: producer } })
+  assert.equal(await new Promise(resolve => before.once('exit', resolve)), 0, 'OPS-007: identical ordinary auth/mail/session qualification passes before replacement')
   await command(producer, ['export', '--output', 'exports/pre-change.rer'])
   const original = await records(join(producer, 'exports/pre-change.rer'))
   const oldRows = rows(original)
@@ -112,6 +115,8 @@ try {
   const link = await c.api('certificate.link', { certificate: data.completion.certificate }, learner.cookie)
   assert.equal((await c.request(link.path)).status, 200, 'OPS-007: a newly issued certificate verifier works')
   assert.equal((await c.request(data.link.path)).status, 404)
+  const after = spawn(process.execPath, [join(root, 'tests/email-link.mjs')], { cwd: root, stdio: 'inherit', env: { ...process.env, BEAM_WORKER_CHECKOUT: root } })
+  assert.equal(await new Promise(resolve => after.once('exit', resolve)), 0, 'OPS-007: identical ordinary auth/mail/session qualification passes after replacement')
   console.log('PASS OPS-007 genuine pre-change archive: public rer export/import, unchanged learning/files/lineage, disabled old grants, explicit owner reissue')
 } finally {
   await browser?.close()

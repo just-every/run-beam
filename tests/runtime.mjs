@@ -23,9 +23,11 @@ async function freePort() {
   return port
 }
 
-export async function emittedWorker({ bindings = {} } = {}) {
+export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT } = {}) {
+  // OPS-007: run the identical public-door qualification against an unchanged historical producer or the candidate.
+  const workerRoot = checkout || root
   const directory = await mkdtemp(join(tmpdir(), 'beam-worker-'))
-  const server = join(root, 'dist/server')
+  const server = join(workerRoot, 'dist/server')
   const config = JSON.parse(await readFile(join(server, 'wrangler.json'), 'utf8'))
   const port = await freePort()
   const origin = `https://127.0.0.1:${port}`
@@ -37,7 +39,7 @@ export async function emittedWorker({ bindings = {} } = {}) {
     host: '127.0.0.1', port, https: true, modulesRoot: server,
     modules: [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) })),
     compatibilityDate: config.compatibility_date, compatibilityFlags: config.compatibility_flags,
-    assets: { directory: join(root, 'dist/client'), routerConfig: { has_user_worker: true } },
+    assets: { directory: join(workerRoot, 'dist/client'), routerConfig: { has_user_worker: true } },
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },
     bindings: vars,
     outboundService: async request => {
@@ -54,7 +56,7 @@ export async function emittedWorker({ bindings = {} } = {}) {
   try {
     await mf.ready
     const db = await mf.getD1Database('DB')
-    const migrations = join(root, 'migrations/core')
+    const migrations = join(workerRoot, 'migrations/core')
     for (const name of (await readdir(migrations)).filter(name => name.endsWith('.sql')).sort()) {
       for (const statement of splitSql(await readFile(join(migrations, name), 'utf8'))) await db.prepare(statement).run()
     }

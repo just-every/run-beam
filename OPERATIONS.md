@@ -88,3 +88,44 @@ MAIL_API_KEY; Cloudflare mail also needs MAIL_ACCOUNT_ID. SETUP_TOKEN is checked
 when supplied (Base permits it to be absent after ownership is claimed).
 AUTH_LOCAL=true selects the existing local loopback/development-mail rules;
 local and demo mail do not require hosted provider credentials.
+
+## Base and component qualification (OPS-007)
+
+Keep Base-copy and source-lock verification enabled. For each current capability
+and each proposed component replacement, run these public-door checks on the
+baseline and the candidate before accepting it:
+
+```sh
+node scripts/edition-authoring/cli.mjs check
+node scripts/edition-authoring/cli.mjs verify-base --offline
+pnpm exec rer check --profile first-party
+pnpm run build
+node tests/email-link.mjs
+node tests/beam/regressions.mjs --only=OPS-007
+```
+
+The historical-producer journey also uses real commands against a separate,
+fresh checkout of the earlier published application. Prepare that checkout at
+`71a1245e5c29e5a0f6e71969bf7dac31d69db6fd` (the published pre-0070 producer),
+then run from the candidate:
+
+```sh
+BEAM_TEST_CHECKOUT=1 pnpm run test:legacy-restore -- /absolute/path/to/fresh-producer
+```
+
+The producer runs unchanged. New data enters through its public doors; it
+writes its own archive through `rer export`. Today's empty destination restores
+that archive through `rer import`, preserving learning, original source bytes
+and decision lineage while disabling all old grants. The owner rotates application credentials and issues new report links; the
+restored learner creates a new verification link for their own certificate. The same ordinary sign-in, rejected-mail recovery
+and session-isolation HTTP checks run against both emitted Workers; the offline
+diagnostic command qualifies the candidate. Tests capture mail only at the
+provider network edge. `BEAM_EVIDENCE_DIR` adds Access/report browser checks at
+1440 and 390; use the host's current Playwright via `BEAM_PLAYWRIGHT_MODULE` and
+`BEAM_BROWSER_EXECUTABLE` when needed. Both checkout and temporary volumes must
+meet Base's disk guard; select a sufficiently large run-owned TMPDIR if needed.
+
+A proposed replacement must additionally repeat the relevant import-custody
+journeys (BEAM-15) and retained command journey (BEAM-16); its exact candidate
+requires the full branch Verify before landing. Future identity, mail, native
+client, provider and importer clauses inherit this qualification as they ship.

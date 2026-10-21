@@ -2,6 +2,7 @@
 // No environment files are discovered and no credential/provider is contacted.
 import { configurationIssues } from './installer/configuration.mjs'
 
+process.stdin.setEncoding('utf8')
 let input = ''
 try {
   for await (const chunk of process.stdin) {
