@@ -1,3 +1,4 @@
+import { ltiRequirements } from './lti-requirements'
 // Flows 6-9: learners resume lessons, take deterministic quizzes and submit
 // practical evidence; completion is recorded only when every requirement of the
 // exact assigned revision is met, and is bound to that revision.
@@ -117,6 +118,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     lessons: state.content.lessons.map(lesson => launchable ? { ...lesson, completed: state.done.has(lesson.id) } : { id: lesson.id, position: lesson.position, title: lesson.title, completed: state.done.has(lesson.id) }),
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
+    externalTools: await ltiRequirements(env, assignment),
     quiz: state.quizRequired ? { passPercent: assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, grading: state.quizGrading, bank: assessment!.questions.length, draw: assessment!.draw_count ?? null, shuffle: assessment!.shuffle === 1, feedback: assessment!.feedback ?? 'attempt', points: asked.reduce((sum, question) => sum + weightOf(question), 0), questions: (launchable ? asked : []).map(presentQuestion), ...timed! } : null,
     attendance: state.attendance.required === null ? null : { percent: state.attendance.required, met: state.attendance.met, record: state.attendance.record },
     survey: await surveyState(env, assignment.id, state.content.survey),
@@ -367,11 +369,12 @@ export async function tryComplete(env: Bindings, actor: Actor, assignmentId: str
   const assignment = await one(env, "SELECT * FROM beam_assignments WHERE id = ? AND status = 'open'", assignmentId)
   if (!assignment) return null
   const state = await progress(env, assignment)
-  if (!state.lessonsComplete || (state.quizRequired && !state.quizPassed) || (state.practicalRequired && !state.practicalAccepted) || !state.attendance.met) return null
+  const externalTools = await ltiRequirements(env, assignment)
+  if (externalTools.some(tool => !tool.passed) || !state.lessonsComplete || (state.quizRequired && !state.quizPassed) || (state.practicalRequired && !state.practicalAccepted) || !state.attendance.met) return null
   const assessment = state.content.assessment
   const quiz = state.attempts.find(attempt => attempt.kind === 'quiz' && attempt.passed === 1)
   const practical = state.attempts.find(attempt => attempt.kind === 'practical' && attempt.state === 'accepted')
-  const evidence = { lessons: state.content.lessons.map(lesson => lesson.id), quizAttempt: quiz?.id ?? null, practicalAttempt: practical?.id ?? null, ...(state.attendance.record ? { attendance: state.attendance.record.id } : {}) }
+  const evidence = { ...(externalTools.length ? { externalTools: externalTools.map(tool => ({ resource: tool.resource, lineitem: tool.lineitem, result: tool.result, revision: assignment.course_revision_id })) } : {}), lessons: state.content.lessons.map(lesson => lesson.id), quizAttempt: quiz?.id ?? null, practicalAttempt: practical?.id ?? null, ...(state.attendance.record ? { attendance: state.attendance.record.id } : {}) }
   return await recordCompletion(env, actor, { assignment: assignment.id, learner: assignment.learner_id, course: assignment.course_id, revision: assignment.course_revision_id, assessmentRevision: assessment?.id ?? null, method: assessment ? 'assessed' : 'lessons', evidence, renewalDays: assignment.renewal_days })
 }
 

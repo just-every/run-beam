@@ -1,3 +1,4 @@
+import { ltiView } from './lti'
 import { languageSettings } from './language'
 import { webhookView } from './webhooks'
 import { sourceExtraction } from './source-extraction'
@@ -67,6 +68,7 @@ type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promi
 export const views: Record<string, View> = {
   webhooks: webhookView,
   language: languageSettings,
+  lti: ltiView,
   'escalation-policy': async (env, actor) => { requireOwner(actor); return await escalationPolicy(env) },
   notifications: (env, actor) => notificationInbox(env, actor),
   'notification-rules': (env, actor) => notificationRulesView(env, actor),
@@ -146,7 +148,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
-  [/^webhooks$/, 'webhooks'], [/^language$/, 'language'],
+  [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],
   [/^escalation-policy$/, 'escalation-policy'],
   [/^notifications$/, 'notifications'], [/^notification-rules$/, 'notification-rules'],

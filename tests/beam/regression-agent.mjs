@@ -216,3 +216,161 @@ export async function webhookCheck() {
     assert.ok(!audit.includes(s.key) && !audit.includes(rotated.key))
   } finally { await h.close() }
 }
+
+// The external tool's JWTs are generated at its protocol boundary, using real RS256 keys.
+export async function ltiCheck() {
+  const { fixture } = await import('./regression-fixture.mjs')
+  const { generateKeyPairSync, sign, verify, createPublicKey } = await import('node:crypto')
+  const f = await fixture({ bindings: { BEAM_LTI_HOSTS: 'synthetic-beam-2.example.test' } })
+  const { h, api, ids, cookies, course, assign, publish } = f
+  const LTI = 'https://purl.imsglobal.org/spec/lti/claim/', DL = 'https://purl.imsglobal.org/spec/lti-dl/claim/', AGS = 'https://purl.imsglobal.org/spec/lti-ags/'
+  const pair = kid => {
+    const keys = generateKeyPairSync('rsa', { modulusLength: 2048 })
+    return { ...keys, kid, jwk: { ...keys.publicKey.export({ format: 'jwk' }), kid, alg: 'RS256', use: 'sig' } }
+  }
+  const toolKeys = pair('synthetic-beam-1'), rotatedKeys = pair('synthetic-beam-2')
+  const jwt = (key, claims) => {
+    const prefix = [Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT', kid: key.kid })).toString('base64url'), Buffer.from(JSON.stringify(claims)).toString('base64url')].join('.')
+    return prefix + '.' + sign('RSA-SHA256', Buffer.from(prefix), key.privateKey).toString('base64url')
+  }
+  const parse = token => JSON.parse(Buffer.from(token.split('.')[1], 'base64url'))
+  async function protocol(path, { body, token, status = 200, cookie } = {}) {
+    const response = await h.fetch('/api/beam/lti/' + path, { method: body ? 'POST' : 'GET', headers: { ...(body instanceof URLSearchParams ? { 'content-type': 'application/x-www-form-urlencoded' } : body ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}), ...(cookie ? { cookie } : {}) }, body: body instanceof URLSearchParams ? body : body ? JSON.stringify(body) : undefined })
+    const text = await response.text()
+    assert.equal(response.status, status, `lti/${path}: ${response.status} ${response.status >= 400 ? text.slice(0, 300) : ''}`)
+    return text ? JSON.parse(text) : null
+  }
+  const configure = { name: 'Reviewed external safety', issuer: h.origin, clientId: 'synthetic-beam-1', deployment: 'synthetic-beam-1', loginUrl: 'https://synthetic-beam-2.example.test/login', redirectUri: 'https://synthetic-beam-2.example.test/launch', jwks: { keys: [toolKeys.jwk] }, consent: true }
+  async function authorize(role, prepared, overrides = {}, status = 200) {
+    const login = new URL(prepared.loginUrl), q = new URLSearchParams({ client_id: login.searchParams.get('client_id'), redirect_uri: configure.redirectUri, login_hint: login.searchParams.get('login_hint'), lti_message_hint: login.searchParams.get('lti_message_hint'), nonce: 'synthetic-beam-1', state: 'synthetic-beam-1', scope: 'openid', prompt: 'none', response_type: 'id_token', response_mode: 'form_post', ...overrides })
+    const response = await h.raw('/api/beam/lti/authorize?' + q, { cookie: cookies[role] }), html = await response.text()
+    assert.equal(response.status, status, html.slice(0, status === 200 ? 0 : 300))
+    if (status !== 200) return null
+    assert.match(response.headers.get('content-security-policy'), /form-action https:\/\/synthetic-beam-2.example.test/)
+    assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
+    const token = html.match(/name="id_token" value="([^"]+)"/)[1], claims = parse(token), keys = (await protocol('jwks')).keys
+    const header = JSON.parse(Buffer.from(token.split('.')[0], 'base64url')), key = keys.find(k => k.kid === header.kid)
+    assert.ok(verify('RSA-SHA256', Buffer.from(token.split('.').slice(0, 2).join('.')), createPublicKey({ key, format: 'jwk' }), Buffer.from(token.split('.')[2], 'base64url')))
+    assert.ok(!['email','name','given_name','family_name','picture'].some(field => field in claims))
+    assert.notEqual(claims.sub, ids[role]); assert.equal(claims.nonce, 'synthetic-beam-1')
+    return { token, claims, path: '/api/beam/lti/authorize?' + q, html }
+  }
+  async function grant(key = toolKeys, extra = {}, status = 200, client = configure.clientId) {
+    const seconds = Math.floor(Date.now() / 1000), claims = { iss: client, sub: client, aud: h.origin + '/api/beam/lti/token', iat: seconds, exp: seconds + 120, jti: crypto.randomUUID(), ...extra }
+    const body = new URLSearchParams({ client_id: client, grant_type: 'client_credentials', scope: AGS + 'scope/score', client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer', client_assertion: jwt(key, claims) })
+    const result = await protocol('token', { body, status })
+    return { ...result, body }
+  }
+  try {
+    await api('manager', 'lti.register', configure, 403)
+    await api('owner', 'lti.register', { ...configure, issuer: 'https://foreign.example.test' }, 400)
+    await api('owner', 'lti.register', { ...configure, consent: false }, 400)
+    await api('owner', 'lti.register', { ...configure, loginUrl: 'https://127.0.0.1/login' }, 403)
+    await api('owner', 'lti.register', { ...configure, jwks: { keys: [{ ...toolKeys.jwk, d: 'synthetic-beam-1' }] } }, 400)
+    const tool = await api('owner', 'lti.register', configure)
+    assert.equal(tool.authorizationEndpoint, h.origin + '/api/beam/lti/authorize')
+    assert.equal((await protocol('jwks')).keys.length, 1)
+    const c = await course('LTI safety requirement'), draft = await api('author', `courses/${c.id}`)
+    const prepared = await api('owner', 'lti.deep-link', { tool: tool.id, course: c.id })
+    await authorize('learner', prepared, {}, 403)
+    await authorize('owner', prepared, { redirect_uri: 'https://foreign.example.test/launch' }, 403)
+    const selection = await authorize('owner', prepared)
+    assert.equal(selection.claims[LTI + 'message_type'], 'LtiDeepLinkingRequest')
+    assert.equal(selection.claims[LTI + 'deployment_id'], configure.deployment)
+    assert.equal(selection.claims[DL + 'deep_linking_settings'].auto_create, false)
+    await authorize('owner', prepared, {}, 403)
+    const sec = Math.floor(Date.now() / 1000), responseClaims = { iss: configure.clientId, aud: h.origin, iat: sec, exp: sec + 120, [LTI + 'version']: '1.3.0', [LTI + 'deployment_id']: configure.deployment, [LTI + 'message_type']: 'LtiDeepLinkingResponse', [DL + 'data']: selection.claims[DL + 'deep_linking_settings'].data, [DL + 'content_items']: [{ type: 'ltiResourceLink', title: 'External safety exercise', url: 'https://synthetic-beam-2.example.test/activity' }] }
+    await protocol('deep-link', { body: new URLSearchParams({ JWT: jwt(toolKeys, { ...responseClaims, [LTI + 'deployment_id']: 'foreign' }) }), status: 403 })
+    const responseBody = new URLSearchParams({ JWT: jwt(toolKeys, responseClaims) })
+    await protocol('deep-link', { body: responseBody, cookie: cookies.owner, status: 403 })
+    const resource = await protocol('deep-link', { body: responseBody })
+    assert.equal(resource.state, 'selected_not_published')
+    await protocol('deep-link', { body: responseBody, status: 409 })
+    await api('author', 'lti.attach', { resource: resource.id, course: c.id, draftVersion: draft.draftVersion, lesson: draft.draft.lessons[0].id, passPercent: 80 }, 403)
+    const attached = await api('owner', 'lti.attach', { resource: resource.id, course: c.id, draftVersion: draft.draftVersion, lesson: draft.draft.lessons[0].id, passPercent: 80 })
+    const revision = (await api('author', 'course.submit', { course: c.id, draftVersion: attached.draftVersion })).id
+    await publish(revision)
+    const assignment = await assign(c), view = await api('learner', `assignments/${assignment}`)
+    assert.equal(view.externalTools[0].passed, false)
+    await api('manager', 'lti.launch', { assignment, resource: resource.id }, 403)
+    const launch = await api('learner', 'lti.launch', { assignment, resource: resource.id })
+    const opened = await authorize('learner', launch), payload = opened.claims
+    assert.equal(payload[LTI + 'message_type'], 'LtiResourceLinkRequest')
+    assert.equal(payload[LTI + 'resource_link'].id, resource.id)
+    const endpoint = payload[AGS + 'claim/endpoint'].lineitem.replace(h.origin + '/api/beam/lti/', '') + '/scores'
+    assert.deepEqual(payload[AGS + 'claim/endpoint'].scope, [AGS + 'scope/score'])
+    let token = await grant()
+    await protocol('token', { body: token.body, status: 401 })
+    await grant(toolKeys, { aud: 'https://foreign.example.test/token' }, 401)
+    await grant(toolKeys, { exp: sec - 1 }, 401)
+    const foreign = await api('owner', 'lti.register', { ...configure, clientId: 'synthetic-beam-2', deployment: 'synthetic-beam-2' })
+    const foreignToken = await grant(toolKeys, {}, 200, 'synthetic-beam-2')
+    let stamp = Date.now()
+    const score = (extra = {}) => ({ userId: payload.sub, scoreGiven: 100, scoreMaximum: 100, activityProgress: 'Completed', gradingProgress: 'FullyGraded', timestamp: new Date(stamp++).toISOString(), ...extra })
+    await protocol(endpoint, { body: score(), token: foreignToken.access_token, status: 404 })
+    await protocol(endpoint, { body: score({ userId: 'foreign' }), token: token.access_token, status: 400 })
+    await protocol(endpoint, { body: score({ scoreMaximum: 0 }), token: token.access_token, status: 400 })
+    await protocol(endpoint, { body: score({ scoreGiven: 0 }), token: token.access_token })
+    assert.equal((await api('learner', `assignments/${assignment}`)).externalTools[0].passed, false)
+    await protocol(endpoint, { body: score({ activityProgress: 'InProgress' }), token: token.access_token })
+    assert.equal((await api('learner', `assignments/${assignment}`)).externalTools[0].passed, false)
+    const passed = score(), received = await protocol(endpoint, { body: passed, token: token.access_token })
+    assert.equal(received.completion, null, 'an external grade never substitutes native lesson evidence')
+    await protocol(endpoint, { body: passed, token: token.access_token, status: 409 })
+    const link2 = (await api('owner', 'lti.platform.rotate', {})).kid
+    const again = await authorize('learner', await api('learner', 'lti.launch', { assignment, resource: resource.id }))
+    assert.equal(JSON.parse(Buffer.from(again.token.split('.')[0], 'base64url')).kid, link2)
+    assert.ok((await protocol('jwks')).keys.length >= 2, 'old public key remains during token expiry overlap')
+    await api('owner', 'lti.keys', { tool: tool.id, version: 1, jwks: { keys: [rotatedKeys.jwk] } })
+    await grant(toolKeys, {}, 401)
+    await protocol(endpoint, { body: score(), token: token.access_token, status: 401 })
+    token = await grant(rotatedKeys)
+    await f.lessons(assignment)
+    const completed = (await api('learner', 'records/me')).completions.find(row => row.course === c.id)
+    assert.ok(completed && completed.revision === revision)
+    const row = await h.db.prepare('SELECT course_revision_id,evidence_json FROM beam_completions WHERE id=?').bind(completed.id).first()
+    assert.equal(row.course_revision_id, revision)
+    const evidence = JSON.parse(row.evidence_json)
+    assert.ok(evidence.externalTools[0].result && evidence.externalTools[0].resource === resource.id && evidence.externalTools[0].revision === revision)
+    await protocol(endpoint, { body: score(), token: token.access_token, status: 409 })
+    if (process.env.BEAM_LTI_BROWSER === '1') await ltiBrowserCheck(f, { course: c.id, revision, assignment, resource: resource.id, configure })
+    const pendingAssignment = await assign(c)
+    const pending = await authorize('learner', await api('learner', 'lti.launch', { assignment: pendingAssignment, resource: resource.id }))
+    const pendingEndpoint = pending.claims[AGS + 'claim/endpoint'].lineitem.replace(h.origin + '/api/beam/lti/', '') + '/scores'
+    await api('owner', 'lti.revoke', { tool: tool.id })
+    await protocol(pendingEndpoint, { body: score(), token: token.access_token, status: 401 })
+    await grant(rotatedKeys, {}, 403)
+    await api('learner', 'lti.launch', { assignment: pendingAssignment, resource: resource.id }, 403)
+    await api('learner', 'lti', undefined, 403)
+    assert.ok((await api('owner', 'lti')).results.every(result => result.revision_id === revision))
+    const old = await h.db.prepare('SELECT evidence_json FROM beam_completions WHERE id=?').bind(completed.id).first()
+    assert.deepEqual(JSON.parse(old.evidence_json), evidence, 'revocation/rotation never rewrite completion lineage')
+  } finally { await h.close() }
+}
+
+async function ltiBrowserCheck(f, item) {
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const { mkdir } = await import('node:fs/promises'), { join } = await import('node:path')
+  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  await mkdir(evidence, { recursive: true })
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
+      const page = await context.newPage()
+      async function as(role) { await context.clearCookies(); await context.addCookies(f.cookies[role].split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin }))) }
+      async function shot(name) { assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} overflow ${width}`); await page.screenshot({ path: join(evidence, `${width}-lti-${name}.png`), fullPage: true }) }
+      await as('learner'); await page.goto(`${f.h.origin}/app/learn/${item.assignment}`); await page.getByRole('heading', { name: 'External learning tools', exact: true }).waitFor(); await shot('course')
+      const pending = await f.assign({ id: item.course })
+      const prepared = await f.api('learner', 'lti.launch', { assignment: pending, resource: item.resource }), q = new URL(prepared.loginUrl).searchParams
+      const query = new URLSearchParams({ client_id: q.get('client_id'), login_hint: q.get('login_hint'), lti_message_hint: q.get('lti_message_hint'), redirect_uri: item.configure.redirectUri, nonce: 'synthetic-beam-1', state: 'synthetic-beam-1', scope: 'openid', prompt: 'none', response_type: 'id_token', response_mode: 'form_post' })
+      await page.goto(`${f.h.origin}/api/beam/lti/authorize?${query}`); await page.getByRole('button', { name: 'Continue to external tool', exact: true }).waitFor(); await shot('handoff')
+      const view = await f.api('learner', `assignments/${pending}`)
+      await page.goto(`${f.h.origin}/app/learn/${pending}/lessons/${view.lessons[0].id}`); await page.getByText(/external learning tool\. Open the tool/).waitFor(); await shot('lesson')
+      await f.api('manager', 'assignment.cancel', { assignment: pending, reason: 'Browser proof completed' })
+      await as('author'); await page.goto(`${f.h.origin}/app/courses/${item.course}`); await shot('author')
+      await as('reviewer'); await page.goto(`${f.h.origin}/app/revisions/${item.revision}`); await shot('review')
+      await context.close(); console.log(`PASS LTI course/lesson/handoff/author/review ${width}`)
+    }
+  } finally { await browser.close() }
+}

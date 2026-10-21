@@ -324,8 +324,9 @@ export async function languageCheck() {
     assert.deepEqual(await language(), { language: 'es-US', source: 'person' })
     const c = await api('author', 'course.create', { title: 'English safety course', reviewer: ids.reviewer })
     const lesson = await api('author', 'course.lesson', { course: c.id, draftVersion: c.draftVersion, title: 'English procedure', body: 'USER CONTENT: My learning. Use clean tools.', sources: [] })
-    const question = await api('author', 'course.question', { course: c.id, draftVersion: lesson.draftVersion, prompt: 'USER QUESTION: Choose clean', choices: ['Clean', 'Dirty'], correct: [0] })
-    await f.publish((await api('author', 'course.submit', { course: c.id, draftVersion: question.draftVersion })).id)
+    const question = await api('author', 'course.question', { course: c.id, draftVersion: lesson.draftVersion, prompt: 'USER QUESTION: Choose clean', choices: 'Clean\nDirty', correct: '1' })
+    const rules = await api('author', 'course.assessment', { course: c.id, draftVersion: question.draftVersion, passPercent: 80, maxAttempts: 3 })
+    await f.publish((await api('author', 'course.submit', { course: c.id, draftVersion: rules.draftVersion })).id)
     const assignment = await assign(c)
     const page = async path => { const response = await h.raw(path, { cookie: cookies.learner }); assert.equal(response.status, 200, path); return response.text() }
     let dashboard = await page('/app/learning')

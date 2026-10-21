@@ -1,3 +1,4 @@
+import { ltiPublicResponse, authorizeLti, launchLti } from './lti'
 import { languagePreference } from './language'
 import { dataExport, dataExportFile } from './data-export'
 import { diagnosesPage } from './ui/diagnoses'
@@ -85,6 +86,8 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
   const env = runtimeBindings(original)
   const url = new URL(request.url)
   const api = url.pathname.startsWith('/api/beam/')
+  const protocol = await ltiPublicResponse(env, request).catch(error => { const { code, status } = failure(error); return json({ error: code }, status) })
+  if (protocol) return protocol
   // LEARN-002: a certificate's verification link is public and shows only what its template approves.
   const verify = url.pathname.match(/^\/verify\/([^/]+)$/)
   if (verify && ['GET', 'HEAD'].includes(request.method)) return await verifyPage(env, verify[1]).catch(() => new Response('Not found', { status: 404 }))
@@ -100,6 +103,8 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     actor.locale = (await languagePreference(env, actor.id)).language
     const view = await viewDoor(env, actor, request, url, api)
     if (view) return view
+    if (url.pathname === '/api/beam/lti/authorize') return await authorizeLti(env, actor, request)
+    if (url.pathname === '/app/lti/launch' && request.method === 'POST') { const result = await launchLti(env, actor, await Input.from(request)); return Response.redirect(result.loginUrl, 303) }
     if (api) return await apiResponse(env, actor, request, url)
     return await pageResponse(env, actor, request, url)
   } catch (error) {

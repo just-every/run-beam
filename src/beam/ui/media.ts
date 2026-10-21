@@ -16,6 +16,7 @@ export function renderBlocks(blocks: Block[] | undefined, hosts: string[]): Html
     else if (block.kind === 'audio' || block.kind === 'video') content = h`<figure>${block.kind === 'audio' ? h`<audio controls preload="metadata" src="${source}" aria-label="${block.text}"></audio>` : h`<video controls preload="metadata" src="${source}" aria-label="${block.text}"></video>`}<figcaption>${block.text} · <a href="${source}" download>Download original</a></figcaption></figure>`
     else if (block.kind === 'document') content = h`<figure><figcaption><a href="${source}?download=1" download>Download ${block.text} (PDF)</a></figcaption><p class="muted">If your browser supports a protected PDF preview, you can read it here. Otherwise, download the original document.</p><details><summary>Preview PDF</summary><iframe class="lesson-document" src="${source}" title="${block.text}" sandbox="" loading="lazy"></iframe></details></figure>`
     else if (block.kind === 'link') content = h`<p><a href="${block.url}" target="_blank" rel="noopener noreferrer">${block.text}</a></p>`
+    else if (block.kind === 'lti') content = h`<p>${block.text}: external learning tool. Open the tool from this course’s overview; its grade is required alongside every native lesson and assessment.</p>`
     else if (block.kind === 'embed') {
       let admitted = false
       try { admitted = hosts.includes(safeUrl(block.url!).hostname) } catch { /* old untrusted data remains inert */ }

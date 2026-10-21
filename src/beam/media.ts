@@ -3,9 +3,10 @@ import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
 import { auditVia, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
-export const BLOCK_KINDS = ['text', 'image', 'audio', 'video', 'document', 'link', 'check', 'embed'] as const
+export const BLOCK_KINDS = ['text', 'image', 'audio', 'video', 'document', 'link', 'check', 'embed', 'lti'] as const
 export interface Block {
   id: string; kind: typeof BLOCK_KINDS[number]; text: string; source?: string; url?: string
+  resource?: string; passPercent?: number;
   choices?: string[]; answer?: number; feedback?: string
   copiedFrom?: { course: string; lesson: string; block: string; courseTitle?: string; lessonTitle?: string }
 }
@@ -75,6 +76,11 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
     if (block.kind === 'embed' || block.kind === 'link') {
       insist(typeof item.url === 'string' && item.url.length <= 2000, 'invalid_media_url')
       block.url = block.kind === 'embed' ? (admit ? await allowedEmbed(env, item.url) : safeUrl(embedUrl(item.url)).href) : safeUrl(item.url).href
+    }
+    if (block.kind === 'lti') {
+      insist(typeof item.resource === 'string' && await one(env, 'SELECT 1 FROM beam_lti_resources WHERE id=?', item.resource), 'lti_resource_not_found', 404)
+      insist(Number.isInteger(item.passPercent) && item.passPercent >= 1 && item.passPercent <= 100, 'invalid_lti_threshold')
+      block.resource = item.resource; block.passPercent = item.passPercent
     }
     if (block.kind === 'check') {
       insist(Array.isArray(item.choices) && item.choices.length >= 2 && item.choices.length <= 8 && item.choices.every((choice: unknown) => typeof choice === 'string' && choice.trim() && choice.length <= 500), 'invalid_check_choices')

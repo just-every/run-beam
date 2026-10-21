@@ -123,7 +123,7 @@ ${view.dueExceptions.length ? h`<p class="muted">${view.dueExceptions.map(change
 ${view.blocked ? h`<p class="flash">Complete the prerequisite course first; your manager can see this requirement.</p>` : ''}
 ${resetNotice}${exceptionNotice(view, a, zone)}${a.status === 'open' ? accessBanner(view.access, zone) : ''}
 ${launchable && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? t(actor, 'Resume') : t(actor, 'Start')}</a></p>` : ''}
-${completion}
+${completion}${view.externalTools.length ? card('External learning tools', view.externalTools.map(tool => h`<div><h3>${tool.title}</h3><p>${tool.passed ? 'Required grade received' : `Required grade: ${tool.passPercent}%`}. Native lessons and assessment are still required.</p>${launchable && !view.blocked && a.learner === actor.id && !actor.viewAs ? h`<form method="post" action="/app/lti/launch">${hidden('assignment', id)}${hidden('resource', tool.resource)}<button type="submit">Open ${tool.title}</button></form>` : ''}</div>`)) : ''}
 <div class="split">${lessons}<div class="stack">${moved}${feedbackCard}${quiz}${surveyCard(id, view, actor)}${practical}${attendance}${practiceCard}${attempts}${history}${access}${blockers}${manage}${exceptions}</div></div>`
   return page(a.courseTitle, actor, body, { current: '/app/learning', url })
 }

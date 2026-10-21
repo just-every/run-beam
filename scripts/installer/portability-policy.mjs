@@ -10,9 +10,11 @@ const LINKS = new Set(['beam_certificate_links', 'beam_dashboard_shares'])
 
 export default {
   product: 'learning/beam',
+  excludeTables: ['beam_lti_tokens'],
   buckets: { files: { prefix: 'sha256/' } },
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   exportRow(table, row) {
+    if (table === 'beam_lti_platform_keys') return { ...row, private_cipher: WITHHELD }
     if (table === 'beam_webhook_subscriptions') return { ...row, key_cipher: WITHHELD, enabled: 0 }
     if (table === 'beam_app_credentials') return { ...row, secret_sha256: WITHHELD }
     // A named report viewer has no token; only link rows carry one.

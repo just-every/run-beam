@@ -1,3 +1,4 @@
+import { registerLti, rotateLtiKeys, revokeLti, rotateLtiPlatform, deepLinkLti, attachLti, launchLti } from './lti'
 import { setMyLanguage, setLanguageDefault } from './language'
 import { requireOwner } from './actor'
 import { subscribeWebhook, rotateWebhook, setWebhookState, replayWebhook, runWebhooks } from './webhooks'
@@ -81,6 +82,8 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'lti.register': registerLti, 'lti.keys': rotateLtiKeys, 'lti.revoke': revokeLti,
+  'lti.platform.rotate': rotateLtiPlatform, 'lti.deep-link': deepLinkLti, 'lti.attach': attachLti, 'lti.launch': launchLti,
   'language.change': setMyLanguage,
   'language.default': setLanguageDefault,
   'webhook.subscribe': subscribeWebhook,
