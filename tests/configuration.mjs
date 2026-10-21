@@ -4,6 +4,13 @@ import { randomBytes } from 'node:crypto'
 
 // OPS-007: exercise the documented operator command, never its implementation.
 export function configurationCheck(vars) {
+  const cwd = process.env.BEAM_WORKER_CHECKOUT || process.cwd()
+  for (const args of [['scripts/edition-authoring/cli.mjs', 'check'], ['scripts/edition-authoring/cli.mjs', 'verify-base', '--offline']]) {
+    const result = spawnSync(process.execPath, args, { cwd, encoding: 'utf8' })
+    assert.equal(result.status, 0, `OPS-007: public ${args[1]} integrity check passes`)
+  }
+  const firstParty = spawnSync('pnpm', ['exec', 'rer', 'check', '--profile', 'first-party'], { cwd, encoding: 'utf8' })
+  assert.equal(firstParty.status, 0, 'OPS-007: the public first-party check passes')
   const run = input => {
     const result = spawnSync(process.execPath, ['scripts/diagnose-configuration.mjs'], { input: typeof input === 'string' ? input : JSON.stringify(input), encoding: 'utf8' })
     assert.equal(result.stderr, '', 'OPS-007: diagnostics never dump errors or input to stderr')
