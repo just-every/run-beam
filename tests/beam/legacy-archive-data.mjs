@@ -46,7 +46,7 @@ export async function createLegacyData(root, origin) {
   assert.equal((await fetch(`${origin}/api/beam/v1/report`, { headers: { authorization: `Bearer ${app.token}` } })).status, 200)
   assert.equal((await c.request(link.path)).status, 200)
   await c.api(`dashboards/${dashboard.id}?key=${key}`)
-  return { source, course, completion, app, link, dashboard, share, key, ownerId, learnerId, digests: [digest(app.token.split('.')[2]), digest(link.id), digest(key)], sourceDigest: digest(procedureV1) }
+  return { source, course, completion, app, link, dashboard, share, key, ownerId, ownerCookie: c.owner.cookie, learnerId, digests: [digest(app.token.split('.')[2]), digest(link.id), digest(key)], sourceDigest: digest(procedureV1) }
 }
 
 export { digest }

@@ -3396,11 +3396,11 @@
       "executable": false
     },
     "tests/beam/legacy-archive-data.mjs": {
-      "sha256": "4675cf6b08c973dd90c658be8f3037ae0d625bb6d20e131563f33f66d0c8e361",
+      "sha256": "e00d90265507c27d4c3c4ae21fe2dee56ff9d9b1bb859b2404625ff2425f90cd",
       "executable": false
     },
     "tests/beam/legacy-restore.mjs": {
-      "sha256": "da9e53c212a834da29f58d6bda0111affc070fd4980a92bd89e24934e539a629",
+      "sha256": "4cea3e697f590040014d6a3d760f6938b7471a3b0d74ceae95c756e9bc32ce62",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
