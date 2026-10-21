@@ -137,7 +137,9 @@ export async function webhookCheck() {
       return api('owner', 'automation.policy', { version: policy.version, paused: false, quietStart: 0, quietEnd: 0, dailyLimit: 1000, ...changes })
     }
     // Enrollment/renewal carry the same native assignment and exact revision as the learner sees.
-    const enrollment = (await api('manager', 'assignment.create', { course: c.id, learners: [ids.learner], dueDate: '2030-01-01', dueTime: '17:00', timezone: 'UTC', renewalDays: 1 })).created[0]
+    const path = (await api('manager', 'path.create', { name: 'Annual learning', team: ids.team })).id
+    await api('manager', 'path.revise', { path, courses: [c.id], dueDays: ['30'], renewalDays: ['1'] })
+    const enrollment = (await api('manager', 'path.assign', { path })).created[0]
     await configure({ paused: true }); await run()
     let d = (await view()).deliveries.find(d => d.type === 'enrollment' && JSON.parse(d.data).assignment === enrollment)
     assert.equal(d.outcome, 'paused'); assert.equal(h.edge.webhooks.length, 3)

@@ -1100,7 +1100,7 @@
       "executable": false
     },
     "src/beam/assignments.ts": {
-      "sha256": "8beea358a53d4c87a385b88e31c0d5ba41be392fa82ebbe6f556753c7f7260ce",
+      "sha256": "f05a68abf9cdf9746d554664336a0ea9274c3c253f1e3a9543ce07f4cda50e0d",
       "executable": false
     },
     "src/beam/attendance.ts": {
@@ -3476,7 +3476,7 @@
       "executable": false
     },
     "tests/beam/regression-agent.mjs": {
-      "sha256": "24bf604961d451fdf69ee775aa8c0d12ff43418116eeb780e270866e3457cd76",
+      "sha256": "c72988c0562a3db2da41d37d395ffdc6aa0b7a21d8b978583b30a700bdb6e357",
       "executable": false
     },
     "tests/beam/regression-announcement-sessions.mjs": {
