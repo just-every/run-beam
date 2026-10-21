@@ -570,7 +570,7 @@
       "executable": false
     },
     "migrations/core/0072_beam_session_announcements.sql": {
-      "sha256": "80339b780af6c4882730fcf9f110abdfe406f711f63dd367f9407972c0a44d30",
+      "sha256": "508c8447df49a3f5d38565b566fe7ea21ebedd450ea0e7ead7696f60f15b41ca",
       "executable": false
     },
     "ONBOARDING.md": {
