@@ -2,7 +2,7 @@
 // versions, and restore an earlier revision into the draft.
 import type { Bindings } from '../../auth.server'
 import type { Actor } from '../actor'
-import type { Row } from '../core'
+import { all, type Row } from '../core'
 import { courseDetail } from '../courses'
 import type { LineDiff } from '../diff'
 import { compareRevisions, compareSourceVersions } from '../history'
@@ -10,7 +10,8 @@ import { business, memberNames } from '../people'
 import { listSources } from '../sources'
 import { backLink, bytes, card, form, h, hidden, page, select, when, type Html } from './html'
 
-const RULES: Record<string, string> = { title: 'Title', summary: 'Summary', passPercent: 'Pass mark (%)', maxAttempts: 'Quiz attempts allowed', timeLimitMinutes: 'Time limit (minutes)', practicalAssessor: 'Practical assessor' }
+const RULES: Record<string, string> = { title: 'Title', summary: 'Summary', passPercent: 'Pass mark (%)', maxAttempts: 'Quiz attempts allowed', timeLimitMinutes: 'Time limit (minutes)', practicalAssessor: 'Practical assessor', drawCount: 'Questions drawn per attempt', shuffle: 'Shuffled question order', feedback: 'When learners see which answers were right', attendancePercent: 'Attendance required (%)' }
+const FEEDBACKS: Record<string, string> = { attempt: 'after every attempt', final: 'once passed or out of attempts', score: 'never (score only)' }
 const CHANGES: Record<string, string> = { same: 'unchanged', moved: 'moved', changed: 'changed', added: 'added', removed: 'removed' }
 
 /** A line comparison as a list: added lines are <ins>, removed lines <del>, each also marked + or − in text. */
@@ -31,10 +32,12 @@ export async function revisionComparePage(env: Bindings, actor: Actor, courseId:
   const from = url.searchParams.get('from') ?? '', to = url.searchParams.get('to') ?? ''
   const compared = await compareRevisions(env, actor, from, to)
   if (compared.course !== courseId) return page('Compare', actor, h`<h1>Those revisions belong to another course</h1>`, { status: 404 })
-  const [sources, names] = await Promise.all([listSources(env, actor), memberNames(env)])
-  const label = new Map(sources.flatMap(source => source.versions.map((version: any) => [version.id, `${source.title} v${version.number}`] as const)))
-  const author = actor.owner || actor.roles.has('author')
-  const ruleValue = (name: string, value: unknown) => value === null ? 'none' : name === 'practicalAssessor' ? names.get(String(value)) ?? String(value) : String(value)
+  // A course's own author (ORG-003) has no global source list: the versions the two revisions cite are named from the lessons.
+  const cited = [...new Set(compared.lessons.flatMap(lesson => [...lesson.sources.added, ...lesson.sources.removed]))]
+  const [versions, names] = await Promise.all([cited.length ? all<{ id: string; number: number; title: string }>(env, `SELECT v.id, v.number, s.title FROM beam_source_versions v JOIN beam_sources s ON s.id = v.source_id WHERE v.id IN (${cited.map(() => '?').join(',')})`, ...cited) : [], memberNames(env)])
+  const label = new Map(versions.map(version => [version.id, `${version.title} v${version.number}`] as const))
+  const author = actor.owner || actor.roles.has('author') || actor.authorOf.includes(courseId)
+  const ruleValue = (name: string, value: unknown) => value === null ? 'none' : name === 'practicalAssessor' ? names.get(String(value)) ?? String(value) : name === 'shuffle' ? (value ? 'on' : 'off') : name === 'feedback' ? FEEDBACKS[String(value)] ?? String(value) : String(value)
   const body = h`${backLink(`/app/courses/${courseId}`, course.title)}<h1>Revision ${compared.from.number} compared with revision ${compared.to.number}</h1>
 <p class="subtitle">${compared.changed ? 'Changes from the earlier to the later revision.' : 'The two revisions teach and assess the same content.'}</p>
 <section class="card settings">${compareForm(courseId, course.revisions, from, to)}</section>

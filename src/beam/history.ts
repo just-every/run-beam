@@ -5,6 +5,7 @@
 // restored content publishes as a new revision through ordinary review.
 import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
+import { requireCourseRole } from './units'
 import { editDraft, revisionDetail, type Draft, type Question } from './courses'
 import { insist, one, sha256Hex, type Row } from './core'
 import { answerText } from './question-types'
@@ -33,9 +34,10 @@ const lessonRef = (lesson: Lesson | null) => lesson ? { position: lesson.positio
 const choiceText = (question: Question) => answerText(question)
 
 export async function compareRevisions(env: Bindings, actor: Actor, fromId: string, toId: string) {
-  requireRole(actor, 'author', 'reviewer', 'manager')
   insist(fromId && toId, 'revisions_required')
   const [from, to] = await Promise.all([revisionDetail(env, fromId), revisionDetail(env, toId)])
+  // A course's own author (ORG-003) compares that course's revisions like a global author does.
+  await requireCourseRole(env, actor, from.revision.course_id, 'author', 'reviewer', 'manager')
   insist(from.revision.course_id === to.revision.course_id, 'revisions_from_different_courses')
   const side = (detail: typeof from) => ({ id: detail.revision.id, number: detail.revision.number, state: detail.revision.state })
   const lessons = pairLessons(from.lessons, to.lessons).map(pair => {
@@ -58,6 +60,10 @@ export async function compareRevisions(env: Bindings, actor: Actor, fromId: stri
     rule('maxAttempts', from.assessment?.max_attempts, to.assessment?.max_attempts),
     rule('timeLimitMinutes', from.assessment?.time_limit_minutes, to.assessment?.time_limit_minutes),
     rule('practicalAssessor', from.assessment?.assessor_id, to.assessment?.assessor_id),
+    rule('drawCount', from.assessment?.draw_count, to.assessment?.draw_count),
+    rule('shuffle', from.assessment ? Boolean(from.assessment.shuffle) : null, to.assessment ? Boolean(to.assessment.shuffle) : null),
+    rule('feedback', from.assessment?.feedback, to.assessment?.feedback),
+    rule('attendancePercent', from.revision.attendance_percent, to.revision.attendance_percent),
   ]
   return {
     course: from.revision.course_id, from: side(from), to: side(to),
@@ -109,6 +115,12 @@ export const restoreRevision = (env: Bindings, actor: Actor, input: Input) => ed
     maxAttempts: detail.assessment?.max_attempts ?? null,
     timeLimitMinutes: detail.assessment?.time_limit_minutes ?? null,
     practical: detail.assessment?.practical_instructions ? { instructions: detail.assessment.practical_instructions, assessor: detail.assessment.assessor_id } : null,
+    attendancePercent: detail.revision.attendance_percent ?? null,
+    drawCount: detail.assessment?.draw_count ?? null,
+    shuffle: Boolean(detail.assessment?.shuffle),
+    feedback: detail.assessment?.feedback ?? 'attempt',
+    assessor: detail.assessment?.practical_instructions ? null : detail.assessment?.assessor_id ?? null,
+    survey: detail.survey,
   }
   Object.assign(draft, restored)
 }, { revision: input.text('revision') })
