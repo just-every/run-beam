@@ -31,7 +31,8 @@
     "test:regressions": "node tests/beam/regressions.mjs",
     "test:journey": "node tests/beam/journey.mjs",
     "test:site": "node --test tests/site/site.test.mjs",
-    "diagnose:configuration": "node scripts/diagnose-configuration.mjs"
+    "diagnose:configuration": "node scripts/diagnose-configuration.mjs",
+    "test:legacy-restore": "node tests/beam/legacy-restore.mjs"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.41",

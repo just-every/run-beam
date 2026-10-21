@@ -576,7 +576,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "b9ad2a509812a738cae712aeb3facc411675d059115905595be3ec033300b1f8",
+      "sha256": "5d56d3e5c4673ba126d949764ac21fc6d3357abadeada66bb0c20d4c902eb0ca",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -3393,6 +3393,14 @@
     },
     "tests/beam/journey.mjs": {
       "sha256": "c13d0ab91168d66bfa6142f25470aa834b54c9c73e360c2d684ba75c5958a474",
+      "executable": false
+    },
+    "tests/beam/legacy-archive-data.mjs": {
+      "sha256": "4675cf6b08c973dd90c658be8f3037ae0d625bb6d20e131563f33f66d0c8e361",
+      "executable": false
+    },
+    "tests/beam/legacy-restore.mjs": {
+      "sha256": "744168c6b43e436a86cc7ef6bf0a159384660f23ba108d316ba71d57cf3a878c",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
