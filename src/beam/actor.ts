@@ -40,6 +40,8 @@ export interface Actor {
   grants: Partial<Record<Permission, Reach>>
   /** ORG-005: holds an active auditor grant (read-only shared evidence). */
   auditor: boolean
+  /** ORG-005: active instructor access; individual session/course authority is still checked at each door. */
+  instructor?: boolean
   /** CONNECT-014: set for an application credential's request (app-credentials.ts); agent is also true. */
   app?: { id: string; name: string; audience: string; tools: string[] }
   /** ORG-012: set while a viewer sees Beam as this learner, read-only (view-as.ts); the request runs as the learner. */
@@ -83,7 +85,8 @@ async function resolveAuthority(env: Bindings, member: { id: string; name: strin
   const learners = teams && (await all<{ member_id: string }>(env, 'SELECT DISTINCT member_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(teams))).map(row => row.member_id)
   const grants = agent || owner ? {} : await customGrants(env, member.id)
   const auditor = !agent && !owner && !!await one(env, 'SELECT 1 FROM beam_auditor_grants WHERE member_id = ? AND revoked_at IS NULL AND expires_at > ?', member.id, now())
-  return { id: member.id, sessionId, sessionKind, email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners, grants, auditor }
+  const instructor = !agent && !!await one(env, 'SELECT 1 FROM beam_instructor_grants WHERE member_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)', member.id, now())
+  return { instructor, id: member.id, sessionId, sessionKind, email, name: member.name, business: member.business ?? null, owner, agent, roles, adminUnits, authorOf, managedTeams, teams, learners, grants, auditor }
 }
 
 /** The permissions of every custom role this member holds, merged, each with the teams, units and people it reaches. */

@@ -39,6 +39,9 @@ export async function instructorsCheck(f) {
     assert.ok([403, 404].includes(refused.status), `${action} ${refused.status}`)
   }
 
+  // ORG-005: instructor access never opens course or team announcement audiences.
+  for (const audience of [`team:${ids.team}`, `course:${ladder.id}`]) await api('learner', 'announcement.send', { audience, title: 'No', body: 'No' }, 403)
+
   // After the access ends: no roster, evidence, calendar or new naming; the records stay for the schedulers.
   await h.db.prepare('UPDATE beam_instructor_grants SET expires_at = ? WHERE id = ?').bind(Date.now() - 1000, grant.id).run()
   await api('learner', `sessions/${session}/roster`, undefined, 404)

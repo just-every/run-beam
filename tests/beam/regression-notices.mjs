@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
+import { sessionAnnouncementCheck } from './regression-announcement-sessions.mjs'
 
 // NOTICE-006 (in-app): a manager announces to their team and to a course's learners; each recipient sees it with the
 // sender and never the other recipients, replies privately, and only the sender reads the reply; a team outside the
@@ -36,6 +37,7 @@ export async function announcementCheck(f) {
   await api('owner', 'team.members', { team: elsewhere, members: [ids.other] })
   assert.equal((await api('manager', 'announcement.send', { audience: `team:${elsewhere}`, title: 'x', body: 'y' }, 403)).error, 'learner_outside_your_team')
   await api('learner', 'announcement.send', { audience: `team:${team}`, title: 'x', body: 'y' }, 403)
+  await sessionAnnouncementCheck(f)
 }
 
 // NOTICE-005's explicitly partial in-app slice: configured completion events,

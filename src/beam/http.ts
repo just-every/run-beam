@@ -249,7 +249,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/reports.csv') return reportCsvResponse(env, actor, url)
   if (path === '/app/reports.xlsx') return reportXlsxResponse(env, actor, url)
   if (path === '/app/audit') return auditPage(env, actor, url)
-  if (path === '/app/announcements' && (isManager(actor) || actor.adminUnits.length)) return announcementsPage(env, actor, url)
+  if (path === '/app/announcements' && (isManager(actor) || actor.adminUnits.length || actor.instructor)) return announcementsPage(env, actor, url)
   if (path === '/app/notifications') return notificationsPage(env, actor, url)
   if (path === '/app/automation') return automationPage(env, actor, url)
   if (path === '/app/catalog') return catalogPage(env, actor, url)
