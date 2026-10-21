@@ -93,7 +93,7 @@ export async function sourceExtractionCheck(f) {
 
 // AUTHOR-001: real D1/R2 and both human HTTP doors, with no application mocks.
 export async function multimediaCheck(f) {
-  const { syntheticVideo, syntheticAudio } = await import('./fixtures.mjs')
+  const { syntheticVideo, syntheticAudio, syntheticImage } = await import('./fixtures.mjs')
   const { api, h, cookies, ids } = f
   const hosts = ['www.youtube.com', 'player.vimeo.com', 'www.loom.com', 'docs.google.com', 'onedrive.live.com', 'forms.office.com', 'word-edit.officeapps.live.com']
   await api('author', 'embed.policy', { version: 0, hosts: hosts.join('\n') }, 403)
@@ -104,7 +104,7 @@ export async function multimediaCheck(f) {
   await api('owner', 'embed.policy', { version: 1, hosts: hosts.join('\n') })
   const assets = {}
   for (const [kind, filename, bytes] of [
-    ['image', 'synthetic-beam-1.png', Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64')],
+    ['image', 'synthetic-beam-1.png', syntheticImage],
     ['audio', 'synthetic-beam-2.mp3', syntheticAudio],
     ['video', 'synthetic-beam-3.mp4', syntheticVideo],
     ['document', 'synthetic-beam-4.pdf', pdf],
@@ -144,10 +144,11 @@ export async function multimediaCheck(f) {
   const duplicated = current.draft.lessons[0].blocks[2]
   assert.notEqual(duplicated.id, original.id)
   assert.equal(duplicated.source, original.source)
-  assert.deepEqual(duplicated.copiedFrom, { course: c.id, lesson, block: original.id })
+  assert.deepEqual(duplicated.copiedFrom, { course: c.id, lesson, block: original.id, courseTitle: 'Mixed media training', lessonTitle: 'Inspect the station' })
   current = await api('author', 'course.block.change', { course: c.id, draftVersion: current.draftVersion, lesson, block: duplicated.id, operation: 'up' })
   assert.equal(current.draft.lessons[0].blocks[1].id, duplicated.id)
   await api('author', 'course.block.change', { course: c.id, draftVersion: current.draftVersion - 1, lesson, block: duplicated.id, operation: 'remove' }, 409)
+  current = await api('author', 'course.lesson', { course: c.id, draftVersion: current.draftVersion, title: 'Wrap up', body: 'Leave the station ready.', sources: [] })
   const beforePreview = await api('author', `courses/${c.id}`)
   const preview = await h.raw(`/app/courses/${c.id}?preview=learner`, { cookie: cookies.author })
   const previewHtml = await preview.text()
@@ -183,13 +184,18 @@ export async function multimediaCheck(f) {
   target = await api('author', `courses/${other.id}`)
   assert.equal(target.draft.lessons[0].blocks[0].source, original.source)
   assert.ok(target.draft.lessons[0].sources.includes(original.source))
-  assert.deepEqual(target.draft.lessons[0].blocks[0].copiedFrom, { course: c.id, lesson, block: original.id })
+  assert.deepEqual(target.draft.lessons[0].blocks[0].copiedFrom, { course: c.id, lesson, block: original.id, courseTitle: 'Mixed media training', lessonTitle: 'Inspect the station' })
   // Later draft edits never change published blocks; comparison and restore retain them.
+  await api('learner', 'lesson.complete', { assignment, lesson: learned.lessons[0].id })
+  assert.equal((await f.view(assignment)).lessons[0].completed, true)
   const frozen = await api('reviewer', `revisions/${revision}`)
   const first = current.draft.lessons[0].blocks[0]
   current = await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, block: first.id, content: { kind: 'text', text: 'Use **inspected tools**.' } })
   assert.deepEqual(await api('reviewer', `revisions/${revision}`), frozen)
   const nextRevision = (await api('author', 'course.submit', { course: c.id, draftVersion: current.draftVersion })).id
+  const move = await api('reviewer', `revisions/${nextRevision}/moves`)
+  assert.ok(move.moves.find(item => item.assignment === assignment).reopened.includes('Inspect the station'))
+  assert.equal(move.moves.find(item => item.assignment === assignment).kept.includes('Inspect the station'), false)
   const compared = await api('author', `compare?from=${revision}&to=${nextRevision}`)
   assert.equal(compared.lessons[0].change, 'changed')
   assert.ok(compared.lessons[0].blocks.lines.some(line => line.op === 'add' && line.text.includes('inspected tools')))

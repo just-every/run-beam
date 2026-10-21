@@ -611,7 +611,7 @@
       "executable": false
     },
     "public/beam.css": {
-      "sha256": "eaf97b40448c441e95812deb0c8a422708f52128cc4ddcbf93b59d001c3091db",
+      "sha256": "7ae122831443eee71ca3644ce9d6b76675c8762499e1a5abcafb75971e5df651",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1127,7 +1127,7 @@
       "executable": false
     },
     "src/beam/blocks.ts": {
-      "sha256": "f6583b266db9b65ada78565d35c577f0936bf4d4eefdb614cbd4534e0bd71d0f",
+      "sha256": "18728c96526e5b7549bcd9633ff0b888f8a3435f1c5b38f1d52824aedc34ca27",
       "executable": false
     },
     "src/beam/catalog.ts": {
@@ -1283,7 +1283,7 @@
       "executable": false
     },
     "src/beam/media.ts": {
-      "sha256": "b7d241f64c018693472fab52792a2386805dc99b35309fff7f2699a8c6ef42ec",
+      "sha256": "2c23d1692d06fb72679ab7675b27ab9b831c7dccede57de9ca8732f8711984f7",
       "executable": false
     },
     "src/beam/movein/browser.ts": {
@@ -1587,7 +1587,7 @@
       "executable": false
     },
     "src/beam/ui/media.ts": {
-      "sha256": "87a0b9c0f48f093e2b0c5d4db16b42e3b6caeb66a94fa7609eb0d431cffdb002",
+      "sha256": "209b59ecb14f18d7d545258377c1970b3188a85bf4f079acfbfd5a11f3dda3ae",
       "executable": false
     },
     "src/beam/ui/movein.ts": {
@@ -3427,7 +3427,7 @@
       "executable": false
     },
     "tests/beam/fixtures.mjs": {
-      "sha256": "6c99133f5b58765891c4498be2da4b7a23fcee6ac4de2fece5ec0721f4328166",
+      "sha256": "6ebe7367d18a7027b6adbd67f37a8471ab87b821519c8a485850428ed6af0685",
       "executable": false
     },
     "tests/beam/flows.mjs": {
@@ -3595,7 +3595,7 @@
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {
-      "sha256": "d967b01b250f8b49633d817f19cb34b945d574585edbec1a2fd1c57104ddc49a",
+      "sha256": "83eb6ed61cfd878665c1c0e2e186f43209975b8b3ab1927376a210601e909cc9",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {

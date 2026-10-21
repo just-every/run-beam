@@ -21,7 +21,7 @@ export function renderBlocks(blocks: Block[] | undefined, hosts: string[]): Html
       try { admitted = hosts.includes(safeUrl(block.url!).hostname) } catch { /* old untrusted data remains inert */ }
       content = admitted ? h`<figure><iframe class="lesson-embed" src="${block.url}" title="${block.text}" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="strict-origin" loading="lazy" allowfullscreen></iframe><figcaption>${block.text}</figcaption></figure>` : h`<p class="flash">${block.text}: this embed is unavailable under the owner’s current allowlist.</p>`
     } else content = h`<fieldset><legend>${block.text}</legend><p class="muted">Practice check</p>${block.choices?.map((choice, index) => h`<label class="check"><input type="radio" name="check-${block.id}" value="${index}"> ${choice}</label>`)}<details><summary>Check your answer</summary><p>${block.choices?.[block.answer ?? 0]}</p><p>${block.feedback}</p></details></fieldset>`
-    return h`<section class="lesson-block" data-block="${block.id}">${content}${block.copiedFrom ? h`<p class="muted">Reused block · original reference ${block.copiedFrom.course}/${block.copiedFrom.lesson}/${block.copiedFrom.block}</p>` : ''}</section>`
+    return h`<section class="lesson-block" data-block="${block.id}">${content}${block.copiedFrom ? h`<p class="muted">Reused from ${block.copiedFrom.courseTitle ?? 'another course'}${block.copiedFrom.lessonTitle ? ` · ${block.copiedFrom.lessonTitle}` : ''}</p>` : ''}</section>`
   })}`
 }
 export async function mediaPage(env: Bindings, response: Response) {

@@ -7,7 +7,7 @@ export const BLOCK_KINDS = ['text', 'image', 'audio', 'video', 'document', 'link
 export interface Block {
   id: string; kind: typeof BLOCK_KINDS[number]; text: string; source?: string; url?: string
   choices?: string[]; answer?: number; feedback?: string
-  copiedFrom?: { course: string; lesson: string; block: string }
+  copiedFrom?: { course: string; lesson: string; block: string; courseTitle?: string; lessonTitle?: string }
 }
 export async function embedPolicy(env: Bindings) {
   const row = await one(env, 'SELECT hosts, version FROM beam_embed_policy WHERE id = 1')
@@ -84,7 +84,8 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
     }
     if (item.copiedFrom) {
       insist(['course', 'lesson', 'block'].every(key => typeof item.copiedFrom[key] === 'string' && item.copiedFrom[key].length <= 200), 'invalid_block_attribution')
-      block.copiedFrom = item.copiedFrom
+      for (const key of ['courseTitle', 'lessonTitle']) insist(item.copiedFrom[key] === undefined || (typeof item.copiedFrom[key] === 'string' && item.copiedFrom[key].length <= 160), 'invalid_block_attribution')
+      block.copiedFrom = { course: item.copiedFrom.course, lesson: item.copiedFrom.lesson, block: item.copiedFrom.block, courseTitle: item.copiedFrom.courseTitle, lessonTitle: item.copiedFrom.lessonTitle }
     }
     blocks.push(block)
   }
