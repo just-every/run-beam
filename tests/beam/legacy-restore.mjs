@@ -90,7 +90,7 @@ try {
   assert.equal(app.state, 'restored')
   assert.equal(app.issuedAt, data.app.issuedAt ?? oldRows.find(row => row.table === 'beam_app_credentials' && row.row.id === data.app.id).row.issued_at)
   assert.match(await (await c.request('/app/access', c.owner.cookie)).text(), /action="\/app\/access\/rotate"/, 'OPS-007: the restored owner can reach the credential rotation form')
-  assert.match(await (await c.request(`/app/dashboards/${data.dashboard.id}`, c.owner.cookie)).text(), /action="\/app\/do\/dashboard.link"/, 'OPS-007: the restored owner can reach the new report-link form')
+  assert.match(await (await c.request(`/app/dashboards/${data.dashboard.id}`, c.owner.cookie)).text(), /action="\/app\/dashboards\/link"/, 'OPS-007: the restored owner can reach the new report-link form')
   if (process.env.BEAM_EVIDENCE_DIR) {
     const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
     browser = await chromium.launch({ headless: true, ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), args: ['--use-mock-keychain', '--password-store=basic'] })
