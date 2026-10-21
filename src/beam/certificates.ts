@@ -54,7 +54,7 @@ export async function certificateRecord(env: Bindings, actor: Actor, id: string)
   const corrections = await all(env, 'SELECT x.id, x.number, x.learner_name AS learnerName, x.reason, x.issued_at AS issuedAt, m.name AS issuedBy FROM beam_certificate_corrections x JOIN beam_members m ON m.id = x.issued_by WHERE x.certificate_id = ? ORDER BY x.issued_at, x.rowid', id)
   const latest = corrections.at(-1)
   const own = row.learner_id === actor.id
-  const links = own || await revokes(env, actor, row.learner_id) ? await all(env, 'SELECT id, created_at AS createdAt, revoked_at AS revokedAt FROM beam_certificate_links WHERE certificate_id = ? ORDER BY created_at', id) : []
+  const links = own || await revokes(env, actor, row.learner_id) ? await all(env, 'SELECT id, created_at AS createdAt, revoked_at AS revokedAt, restored_at AS restoredAt FROM beam_certificate_links WHERE certificate_id = ? ORDER BY created_at', id) : []
   return { ...base, learnerId: row.learner_id, template: template ?? { id: null, name: 'Standard', ...STANDARD }, corrections, current: { number: latest?.number ?? base.number, learner: latest?.learnerName ?? base.learner, correctedAt: latest?.issuedAt ?? null }, links, canLink: own && !actor.viewAs, canCorrect: corrects(actor, row.learner_id) }
 }
 
@@ -94,12 +94,13 @@ export async function revokeLink(env: Bindings, actor: Actor, input: Input) {
 }
 
 /** What a visitor with the link sees: only the fields the certificate's template approves, as the certificate stands
- * now, or that the link was revoked. Null when no link has this token. */
+ * now, or that the link was revoked. Null when no link has this token. OPS-007: a link an installation restore brought
+ * back never verifies again (its archive carried no token hash); the holder creates a new link. */
 export async function verification(env: Bindings, token: string) {
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return null
-  const link = await one(env, `SELECT l.revoked_at, k.id, k.number, k.issuer, k.template_id, c.completed_at, c.expires_at, r.title, m.name FROM beam_certificate_links l JOIN beam_certificates k ON k.id = l.certificate_id
+  const link = await one(env, `SELECT l.revoked_at, l.restored_at, k.id, k.number, k.issuer, k.template_id, c.completed_at, c.expires_at, r.title, m.name FROM beam_certificate_links l JOIN beam_certificates k ON k.id = l.certificate_id
     JOIN beam_completions c ON c.id = k.completion_id JOIN beam_course_revisions r ON r.id = c.course_revision_id JOIN beam_members m ON m.id = c.learner_id WHERE l.token_hash = ?`, await sha256Hex(new TextEncoder().encode(token)))
-  if (!link) return null
+  if (!link || link.restored_at) return null
   if (link.revoked_at) return { revoked: true as const }
   const fields = link.template_id ? JSON.parse((await one(env, 'SELECT verify_fields FROM beam_certificate_templates WHERE id = ?', link.template_id))!.verify_fields) as string[] : STANDARD.verifyFields
   const latest = await one(env, 'SELECT number, learner_name, issued_at FROM beam_certificate_corrections WHERE certificate_id = ? ORDER BY issued_at DESC, rowid DESC LIMIT 1', link.id)

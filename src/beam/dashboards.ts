@@ -118,7 +118,8 @@ export async function readDashboard(env: Bindings, actor: Actor, id: string, url
   // Supplying a link always checks its exact intended viewer, expiry and revocation, even for an owner.
   if (key !== null) {
     insist(/^[a-f0-9]{64}$/.test(key), 'dashboard_not_found', 404)
-    insist(await one(env, "SELECT 1 FROM beam_dashboard_shares WHERE dashboard_id = ? AND viewer_id = ? AND kind = 'link' AND token_hash = ? AND revoked_at IS NULL AND expires_at > ?", id, actor.id, await keyHash(key), now()), 'dashboard_not_found', 404)
+    // OPS-007: a link an installation restore brought back (restored_at) never opens again; the archive carried no key hash.
+    insist(await one(env, "SELECT 1 FROM beam_dashboard_shares WHERE dashboard_id = ? AND viewer_id = ? AND kind = 'link' AND token_hash = ? AND revoked_at IS NULL AND restored_at IS NULL AND expires_at > ?", id, actor.id, await keyHash(key), now()), 'dashboard_not_found', 404)
   } else if (!manages(actor, dashboard)) {
     insist(await one(env, "SELECT 1 FROM beam_dashboard_shares WHERE dashboard_id = ? AND viewer_id = ? AND kind = 'named' AND revoked_at IS NULL", id, actor.id), 'dashboard_not_found', 404)
   }
@@ -147,7 +148,7 @@ export async function dashboardManagement(env: Bindings, actor: Actor, id: strin
   human(actor)
   const dashboard = await saved(env, id)
   insist(manages(actor, dashboard), 'forbidden', 403)
-  const shares = await all(env, `SELECT s.id, s.viewer_id AS viewer, m.name AS viewerName, s.kind, s.expires_at AS expiresAt, s.revoked_at AS revokedAt
+  const shares = await all(env, `SELECT s.id, s.viewer_id AS viewer, m.name AS viewerName, s.kind, s.expires_at AS expiresAt, s.revoked_at AS revokedAt, s.restored_at AS restoredAt
     FROM beam_dashboard_shares s JOIN beam_members m ON m.id = s.viewer_id WHERE dashboard_id = ? ORDER BY granted_at DESC`, id)
   return { dashboard, shares }
 }

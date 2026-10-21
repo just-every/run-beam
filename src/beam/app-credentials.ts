@@ -3,6 +3,8 @@
 // The token `beam-app-v1.<id>.<secret>` is shown once; only the secret's SHA-256 is kept. Rotating replaces the secret
 // at once; revoking ends the credential. A credential acts as the issuing owner narrowed to its audience's routes and
 // its teams, never as a session, and is limited to 60 requests a minute. Preparation credentials keep their BEAM-14 limits.
+// OPS-007: a credential an installation restore brought back (restored_at, migration 0070) stays disabled until the
+// owner rotates it, which reissues its secret; the archive never carried that secret's hash.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor, type Role } from './actor'
 import { all, BeamError, commit, insist, newId, now, one, sha256Hex, stmt } from './core'
@@ -58,7 +60,7 @@ export async function rotateCredential(env: Bindings, actor: Actor, input: Input
   const credential = await one(env, 'SELECT id, audience, teams_json, expires_at FROM beam_app_credentials WHERE id = ? AND revoked_at IS NULL AND expires_at > ?', input.text('credential', { max: 64 }), now())
   insist(credential, 'credential_not_found', 404)
   const value = secret()
-  await commit(env, [stmt(env, 'UPDATE beam_app_credentials SET secret_sha256 = ?, rotated_at = ? WHERE id = ?', await digest(value), now(), credential.id)], { actor, action: 'app.rotate', subject: credential.id })
+  await commit(env, [stmt(env, 'UPDATE beam_app_credentials SET secret_sha256 = ?, rotated_at = ?, restored_at = NULL WHERE id = ?', await digest(value), now(), credential.id)], { actor, action: 'app.rotate', subject: credential.id })
   return { id: credential.id, token: `beam-app-v1.${credential.id}.${value}`, audience: credential.audience, teams: JSON.parse(credential.teams_json), expiresAt: credential.expires_at }
 }
 
@@ -72,8 +74,8 @@ export async function revokeCredential(env: Bindings, actor: Actor, input: Input
 
 export async function listCredentials(env: Bindings, actor: Actor) {
   requireOwner(actor)
-  return await all<{ id: string; name: string; audience: string; teams: string; issuedAt: number; expiresAt: number; rotatedAt: number | null; revokedAt: number | null }>(env, 'SELECT id, name, audience, teams_json AS teams, tools_json AS tools, issued_at AS issuedAt, expires_at AS expiresAt, rotated_at AS rotatedAt, revoked_at AS revokedAt FROM beam_app_credentials ORDER BY issued_at DESC')
-    .then(rows => rows.map(row => ({ ...row, teams: JSON.parse(row.teams), tools: JSON.parse((row as any).tools) as string[], state: row.revokedAt ? 'revoked' : row.expiresAt <= now() ? 'expired' : 'active' })))
+  return await all<{ id: string; name: string; audience: string; teams: string; issuedAt: number; expiresAt: number; rotatedAt: number | null; revokedAt: number | null; restoredAt: number | null }>(env, 'SELECT id, name, audience, teams_json AS teams, tools_json AS tools, issued_at AS issuedAt, expires_at AS expiresAt, rotated_at AS rotatedAt, revoked_at AS revokedAt, restored_at AS restoredAt FROM beam_app_credentials ORDER BY issued_at DESC')
+    .then(rows => rows.map(row => ({ ...row, teams: JSON.parse(row.teams), tools: JSON.parse((row as any).tools) as string[], state: row.revokedAt ? 'revoked' : row.expiresAt <= now() ? 'expired' : row.restoredAt ? 'restored' : 'active' })))
 }
 
 /** The credential behind a request, counted against its rate limit. Any failure is the same 401. */
@@ -83,7 +85,7 @@ export async function applicationCredential(env: Bindings, request: Request) {
   if (env.AUTH_LOCAL === 'true') requireLoopback(request)
   const match = (request.headers.get('authorization') ?? '').match(TOKEN)
   insist(match, 'invalid_application_credential', 401)
-  const credential = await one(env, 'SELECT * FROM beam_app_credentials WHERE id = ? AND revoked_at IS NULL AND expires_at > ?', match[1], now())
+  const credential = await one(env, 'SELECT * FROM beam_app_credentials WHERE id = ? AND revoked_at IS NULL AND restored_at IS NULL AND expires_at > ?', match[1], now())
   insist(credential && credential.secret_sha256 === await digest(match[2]), 'invalid_application_credential', 401)
   const minute = Math.floor(now() / 60_000)
   const used = await one<{ count: number }>(env, 'INSERT INTO beam_app_usage (credential, minute, count) VALUES (?, ?, 1) ON CONFLICT (credential, minute) DO UPDATE SET count = count + 1 RETURNING count', credential.id, minute)

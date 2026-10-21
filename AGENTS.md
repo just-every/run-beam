@@ -176,7 +176,7 @@ A human decides at `/app/agent` (or `agent.decide` with the payload's
 Other systems use application credentials, not people's sessions. The owner issues one per system on **Access**
 (`/app/access`): a name, one audience, optional teams (none: the whole business) and an expiry of 1-90 days. The token
 `beam-app-v1.<id>.<secret>` is shown once and stored only as a SHA-256 digest; rotating replaces the secret at once and
-revoking ends it. Send `Authorization: Bearer <token>` (no Origin is needed; a request that also carries a session cookie keeps the same-origin check). Each credential
+revoking ends it. A credential an installation restore brought back shows state `restored` and authenticates again only once the owner rotates it (OPS-007: archives carry no verifier hashes; restored certificate and report links never work again, so create new ones). Send `Authorization: Bearer <token>` (no Origin is needed; a request that also carries a session cookie keeps the same-origin check). Each credential
 answers only its audience's route below, inside its teams; every other route (publication, roles, access, another
 audience, another team) is 403, a missing, revoked, rotated-out or expired token is 401, and more than 60 requests in a
 minute is 429 `{ error: 'rate_limited', detail: { limit: 60, per: 'minute' } }`. Changes are audited under the
@@ -233,3 +233,11 @@ Escalation also supports AUTO-008's per-rule approval mode. Read the current
 owner approves it with `automation.approve` (`execution`, current policy `version`),
 then explicitly replays with `escalation.run`. A policy version change invalidates
 prior approvals. Migration 0069 preserves every existing automation control.
+
+## Installation archives (OPS-007)
+
+`rer export` and `rer import` load `scripts/installer/portability-policy.mjs`: the archive replaces the verifier hash of
+every application credential, certificate verification link and restricted report link with `withheld` and keeps the
+rest of each grant as lineage. Migration 0070's trigger marks the grants a restore brings back (`restored_at`), so they
+stay disabled until the owner rotates the credential or creates a new link. `tests/beam/regression-archive.mjs` proves
+both through Base's portability export and restore.

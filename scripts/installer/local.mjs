@@ -21,7 +21,8 @@ export const adapter = lifecycle;
 export const { install } = lifecycle;
 export const commandAdapter = createCommandAdapter(lifecycle, {
  dev: developmentTarget, preview: previewTarget, verify: ['pnpm', ['run', 'verify:app']], deploy: ownerDeploy('deploy.json', lifecycle),
- portability: localPortability({ database: 'beam', buckets: { files: 'FILES' }, policy: { product: 'learning/beam', buckets: { files: { prefix: 'sha256/' } }, requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'] }, transient: ['local runtime caches and logs'] }),
+ // OPS-007: the archive policy withholds every verifier hash (scripts/installer/portability-policy.mjs).
+ portability: localPortability({ database: 'beam', buckets: { files: 'FILES' }, policyModule: 'scripts/installer/portability-policy.mjs', transient: ['local runtime caches and logs'] }),
  setup: { manifestFile: 'rer-setup.json' }, browserModule: 'scripts/installer/ui/seed.mjs',
  // The static run site (run-beam.com): the landing, the Run page and the docs, built by `rer build --site`.
  site: { entry: 'src/site/pages.ts', output: 'dist/site', declaration: 'deploy-site.json', config: 'vite.site.config.ts' },
