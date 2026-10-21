@@ -475,7 +475,7 @@ removed or changed by this contract-only round.
 
 ## Status
 
-Judged from the code and tests at commit `10f634197710aefa61376d9b532842056b7e4ba3` (21 October 2026).
+Judged from the code and tests at commit `6f58d8349d580521b2e0c687ccc8c2b6d0833906` (21 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
