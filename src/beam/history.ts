@@ -32,6 +32,14 @@ function pairLessons(from: Lesson[], to: Lesson[]) {
 
 const lessonRef = (lesson: Lesson | null) => lesson ? { position: lesson.position + 1, title: lesson.title } : null
 const choiceText = (question: Question) => answerText(question)
+// Reviewers compare the lesson's content and order, never its storage JSON.
+const mediaText = (lesson: Lesson | null) => (lesson?.blocks ?? []).map((block, index) => [
+  `${index + 1}. ${block.kind}: ${block.text}`,
+  block.url ? `Link: ${block.url}` : '',
+  ...(block.choices ?? []).map((choice, n) => `${n + 1}. ${choice}${n === block.answer ? ' (correct)' : ''}`),
+  block.feedback ? `Explanation: ${block.feedback}` : '',
+  block.copiedFrom?.courseTitle ? `Reused from ${block.copiedFrom.courseTitle}${block.copiedFrom.lessonTitle ? ' / ' + block.copiedFrom.lessonTitle : ''}` : '',
+].filter(Boolean).join('\n')).join('\n\n')
 
 export async function compareRevisions(env: Bindings, actor: Actor, fromId: string, toId: string) {
   insist(fromId && toId, 'revisions_required')
@@ -43,7 +51,7 @@ export async function compareRevisions(env: Bindings, actor: Actor, fromId: stri
   const lessons = pairLessons(from.lessons, to.lessons).map(pair => {
     const change = !pair.from ? 'added' : !pair.to ? 'removed' : JSON.stringify(pair.from.blocks ?? []) === JSON.stringify(pair.to.blocks ?? []) && pair.from.body === pair.to.body && pair.from.sources.join() === pair.to.sources.join() ? (pair.from.position === pair.to.position ? 'same' : 'moved') : 'changed'
     const before = pair.from?.sources ?? [], after = pair.to?.sources ?? []
-    return { change, from: lessonRef(pair.from), to: lessonRef(pair.to), body: diffLines(pair.from?.body ?? '', pair.to?.body ?? ''), blocks: diffLines((pair.from?.blocks ?? []).map(block => JSON.stringify(block)).join('\n'), (pair.to?.blocks ?? []).map(block => JSON.stringify(block)).join('\n')), sources: { added: after.filter(id => !before.includes(id)), removed: before.filter(id => !after.includes(id)) } }
+    return { change, from: lessonRef(pair.from), to: lessonRef(pair.to), body: diffLines(pair.from?.body ?? '', pair.to?.body ?? ''), blocks: diffLines(mediaText(pair.from), mediaText(pair.to)), sources: { added: after.filter(id => !before.includes(id)), removed: before.filter(id => !after.includes(id)) } }
   })
   const fromQuestions = from.assessment?.questions ?? [], toQuestions = to.assessment?.questions ?? []
   const questions = [

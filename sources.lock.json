@@ -1227,7 +1227,7 @@
       "executable": false
     },
     "src/beam/history.ts": {
-      "sha256": "81393dd90824920229a05aeb49a6d2e86869dedac127b0395842486271987dc1",
+      "sha256": "f205360cfbcef213d0592e102415607687ace5011523b64b8fe9c79d7f5440a4",
       "executable": false
     },
     "src/beam/http.ts": {
