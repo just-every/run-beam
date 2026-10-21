@@ -190,7 +190,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ef98d9c553902dc921546eb07f72a319ff33d769e3b43328893b4041d731a706",
+      "sha256": "05f598e55e0af811272c663c5e011a3f3463d9b0d32cd3c32eeba270ce70706a",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -210,7 +210,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a60fc5928d7066ab79a57bb5e9374ca3842f192c40f1e7e08f70b1b67f2f6500",
+      "sha256": "3cdb2b22faf5dddce69c8f61eb2ab665cb7cc5d3ccc07c5504d86d111de7f7a0",
       "executable": false
     },
     "DEMO.md": {
@@ -3542,7 +3542,7 @@
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
-      "sha256": "c731d25f540ab67f13de37ad3c5a51f10087ccb7ee9128c451c267c9805404f5",
+      "sha256": "46dfc6c3c330b0db88706b1f1c3eecbd1581ffe9c836c9ec24f4b3016fe2689d",
       "executable": false
     },
     "tests/beam/regression-recognition.mjs": {

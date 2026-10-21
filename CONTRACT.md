@@ -480,8 +480,8 @@ Judged from the code and tests at commit `d3898516d71259e07b7223ddbc585745636e22
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 48 | 29 | 49 | 126 |
-| All | 68 | 29 | 49 | 146 |
+| Target and push further | 49 | 28 | 49 | 126 |
+| All | 69 | 28 | 49 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -554,7 +554,7 @@ Judged from the code and tests at commit `d3898516d71259e07b7223ddbc585745636e22
 | `LEARN-012` | Deliver lessons through workplace messaging and SMS | target | missing |  | Messaging/SMS/WhatsApp lesson delivery, consent lifecycle and reply assessment are absent. |
 | `LEARN-013` | Recognize learning without implying competence | target | done | `src/beam/recognition.ts`, `src/beam/ui/recognition.ts`, `tests/beam/regression-recognition.mjs` |  |
 | `LEARN-014` | Learn with peers and course experts | target | done | `src/beam/discussions.ts`, `src/beam/ui/discussions.ts`, `tests/beam/regression-discussions.mjs` |  |
-| `LEARN-015` | Score fill-in, ordering and matching questions | target | partial | `src/beam/question-types.ts`, `src/beam/timing.ts`, `src/beam/ui/timing.ts`, `public/beam-match.js`, `src/beam/ui/authoring.ts`, `tests/beam/regression-questions.mjs` (LEARN-015) | Deterministic scoring, stored responses/rules, desktop drag-and-drop and phone tap pairing exist. The existing journey does not submit all-correct, one-wrong and accepted-variant page answers at both 390 and 1440 pixels using the keyboard; its all-correct submission uses JSON. |
+| `LEARN-015` | Score fill-in, ordering and matching questions | target | done | `src/beam/question-types.ts`, `src/beam/timing.ts`, `src/beam/ui/timing.ts`, `public/beam-match.js`, `src/beam/ui/authoring.ts`, `tests/beam/regression-questions.mjs` (LEARN-015) |  |
 | `LEARN-016` | Import GIFT and Aiken question banks | target | done | `src/beam/bank-import.ts`, `src/beam/ui/bank.ts`, `tests/beam/regression-bank.mjs` (LEARN-016) |  |
 | `LEARN-017` | Use Beam in the learner’s language | target | partial | `src/beam/directory.ts`, `src/beam/notification-rules.ts`, `src/beam/notification-delivery.ts`, `tests/beam/regression-directory.mjs`, `tests/beam/regression-notices.mjs` | Per-person language preferences and recipient-language variants for configured in-app completion notices exist. A translated learner interface/message catalog, system mail and certificate labels, installation/team/location defaults, learner preference changes and reviewed-course locale fallback remain absent. |
 | `LEARN-018` | Time-limit assessments | target | done | `src/beam/timing.ts`, `src/beam/learning.ts`, `src/beam/ui/timing.ts`, `public/beam-countdown.js`, `migrations/core/0022_beam_timed_attempts.sql`, `tests/beam/regression-timing.mjs` (LEARN-018) |  |
