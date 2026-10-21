@@ -3586,7 +3586,7 @@
       "executable": false
     },
     "tests/beam/regressions.mjs": {
-      "sha256": "d96e5704dfc9b1b5d5a635a8aec8fe4e46291f55f3542b43018e3140f674db75",
+      "sha256": "0683ed5401099d75871e665dc733dcd7514a55e078f15308fd6f4ef7f2b67224",
       "executable": false
     },
     "tests/beam/restore.mjs": {
