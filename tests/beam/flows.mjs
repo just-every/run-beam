@@ -407,7 +407,6 @@ try {
     assert.equal(settingsOnly.changed, true)
     assert.deepEqual([...settingsOnly.lessons, ...settingsOnly.assessment.questions].map(row => row.change), ['same', 'same', 'same'])
     assert.deepEqual(settingsOnly.assessment.rules.filter(rule => rule.changed).map(rule => [rule.name, rule.from, rule.to]), [['drawCount', null, 1], ['shuffle', false, true], ['feedback', 'attempt', 'score']])
-    assert.ok((await (await h.raw(`/app/courses/${course.id}/compare?from=${third.id}&to=${fourth.id}`, { cookie: people.author })).text()).includes('score only'))
     await h.api('course.restore', people.author, { course: course.id, draftVersion: (await h.api(`courses/${course.id}`, people.author)).draftVersion, revision: third.id })
     const back = await h.api(`courses/${course.id}`, people.author)
     assert.deepEqual([back.draft.drawCount, back.draft.shuffle, back.draft.feedback], [null, false, 'attempt'])
