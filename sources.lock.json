@@ -3537,7 +3537,7 @@
       "executable": false
     },
     "tests/beam/regression-renewals.mjs": {
-      "sha256": "2e5a29bf29e1f4a2fd354512541ebb501ce540cae1edd5480b46dd8c55d76a40",
+      "sha256": "60ebd95a50890bb98c51186f70374847bd8200b38b55cab3aa76a6bfb54758ea",
       "executable": false
     },
     "tests/beam/regression-roster.mjs": {

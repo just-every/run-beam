@@ -198,4 +198,19 @@ async function renewals(f) {
   assert.ok(['paused', 'quiet_hours', 'rate_limited', 'approval_required', 'assigned'].every(outcome => attempts.some(row => row.outcome === outcome)))
   assert.equal(attempts.filter(row => row.charged).length, 1)
   assert.deepEqual(await certificate(annualCompletion), priorAnnualCertificate)
+
+  // A replacement policy cannot recreate a cycle a person has already been
+  // assigned, even after a manager deliberately cancels that open renewal.
+  await api('owner', 'assignment.cancel', { assignment: late.assignment_id, reason: 'Reviewed separately; do not enroll this cycle again.' })
+  const replacement = (await api('owner', 'renewal.save', { ...fields, leadDays: 10, graceDays: 0 })).id
+  await api('owner', 'renewal.preview', { rule: replacement })
+  await api('owner', 'renewal.state', { rule, state: 'active' })
+  await api('owner', 'renewal.state', { rule: replacement, state: 'active' })
+  const replaced = await renewalView()
+  assert.equal(replaced.rules.find(row => row.id === rule).state, 'paused')
+  assert.equal(replaced.rules.find(row => row.id === replacement).items[0].outcome, 'already_renewed')
+  await tick()
+  await replay(replacement)
+  assert.equal((await assignments(c)).length, 3)
+  assert.equal((await cycles(replacement)).length, 0)
 }
