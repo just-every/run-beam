@@ -1,6 +1,7 @@
 // REPORT-003, transcript slice: one person's readable learning transcript. Every assignment with its exact revision,
 // every attempt (including those before a reset), assessor decision, completion and certificate (native or offline
-// attendance), every amendment (due-date exception, access extension, reset, cancellation) and every imported history
+// attendance), every live attendance decision and amendment, every amendment (due-date exception, access extension,
+// reset, cancellation) and every imported history
 // row with its provenance, in time order. Whoever may read the person's record reads it (records.ts).
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
@@ -9,7 +10,7 @@ import { learnerRecord } from './records'
 import { requireBusiness } from './people'
 import { externalTranscript } from './external'
 
-export interface TranscriptEntry { at: number; kind: string; course: string; revision: number | null; detail: string; by: string; record: string }
+export interface TranscriptEntry { at: number; kind: string; course: string; revision: number | null; detail: string; lineage?: string; by: string; record: string }
 
 const pick = (payload: Row, skip: string[]) => Object.entries(payload).filter(([key, value]) => !skip.includes(key) && value !== null && value !== '').map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`).join('; ')
 
@@ -18,11 +19,19 @@ export async function transcript(env: Bindings, actor: Actor, memberId: string) 
   const zone = (await requireBusiness(env)).timezone, asOf = now()
   const of = 'JOIN beam_assignments a ON a.id = x.assignment_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id'
   const name = (column: string) => `(SELECT name FROM beam_members WHERE id = ${column})`
-  const [assigned, attempts, decisions, completions, dues, extensions, resets, cancels, external] = await Promise.all([
+  const [assigned, attempts, decisions, completions, attendance, dues, extensions, resets, cancels, external] = await Promise.all([
     all(env, `SELECT a.id, a.assigned_at AS at, c.title, r.number, a.due_at AS dueAt, a.reason, ${name('a.assigned_by')} AS by FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.id, x.submitted_at AS at, x.kind, x.number, x.score, x.max_score AS maxScore, x.passed, x.state, x.reset_id AS reset, x.close_reason AS closeReason, c.title, r.number AS revision FROM beam_attempts x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT d.id, d.decided_at AS at, d.decision, d.note, ${name('d.assessor_id')} AS by, c.title, r.number AS revision, t.number FROM beam_review_decisions d JOIN beam_attempts t ON t.id = d.attempt_id JOIN beam_assignments a ON a.id = t.assignment_id JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.id, x.completed_at AS at, x.method, x.evidence_json AS evidence, x.expires_at AS expiresAt, k.number AS certificate, c.title, r.number AS revision FROM beam_completions x JOIN beam_courses c ON c.id = x.course_id JOIN beam_course_revisions r ON r.id = x.course_revision_id LEFT JOIN beam_certificates k ON k.completion_id = x.id WHERE x.learner_id = ?`, memberId),
+    // Read attendance itself, including records which never produced a completion and all superseded decisions.
+    // The assignment keeps the revision originally attested even if the learner subsequently moves revisions.
+    all(env, `SELECT x.id, x.recorded_at AS at, x.session_id AS session, s.title AS sessionTitle, x.registration_id AS registration, x.assignment_id AS assignment,
+      a.course_revision_id AS courseRevision, r.title, r.number AS revision, x.status, x.minutes, x.decision, x.note, x.attachment_id AS attachment,
+      x.recorded_by AS recordedBy, ${name('x.recorded_by')} AS by, x.amends_id AS amends, x.amend_reason AS reason, x.superseded_at AS supersededAt,
+      (SELECT next.id FROM beam_attendance next WHERE next.amends_id = x.id) AS supersededBy
+      FROM beam_attendance x JOIN beam_sessions s ON s.id = x.session_id JOIN beam_assignments a ON a.id = x.assignment_id
+      JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE x.learner_id = ? ORDER BY x.recorded_at, x.rowid`, memberId),
     all(env, `SELECT x.id, x.approved_at AS at, x.previous_due_at AS previous, x.due_at AS dueAt, x.reason, ${name('x.approved_by')} AS by, c.title, r.number AS revision FROM beam_due_exceptions x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.id, x.extended_at AS at, x.days, x.reason, ${name('x.extended_by')} AS by, c.title, r.number AS revision FROM beam_access_extensions x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.id, x.reset_at AS at, x.reason, x.kind, ${name('x.reset_by')} AS by, c.title, r.number AS revision FROM beam_assignment_resets x ${of} WHERE a.learner_id = ?`, memberId),
@@ -35,6 +44,10 @@ export async function transcript(env: Bindings, actor: Actor, memberId: string) 
     ...attempts.map(row => ({ at: row.at, kind: `${row.kind} attempt`, course: row.title, revision: row.revision, detail: `attempt ${row.number}: ${row.kind === 'quiz' ? `${row.score} of ${row.maxScore}, ${row.passed ? 'passed' : 'not passed'}${row.closeReason === 'expired' ? ', time ran out' : ''}` : row.state.replace(/_/g, ' ')}${row.reset ? '; before a reset' : ''}`, by: '', record: row.id })),
     ...decisions.map(row => ({ at: row.at, kind: 'assessor decision', course: row.title, revision: row.revision, detail: `attempt ${row.number} ${row.decision}: ${row.note}`, by: row.by ?? '', record: row.id })),
     ...completions.map(row => ({ at: row.at, kind: row.method === 'offline' ? 'offline attendance completion' : 'completion', course: row.title, revision: row.revision, detail: `${row.certificate ? `certificate ${row.certificate}` : 'no certificate'}${row.expiresAt ? `, expires ${day(row.expiresAt)}` : ''}${row.method === 'offline' ? `; ${pick(JSON.parse(row.evidence), ['attachment'])}` : ''}`, by: '', record: row.id })),
+    ...attendance.map(row => ({ at: row.at, kind: 'live attendance', course: row.title, revision: row.revision,
+      detail: `session ${row.sessionTitle}; ${row.status}; ${row.minutes} minutes; decision ${row.decision}${row.note ? `; note: ${row.note}` : ''}${row.amends ? `; amendment: ${row.reason}` : ''}${row.supersededAt !== null ? `; superseded at ${day(row.supersededAt)}` : '; current attendance record'}`,
+      lineage: `attendance: ${row.id}; session: ${row.session}; registration: ${row.registration}; assignment: ${row.assignment}; course revision: ${row.courseRevision}; recorded by: ${row.recordedBy}${row.attachment ? `; attachment: ${row.attachment}` : ''}${row.amends ? `; amends: ${row.amends}` : ''}${row.supersededBy ? `; superseded by: ${row.supersededBy}` : ''}`,
+      by: row.by ?? '', record: row.id })),
     ...dues.map(row => ({ at: row.at, kind: 'due date changed', course: row.title, revision: row.revision, detail: `from ${day(row.previous)} to ${day(row.dueAt)}: ${row.reason}`, by: row.by ?? '', record: row.id })),
     ...extensions.map(row => ({ at: row.at, kind: 'access extended', course: row.title, revision: row.revision, detail: `${row.days} days: ${row.reason}`, by: row.by ?? '', record: row.id })),
     ...resets.map(row => ({ at: row.at, kind: row.kind === 'move' ? 'moved to a new revision' : 'progress reset', course: row.title, revision: row.revision, detail: row.reason, by: row.by ?? '', record: row.id })),
@@ -44,3 +57,6 @@ export async function transcript(env: Bindings, actor: Actor, memberId: string) 
   ].sort((a, b) => a.at - b.at || a.kind.localeCompare(b.kind))
   return { member: record.member, zone, asOf, filters: 'every record of this person; nothing left out', count: entries.length, entries }
 }
+
+/** Portable detail retains attendance identifiers alongside the readable decision. */
+export const transcriptDetail = (entry: TranscriptEntry) => entry.lineage ? `${entry.detail}; ${entry.lineage}` : entry.detail
