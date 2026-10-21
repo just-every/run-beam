@@ -425,6 +425,19 @@ try {
     await h.api('course.restore', people.author, { course: course.id, draftVersion, revision: third.id })
     const cleared = (await h.api(`courses/${course.id}`, people.author)).draft
     assert.deepEqual([cleared.title, cleared.summary, cleared.practical, cleared.survey], ['Closing the clinic', 'How we close.', null, []])
+    // A human can reorder the bank through a draft proposal; assessment comparison retains the changed order.
+    await h.api('course.restore', people.author, { course: course.id, draftVersion: (await h.api(`courses/${course.id}`, people.author)).draftVersion, revision: second.id })
+    const reorder = await h.api(`courses/${course.id}`, people.author)
+    const reordered = structuredClone(reorder.draft)
+    reordered.questions.reverse()
+    const proposal = await h.api('proposal.create', people.author, { course: course.id, draftVersion: reorder.draftVersion, summary: 'Trainer reviewed the order of the closing checks.', agent: 'Human preparation', inputs: [ids.sourceV1, sourceV2], draft: reordered })
+    await h.api('proposal.decide', people.reviewer, { proposal: proposal.id, decision: 'accept' })
+    const sixth = await h.api('course.submit', people.author, { course: course.id, draftVersion: (await h.api(`courses/${course.id}`, people.author)).draftVersion })
+    await publish(sixth.id)
+    const orderOnly = await h.api(`compare?from=${second.id}&to=${sixth.id}`, people.author)
+    assert.equal(orderOnly.changed, true)
+    assert.deepEqual(orderOnly.assessment.questions.map(row => [row.change, row.fromPosition, row.toPosition]), [['moved', 1, 2], ['moved', 2, 1]])
+    assert.ok(orderOnly.details.every(row => !row.changed) && orderOnly.lessons.every(row => row.change === 'same') && orderOnly.assessment.rules.every(row => !row.changed))
   })
 
   await check('LEARN-010', async () => {

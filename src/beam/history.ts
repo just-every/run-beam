@@ -47,12 +47,13 @@ export async function compareRevisions(env: Bindings, actor: Actor, fromId: stri
   })
   const fromQuestions = from.assessment?.questions ?? [], toQuestions = to.assessment?.questions ?? []
   const questions = [
-    ...fromQuestions.map(question => {
+    ...fromQuestions.map((question, position) => {
       const next = toQuestions.find(item => item.id === question.id)
-      const change = !next ? 'removed' : next.prompt === question.prompt && choiceText(next) === choiceText(question) ? 'same' : 'changed'
-      return { change, prompt: { from: question.prompt, to: next?.prompt ?? null }, choices: diffLines(choiceText(question), next ? choiceText(next) : '') }
+      const nextPosition = toQuestions.findIndex(item => item.id === question.id)
+      const change = !next ? 'removed' : next.prompt === question.prompt && choiceText(next) === choiceText(question) ? (position === nextPosition ? 'same' : 'moved') : 'changed'
+      return { change, fromPosition: position + 1, toPosition: next ? nextPosition + 1 : null, prompt: { from: question.prompt, to: next?.prompt ?? null }, choices: diffLines(choiceText(question), next ? choiceText(next) : '') }
     }),
-    ...toQuestions.filter(question => !fromQuestions.some(item => item.id === question.id)).map(question => ({ change: 'added', prompt: { from: null, to: question.prompt }, choices: diffLines('', choiceText(question)) })),
+    ...toQuestions.filter(question => !fromQuestions.some(item => item.id === question.id)).map(question => ({ change: 'added', fromPosition: null, toPosition: toQuestions.findIndex(item => item.id === question.id) + 1, prompt: { from: null, to: question.prompt }, choices: diffLines('', choiceText(question)) })),
   ]
   const rule = (name: string, a: unknown, b: unknown) => ({ name, from: a ?? null, to: b ?? null, changed: (a ?? null) !== (b ?? null) })
   const rules = [

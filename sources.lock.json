@@ -1218,7 +1218,7 @@
       "executable": false
     },
     "src/beam/history.ts": {
-      "sha256": "2491d09341eb95b3e4fd98c954b58bfc4de59e42dc5cdd4d45d57fdd54c5de4e",
+      "sha256": "e6b35ba19090de170eada157f20a65de6bdfdfdde3ebe54fc38c80627da07d76",
       "executable": false
     },
     "src/beam/http.ts": {
@@ -1526,7 +1526,7 @@
       "executable": false
     },
     "src/beam/ui/history.ts": {
-      "sha256": "379298fcc7cc416936d37035a8ed07ad198c294b6c9b5a445ca7597051b6fa7f",
+      "sha256": "135e9e19052f011d30833ce34b7aabfaac6cfcfd6499f4a5d4bedd4ea6e52ca9",
       "executable": false
     },
     "src/beam/ui/html.ts": {
@@ -3402,7 +3402,7 @@
       "executable": false
     },
     "tests/beam/flows.mjs": {
-      "sha256": "d83dfcde02689fa38efc48daa22731790c75596a86fe958007e9e92b5394f744",
+      "sha256": "332729fd7015120645b3e5391da12a4838b3a20773ed7863fae515d12af2efa1",
       "executable": false
     },
     "tests/beam/harness.mjs": {
