@@ -278,8 +278,9 @@ completion decisions continue through the existing quiz and practical doors.
 Source media is authenticated and byte-sniffed: native image, MP3 audio,
 MP4/WebM video and PDF blocks use immutable source versions. Rich text supports
 headings, lists, bold, emphasis and code without HTML. Active HTML in structured
-blocks is refused; legacy plain lesson text stays escaped. PDFs use a scriptless
-sandboxed frame, and source responses keep their restrictive CSP and nosniff.
+blocks is refused; legacy plain lesson text stays escaped. PDFs offer an authenticated download and an optional scriptless sandboxed frame;
+readable inline PDF rendering remains unproved (Chromium refuses the sandboxed
+viewer). Source responses keep their restrictive CSP and nosniff.
 
 Only the owner edits **Web content allowlist** on a course page (`embed.policy`,
 `version`, newline-separated `hosts`). It starts empty. Exact HTTPS hostnames,

@@ -191,7 +191,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d22201ef0e7be53db694f65d0c4bc5d6061cf820b51b24b472b277ef33b71801",
+      "sha256": "31a0ba0ce85cb0a4e35fedc8707dcb3747022225984ec158dfce8a1586125a3d",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -199,7 +199,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "d38432f1b000591e7611ee55a54eebfd066583b88cb62af1faa922c58b15860f",
+      "sha256": "5513ee99fe92201ce87d9316e03e3dfe47072e979431f0735f490fa4233c6910",
       "executable": false
     },
     "base-copies.json": {
@@ -211,7 +211,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8c131fabd6416e562d7a7d2d7614697aaa0b0a673ce87067d019142c61259c6c",
+      "sha256": "13ba3b7abf9bf0a06bd1d2ac125139ce49537c74189bbc78ec84cffd354ad8f7",
       "executable": false
     },
     "DEMO.md": {
@@ -1587,7 +1587,7 @@
       "executable": false
     },
     "src/beam/ui/media.ts": {
-      "sha256": "209b59ecb14f18d7d545258377c1970b3188a85bf4f079acfbfd5a11f3dda3ae",
+      "sha256": "d9752e763fda362b1b3f003dfe3f2e684b305c446a0c8c49568bc2a1d9466bda",
       "executable": false
     },
     "src/beam/ui/movein.ts": {
@@ -3595,7 +3595,7 @@
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {
-      "sha256": "e3011ea22944231069bd41050807074424592d7b494703b17be99e91be842111",
+      "sha256": "81f14d51e4c3271d5419dca0708f28142a7752185b38bbd874cc04e5f5731053",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {

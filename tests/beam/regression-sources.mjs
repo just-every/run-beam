@@ -192,6 +192,10 @@ export async function multimediaCheck(f) {
   await api('other', 'sources', undefined, 403)
   await api('owner', 'course.authors', { course: c.id, members: [] })
   assert.equal((await h.raw(`/app/files/source/${assets.image}`, { cookie: cookies.other })).status, 404)
+  const documentDownload = await h.raw(`/app/files/source/${assets.document}?download=1`, { cookie: cookies.learner })
+  assert.equal(documentDownload.status, 200)
+  assert.match(documentDownload.headers.get('content-disposition'), /^attachment;/)
+  assert.equal(documentDownload.headers.get('content-type'), 'application/octet-stream')
   // Reuse into another course retains exact immutable source attribution.
   const other = await api('author', 'course.create', { title: 'Reused course', reviewer: ids.reviewer })
   let target = await api('author', 'course.lesson', { course: other.id, draftVersion: 1, title: 'Reused procedure', body: 'A different lesson.', sources: [] })
@@ -299,6 +303,7 @@ export async function multimediaBrowserCheck(f, media) {
       assert.equal(await page.locator('input[type=radio]:checked').count(), 1)
       assert.equal(await page.locator('iframe.lesson-embed').count(), 8)
       assert.equal(await page.locator('iframe.lesson-document').getAttribute('sandbox'), '')
+      assert.ok((await page.getByRole('link', { name: 'Download Station document (PDF)', exact: true }).getAttribute('href')).endsWith('?download=1'))
       await shot('learner')
       await as('reviewer')
       await page.goto(`${f.h.origin}/app/revisions/${media.revision}`)
