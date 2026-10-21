@@ -19,7 +19,7 @@ requirements; assignments, progress and reset history; every quiz/practical
 attempt, answer and assessor decision (including reset attempts); signature and
 acknowledgment intent, signer, document digest, time and sign-in method; native
 and external completions/certificates, certificate templates and corrections;
-live attendance and labelled imported history. Imported history is separate
+live attendance, native renewal rules and cycle-to-completion/assignment lineage, and labelled imported history. Imported history is separate
 from native completions and creates no Beam certificate. These records are not
 an authorization database and cannot sign anyone in.
 

@@ -1,3 +1,4 @@
+import { saveRenewal, previewRenewal, setRenewalState, replayRenewal } from './renewals'
 import { saveEscalationPolicy, resolveEscalation, runEscalationsNow } from './escalations'
 import { withdrawErrors } from './diagnosis-evidence'
 import { prepareDiagnosis } from './diagnosis-comparison'
@@ -114,6 +115,10 @@ export const actions: Record<string, Handler> = {
   'notification.state': (env, actor, input) => setNotificationEnabled(env, actor, input),
   'notification.test': (env, actor, input) => testNotification(env, actor, input),
   'notification.replay': (env, actor, input) => replayNotifications(env, actor, input),
+  'renewal.save': saveRenewal,
+  'renewal.preview': previewRenewal,
+  'renewal.state': setRenewalState,
+  'renewal.replay': replayRenewal,
   'automation.policy': (env, actor, input) => saveAutomationPolicy(env, actor, input),
   'automation.approve': (env, actor, input) => approveAutomation(env, actor, input),
   'automation.save': (env, actor, input) => saveRule(env, actor, input),

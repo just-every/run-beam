@@ -1,3 +1,4 @@
+import { renewalCards } from './renewals'
 // AUTO-005 on the page: Automation lists the follow-on rules this person manages, with their dry run, state and latest
 // runs, and saves new rules. A rule stays a draft until its dry run is recorded; then it can be enabled, paused and
 // replayed. Nothing here edits a saved rule: a changed rule is a new one.
@@ -33,6 +34,7 @@ ${runs.length ? h`<h3>Latest runs</h3>${rows(runs.map(run => ({ title: run.learn
   const audiences = await audienceCards(env, actor, zone, options)
   const body = h`<h1>Automation</h1><p class="lede">Follow-on rules assign the next course when a learner is enrolled in, completes or runs out of quiz attempts on a course. A rule acts once per event, never changes the source course's result, and runs only after its dry run.</p>
 ${await automationControlsCard(env, actor, zone)}
+${await renewalCards(env, actor, options)}
 ${view.rules.map(ruleCard)}
 ${card('New follow-on rule', form('automation.save', '/app/automation', [field('Name', 'name'), select('When a learner', 'trigger', [{ value: 'completion', label: 'completes' }, { value: 'failure', label: 'runs out of quiz attempts on' }, { value: 'enrollment', label: 'is enrolled in' }]), select('Course', 'sourceCourse', options), select('Assign', 'targetCourse', options), field('Due in (days)', 'dueDays', { type: 'number', value: 14 }), field('Only with a best quiz score of at least (%)', 'minPercent', { type: 'number', required: false, hint: 'Completions only; leave empty for every completion.' }), select('Only for team', 'team', teams.map(team => ({ value: team.id, label: team.name })), '', { required: false, blank: 'Everyone' })], 'Save as draft'))}
 ${audiences}`

@@ -1,3 +1,4 @@
+import { renewalView } from './renewals'
 import { escalationPolicy } from './escalations'
 import { compareErrors } from './diagnosis-comparison'
 // Read models served at GET /api/beam/... and rendered by the pages.
@@ -64,6 +65,7 @@ export const views: Record<string, View> = {
   'escalation-policy': async (env, actor) => { requireOwner(actor); return await escalationPolicy(env) },
   notifications: (env, actor) => notificationInbox(env, actor),
   'notification-rules': (env, actor) => notificationRulesView(env, actor),
+  'renewals': renewalView,
   'automation-controls': (env, actor) => automationControlView(env, actor),
   me: async (env, actor) => ({ id: actor.id, email: actor.email, name: actor.name, owner: actor.owner, roles: [...actor.roles], adminUnits: actor.adminUnits, permissions: Object.keys(actor.grants), business: await business(env) }),
   units: (env, actor) => unitsView(env, actor),
@@ -140,6 +142,7 @@ export const views: Record<string, View> = {
 const ROUTES: [RegExp, string][] = [
   [/^escalation-policy$/, 'escalation-policy'],
   [/^notifications$/, 'notifications'], [/^notification-rules$/, 'notification-rules'],
+  [/^renewals$/, 'renewals'],
   [/^automation-controls$/, 'automation-controls'],
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^directory$/, 'directory-fields'], [/^directory\/([\w-]+)$/, 'directory'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
