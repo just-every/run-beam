@@ -6,6 +6,7 @@ import { askAgainStatements } from './acknowledgments'
 import { requireRole, type Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import { serve, store } from './files'
+import { courseUnits } from './scope'
 import type { Input } from './input'
 
 const LICENCES = ['owned', 'licensed', 'permission']
@@ -64,7 +65,8 @@ export async function sourceFile(env: Bindings, actor: Actor, versionId: string,
   const version = await one(env, 'SELECT filename, media_type AS mediaType, size, sha256 FROM beam_source_versions WHERE id = ?', versionId)
   insist(version, 'not_found', 404)
   const staff = actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
-  const cited = staff || await one(env, `SELECT 1 FROM beam_assignments a JOIN beam_lesson_revisions l ON l.course_revision_id = a.course_revision_id
+  const authored = !staff && await one(env, `SELECT 1 FROM beam_courses c, json_each(c.draft_json, '$.lessons') l, json_each(l.value, '$.sources') s WHERE s.value = ? AND (c.id IN (SELECT value FROM json_each(?)) OR c.unit_id IN (SELECT value FROM json_each(?))) LIMIT 1`, versionId, JSON.stringify(actor.authorOf), JSON.stringify(courseUnits(actor)))
+  const cited = staff || authored || await one(env, `SELECT 1 FROM beam_assignments a JOIN beam_lesson_revisions l ON l.course_revision_id = a.course_revision_id
     JOIN json_each(l.source_version_ids) j WHERE a.learner_id = ? AND j.value = ?
     AND (a.access_opens_at IS NULL OR a.access_opens_at <= ?) AND (a.access_closes_at IS NULL OR a.access_closes_at > ?) LIMIT 1`, actor.id, versionId, now(), now())
   insist(cited, 'not_found', 404)

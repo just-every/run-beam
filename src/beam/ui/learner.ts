@@ -5,6 +5,8 @@ import { externalCard } from './external'
 import { myFeedback } from '../feedback'
 import { feedbackForm, myFeedbackCard } from './collab'
 import { myWaits } from '../registrations'
+import { renderBlocks, mediaPage } from './media'
+import { embedPolicy, type Block } from '../media'
 import type { Bindings } from '../../auth.server'
 import { requireAccess } from '../access'
 import type { Actor } from '../actor'
@@ -127,15 +129,15 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
   const index = view.lessons.findIndex(lesson => lesson.id === lessonId)
   if (index < 0) throw new BeamError('not_found', 404)
   requireAccess({ access_opens_at: view.access.opensAt, access_closes_at: view.access.closesAt })
-  const lesson = view.lessons[index] as typeof view.lessons[number] & { body: string; sources: string[] }
+  const lesson = view.lessons[index] as typeof view.lessons[number] & { body: string; sources: string[]; blocks?: Block[] }
   const next = view.lessons[index + 1]
   const cited = lesson.sources.length ? await all<{ id: string; number: number; title: string }>(env, `SELECT v.id, v.number, s.title FROM beam_source_versions v JOIN beam_sources s ON s.id = v.source_id WHERE v.id IN (${lesson.sources.map(() => '?').join(', ')}) ORDER BY s.title, v.number`, ...lesson.sources) : []
   const sources = cited.length ? h`<p class="muted source-line">Source material: ${cited.map((version, n) => h`${n ? ', ' : ''}<a href="/app/files/source/${version.id}">${version.title}, version ${version.number}</a>`)}</p>` : ''
   const action = view.assignment.status === 'open' && view.assignment.learner === actor.id && !view.blocked
     ? form('lesson.complete', next ? `/app/learn/${id}/lessons/${next.id}` : `/app/learn/${id}`, [hidden('assignment', id), hidden('lesson', lesson.id)], lesson.completed ? (next ? 'Next lesson' : 'Back to course') : next ? 'Mark done and continue' : 'Mark done')
     : ''
-  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">Lesson ${index + 1} of ${view.lessons.length}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">Lesson reading</p><div class="lesson-body">${lessonText(lesson.body, { lead: true })}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? h`${feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`)}<p><a href="/app/discussions/${view.assignment.course}?lesson=${lessonId}">Ask about this lesson or discuss it</a></p>` : ''}`
-  return page(lesson.title, actor, body, { current: '/app/learning', url })
+  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">Lesson ${index + 1} of ${view.lessons.length}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">Lesson reading</p><div class="lesson-body">${lessonText(lesson.body, { lead: true })}${renderBlocks(lesson.blocks, (await embedPolicy(env)).hosts)}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? h`${feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`)}<p><a href="/app/discussions/${view.assignment.course}?lesson=${lessonId}">Ask about this lesson or discuss it</a></p>` : ''}`
+  return mediaPage(env, page(lesson.title, actor, body, { current: '/app/learning', url }))
 }
 
 export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL) {

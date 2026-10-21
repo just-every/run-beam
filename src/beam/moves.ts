@@ -25,14 +25,14 @@ export async function countingAssignment(env: Bindings, assignment: string) {
   return row?.id ?? null
 }
 
-const lessonKey = (lesson: Row) => JSON.stringify([lesson.title, lesson.body, JSON.parse(lesson.source_version_ids)])
+const lessonKey = (lesson: Row) => JSON.stringify([lesson.title, lesson.body, JSON.parse(lesson.source_version_ids), JSON.parse(lesson.blocks_json)])
 const ASSESSMENT = 'SELECT questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id, draw_count, shuffle, feedback FROM beam_assessment_revisions WHERE course_revision_id = ?'
 
 /** What moving from one revision to another keeps: lessons matched by identical content, and the assessment's fate. */
 async function compare(env: Bindings, from: string, to: string) {
   const [before, after, oldAssessment, newAssessment] = await Promise.all([
-    all(env, 'SELECT id, title, body, source_version_ids FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', from),
-    all(env, 'SELECT id, title, body, source_version_ids FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', to),
+    all(env, 'SELECT id, title, body, source_version_ids, blocks_json FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', from),
+    all(env, 'SELECT id, title, body, source_version_ids, blocks_json FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', to),
     one(env, ASSESSMENT, from), one(env, ASSESSMENT, to),
   ])
   const unused = [...before]

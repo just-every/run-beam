@@ -90,3 +90,208 @@ export async function sourceExtractionCheck(f) {
   }
   assert.deepEqual((await api('reviewer', `revisions/${frozen}`)).lessons, published.lessons)
 }
+
+// AUTHOR-001: real D1/R2 and both human HTTP doors, with no application mocks.
+export async function multimediaCheck(f) {
+  const { syntheticVideo, syntheticAudio } = await import('./fixtures.mjs')
+  const { api, h, cookies, ids } = f
+  const hosts = ['www.youtube.com', 'player.vimeo.com', 'www.loom.com', 'docs.google.com', 'onedrive.live.com', 'forms.office.com', 'word-edit.officeapps.live.com']
+  await api('author', 'embed.policy', { version: 0, hosts: hosts.join('\n') }, 403)
+  await api('owner', 'embed.policy', { version: 0, hosts: 'https://www.youtube.com' }, 400)
+  const policyForm = await h.submit('embed.policy', cookies.owner, { version: 0, hosts: hosts.join('\n') })
+  assert.equal(policyForm.searchParams.get('error'), null)
+  await api('owner', 'embed.policy', { version: 0, hosts: '' }, 409)
+  await api('owner', 'embed.policy', { version: 1, hosts: hosts.join('\n') })
+  const assets = {}
+  for (const [kind, filename, bytes] of [
+    ['image', 'synthetic-beam-1.png', Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64')],
+    ['audio', 'synthetic-beam-2.mp3', syntheticAudio],
+    ['video', 'synthetic-beam-3.mp4', syntheticVideo],
+    ['document', 'synthetic-beam-4.pdf', pdf],
+  ]) assets[kind] = (await api('author', 'source.create', { title: `Synthetic ${kind}`, licence: 'owned', licenceEvidence: 'Generated for this integration journey', reviewer: ids.reviewer, provenance: 'Synthetic Beam media fixture', file: file(filename, bytes) })).versionId
+  const c = await api('author', 'course.create', { title: 'Mixed media training', reviewer: ids.reviewer })
+  let current = await api('author', 'course.lesson', { course: c.id, draftVersion: 1, title: 'Inspect the station', body: 'Inspect the station before starting.', sources: [] })
+  const lesson = current.draft.lessons[0].id
+  const add = async content => { current = await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content }); return current.draft.lessons[0].blocks.at(-1) }
+  await add({ kind: 'text', text: '# Inspect\n\nUse **clean tools** and _check_ the `record`.\n\n- Inspect\n- Record' })
+  for (const kind of ['image', 'audio', 'video', 'document']) await add({ kind, text: `Station ${kind}`, source: assets[kind] })
+  await add({ kind: 'link', text: 'Read the procedure', url: 'https://example.test/procedure' })
+  await add({ kind: 'check', text: 'Which tool is safe?', choices: ['Clean tool', 'Dirty tool'], answer: 0, feedback: 'Clean tools protect the work.' })
+  const embeds = [
+    ['YouTube training', 'https://www.youtube.com/watch?v=synthetic-beam-1', 'https://www.youtube.com/embed/synthetic-beam-1'],
+    ['Loom training', 'https://www.loom.com/share/synthetic-beam-2', 'https://www.loom.com/embed/synthetic-beam-2'],
+    ['Slides training', 'https://docs.google.com/presentation/d/synthetic-beam-3/edit', 'https://docs.google.com/presentation/d/synthetic-beam-3/embed'],
+    ['Vimeo training', 'https://vimeo.com/1234', 'https://player.vimeo.com/video/1234'],
+    ['Docs training', 'https://docs.google.com/document/d/synthetic-beam-4/edit', 'https://docs.google.com/document/d/synthetic-beam-4/preview'],
+    ['PowerPoint training', 'https://onedrive.live.com/embed?resid=synthetic-beam-5', 'https://onedrive.live.com/embed?resid=synthetic-beam-5'],
+    ['Word training', 'https://word-edit.officeapps.live.com/we/wordviewerframe.aspx?id=synthetic-beam-6', 'https://word-edit.officeapps.live.com/we/wordviewerframe.aspx?id=synthetic-beam-6'],
+    ['Forms training', 'https://forms.office.com/Pages/ResponsePage.aspx?id=synthetic-beam-7', 'https://forms.office.com/Pages/ResponsePage.aspx?id=synthetic-beam-7'],
+  ]
+  for (const [text, url, expected] of embeds) assert.equal((await add({ kind: 'embed', text, url })).url, expected)
+  const unchanged = await api('author', `courses/${c.id}`)
+  for (const [content, error] of [
+    [{ kind: 'text', text: '<img src=x onerror=active()>' }, 'active_lesson_html'],
+    [{ kind: 'embed', text: 'Unlisted', url: 'https://unlisted.example.test/embed' }, 'embed_host_not_allowed'],
+    [{ kind: 'embed', text: 'Deceptive host', url: 'https://www.youtube.com.unlisted.example.test/embed' }, 'embed_host_not_allowed'],
+    [{ kind: 'link', text: 'Unsafe link', url: 'javascript:active()' }, 'invalid_media_url'],
+    [{ kind: 'embed', text: 'Credentials', url: 'https://member:secret@www.youtube.com/embed/test' }, 'invalid_media_url'],
+    [{ kind: 'image', text: 'Active upload', source: assets.document }, 'media_type_mismatch'],
+  ]) assert.equal((await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content }, 400)).error, error)
+  assert.deepEqual(await api('author', `courses/${c.id}`), unchanged)
+  await api('learner', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content: { kind: 'text', text: 'Forbidden' } }, 403)
+  const original = structuredClone(current.draft.lessons[0].blocks[1])
+  current = await api('author', 'course.block.change', { course: c.id, draftVersion: current.draftVersion, lesson, block: original.id, operation: 'duplicate' })
+  const duplicated = current.draft.lessons[0].blocks[2]
+  assert.notEqual(duplicated.id, original.id)
+  assert.equal(duplicated.source, original.source)
+  assert.deepEqual(duplicated.copiedFrom, { course: c.id, lesson, block: original.id })
+  current = await api('author', 'course.block.change', { course: c.id, draftVersion: current.draftVersion, lesson, block: duplicated.id, operation: 'up' })
+  assert.equal(current.draft.lessons[0].blocks[1].id, duplicated.id)
+  await api('author', 'course.block.change', { course: c.id, draftVersion: current.draftVersion - 1, lesson, block: duplicated.id, operation: 'remove' }, 409)
+  const beforePreview = await api('author', `courses/${c.id}`)
+  const preview = await h.raw(`/app/courses/${c.id}?preview=learner`, { cookie: cookies.author })
+  const previewHtml = await preview.text()
+  assert.match(previewHtml, /Learner preview/)
+  assert.match(previewHtml, /<strong>clean tools<\/strong>/)
+  assert.match(previewHtml, /<em>check<\/em>/)
+  assert.match(previewHtml, /sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"/)
+  assert.match(previewHtml, /sandbox=""/)
+  assert.match(preview.headers.get('content-security-policy'), /frame-src 'self' https:\/\/www.youtube.com/)
+  assert.deepEqual(await api('author', `courses/${c.id}`), beforePreview)
+  assert.equal((await api('author', `courses/${c.id}`)).draftVersion, current.draftVersion)
+  const revision = (await api('author', 'course.submit', { course: c.id, draftVersion: current.draftVersion })).id
+  await f.publish(revision)
+  const assignment = await f.assign(c)
+  const learned = await f.view(assignment)
+  const learnerPath = `/app/learn/${assignment}/lessons/${learned.lessons[0].id}`
+  const rendered = await h.raw(learnerPath, { cookie: cookies.learner }).then(response => response.text())
+  for (const [, , expected] of embeds) assert.ok(rendered.includes(expected.replaceAll('&', '&amp;')))
+  for (const kind of ['image', 'audio', 'video', 'document']) {
+    assert.ok(rendered.includes(`/app/files/source/${assets[kind]}`))
+    const asset = await h.raw(`/app/files/source/${assets[kind]}`, { cookie: cookies.learner })
+    assert.equal(asset.status, 200)
+    assert.match(asset.headers.get('content-security-policy'), /sandbox; default-src 'none'/)
+    assert.equal(asset.headers.get('x-content-type-options'), 'nosniff')
+    assert.equal((await h.raw(`/app/files/source/${assets[kind]}`, { cookie: cookies.other })).status, 404)
+    assert.equal((await h.raw(`/app/files/source/${assets[kind]}`)).status, 303)
+  }
+  // Reuse into another course retains exact immutable source attribution.
+  const other = await api('author', 'course.create', { title: 'Reused course', reviewer: ids.reviewer })
+  let target = await api('author', 'course.lesson', { course: other.id, draftVersion: 1, title: 'Reused procedure', body: 'A different lesson.', sources: [] })
+  const reused = await h.submit('course.block.reuse', cookies.author, { course: other.id, draftVersion: target.draftVersion, lesson: target.draft.lessons[0].id, from: `${c.id}:${lesson}:${original.id}` }, `/app/courses/${other.id}`)
+  assert.equal(reused.searchParams.get('error'), null)
+  target = await api('author', `courses/${other.id}`)
+  assert.equal(target.draft.lessons[0].blocks[0].source, original.source)
+  assert.ok(target.draft.lessons[0].sources.includes(original.source))
+  assert.deepEqual(target.draft.lessons[0].blocks[0].copiedFrom, { course: c.id, lesson, block: original.id })
+  // Later draft edits never change published blocks; comparison and restore retain them.
+  const frozen = await api('reviewer', `revisions/${revision}`)
+  const first = current.draft.lessons[0].blocks[0]
+  current = await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, block: first.id, content: { kind: 'text', text: 'Use **inspected tools**.' } })
+  assert.deepEqual(await api('reviewer', `revisions/${revision}`), frozen)
+  const nextRevision = (await api('author', 'course.submit', { course: c.id, draftVersion: current.draftVersion })).id
+  const compared = await api('author', `compare?from=${revision}&to=${nextRevision}`)
+  assert.equal(compared.lessons[0].change, 'changed')
+  assert.ok(compared.lessons[0].blocks.lines.some(line => line.op === 'add' && line.text.includes('inspected tools')))
+  current = await api('author', 'course.restore', { course: c.id, draftVersion: current.draftVersion, revision })
+  assert.deepEqual(current.draft.lessons[0].blocks, frozen.lessons[0].blocks)
+  // Owner revocation applies at render time even to the immutable old revision.
+  await api('owner', 'embed.policy', { version: 2, hosts: 'docs.google.com' })
+  const revoked = await h.raw(learnerPath, { cookie: cookies.learner }).then(response => response.text())
+  assert.ok(!revoked.includes('src="https://www.youtube.com'))
+  assert.ok(revoked.includes('current allowlist'))
+  assert.equal((await h.raw('/app/business', { cookie: cookies.owner })).headers.get('content-security-policy').includes('frame-src'), false)
+  await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson: current.draft.lessons[0].id, content: { kind: 'embed', text: 'Revoked', url: embeds[0][1] } }, 400)
+  await api('owner', 'embed.policy', { version: 3, hosts: hosts.join('\n') })
+  return { course: c.id, lesson: current.draft.lessons[0].id, draftVersion: current.draftVersion, revision, nextRevision, assignment, learnerPath, assets, original, hosts }
+}
+
+export async function multimediaBrowserCheck(f, media) {
+  const { mkdir } = await import('node:fs/promises')
+  const { join } = await import('node:path')
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  await mkdir(evidence, { recursive: true })
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
+      const page = await context.newPage()
+      async function as(role) {
+        await context.clearCookies()
+        await context.addCookies(f.cookies[role].split('; ').map(cookie => { const split = cookie.indexOf('='); return { name: cookie.slice(0, split), value: cookie.slice(split + 1), url: f.h.origin } }))
+      }
+      async function shot(name) {
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: horizontal overflow at ${width}`)
+        await page.screenshot({ path: join(evidence, `${width}-media-${name}.png`), fullPage: true })
+      }
+      await as('author')
+      await page.goto(`${f.h.origin}/app/courses`)
+      const create = page.locator('form[action="/app/do/course.create"]')
+      await create.getByLabel('Title', { exact: true }).fill(`Media editor ${width}`)
+      await create.getByLabel('Reviewer', { exact: true }).selectOption(f.ids.reviewer)
+      await create.getByRole('button', { name: 'Create course' }).click()
+      await page.waitForURL(/\/app\/courses\/[\w-]+/)
+      const course = new URL(page.url()).pathname.split('/').at(-1)
+      const lessonForm = page.locator('form[action="/app/do/course.lesson"]').last()
+      await lessonForm.getByLabel('Lesson title').fill('Prepare safely')
+      await lessonForm.getByLabel('Lesson text').fill('Inspect before starting.')
+      await lessonForm.getByRole('button', { name: 'Add lesson' }).click()
+      await page.locator('summary').filter({ hasText: /^1\. Prepare safely$/ }).click()
+      const add = page.locator('details').filter({ has: page.locator(':scope > summary', { hasText: /^Add a media block$/ }) })
+      await add.locator(':scope > summary').click()
+      const rich = add.locator('details').filter({ has: page.locator(':scope > summary', { hasText: /^Rich text$/ }) })
+      await rich.locator(':scope > summary').click()
+      await rich.getByLabel(/Rich text \(/).fill('Use **clean tools**.')
+      await rich.getByRole('button', { name: 'Add block', exact: true }).click()
+      // Reopen only the lesson; native forms work without a client-side state layer.
+      await page.locator('summary').filter({ hasText: /^1\. Prepare safely$/ }).click()
+      await page.locator('summary').filter({ hasText: /^Reuse a block$/ }).click()
+      const reuse = page.locator('form[action="/app/do/course.block.reuse"]')
+      await reuse.getByLabel('Block from your courses').selectOption(`${media.course}:${media.original.copiedFrom?.lesson || (await f.api('author', `courses/${media.course}`)).draft.lessons[0].id}:${media.original.id}`)
+      await reuse.getByRole('button', { name: 'Reuse block', exact: true }).click()
+      await page.locator('summary').filter({ hasText: /^1\. Prepare safely$/ }).click()
+      await page.locator('summary').filter({ hasText: /^2\. Image/ }).click()
+      await page.getByRole('button', { name: 'Duplicate block', exact: true }).click()
+      await page.locator('summary').filter({ hasText: /^1\. Prepare safely$/ }).click()
+      await page.locator('summary').filter({ hasText: /^3\. Image/ }).click()
+      await page.getByRole('button', { name: 'Move block up', exact: true }).click()
+      await page.locator('summary').filter({ hasText: /^1\. Prepare safely$/ }).click()
+      await shot('editor')
+      await page.getByRole('link', { name: 'Preview as learner', exact: true }).click()
+      assert.equal(await page.locator('strong').filter({ hasText: 'clean tools' }).count(), 1)
+      assert.equal(await page.locator('.lesson-image').count(), 2)
+      await shot('preview')
+      // The full mixed lesson uses the identical renderer in learner and review doors.
+      await as('learner')
+      await page.goto(f.h.origin + media.learnerPath)
+      assert.equal(await page.locator('video').evaluate(video => video.readyState >= 1 || new Promise(resolve => video.addEventListener('loadedmetadata', () => resolve(true), { once: true }))), true)
+      await page.locator('video').evaluate(async video => { video.muted = true; await video.play() })
+      await page.waitForFunction(() => document.querySelector('video').currentTime > 0)
+      await page.locator('video').evaluate(video => video.pause())
+      await page.locator('audio').evaluate(async audio => { audio.muted = true; await audio.play() })
+      await page.waitForFunction(() => document.querySelector('audio').currentTime > 0)
+      await page.locator('audio').evaluate(audio => audio.pause())
+      await page.getByLabel('Clean tool', { exact: true }).check()
+      await page.getByText('Check your answer', { exact: true }).click()
+      assert.equal(await page.locator('input[type=radio]:checked').count(), 1)
+      assert.equal(await page.locator('iframe.lesson-embed').count(), 8)
+      assert.equal(await page.locator('iframe.lesson-document').getAttribute('sandbox'), '')
+      await shot('learner')
+      await as('reviewer')
+      await page.goto(`${f.h.origin}/app/revisions/${media.revision}`)
+      assert.equal(await page.locator('iframe.lesson-embed').count(), 8)
+      await shot('review')
+      await as('owner')
+      await page.goto(`${f.h.origin}/app/courses/${media.course}`)
+      assert.equal(await page.getByLabel('Allowed embed hosts, one per line').inputValue(), media.hosts.join('\n'))
+      await shot('owner-allowlist')
+      await as('author')
+      await page.goto(`${f.h.origin}/app/courses/${media.course}/compare?from=${media.revision}&to=${media.nextRevision}`)
+      await page.getByRole('heading', { name: 'Media blocks', exact: true }).waitFor()
+      await shot('comparison')
+      await context.close()
+      console.log(`PASS media browser editor/reuse/duplicate/reorder/preview/native playback/learner/review/allowlist/comparison ${width}`)
+    }
+  } finally { await browser.close() }
+}

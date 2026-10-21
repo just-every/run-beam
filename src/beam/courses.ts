@@ -9,8 +9,9 @@ import { newCourseUnit, requireCourseRole } from './units'
 import { courseAccess } from './course-access'
 import { courseUpkeep } from './upkeep'
 import { retrainAfterPublish } from './impact'
+import { normaliseBlocks, type Block } from './media'
 
-export interface Lesson { id: string; title: string; body: string; sources: string[] }
+export interface Lesson { id: string; title: string; body: string; sources: string[]; blocks?: Block[] }
 import { normaliseQuestion, questionFromInput, type Question } from './question-types'
 export type { Question } from './question-types'
 export interface Draft {
@@ -61,7 +62,7 @@ export async function loadCourse(env: Bindings, id: string) {
 }
 
 /** Validates a complete draft, as edited in the UI or proposed through the API. */
-export async function normaliseDraft(env: Bindings, value: unknown): Promise<Draft> {
+export async function normaliseDraft(env: Bindings, value: unknown, { admit = true } = {}): Promise<Draft> {
   insist(value && typeof value === 'object', 'invalid_draft')
   const draft = value as Draft
   insist(typeof draft.title === 'string' && draft.title.trim().length > 0 && draft.title.length <= 160, 'invalid_draft_title')
@@ -71,7 +72,8 @@ export async function normaliseDraft(env: Bindings, value: unknown): Promise<Dra
   for (const lesson of draft.lessons) {
     insist(lesson && typeof lesson.title === 'string' && lesson.title.trim() && lesson.title.length <= 160 && typeof lesson.body === 'string' && lesson.body.length <= 50_000 && Array.isArray(lesson.sources), 'invalid_lesson')
     for (const version of lesson.sources) insist(typeof version === 'string' && await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', version), 'source_version_not_found', 404)
-    lessons.push({ id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set(lesson.sources)] })
+    const blocks = await normaliseBlocks(env, lesson.blocks, { admit })
+    lessons.push({ ...(blocks.length ? { blocks } : {}), id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set([...lesson.sources, ...blocks.flatMap(block => block.source ? [block.source] : [])])] })
   }
   const questions: Question[] = []
   for (const question of draft.questions) questions.push(normaliseQuestion(question))
@@ -109,7 +111,7 @@ export async function editDraft(env: Bindings, actor: Actor, input: Input, actio
   const expected = version ?? input.integer('draftVersion', { min: 1, max: 1_000_000 })
   insist(expected === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
   await change(course.draft)
-  const draft = await normaliseDraft(env, course.draft)
+  const draft = await normaliseDraft(env, course.draft, { admit: false })
   const result = await env.DB.batch([
     stmt(env, 'UPDATE beam_courses SET draft_json = ?, draft_version = draft_version + 1, title = ? WHERE id = ? AND draft_version = ?', JSON.stringify(draft), draft.title, course.id, expected),
     stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail, via) SELECT ?, ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, course.id, JSON.stringify({ from: expected, ...detail }), auditVia(actor)),
@@ -136,14 +138,14 @@ export async function saveLesson(env: Bindings, actor: Actor, input: Input, vers
     if (expected !== course.draft_version) {
       const theirs = course.draft.lessons.find(lesson => lesson.id === id)
       insist(theirs, 'lesson_not_found', 404)
-      if (await lessonHash(theirs) !== input.text('base', { max: 64 })) throw new BeamError('lesson_conflict', 409, { conflict: await recordConflict(env, actor, course, theirs, { id, title: input.text('title', { max: 160 }), body: input.text('body', { max: 50_000 }), sources: input.list('sources') }) })
+      if (await lessonHash(theirs) !== input.text('base', { max: 64 })) throw new BeamError('lesson_conflict', 409, { conflict: await recordConflict(env, actor, course, theirs, { id, title: input.text('title', { max: 160 }), body: input.text('body', { max: 50_000 }), sources: input.list('sources'), blocks: theirs.blocks }) })
       current = course.draft_version
     }
   }
   return await editDraft(env, actor, input, 'course.lesson', draft => {
     const lesson: Lesson = { id: id || newId(), title: input.text('title', { max: 160 }), body: input.text('body', { max: 50_000 }), sources: input.list('sources') }
     const index = draft.lessons.findIndex(existing => existing.id === lesson.id)
-    if (index >= 0) draft.lessons[index] = lesson
+    if (index >= 0) draft.lessons[index] = { ...lesson, blocks: draft.lessons[index].blocks }
     else {
       insist(!input.has('lesson'), 'lesson_not_found', 404)
       draft.lessons.push(lesson)
@@ -152,7 +154,7 @@ export async function saveLesson(env: Bindings, actor: Actor, input: Input, vers
 }
 
 /** What an editor saw of a lesson, so a later save can tell whether someone changed it meanwhile. */
-export const lessonHash = (lesson: Lesson) => sha256Hex(new TextEncoder().encode(JSON.stringify([lesson.title, lesson.body, lesson.sources])))
+export const lessonHash = (lesson: Lesson) => sha256Hex(new TextEncoder().encode(JSON.stringify([lesson.title, lesson.body, lesson.sources, lesson.blocks ?? []])))
 
 async function recordConflict(env: Bindings, actor: Actor, course: Row, theirs: Lesson, mine: Lesson) {
   const id = newId()
@@ -227,6 +229,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   insist(input.integer('draftVersion', { min: 1, max: 1_000_000 }) === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
   const draft = await normaliseDraft(env, course.draft)
   insist(draft.lessons.length > 0, 'lessons_required')
+  for (const lesson of draft.lessons) await normaliseBlocks(env, lesson.blocks, { admit: true })
   insist(draft.questions.length === 0 || (draft.passPercent !== null && draft.maxAttempts !== null), 'quiz_rules_required')
   insist(!draft.drawCount || draft.drawCount <= draft.questions.length, 'draw_exceeds_bank')
   insist(!draft.drawCount || draft.drawCount >= draft.questions.filter(question => question.always).length, 'draw_below_always_asked')
@@ -239,7 +242,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   const assessed = draft.questions.length > 0 || draft.practical
   await commit(env, [
     stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at, attendance_percent, survey_json) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?, ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now(), draft.attendancePercent ?? null, draft.survey?.length ? JSON.stringify(draft.survey) : null),
-    ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids) VALUES (?, ?, ?, ?, ?, ?)', newId(), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources))),
+    ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids, blocks_json) VALUES (?, ?, ?, ?, ?, ?, ?)', newId(), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources), JSON.stringify(lesson.blocks ?? []))),
     ...(assessed ? [stmt(env, 'INSERT INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id, draw_count, shuffle, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', newId(), id, JSON.stringify(draft.questions), draft.passPercent, draft.maxAttempts, draft.questions.length ? draft.timeLimitMinutes ?? null : null, draft.practical?.instructions ?? null, assessor, draft.questions.length ? draft.drawCount ?? null : null, draft.shuffle ? 1 : 0, draft.feedback ?? 'attempt')] : []),
   ], { actor, action: 'revision.submit', subject: id, detail: { course: course.id, number, draftVersion: course.draft_version } })
   return { id, number }
@@ -293,7 +296,7 @@ export async function listCourses(env: Bindings, within: { units: string[]; cour
 export async function revisionDetail(env: Bindings, id: string) {
   const revision = await one(env, 'SELECT * FROM beam_course_revisions WHERE id = ?', id)
   if (!revision) throw new BeamError('revision_not_found', 404)
-  const lessons = (await all(env, 'SELECT id, position, title, body, source_version_ids FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', id)).map(lesson => ({ id: lesson.id, position: lesson.position, title: lesson.title, body: lesson.body, sources: JSON.parse(lesson.source_version_ids) as string[] }))
+  const lessons = (await all(env, 'SELECT id, position, title, body, source_version_ids, blocks_json FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', id)).map(lesson => ({ id: lesson.id, position: lesson.position, title: lesson.title, body: lesson.body, sources: JSON.parse(lesson.source_version_ids) as string[], blocks: JSON.parse(lesson.blocks_json) as Block[] }))
   const assessment = await one(env, 'SELECT * FROM beam_assessment_revisions WHERE course_revision_id = ?', id)
   return { revision, lessons, survey: revision.survey_json ? JSON.parse(revision.survey_json) as SurveyQuestion[] : [], assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
 }

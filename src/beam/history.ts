@@ -12,7 +12,7 @@ import { answerText } from './question-types'
 import { diffLines } from './diff'
 import type { Input } from './input'
 
-type Lesson = { position: number; title: string; body: string; sources: string[] }
+type Lesson = { position: number; title: string; body: string; sources: string[]; blocks?: import('./media').Block[] }
 
 /** Pairs lessons by title in order (an LCS on titles); unpaired lessons were added or removed. */
 function pairLessons(from: Lesson[], to: Lesson[]) {
@@ -41,9 +41,9 @@ export async function compareRevisions(env: Bindings, actor: Actor, fromId: stri
   insist(from.revision.course_id === to.revision.course_id, 'revisions_from_different_courses')
   const side = (detail: typeof from) => ({ id: detail.revision.id, number: detail.revision.number, state: detail.revision.state })
   const lessons = pairLessons(from.lessons, to.lessons).map(pair => {
-    const change = !pair.from ? 'added' : !pair.to ? 'removed' : pair.from.body === pair.to.body && pair.from.sources.join() === pair.to.sources.join() ? (pair.from.position === pair.to.position ? 'same' : 'moved') : 'changed'
+    const change = !pair.from ? 'added' : !pair.to ? 'removed' : JSON.stringify(pair.from.blocks ?? []) === JSON.stringify(pair.to.blocks ?? []) && pair.from.body === pair.to.body && pair.from.sources.join() === pair.to.sources.join() ? (pair.from.position === pair.to.position ? 'same' : 'moved') : 'changed'
     const before = pair.from?.sources ?? [], after = pair.to?.sources ?? []
-    return { change, from: lessonRef(pair.from), to: lessonRef(pair.to), body: diffLines(pair.from?.body ?? '', pair.to?.body ?? ''), sources: { added: after.filter(id => !before.includes(id)), removed: before.filter(id => !after.includes(id)) } }
+    return { change, from: lessonRef(pair.from), to: lessonRef(pair.to), body: diffLines(pair.from?.body ?? '', pair.to?.body ?? ''), blocks: diffLines((pair.from?.blocks ?? []).map(block => JSON.stringify(block)).join('\n'), (pair.to?.blocks ?? []).map(block => JSON.stringify(block)).join('\n')), sources: { added: after.filter(id => !before.includes(id)), removed: before.filter(id => !after.includes(id)) } }
   })
   const fromQuestions = from.assessment?.questions ?? [], toQuestions = to.assessment?.questions ?? []
   const questions = [
@@ -114,7 +114,7 @@ export const restoreRevision = (env: Bindings, actor: Actor, input: Input) => ed
   const restored: Draft = {
     title: detail.revision.title,
     summary: detail.revision.summary,
-    lessons: detail.lessons.map(lesson => ({ id: '', title: lesson.title, body: lesson.body, sources: lesson.sources })),
+    lessons: detail.lessons.map(lesson => ({ id: '', title: lesson.title, body: lesson.body, sources: lesson.sources, blocks: lesson.blocks })),
     questions: detail.assessment?.questions ?? [],
     passPercent: detail.assessment?.pass_percent ?? null,
     maxAttempts: detail.assessment?.max_attempts ?? null,

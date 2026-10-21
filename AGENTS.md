@@ -262,3 +262,34 @@ It appends editable lessons citing that immutable source version, subject
 to normal author/course authority, draft concurrency and lesson limits.
 It never publishes: submit and named-reviewer publication stay unchanged.
 These preparation doors have no dedicated UI yet.
+
+## Native lesson media (AUTHOR-001, partial)
+
+Authors add/edit typed blocks with `course.block`, duplicate/reorder/remove with
+`course.block.change`, and reuse a block from another course they author with
+`course.block.reuse`. All carry `course`, `draftVersion`, and `lesson`; reuse's
+`from` is `course:lesson:block`. The editor supplies these references. Reuse
+copies content and exact source-version attribution; it never links mutable
+content between published lessons. The editor's **Preview as learner** reads
+its current draft through the same renderer as learners, without recording
+progress. Practice checks reveal the answer and explanation; assessment and
+completion decisions continue through the existing quiz and practical doors.
+
+Source media is authenticated and byte-sniffed: native image, MP3 audio,
+MP4/WebM video and PDF blocks use immutable source versions. Rich text supports
+headings, lists, bold, emphasis and code without HTML. Active HTML in structured
+blocks is refused; legacy plain lesson text stays escaped. PDFs use a scriptless
+sandboxed frame, and source responses keep their restrictive CSP and nosniff.
+
+Only the owner edits **Web content allowlist** on a course page (`embed.policy`,
+`version`, newline-separated `hosts`). It starts empty. Exact HTTPS hostnames,
+without credentials, custom ports or wildcards, are required; the application's
+own host cannot be admitted. YouTube, Vimeo and Loom share URLs and Google
+Slides/Docs editing URLs convert to embed URLs; Microsoft 365 uses the provider's
+embed URL. Authors must use a host approved by the owner. Frames have scripts,
+forms, presentation and cross-origin provider cookies inside their sandbox, with
+no top navigation, popups or downloads. Only media pages permit the owner's
+listed frame origins in CSP. Removing a host suppresses even previously
+published frames immediately; it never changes their stored revision. A new
+publication must pass current admission. Live provider playback is still owed;
+synthetic URLs in HTTP/browser checks prove admission and isolation only.

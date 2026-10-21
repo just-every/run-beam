@@ -58,7 +58,8 @@
           "migrations/core/0069_beam_escalation_control.sql",
           "migrations/core/0070_beam_restored_grants.sql",
           "migrations/core/0071_beam_renewals.sql",
-          "migrations/core/0072_beam_session_announcements.sql"
+          "migrations/core/0072_beam_session_announcements.sql",
+          "migrations/core/0073_beam_media_blocks.sql"
         ]
       }
     },

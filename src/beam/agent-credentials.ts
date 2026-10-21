@@ -10,6 +10,7 @@ const PURPOSE = 'beam-preparation-v1'
 const encoder = new TextEncoder()
 const PREPARATION_ACTIONS = new Set([
   'course.create', 'course.details', 'course.lesson', 'course.lesson.remove',
+  'course.block', 'course.block.change', 'course.block.reuse',
   'course.lesson.move', 'course.question', 'course.question.remove',
   'course.assessment', 'course.survey', 'course.submit', 'proposal.create', 'impact.propose', 'agent.propose', 'outcome.plan', 'diagnosis.prepare',
 ])

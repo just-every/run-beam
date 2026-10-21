@@ -1,3 +1,5 @@
+import { saveBlock, changeBlock, reuseBlock } from './blocks'
+import { saveEmbedPolicy } from './media'
 import { convertSource } from './source-extraction'
 import { saveRenewal, previewRenewal, setRenewalState, replayRenewal } from './renewals'
 import { saveEscalationPolicy, resolveEscalation, runEscalationsNow } from './escalations'
@@ -76,6 +78,10 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'course.block': saveBlock,
+  'course.block.change': changeBlock,
+  'course.block.reuse': reuseBlock,
+  'embed.policy': saveEmbedPolicy,
   'escalation.policy': saveEscalationPolicy,
   'escalation.resolve': resolveEscalation,
   'escalation.run': runEscalationsNow,
