@@ -50,7 +50,11 @@ try {
   assert.equal(calls,0)
   await owner.getByRole('checkbox').check()
   await owner.getByRole('button',{name:'Approve and send this PDF for OCR',exact:true}).click()
-  try { await owner.getByRole('heading',{name:'OCR is ready for author review',exact:true}).waitFor({timeout:100000}) }
+  try {
+   const success = owner.getByRole('heading',{name:'OCR is ready for author review',exact:true})
+   await success.or(owner.getByRole('heading',{name:'That did not work',exact:true})).waitFor({timeout:100000})
+   assert.equal(await success.isVisible(),true,'The actual provider OCR must complete')
+  }
   catch (error) {
    console.log('OCR safe outcome',JSON.stringify({calls,runs:(await api('owner','source-ocr')).runs.map(row=>({state:row.state,failure:row.failure}))}))
    await shot(owner,390,'failure')
