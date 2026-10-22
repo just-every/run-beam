@@ -7,7 +7,7 @@ import type { Role } from './beam/actor'
 export const PERSONA_ROLES: Record<string, { name: string; roles: Role[] }> = {
   author: { name: 'Ana Ruiz (author)', roles: ['author', 'learner'] },
   reviewer: { name: 'Priya Shah (reviewer)', roles: ['reviewer', 'learner'] },
-  manager: { name: 'Tom Okafor (manager and assessor)', roles: ['manager', 'assessor', 'learner'] },
+  manager: { name: 'Tom Okafor', roles: ['manager', 'assessor', 'learner'] },
   learner: { name: 'Sam Lee (new staff)', roles: ['learner'] },
 }
 

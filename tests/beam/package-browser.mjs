@@ -4,6 +4,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fixture } from './regression-fixture.mjs'
 import { scormPackage } from './scorm-fixtures.mjs'
+import { file } from './harness.mjs'
 import { preparePackage, publishPackage } from './regression-packages.mjs'
 
 const f = await fixture()
@@ -118,6 +119,21 @@ try {
       await phone.getByText('Completed; no passed result declared', { exact: true }).waitFor()
       await shot(phone, '2004-completed')
     }
+    // Cited package metadata appears on the actual procedure-impact screen.
+    const source = await f.api('owner', 'source.create', { title: 'Vaccine cold chain procedure', licence: 'owned', licenceEvidence: 'Employer-authored procedure', reviewer: f.ids.reviewer, provenance: 'Cold chain SOP', file: file('cold-chain.txt', 'Keep vaccines between 2 and 8 degrees.') })
+    const cited = await publishPackage(f, await preparePackage(f, '1.2', { sources: [source.versionId] }))
+    await f.api('owner', 'source.version', { source: source.id, provenance: 'Reviewed revised range', file: file('cold-chain.txt', 'Keep vaccines between 2 and 6 degrees.') })
+    await owner.goto(`${f.h.origin}/app/courses/${cited.id}`)
+    await owner.getByRole('heading', { name: 'Source changed', exact: true }).waitFor()
+    assert.ok(await owner.getByText(/Package “Keep vaccines between 2 and 8 degrees”/).count())
+    await shot(owner, 'procedure-impact')
+    const invalidUpload = owner.locator('form[action="/app/do/package.import"]')
+    await invalidUpload.getByLabel('SCORM ZIP package').setInputFiles({ name: 'invalid.zip', mimeType: 'application/zip', buffer: scormPackage('1.2', { invalid: 'launch' }) })
+    await invalidUpload.getByLabel('License evidence', { exact: true }).fill('Original CC0 package')
+    await invalidUpload.getByRole('button', { name: 'Validate and add package' }).click()
+    await owner.getByRole('heading', { name: 'Package could not be imported', exact: true }).waitFor()
+    await owner.getByText('missing asset missing.html', { exact: true }).waitFor()
+    await shot(owner, 'invalid-manifest')
     if (process.argv.includes('--p1')) await accessBrowserCheck(f, browser, width, evidence)
     for (const context of contexts) await context.close()
     console.log(`PASS package browser import/review/preview/assign/sandbox/suspend/cross-device resume/fail/pass/evidence ${width}`)
