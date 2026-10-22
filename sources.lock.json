@@ -1334,7 +1334,7 @@
       "executable": false
     },
     "src/beam/lti-jwt.ts": {
-      "sha256": "8a1a523e551967fdffad956c941462defb57366f0b8f2295d22001fb0fef11f3",
+      "sha256": "7594b02318167621d33433fab751b2159899d6d40ca7f06e0a4c26ef2fd40daa",
       "executable": false
     },
     "src/beam/lti-requirements.ts": {
@@ -1342,7 +1342,7 @@
       "executable": false
     },
     "src/beam/lti.ts": {
-      "sha256": "cee33e75a05a327e337665491ec7aeda12ce20e9e3b9e1710251993ea35ad787",
+      "sha256": "714a2a150fb3699da221581473d545766688dd5d83d48c36a3f2bbebb7f50ede",
       "executable": false
     },
     "src/beam/maintenance.ts": {

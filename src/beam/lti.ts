@@ -8,7 +8,7 @@ import { assignmentView, tryComplete } from './learning'
 import { requireAccess } from './access'
 import { dashboardAuthority } from './actor'
 import { openSecret, randomSecret, sealSecret } from './integration-secrets'
-import { jwtSign, jwtVerify, publicKeys } from './lti-jwt'
+import { candidateIssuer, jwtSign, jwtVerify, publicKeys } from './lti-jwt'
 import { h, hidden, page } from './ui/html'
 import { integrationHuman, integrationUnit, integrationCourse, requireIntegrationCourse } from './integration-authority'
 export const LTI = 'https://purl.imsglobal.org/spec/lti/claim/'
@@ -161,8 +161,7 @@ export async function authorizeLti(env: Bindings, actor: Actor, request: Request
 async function deepLinkResponse(env: Bindings, request: Request) {
   const body = await Input.from(request), token = body.text('JWT', { max: 32_000 })
   // Untrusted issuer only chooses a pinned candidate key set; signature/issuer/audience are checked next.
-  let client = ''
-  try { client = JSON.parse(atob(token.split('.')[1].replaceAll('-', '+').replaceAll('_', '/'))).iss } catch { /* refused below */ }
+  const client = candidateIssuer(token)
   const row = await one(env, 'SELECT id FROM beam_lti_tools WHERE client_id=?', client)
   insist(row, 'invalid_lti_token', 401)
   const tool = await liveTool(env, row.id), claims = await jwtVerify(token, JSON.parse(tool.keys_json), tool.client_id, env.AUTH_ORIGIN)
@@ -184,9 +183,11 @@ async function deepLinkResponse(env: Bindings, request: Request) {
 async function accessToken(env: Bindings, request: Request) {
   const input = await Input.from(request)
   insist(input.text('grant_type') === 'client_credentials' && input.text('client_assertion_type') === 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer' && input.text('scope', { max: 2048 }) === AGS + 'scope/score', 'invalid_lti_grant', 401)
-  const row = await one(env, 'SELECT id FROM beam_lti_tools WHERE client_id=?', input.text('client_id'))
+  const assertion = input.text('client_assertion', { max: 32_000 }), client = candidateIssuer(assertion)
+  insist(!input.has('client_id') || input.text('client_id') === client, 'invalid_lti_token', 401)
+  const row = await one(env, 'SELECT id FROM beam_lti_tools WHERE client_id=?', client)
   insist(row, 'invalid_lti_token', 401)
-  const tool = await liveTool(env, row.id), claims = await jwtVerify(input.text('client_assertion', { max: 32_000 }), JSON.parse(tool.keys_json), tool.client_id, `${env.AUTH_ORIGIN}/api/beam/lti/token`)
+  const tool = await liveTool(env, row.id), claims = await jwtVerify(assertion, JSON.parse(tool.keys_json), tool.client_id, `${env.AUTH_ORIGIN}/api/beam/lti/token`)
   insist(claims.sub === tool.client_id && typeof claims.jti === 'string' && claims.jti.length > 0 && claims.jti.length <= 200, 'invalid_lti_token', 401)
   const token = randomSecret(), hash = await digest(token)
   await env.DB.batch([

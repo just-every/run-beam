@@ -36,3 +36,13 @@ export async function jwtVerify(token: string, keys: ReturnType<typeof publicKey
     return claims as Record<string, any>
   } catch { insist(false, 'invalid_lti_token', 401) }
 }
+
+/** Unverified issuer selects a registered key set; jwtVerify still authenticates every claim. */
+export function candidateIssuer(token: string) {
+  try {
+    insist(token.length <= 32_000 && token.split('.').length === 3, 'invalid_lti_token', 401)
+    const issuer = JSON.parse(new TextDecoder().decode(bytes(token.split('.')[1]))).iss
+    insist(typeof issuer === 'string' && issuer.length > 0 && issuer.length <= 200, 'invalid_lti_token', 401)
+    return issuer as string
+  } catch { insist(false, 'invalid_lti_token', 401) }
+}
