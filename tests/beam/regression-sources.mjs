@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { pdf, syntheticImage } from './fixtures.mjs'
 import { file } from './harness.mjs'
 
-import { sourceProcedureDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceUntaggedTablePdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
+import { sourceProcedureDocx, sourceMergedDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceUntaggedTablePdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
 const original = sourceProcedureDocx
 
 export async function sourceExtractionCheck(f) {
@@ -82,6 +82,8 @@ export async function sourceExtractionCheck(f) {
   // The same public preparation door parses real presentations, HTML and PDF.
   const formats = [
     ['synthetic-beam-1.pptx', sourceProcedurePptx(), ['Prepare', 'Close']],
+    ['synthetic-beam-8-merged.docx', sourceMergedDocx, ['Prepare']],
+    ['synthetic-beam-9-merged.pptx', sourceProcedurePptx(true), ['Prepare', 'Close']],
     ['synthetic-beam-2.html', sourceProcedureHtml, ['Prepare', 'Close']],
     ['synthetic-beam-3.md', '# Prepare\nInspect tools.\n# Close\nStore tools.', ['Prepare', 'Close']],
     ['synthetic-beam-4.pdf', sourceProcedurePdf(), ['Page 1']],
@@ -98,6 +100,14 @@ export async function sourceExtractionCheck(f) {
       assert.ok(extracted.lessons[0].blocks.some(block => block.kind === 'table'))
       assert.deepEqual(Buffer.from(await (await h.raw(extracted.assets[0].href, { cookie: cookies.author })).arrayBuffer()), syntheticImage)
     }
+    if (filename.includes('merged')) {
+      const table = extracted.lessons[0].blocks.find(block => block.kind === 'table').table
+      assert.deepEqual(table.map(row => row.map(cell => cell.text)), [['Equipment', 'Condition', 'Action'], ['Probe', 'Clean', 'Inspect'], ['Ready', 'Store']])
+      assert.deepEqual(table.map(row => row.map(({ colSpan, rowSpan }) => [colSpan, rowSpan])), [[[2, 1], [1, 1], [1, 1]], [[2, 2], [1, 1], [1, 1]], [[1, 1], [1, 1]]])
+      assert.ok(table[0].every(cell => cell.header))
+      assert.ok(extracted.passages.some(passage => passage.kind === 'table' && passage.text.includes('Probe')))
+      table[1][1].text = 'Sanitized'
+    }
     if (filename.endsWith('html')) assert.equal(extracted.lessons[0].blocks.find(block => block.kind === 'table').table[0][0].rowSpan, 2)
     if (filename.includes('tagged')) assert.deepEqual(extracted.lessons[0].blocks.find(block => block.kind === 'table').table.map(row => row.map(cell => cell.text)), [['Tool', 'Condition'], ['Probe', 'Clean']])
     if (filename.includes('grid.pdf')) assert.deepEqual(extracted.lessons[0].blocks.find(block=>block.kind==='table').table.map(row=>row.map(cell=>cell.text)),[['Tool','Condition'],['Probe','Clean'],['Gloves','Intact']])
@@ -112,7 +122,27 @@ export async function sourceExtractionCheck(f) {
     const screen = await h.raw(`/app/sources/${imported.versionId}/prepare?course=${fresh.id}`, { cookie: cookies.author }).then(response => response.text())
     assert.ok(screen.includes('name="reviewed"') && screen.includes(extracted.original))
     if (extracted.assets.length) await api('author', 'source.convert', { ...fields, draftVersion: converted.draftVersion, lessons: [{ title: 'Forged asset', body: '', blocks: [{ kind: 'image', text: 'Foreign', asset: 'asset-999' }] }] }, 404)
+    if (filename.includes('merged')) {
+      const table = converted.draft.lessons[0].blocks.find(block => block.kind === 'table').table
+      assert.deepEqual(table, extracted.lessons[0].blocks.find(block => block.kind === 'table').table)
+      assert.ok(screen.includes('colspan="2" rowspan="2"'))
+      const revision = (await api('author', 'course.submit', { course: fresh.id, draftVersion: converted.draftVersion })).id
+      const snapshot = await api('reviewer', `revisions/${revision}`)
+      assert.deepEqual(snapshot.lessons[0].blocks.find(block => block.kind === 'table').table, table)
+      await f.publish(revision)
+      const assignment = (await api('manager', 'assignment.create', { course: fresh.id, learners: [ids.learner], dueDate: '2030-10-01' })).created[0]
+      const learning = await api('learner', `assignments/${assignment}`)
+      const rendered = await h.raw(`/app/learn/${assignment}/lessons/${learning.lessons[0].id}`, { cookie: cookies.learner }).then(response => response.text())
+      assert.ok(rendered.includes('colspan="2" rowspan="2">Probe</td>') && rendered.includes('Sanitized'))
+      assert.deepEqual(snapshot.lessons[0].sources, [imported.versionId])
+    }
   }
+  const legacy = await upload('synthetic-beam-10.docx', document(paragraph('Legacy merge needs reconstruction.') + '<w:tbl><w:tr><w:tc><w:tcPr><w:hMerge w:val="restart"/></w:tcPr>' + paragraph('Retained original table text') + '</w:tc></w:tr></w:tbl>'))
+  const unsupportedTable = await api('author', `sources/${legacy.versionId}/extraction`)
+  assert.ok(unsupportedTable.warnings.some(warning => warning.includes('unsupported table layout')))
+  assert.ok(unsupportedTable.uncertainties.some(item => item.text.includes('Retained original table text') && item.location.startsWith('Document block')))
+  assert.match(unsupportedTable.lessons[0].body, /Retained original table text/)
+  assert.equal((await api('author', 'source.convert', { course: course.id, draftVersion: (await api('author', `courses/${course.id}`)).draftVersion, sourceVersion: legacy.versionId, reviewed: true, lessons: unsupportedTable.lessons }, 409)).error, 'source_uncertainty_review_required')
   const scanned = await upload('synthetic-beam-5.pdf', sourceProcedurePdf(true))
   const scan = await api('author', `sources/${scanned.versionId}/extraction`)
   assert.ok(scan.uncertainties.some(item => item.requiresOcr && item.location === 'Page 1'))
@@ -131,6 +161,7 @@ export async function sourceExtractionCheck(f) {
     ['broken.docx', 'not an Office file', 'document_invalid_zip'],
     ['external.docx', document('<!DOCTYPE w:p [<!ENTITY leak SYSTEM "https://untrusted.example.test/leak">]>' + paragraph('&leak;')), 'document_invalid_xml'],
     ['malformed.docx', document('<w:p><w:r></w:p>'), 'document_invalid_xml'],
+    ['synthetic-beam-11.docx', document(paragraph('Do not merge an ordinary preceding cell.') + '<w:tbl><w:tr><w:tc>' + paragraph('Not a merge origin') + '</w:tc></w:tr><w:tr><w:tc><w:tcPr><w:vMerge/></w:tcPr>' + paragraph('') + '</w:tc></w:tr></w:tbl>'), 'document_invalid_table_merge'],
     ['oversize.docx', document(paragraph('x'.repeat(2_000_000))), 'document_xml_size'],
     ['too-long.txt', 'x'.repeat(50_001), 'document_lesson_limit'],
     ['not-utf8.txt', Buffer.from([0xff, 0xfe, 0x00]), 'document_not_utf8'],

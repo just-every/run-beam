@@ -15,7 +15,21 @@ const heading = text => `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w
 const document = sourceDocx, paragraph = sourceParagraph
 export const sourceProcedureDocx = document(heading('Prepare the station') + paragraph('Wash hands &amp; inspect tools.') + '<w:tbl><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc>' + paragraph('Tool') + '</w:tc><w:tc>' + paragraph('Condition') + '</w:tc></w:tr><w:tr><w:tc>' + paragraph('Probe') + '</w:tc><w:tc>' + paragraph('Clean') + '</w:tc></w:tr></w:tbl>' + '<w:p><w:r><w:drawing><wp:inline><wp:docPr id="1" name="Diagram" descr="Probe position"/><a:graphic><a:graphicData><a:blip r:embed="rIdImage"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>' + heading('Close the station') + paragraph('&lt;script&gt;do not execute&lt;/script&gt; Store tools.'))
 
-export function sourceProcedurePptx() {
+// Same rectangular merge in both Office formats: a two-column heading and a
+// two-by-two body cell, followed by independent cells to prove grid alignment.
+const mergedWordCell = (text, properties = '') => `<w:tc><w:tcPr>${properties}</w:tcPr>${paragraph(text)}</w:tc>`
+export const sourceMergedDocx = document(heading('Prepare') + paragraph('Inspect the probe.') + '<w:tbl><w:tblGrid>' + '<w:gridCol w:w="1000"/>'.repeat(4) + '</w:tblGrid>' +
+  '<w:tr><w:trPr><w:tblHeader/></w:trPr>' + mergedWordCell('Equipment', '<w:gridSpan w:val="2"/>') + mergedWordCell('Condition') + mergedWordCell('Action') + '</w:tr>' +
+  '<w:tr>' + mergedWordCell('Probe', '<w:gridSpan w:val="2"/><w:vMerge w:val="restart"/>') + mergedWordCell('Clean') + mergedWordCell('Inspect') + '</w:tr>' +
+  '<w:tr>' + mergedWordCell('', '<w:gridSpan w:val="2"/><w:vMerge/>') + mergedWordCell('Ready') + mergedWordCell('Store') + '</w:tr></w:tbl>')
+
+export function sourceProcedurePptx(merged = false) {
+  const cell = (text, attributes = '') => `<a:tc ${attributes}><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>${text}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>`
+  const mergedTable = '<a:tbl><a:tblPr firstRow="true"/><a:tblGrid>' + '<a:gridCol w="1000"/>'.repeat(4) + '</a:tblGrid>' +
+    '<a:tr h="1000">' + cell('Equipment', 'gridSpan="2"') + cell('', 'hMerge="true"') + cell('Condition') + cell('Action') + '</a:tr>' +
+    '<a:tr h="1000">' + cell('Probe', 'gridSpan="2" rowSpan="2"') + cell('', 'hMerge="true" rowSpan="2"') + cell('Clean') + cell('Inspect') + '</a:tr>' +
+    '<a:tr h="1000">' + cell('', 'gridSpan="2" vMerge="true"') + cell('', 'hMerge="true" vMerge="true"') + cell('Ready') + cell('Store') + '</a:tr></a:tbl>'
+
   const shape = (title, body) => `<p:sp><p:nvSpPr><p:cNvPr id="1" name="Title"/><p:cNvSpPr/><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>${title}</a:t></a:r></a:p></p:txBody></p:sp><p:sp><p:txBody><a:p><a:r><a:t>${body}</a:t></a:r></a:p></p:txBody></p:sp>`
   const slide = body => `<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:cSld><p:spTree>${body}</p:spTree></p:cSld></p:sld>`
   return zip([
@@ -23,7 +37,7 @@ export function sourceProcedurePptx() {
     ['ppt/presentation.xml', '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst><p:sldId id="256" r:id="second"/><p:sldId id="257" r:id="first"/></p:sldIdLst></p:presentation>'],
     ['ppt/_rels/presentation.xml.rels', '<Relationships><Relationship Id="first" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/><Relationship Id="second" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide2.xml"/></Relationships>'],
     ['ppt/slides/slide1.xml', slide(shape('Close', 'Store the clean probe.'))],
-    ['ppt/slides/slide2.xml', slide(shape('Prepare', 'Inspect the probe.') + '<p:graphicFrame><a:graphic><a:graphicData><a:tbl><a:tblPr firstRow="1"/><a:tr><a:tc><a:txBody><a:p><a:r><a:t>Tool</a:t></a:r></a:p></a:txBody></a:tc><a:tc><a:txBody><a:p><a:r><a:t>Condition</a:t></a:r></a:p></a:txBody></a:tc></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame><p:pic><p:nvPicPr><p:cNvPr id="3" name="Probe" descr="Probe placement"/></p:nvPicPr><p:blipFill><a:blip r:embed="image"/></p:blipFill></p:pic>')],
+    ['ppt/slides/slide2.xml', slide(shape('Prepare', 'Inspect the probe.') + '<p:graphicFrame><a:graphic><a:graphicData>' + (merged ? mergedTable : '<a:tbl><a:tblPr firstRow="1"/><a:tr><a:tc><a:txBody><a:p><a:r><a:t>Tool</a:t></a:r></a:p></a:txBody></a:tc><a:tc><a:txBody><a:p><a:r><a:t>Condition</a:t></a:r></a:p></a:txBody></a:tc></a:tr></a:tbl>') + '</a:graphicData></a:graphic></p:graphicFrame><p:pic><p:nvPicPr><p:cNvPr id="3" name="Probe" descr="Probe placement"/></p:nvPicPr><p:blipFill><a:blip r:embed="image"/></p:blipFill></p:pic>')],
     ['ppt/slides/_rels/slide2.xml.rels', '<Relationships><Relationship Id="image" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/probe.png"/></Relationships>'],
     ['ppt/media/probe.png', syntheticImage],
   ])

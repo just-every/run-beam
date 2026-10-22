@@ -25,30 +25,90 @@ function images(node: XmlNode, part: string, archive: OfficeArchive, content: So
     content.image(path && archive.has(path) ? archive.read(path, 8_000_000) : undefined, path.split('/').at(-1) || 'image', description, location)
   }
 }
-function table(node: XmlNode, content: SourceContent, pptx: boolean): SourceCell[][] {
-  const previous = new Map<number, SourceCell>(), result: SourceCell[][] = []
-  const firstRow = pptx && attr(child(node, 'tblPr'), 'firstRow') === '1'
-  for (const [rowIndex, row] of children(node, 'tr').entries()) {
-    const cells: SourceCell[] = []; let column = 0
-    const header = pptx ? firstRow && rowIndex === 0 : !!child(child(row, 'trPr'), 'tblHeader') && attr(child(child(row, 'trPr'), 'tblHeader'), 'val') !== '0'
+function table(node: XmlNode, content: SourceContent, pptx: boolean, location: string): SourceCell[][] | undefined {
+  const rows = children(node, 'tr'), result: SourceCell[][] = []
+  insist(rows.length > 0 && rows.length <= 100, 'document_table_limit', 422)
+  // These layouts cannot be represented faithfully by the lesson table grid.
+  // Retain the located text and require an explicit comparison, rather than
+  // manufacturing spans or silently dropping the unsupported cell contents.
+  if (descendants(node, 'tbl').length || !pptx && rows.some(row => {
+    const properties = child(row, 'trPr')
+    return ['gridBefore', 'gridAfter'].some(name => Number(attr(child(properties, name), 'val') || 0) !== 0) || children(row, 'tc').some(cell => child(child(cell, 'tcPr'), 'hMerge'))
+  })) {
+    const reason = 'An unsupported table layout (nested table, omitted grid cells or legacy horizontal merge) was retained as text. Reconstruct its cells against the original before conversion.'
+    const text = descendants(node, 'p').map(p => paragraphText(p, content)).join('\n')
+    content.warnings.add(reason); content.uncertain(location, text, reason); content.text(text, location)
+    return
+  }
+  let previous = new Map<number, { cell: SourceCell; column: number }>()
+  const occupied: ({ cell: SourceCell; row: number; column: number } | undefined)[][] = rows.map(() => [])
+  const firstRow = ['1', 'true'].includes(attr(child(node, 'tblPr'), 'firstRow') ?? '')
+  const gridWidth = children(child(node, 'tblGrid') ?? node, 'gridCol').length
+  let width = gridWidth || undefined
+  for (const [rowIndex, row] of rows.entries()) {
+    const cells: SourceCell[] = [], current = new Map<number, { cell: SourceCell; column: number }>()
+    let column = 0
+    const headerFlag = child(child(row, 'trPr'), 'tblHeader')
+    const header = pptx ? firstRow && rowIndex === 0 : !!headerFlag && !['0', 'false', 'off'].includes(attr(headerFlag, 'val') ?? '')
     for (const cell of children(row, 'tc')) {
-      const properties = child(cell, 'tcPr')
+      const properties = child(cell, 'tcPr'), merge = child(properties, 'vMerge')
       const span = Number(pptx ? attr(cell, 'gridSpan') || 1 : attr(child(properties, 'gridSpan'), 'val') || 1)
-      const vertical = pptx ? attr(cell, 'vMerge') === '1' : !!child(properties, 'vMerge') && attr(child(properties, 'vMerge'), 'val') !== 'restart'
-      const horizontal = pptx && attr(cell, 'hMerge') === '1'
-      insist(Number.isInteger(span) && span > 0 && span <= 30, 'document_table_limit', 422)
-      if (vertical) {
-        const prior = previous.get(column)
-        insist(prior, 'document_invalid_table_merge', 422)
-        if (!pptx) prior.rowSpan++
-      } else if (!horizontal) {
-        const body = pptx ? child(cell, 'txBody') : cell
-        const value: SourceCell = { text: body ? children(body, 'p').map(p => paragraphText(p, content)).join('\n') : '', colSpan: span, rowSpan: pptx ? Number(attr(cell, 'rowSpan') || 1) : 1, header }
-        cells.push(value)
-        for (let index = 0; index < span; index++) previous.set(column + index, value)
+      const rowSpan = pptx ? Number(attr(cell, 'rowSpan') || 1) : 1
+      insist(Number.isInteger(span) && span > 0 && span <= 30 && Number.isInteger(rowSpan) && rowSpan > 0 && rowSpan <= rows.length - rowIndex, 'document_table_limit', 422)
+      const body = pptx ? child(cell, 'txBody') : cell
+      const text = body ? children(body, 'p').map(p => paragraphText(p, content)).join('\n') : ''
+      if (pptx) {
+        // DrawingML keeps a physical tc for EVERY grid position, including
+        // covered cells. A gridSpan must not advance past those placeholders.
+        const horizontal = ['1', 'true'].includes(attr(cell, 'hMerge') ?? '')
+        const vertical = ['1', 'true'].includes(attr(cell, 'vMerge') ?? '')
+        const owner = occupied[rowIndex][column]
+        if (owner) {
+          insist(horizontal === (column > owner.column) && vertical === (rowIndex > owner.row), 'document_invalid_table_merge', 422)
+          insist(span === (column === owner.column ? owner.cell.colSpan : 1) && rowSpan === (rowIndex === owner.row ? owner.cell.rowSpan : 1), 'document_invalid_table_merge', 422)
+          if (text.trim()) {
+            const reason = 'A merged table continuation contains text. Compare and place this text in the merged cell before conversion.'
+            content.warnings.add(reason); content.uncertain(location, text, reason)
+            owner.cell.text += `${owner.cell.text ? '\n' : ''}${text}`
+          }
+        } else {
+          insist(!horizontal && !vertical && column + span <= 30 && (!width || column + span <= width), 'document_invalid_table_merge', 422)
+          const value: SourceCell = { text, colSpan: span, rowSpan, header }
+          cells.push(value)
+          for (let y = rowIndex; y < rowIndex + rowSpan; y++) for (let x = column; x < column + span; x++) {
+            insist(!occupied[y][x], 'document_invalid_table_merge', 422)
+            occupied[y][x] = { cell: value, row: rowIndex, column }
+          }
+        }
+        column++
+      } else {
+        const state = merge ? attr(merge, 'val') ?? 'continue' : undefined
+        insist(state === undefined || state === 'restart' || state === 'continue', 'document_invalid_table_merge', 422)
+        if (state === 'continue') {
+          const owner = previous.get(column)
+          insist(owner && owner.column === column && owner.cell.colSpan === span && Array.from({ length: span }, (_, offset) => previous.get(column + offset)).every(value => value === owner), 'document_invalid_table_merge', 422)
+          owner.cell.rowSpan++
+          if (text.trim()) {
+            const reason = 'A merged table continuation contains text. Compare and place this text in the merged cell before conversion.'
+            content.warnings.add(reason); content.uncertain(location, text, reason)
+            owner.cell.text += `${owner.cell.text ? '\n' : ''}${text}`
+          }
+          for (let offset = 0; offset < span; offset++) current.set(column + offset, owner)
+        } else {
+          const value: SourceCell = { text, colSpan: span, rowSpan: 1, header }
+          cells.push(value)
+          if (state === 'restart') {
+            const owner = { cell: value, column }
+            for (let offset = 0; offset < span; offset++) current.set(column + offset, owner)
+          }
+        }
+        column += span
       }
-      column += span
+      insist(column <= 30, 'document_table_limit', 422)
     }
+    width ??= column
+    insist(column === width && (!pptx || occupied[rowIndex].length === column), 'document_invalid_table_merge', 422)
+    previous = current
     result.push(cells)
   }
   return result
@@ -76,7 +136,8 @@ export function extractDocx(bytes: Uint8Array, content: SourceContent) {
       }
       images(node, 'word/document.xml', archive, content, location)
     } else if (name === 'tbl') {
-      content.table(table(node, content, false), location)
+      const cells = table(node, content, false, location)
+      if (cells) content.table(cells, location)
       images(node, 'word/document.xml', archive, content, location)
     } else if (name !== 'sectPr') content.warnings.add('An unsupported document block was omitted; inspect the original before preparing lessons.')
   }
@@ -105,7 +166,10 @@ export function extractPptx(bytes: Uint8Array, content: SourceContent) {
       if (shape !== titleShape) for (const body of descendants(shape, 'txBody').filter(body => !descendants(shape, 'tbl').some(tbl => descendants(tbl, 'txBody').includes(body)))) {
         for (const paragraph of children(body, 'p')) content.text(paragraphText(paragraph, content), location)
       }
-      for (const grid of descendants(shape, 'tbl')) content.table(table(grid, content, true), location, `Slide ${slideIndex + 1} table`)
+      for (const grid of descendants(shape, 'tbl')) {
+        const cells = table(grid, content, true, location)
+        if (cells) content.table(cells, location, `Slide ${slideIndex + 1} table`)
+      }
       // A picture is itself an image container, unlike a Word paragraph.
       images({ name: 'container', attrs: {}, children: [shape] }, resolved.path, archive, content, location)
       if (['graphicFrame', 'grpSp'].includes(local(shape.name)) && !descendants(shape, 'tbl').length && !descendants(shape, 'txBody').length && !descendants(shape, 'pic').length) content.warnings.add('An unsupported slide object was omitted. Inspect the original presentation.')

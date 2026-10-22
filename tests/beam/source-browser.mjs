@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { sourceProcedureDocx, sourceProcedurePdf } from './source-fixtures.mjs'
+import { sourceMergedDocx, sourceProcedureDocx, sourceProcedurePdf } from './source-fixtures.mjs'
+import { file } from './harness.mjs'
 
 // Sources -> original comparison -> corrected draft -> named human review ->
 // learner. Scans remain visibly blocked rather than pretending typed text is OCR.
@@ -85,6 +86,35 @@ export async function sourceBrowserCheck(f) {
         assert.equal(await page.locator('a[href$="/ocr"]').count() > 0, true)
         await page.locator('img.lesson-image').first().evaluate(image => image.decode())
         await shot('scan-ocr-required')
+        // Merged Office cells remain editable, then retain their geometry through
+        // the ordinary human publication and learner doors.
+        const mergedCourse = await f.api('author', 'course.create', { title: `${shift} equipment inspection checklist`, reviewer: f.ids.reviewer })
+        const mergedSource = await f.api('author', 'source.create', { title: `${shift} equipment inspection SOP`, reviewer: f.ids.reviewer,
+          licence: 'owned', licenceEvidence: 'Employer-authored inspection checklist', provenance: 'Original inspection procedure', file: file('synthetic-beam-merged.docx', sourceMergedDocx) })
+        await page.goto(`${f.h.origin}/app/sources/${mergedSource.versionId}/prepare?course=${mergedCourse.id}`)
+        await page.getByLabel('Row 2, cell 2', { exact: true }).fill('Sanitized')
+        await page.getByLabel('First row contains column headings', { exact: true }).check()
+        await page.getByLabel('I compared the extracted lessons', { exact: false }).check()
+        await shot('merged-table-correction')
+        await page.getByRole('button', { name: 'Add reviewed lessons to draft', exact: true }).click()
+        await page.waitForURL(url => url.pathname === `/app/courses/${mergedCourse.id}`)
+        assert.equal(new URL(page.url()).searchParams.get('error'), null)
+        assert.equal((await f.api('author', `courses/${mergedCourse.id}`)).publishedRevision, null)
+        await page.getByRole('button', { name: 'Submit for review', exact: true }).click()
+        const mergedRevision = (await f.api('author', `courses/${mergedCourse.id}`)).revisions.find(item => item.state === 'in_review').id
+        await as('reviewer')
+        await page.goto(`${f.h.origin}/app/revisions/${mergedRevision}`)
+        await shot('merged-table-human-review')
+        await page.getByRole('button', { name: 'Publish this revision', exact: true }).click()
+        const mergedAssignment = await f.assign(mergedCourse), mergedLearning = await f.view(mergedAssignment)
+        await as('learner')
+        await page.goto(`${f.h.origin}/app/learn/${mergedAssignment}/lessons/${mergedLearning.lessons[0].id}`)
+        const probe = page.getByRole('cell', { name: 'Probe', exact: true })
+        assert.equal(await probe.getAttribute('colspan'), '2')
+        assert.equal(await probe.getAttribute('rowspan'), '2')
+        assert.equal(await page.getByRole('columnheader', { name: 'Equipment', exact: true }).getAttribute('colspan'), '2')
+        assert.equal(await page.getByRole('cell', { name: 'Sanitized', exact: true }).count(), 1)
+        await shot('merged-table-learner')
         console.log(`PASS source browser original/correction/table/image/review/publication/scan-refusal ${width}`)
       } finally { await context.close() }
     }
