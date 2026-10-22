@@ -1,3 +1,4 @@
+import { accessBrowserCheck } from './access-browser.mjs'
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -115,6 +116,7 @@ try {
       await phone.getByText('Completed; no passed result declared', { exact: true }).waitFor()
       await shot(phone, '2004-completed')
     }
+    if (process.argv.includes('--p1')) await accessBrowserCheck(f, browser, width, evidence)
     for (const context of contexts) await context.close()
     console.log(`PASS package browser import/review/preview/assign/sandbox/suspend/cross-device resume/fail/pass/evidence ${width}`)
   }
