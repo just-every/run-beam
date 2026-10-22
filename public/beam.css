@@ -141,7 +141,7 @@ label { display: block; margin-top: 10px; font-size: 14px; font-weight: 600; col
 form > label:first-of-type, fieldset > legend + label { margin-top: 0; }
 label.check { display: flex; align-items: flex-start; gap: 9px; margin: 6px 0 0; font-weight: 400; font-size: 15px; }
 label.check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--blue); flex: none; }
-input[type=text], input[type=email], input[type=date], input[type=datetime-local], input[type=time], input[type=number], input[type=search], input[type=file], select, textarea {
+.source-ocr input[type=password], input[type=text], input[type=email], input[type=date], input[type=datetime-local], input[type=time], input[type=number], input[type=search], input[type=file], select, textarea {
   width: 100%; max-width: 560px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--white); color: var(--ink); font: 15px/1.4 var(--font-body);
 }
 input[type=file] { padding: 6px 8px; color: var(--body); font-size: 14px; }

@@ -728,7 +728,7 @@
       "executable": false
     },
     "public/beam.css": {
-      "sha256": "0c9cfbe0577d101c7d6a0a5377cdab5d1956c9bdee2ba6f14bcb60f5d9b9a729",
+      "sha256": "2345ec67160da1e17cbcc068754af9cdc56977ebd0dac45c2310afeb0a829365",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -2004,7 +2004,7 @@
       "executable": false
     },
     "src/beam/ui/source-ocr.ts": {
-      "sha256": "59a9c51a579ef1fd3f611d0616c43c26bf98d17dd77d15c88edc3c46571f1e5e",
+      "sha256": "09a804e12e6f429a6fe90ef02bdb320d6e47c769fe35356e8aa3e97e0943a97a",
       "executable": false
     },
     "src/beam/ui/source-preparation.ts": {
