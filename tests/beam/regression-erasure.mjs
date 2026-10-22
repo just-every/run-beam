@@ -55,11 +55,38 @@ export async function erasureCheck() {
     await upload(bundle, 'unfinished.json')
     const imported = (await api('owner', 'history')).filter(row => row.email === 'learner@example.test')
     assert.ok(imported.length > 0)
+    // An accepted native edit after planning creates a real failed-apply custody fact.
+    const conflictBundle = Buffer.from(JSON.stringify({ ...JSON.parse(bundle), exportNote: 'Second reviewed snapshot' }))
+    const conflictPlan = await ownerRequest('plan', { uploadId: await upload(conflictBundle) })
+    await api('owner', 'history.accept', { history: imported[0].id, note: 'Confirmed against the retained assessment.' })
+    await ownerRequest('apply', { planId: conflictPlan.planId, reviewedFingerprint: conflictPlan.fingerprint }, 409)
+    const failed = await ownerRequest('status', { planId: conflictPlan.planId })
+    assert.ok(failed.failureCode, 'a real failed apply is present before erasure')
+    // Source erasure executes with import-door custody present too; a hold retains the original.
+    const originalBytes = Buffer.from('Owner-approved obsolete source original')
+    const source = await api('author', 'source.create', { title: 'Obsolete inspection procedure', reviewer: ids.reviewer, licence: 'owned', licenceEvidence: 'Employer-authored original', provenance: 'Original employer procedure', file: file('obsolete.txt', originalBytes) })
+    const sourceHold = await api('owner', 'erasure.hold', { kind: 'source', subject: source.id, justification: 'Preserve the original for the open investigation.' })
+    const eraseSource = async () => {
+      const preview = await api('owner', 'erasure.preview', { kind: 'source', subject: source.id })
+      assert.ok(preview.inventory.imports.some(row => row.table === 'ik_door_apply_failures'))
+      const job = await api('owner', 'erasure.begin', { kind: 'source', subject: source.id, digest: preview.digest, justification: 'Approved obsolete-source erasure.', consent: true })
+      let result
+      for (let step = 0; step < 15; step++) { result = await api('owner', 'erasure.resume', { job: job.id }); assert.notEqual(result.state, 'failed', result.failure); if (result.state === 'complete') return result }
+      assert.fail('source erasure converges')
+    }
+    assert.ok((await eraseSource()).files.every(row => row.state === 'retained_shared_or_held'))
+    assert.ok(await h.files.head(`sha256/${hash(originalBytes)}`))
+    await api('owner', 'erasure.hold.release', { hold: sourceHold.id, justification: 'Original is no longer required.' })
+    assert.ok((await eraseSource()).files.every(row => row.state === 'deleted'))
+    assert.equal(await h.files.head(`sha256/${hash(originalBytes)}`), null)
+    assert.equal((await h.raw(`/api/beam/source-files/${source.versionId}`, { cookie: cookies.author })).status, 404)
+    await api('author', 'source.create', { title: 'Reconnect erased original', reviewer: ids.reviewer, licence: 'owned', licenceEvidence: 'Employer-authored original', provenance: 'Same original', file: file('obsolete.txt', originalBytes) }, 409)
     await exportArchive(await portability(), old)
     const preview = await api('owner', 'erasure.preview', { kind: 'person', subject: ids.learner })
     assert.deepEqual(preview.inventory.unsupported, [], 'existing learner custody is covered')
     assert.ok(preview.inventory.rows.some(row => row.table === 'beam_sequence_answers'))
     assert.ok(preview.inventory.imports.some(row => row.table === 'ik_door_chunks'))
+    assert.ok(preview.inventory.imports.some(row => row.table === 'ik_door_apply_failures'))
     assert.equal(preview.retention.holds[0].id, hold.id)
     await api('owner', 'erasure.begin', { kind: 'person', subject: ids.learner, digest: 'stale', justification: 'Approved request', consent: true }, 409)
     const job = await api('owner', 'erasure.begin', { kind: 'person', subject: ids.learner, digest: preview.digest, justification: 'Employer approved erasure with investigation hold.', consent: true })

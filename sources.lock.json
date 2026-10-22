@@ -1876,7 +1876,7 @@
       "executable": false
     },
     "src/beam/ui/erasure.ts": {
-      "sha256": "3e60e36849fc92865c2b43ac90477ac3460426d07a1ffcda34d1500b6aa88422",
+      "sha256": "b7cee0028d923419313918100b59045b2c5a30688c01d135ee554ba0c9bd744f",
       "executable": false
     },
     "src/beam/ui/errors.ts": {
@@ -4008,7 +4008,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "7ea924d3b1dff3b0cfac376cb97f321a448268ae7853de4499fdd3618f486c74",
+      "sha256": "55d6a26fed9389e7ac2f03f807549d8aa586e6fc1a004007e98a055dc11edd42",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
