@@ -1454,7 +1454,7 @@
       "executable": false
     },
     "src/beam/microlearning.ts": {
-      "sha256": "47d2f05321faf7799874d9f0158a71eb3c8faec54e8633bc62fe39f93aac523e",
+      "sha256": "0d7fea664686741cc161b59181caf6210e3197070fee47fce3c732282c75a555",
       "executable": false
     },
     "src/beam/movein/browser.ts": {
@@ -1534,7 +1534,7 @@
       "executable": false
     },
     "src/beam/packages/cmi5-runtime.ts": {
-      "sha256": "b1baaa4e94f1fceebbf3e644f70cb425382136879eb21ae20d701c768644fbc8",
+      "sha256": "05a9b6175f8ff02feb86ab1fd4a4bd0c332c988c727e5ee85f3e18eae03166e8",
       "executable": false
     },
     "src/beam/packages/cmi5-statements.ts": {
@@ -1874,7 +1874,7 @@
       "executable": false
     },
     "src/beam/ui/microlearning.ts": {
-      "sha256": "7eb3a5e1aa02ed280e33a1209b42505fd652f313c3b3418093b31aa405d70335",
+      "sha256": "3b7ed2b30610092e853ae9941517d83b1eb399a74027985ad5791fd9047a59bf",
       "executable": false
     },
     "src/beam/ui/movein.ts": {
@@ -3966,7 +3966,7 @@
       "executable": false
     },
     "tests/beam/regression-packages.mjs": {
-      "sha256": "9303597817e0b6e2ef945f037fb9429511b745986b787620252d8db4addc6d16",
+      "sha256": "9b9c92c6714f86734028afa95410b0c824a19fc7a48bdb72672eaecbac322cd8",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {

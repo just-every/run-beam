@@ -217,6 +217,7 @@ export async function cmi5Check() {
     }
     const first = await launch()
     await first.send(first.make('completed', { completion: true, duration: 'PT1S' }), 409)
+    await first.send(first.make('initialized'), 401, { headers: { ...first.headers, authorization: 'Basic ' + Buffer.from('synthetic-beam-7').toString('base64') } })
     await first.send(first.make('initialized'))
     const foreign = first.make('completed', { completion: true, duration: 'PT1S' }); foreign.actor.account.name = 'synthetic-beam-99'
     await first.send(foreign, 403)
@@ -227,10 +228,12 @@ export async function cmi5Check() {
     assert.equal(bookmark.status, 204)
     assert.equal((await f.h.fetch(first.stateUrl('bookmark'), { method: 'PUT', headers: { ...first.headers, 'if-match': '"wrong"' }, body: '{}' })).status, 412)
     // New session marks an interrupted AU abandoned and preserves both registration and resume state.
+    await f.h.db.prepare('UPDATE beam_package_sessions SET expires_at=? WHERE id=?').bind(Date.now() - 1, first.id).run()
+    f.cookies.learner = await f.h.signIn('learner@example.test')
     const resumed = await launch()
     assert.equal(resumed.registration, first.registration); assert.notEqual(resumed.sessionId, first.sessionId)
     assert.deepEqual(await f.h.fetch(resumed.stateUrl('bookmark'), { headers: resumed.headers }).then(r => r.json()), { place: 'temperature-check' })
-    await first.send(first.make('terminated', { duration: 'PT1S' }), 401)
+    await first.send(first.make('terminated', { duration: 'PT1S' }), 403)
     await resumed.send(resumed.make('initialized'))
     await resumed.send(resumed.make('passed', { success: true, duration: 'PT1S', score: { scaled: 0.4 } }), 422)
     await resumed.send(resumed.make('failed', { success: false, duration: 'PT1S', score: { scaled: 0.4 } }))

@@ -4,7 +4,7 @@ import type { Actor } from './actor'
 import { editDraft, loadCourse, revisionDetail, type Lesson } from './courses'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
-import { completeLesson, loadAssignment, prerequisiteMet } from './learning'
+import { tryComplete, loadAssignment, prerequisiteMet } from './learning'
 import { requireAccess } from './access'
 import { addDays, localDate, zonedInstant } from './time'
 export interface SequenceDay { lesson: string; prompt: string; choices: { label: string; feedback: string; next: 'retry' | 'continue' }[] }
@@ -84,12 +84,9 @@ export async function sequenceAnswer(env: Bindings, actor: Actor, input: Input) 
   const selected = view.program.days[day - 1].choices[choice]; insist(selected, 'sequence_choice_not_found', 422)
   await env.DB.prepare('INSERT OR IGNORE INTO beam_sequence_state(assignment_id) VALUES(?)').bind(view.assignment.id).run()
   const id = newId()
-  await commit(env, [stmt(env, 'INSERT INTO beam_sequence_answers SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM beam_sequence_state WHERE assignment_id=? AND version=? AND paused_at IS NULL)', id, view.assignment.id, view.revision, day, choice, selected.next, selected.feedback, now(), view.assignment.id, view.version), stmt(env, 'UPDATE beam_sequence_state SET version=version+1 WHERE assignment_id=? AND version=? AND paused_at IS NULL', view.assignment.id, view.version)], { actor, action: 'sequence.answer', subject: view.assignment.id, detail: { day, choice, revision: view.revision } })
+  await commit(env, [stmt(env, 'INSERT INTO beam_sequence_answers SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM beam_sequence_state WHERE assignment_id=? AND version=? AND paused_at IS NULL)', id, view.assignment.id, view.revision, day, choice, selected.next, selected.feedback, now(), view.assignment.id, view.version), ...(selected.next === 'continue' ? [stmt(env, 'INSERT OR IGNORE INTO beam_lesson_progress SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM beam_sequence_answers WHERE id=?)', view.assignment.id, view.program.days[day - 1].lesson, now(), id)] : []), stmt(env, 'UPDATE beam_sequence_state SET version=version+1 WHERE assignment_id=? AND version=? AND paused_at IS NULL', view.assignment.id, view.version)], { actor, action: 'sequence.answer', subject: view.assignment.id, detail: { day, choice, revision: view.revision } })
   insist(await one(env, 'SELECT 1 FROM beam_sequence_answers WHERE id=?', id), 'stale_sequence', 409)
-  if (selected.next === 'continue') {
-    const { Input } = await import('./input')
-    await completeLesson(env, actor, Input.of({ assignment: view.assignment.id, lesson: view.program.days[day - 1].lesson }))
-  }
+  if (selected.next === 'continue') await tryComplete(env, actor, view.assignment.id)
   return { id, revision: view.revision, feedback: selected.feedback, next: selected.next, assessmentRequired: view.assessmentRequired }
 }
 export async function sequencePause(env: Bindings, actor: Actor, input: Input) {
@@ -100,9 +97,11 @@ export async function sequencePause(env: Bindings, actor: Actor, input: Input) {
   const pause = input.flag('pause'), version = input.integer('version', { min: 0 })!
   insist(view.version === version && view.paused !== pause, 'stale_sequence', 409)
   await env.DB.prepare('INSERT OR IGNORE INTO beam_sequence_state(assignment_id) VALUES(?)').bind(view.assignment.id).run()
-  const result = await env.DB.prepare('UPDATE beam_sequence_state SET paused_at=?,paused_ms=paused_ms+?,version=version+1 WHERE assignment_id=? AND version=?').bind(pause ? now() : null, pause ? 0 : now() - (await one(env, 'SELECT paused_at FROM beam_sequence_state WHERE assignment_id=?', view.assignment.id))!.paused_at, view.assignment.id, version).run()
-  insist(result.meta.changes === 1, 'stale_sequence', 409)
-  await commit(env, [], { actor, action: pause ? 'sequence.pause' : 'sequence.resume', subject: view.assignment.id, detail: { revision: view.revision } })
+  const result = await env.DB.batch([
+    stmt(env, 'UPDATE beam_sequence_state SET paused_at=?,paused_ms=paused_ms+?,version=version+1 WHERE assignment_id=? AND version=?', pause ? now() : null, pause ? 0 : now() - (await one(env, 'SELECT paused_at FROM beam_sequence_state WHERE assignment_id=?', view.assignment.id))!.paused_at, view.assignment.id, version),
+    stmt(env, 'INSERT INTO beam_audit(at,actor,action,subject,detail) SELECT ?,?,?,?,? WHERE changes()=1', now(), actor.id, pause ? 'sequence.pause' : 'sequence.resume', view.assignment.id, JSON.stringify({ revision: view.revision })),
+  ])
+  insist(result[0].meta.changes === 1, 'stale_sequence', 409)
   return { paused: pause, version: version + 1 }
 }
 export async function sequencePreview(env: Bindings, actor: Actor, courseId: string, revision?: string) {
