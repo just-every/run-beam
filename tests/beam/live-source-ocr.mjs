@@ -11,7 +11,14 @@ let calls = 0
 const f = await fixture({ businessName:'Sierra Lakes Produce', outboundService: async request => {
  if (request.url !== 'https://api.openai.com/v1/responses') return null
  calls++
- return fetch(request.url,{method:'POST',headers:request.headers,body:new Uint8Array(await request.arrayBuffer()),redirect:'error',signal:AbortSignal.timeout(90000)})
+ const response = await fetch(request.url,{method:'POST',headers:request.headers,body:new Uint8Array(await request.arrayBuffer()),redirect:'error',signal:AbortSignal.timeout(90000)})
+ if (!response.ok) {
+  const error = (await response.clone().json().catch(()=>({}))).error ?? {}
+  const params = new Set(['model','input','service_tier','reasoning.effort','max_output_tokens','text.format.schema'])
+  const codes = new Set(['model_not_found','insufficient_quota','invalid_api_key','unsupported_parameter','invalid_value','rate_limit_exceeded','invalid_json_schema'])
+  console.log('OCR provider refusal', JSON.stringify({status:response.status,param:params.has(error.param)?error.param:'other',code:codes.has(error.code)?error.code:'other'}))
+ }
+ return response
 }})
 let browser
 try {
@@ -42,7 +49,12 @@ try {
   assert.equal(calls,0)
   await owner.getByRole('checkbox').check()
   await owner.getByRole('button',{name:'Approve and send this PDF for OCR',exact:true}).click()
-  await owner.getByRole('heading',{name:'OCR is ready for author review',exact:true}).waitFor({timeout:100000})
+  try { await owner.getByRole('heading',{name:'OCR is ready for author review',exact:true}).waitFor({timeout:100000}) }
+  catch (error) {
+   console.log('OCR safe outcome',JSON.stringify({calls,runs:(await api('owner','source-ocr')).runs.map(row=>({state:row.state,failure:row.failure}))}))
+   await shot(owner,390,'failure')
+   throw error
+  }
   assert.equal(calls,1)
   const extraction=await api('author',`sources/${source.versionId}/extraction`)
   assert.ok(extraction.lessons.length>0 && !extraction.uncertainties.some(row=>row.requiresOcr))
