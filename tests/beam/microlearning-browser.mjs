@@ -27,6 +27,7 @@ try {
     await author.getByText('Edit five-day sequence', { exact: true }).click()
     const edit = author.locator('form[action="/app/do/course.sequence"]').filter({ has: author.getByRole('button', { name: 'Save five-day sequence', exact: true }) })
     await edit.getByLabel('Day 1 feedback 2', { exact: true }).fill('Review the SOP: keep vaccines at 2 to 8 degrees, then try again.')
+    await shot(author, 'authoring-controls')
     await edit.getByRole('button', { name: 'Save five-day sequence', exact: true }).click()
     await author.waitForURL(url => url.searchParams.has('notice'))
     await shot(author, 'editor')

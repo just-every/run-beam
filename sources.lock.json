@@ -210,7 +210,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d9e233e1e7392238c0b324eb804860e11a7153547bd157b08ff24762668babc7",
+      "sha256": "968bdbaeedd0bd160da3ddc2847164dbf6e96c0ba2570843feaba1c74cdf0f27",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -230,7 +230,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "48d98b2838b4d4fa95d517f24a3cf2716b37070f89066787b9019cec51224076",
+      "sha256": "0c36213c93c4cafb45773fb6c9e328f98d76280774e01ad6fbad2baf09d61050",
       "executable": false
     },
     "DEMO.md": {
@@ -3814,7 +3814,7 @@
       "executable": false
     },
     "tests/beam/microlearning-browser.mjs": {
-      "sha256": "73170e02dedde7980dbc518ac42bb45fdb9ae6754263c555e0663e9719ff7ab4",
+      "sha256": "f45a3ba75940270c0490e2a948cbb105604ec6bd4757003d569878e6881422ac",
       "executable": false
     },
     "tests/beam/package-browser.mjs": {
