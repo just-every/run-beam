@@ -120,6 +120,7 @@ export const restoreRevision = (env: Bindings, actor: Actor, input: Input) => ed
   const detail = await revisionDetail(env, input.text('revision'))
   insist(detail.revision.course_id === input.text('course'), 'revision_not_found', 404)
   const restored: Draft = {
+    packages: detail.packages.map(pkg => pkg.id),
     title: detail.revision.title,
     summary: detail.revision.summary,
     lessons: detail.lessons.map(lesson => ({ id: '', title: lesson.title, body: lesson.body, sources: lesson.sources, blocks: lesson.blocks })),

@@ -72,6 +72,10 @@ export async function package12Check(f) {
   assert.ok(proposed.missing.some(text => /package/i.test(text)))
   assert.equal((await api('reviewer', `revisions/${c.revision}`)).packages[0].id, c.package)
 
+  await api('owner', 'package.remove', { course: c.id, draftVersion: c.draftVersion, package: c.package })
+  const restored = await api('owner', 'course.restore', { course: c.id, draftVersion: c.draftVersion + 1, revision: c.revision })
+  assert.deepEqual(restored.draft.packages, [c.package])
+  assert.equal((await f.view(c.assignment)).completion.revision, c.revision)
   const restricted = await preparePackage(f, '1.2', { restriction: 'Training license forbids redistribution' })
   const exported = await h.raw('/app/data-export.json', { cookie: cookies.owner }).then(r => { assert.equal(r.status, 200); return r.json() })
   assert.ok(exported.records.beam_package_runs.rows.some(r => r.assignment_id === c.assignment))
@@ -110,8 +114,9 @@ export async function package2004Check(f) {
     await f.api('learner', 'package.launch', { package: c.package, assignment: c.assignment, sco: 'two' }, 409)
     const incomplete = await save(f, await launch(f, c), { 'cmi.completion_status': 'incomplete', 'cmi.success_status': 'passed', 'cmi.score.scaled': '0.9', 'cmi.session_time': 'PT2S' })
     assert.equal(incomplete.completion, null, 'passed but incomplete cannot complete the course')
-    await save(f, await launch(f, c), { 'cmi.completion_status': 'completed', 'cmi.success_status': 'passed', 'cmi.session_time': 'PT3S' })
-    const second = await launch(f, c, 'two')
+    const navigating = await save(f, await launch(f, c), { 'cmi.completion_status': 'completed', 'cmi.success_status': 'passed', 'cmi.session_time': 'PT3S', 'adl.nav.request': 'continue' })
+    assert.ok(navigating.next?.startsWith('/app/packages/play/'))
+    const second = { id: navigating.next.split('/').at(-1) }
     const values = { 'cmi.completion_status': 'completed', 'cmi.success_status': 'passed', 'cmi.score.raw': '90', 'cmi.score.scaled': '0.9', 'cmi.session_time': 'PT4S', 'cmi.objectives.0.id': 'two.objective', 'cmi.objectives.0.success_status': 'failed', 'cmi.objectives.0.completion_status': 'incomplete', 'cmi.interactions.0.id': 'thermometer', 'cmi.interactions.0.type': 'numeric', 'cmi.interactions.0.learner_response': '5', 'cmi.interactions.0.result': 'correct' }
     const objectiveFailed = await save(f, second, values, 'commit')
     assert.equal(objectiveFailed.completion, null)
