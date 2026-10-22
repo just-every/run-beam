@@ -218,7 +218,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "783e3742a99ab2d8f0fc0f3e9cd0e4c8633eb6f2cd5ca66c8c2d27660ab9df3b",
+      "sha256": "7bd58bf5bcab95af6e893d9cc70d97af8520e2082f2293fa0edf7fbb5ff5e234",
       "executable": false
     },
     "base-copies.json": {
@@ -230,7 +230,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0c36213c93c4cafb45773fb6c9e328f98d76280774e01ad6fbad2baf09d61050",
+      "sha256": "b08f456a8c7e02ce7e93a27ab6678efaca4228cf46e303e3a4fc2572e2a6365a",
       "executable": false
     },
     "DEMO.md": {
@@ -1454,7 +1454,7 @@
       "executable": false
     },
     "src/beam/microlearning.ts": {
-      "sha256": "0d7fea664686741cc161b59181caf6210e3197070fee47fce3c732282c75a555",
+      "sha256": "079f2c0366aa53b3747a2fb8ff3ddd2647b19e7f7d34963f803c07fd6f7599eb",
       "executable": false
     },
     "src/beam/movein/browser.ts": {
@@ -3866,7 +3866,7 @@
       "executable": false
     },
     "tests/beam/regression-collab.mjs": {
-      "sha256": "0c9be4d7e07620f797dbe63f5e85a54e77dc15edddca4629a08b7446178b2d02",
+      "sha256": "6fbdebbeac578fa48e9fd6b26339696e696e1de859c48a1ace09ada9db889d67",
       "executable": false
     },
     "tests/beam/regression-course-locale-browser.mjs": {

@@ -138,6 +138,9 @@ export async function microlearningCheck(f) {
   await f.api('learner', 'quiz.submit', { assignment, [`q_${question.id}`]: ['0'] })
   assert.equal((await f.view(assignment)).completion.revision, revision)
   assert.equal((await f.api('manager', `sequences/${assignment}`)).answers.length, 0, 'no new private-reply exposure to managers')
+  const audit = (await f.api('owner', `audit?q=${assignment}`)).events
+  assert.ok(!audit.some(event => event.action === 'sequence.answer'), 'formative practice replies never enter the shared audit')
+  assert.ok(audit.filter(event => event.action === 'lesson.complete').every(event => !('choice' in event.detail) && !('feedback' in event.detail)))
   // Publication freezes schedule/branches/source ids; editing the draft cannot alter an existing assignment.
   const edited = await f.api('author', 'course.sequence', { course: c.id, draftVersion: c.draftVersion, sequence: { ...c.sequence, workStart: 9, workEnd: 17 } })
   assert.equal((await view()).program.workStart, 0)

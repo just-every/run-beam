@@ -357,7 +357,8 @@ continued-day record prevent duplicate advancement. Reply evidence and native
 lesson progress commit together; all existing required assessments still gate
 completion. The full web course remains available for voluntary learning.
 Only the learner and owner inspect personal reply text; no manager permission
-is added. The learning export retains program, pause state and exact-revision
+is added. Practice replies never enter the shared audit; continuation records only
+the existing lesson-complete event, without a choice or feedback. The learning export retains program, pause state and exact-revision
 replies. Course restore and approved locale publication preserve program
 structure. Real SMS/Teams send/reply/consent qualification remains blocked on
 unprovisioned provider prerequisites under LEARN-012/NOTICE-003.
