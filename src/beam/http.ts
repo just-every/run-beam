@@ -213,7 +213,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
       const { code, status } = failure(error)
       if (status >= 500) throw error
       if (name === 'package.import' && error instanceof BeamError) return page('Package validation', actor, h`<h1>Package could not be imported</h1><p>${describeError(code)}</p><p>${typeof error.detail === 'object' && error.detail && 'feature' in error.detail ? String(error.detail.feature) : ''}</p><p><a href="${returnTo}">Back to course</a></p>`, { status })
-      return redirect(env, returnTo.replace('/{id}', ''), 'error', code)
+      const refusedTo = name === 'package.launch' ? input.has('assignment') ? `/app/learn/${encodeURIComponent(input.text('assignment'))}` : '/app/courses' : returnTo.replace('/{id}', '')
+      return redirect(env, refusedTo, 'error', code)
     }
   }
   // The owner names the business and its time zone before anything else.
