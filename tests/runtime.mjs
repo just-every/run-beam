@@ -23,7 +23,7 @@ async function freePort() {
   return port
 }
 
-export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService, directWorker = false } = {}) {
+export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService, publicOrigin } = {}) {
   // OPS-007: run the identical public-door qualification against an unchanged historical producer or the candidate.
   const workerRoot = checkout || root
   const directory = await mkdtemp(join(tmpdir(), 'beam-worker-'))
@@ -39,6 +39,9 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
     host: '127.0.0.1', port, https: true, modulesRoot: server,
     modules: [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) })),
     compatibilityDate: config.compatibility_date, compatibilityFlags: config.compatibility_flags,
+    // Hosted interoperability uses its real issuer URL and Host through Miniflare's
+    // upstream URL rewrite, while every request still reaches the built Worker.
+    ...(publicOrigin ? { upstream: publicOrigin, routes: [`${new URL(publicOrigin).host}/*`] } : {}),
     assets: { directory: join(workerRoot, 'dist/client'), routerConfig: { has_user_worker: true } },
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },
     bindings: vars,
@@ -73,9 +76,6 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
       const encoded = new Response(init.body)
       init = { ...init, body: new Uint8Array(await encoded.arrayBuffer()), headers: { 'content-type': encoded.headers.get('content-type'), ...init.headers } }
     }
-    // A live LTI relay must retain its real public issuer/Host. The service-binding
-    // transport calls the identical built Worker without the dev HTTP proxy's URL rewriting.
-    if (directWorker) return (await mf.getWorker()).fetch(new URL(input, origin).href, { redirect: 'manual', ...init })
     return mf.dispatchFetch(new URL(input, origin), { redirect: 'manual', ...init })
   }
   /** The confirmation link in the newest message to `email`, if any. */
