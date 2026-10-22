@@ -165,6 +165,8 @@ export async function microlearningCheck(f) {
   assert.equal(approved.searchParams.get('error'), null)
   const translated = { revision: (await f.api('author', `course-locales/${c.id}`)).translations.find(row => row.id === prepared.id).revision_id }
   await f.api('owner', 'person.directory', { member: f.ids.learner, language: 'es-US' })
+  assert.equal((await f.api('learner', `sequences/${assigned}`)).revision, revision, 'preference does not move an existing assignment')
+  await f.api('manager', 'assignment.cancel', { assignment: assigned, reason: 'Choose the newly reviewed Spanish program for a fresh enrollment.' })
   const localizedAssignment = await f.assign(c), localized = await f.api('learner', `sequences/${localizedAssignment}`)
   assert.equal(localized.revision, translated.revision)
   assert.equal(localized.program.days[0].prompt, '¿Qué temperatura es segura?')
