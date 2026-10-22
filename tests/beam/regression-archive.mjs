@@ -24,6 +24,8 @@ export const migrations = async () => migrationReplay(plan, policy)
 // withholding policy (as before it) still restores, and its grants come back disabled the same way.
 export async function archiveCheck(f) {
   const { api, h, cookies, ids, course, assign, lessons } = f
+  await api('owner', 'source.ocr.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
+  const ocrCipher = (await h.db.prepare('SELECT key_cipher FROM beam_source_ocr_config WHERE singleton=1').first()).key_cipher
   const app = await api('owner', 'app.issue', { name: 'Payroll report sync', audience: 'reports.read', expiresInDays: 30 })
   const bearer = (worker, token) => worker.fetch('/api/beam/v1/report', { headers: { authorization: `Bearer ${token}` } })
   assert.equal((await bearer(h, app.token)).status, 200)
@@ -36,7 +38,7 @@ export async function archiveCheck(f) {
   const share = await api('owner', 'dashboard.link', { dashboard: dashboard.id, viewer: ids.owner, expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString() })
   const key = new URL(share.url, h.origin).searchParams.get('key')
   await api('owner', `dashboards/${dashboard.id}?key=${key}`)
-  const verifiers = [sha(app.token.split('.')[2]), sha(link.id), sha(key)]
+  const verifiers = [sha(app.token.split('.')[2]), sha(link.id), sha(key), ocrCipher]
 
   const scratch = await mkdtemp(join(tmpdir(), 'beam-archive-'))
   try {
@@ -65,6 +67,8 @@ export async function archiveCheck(f) {
         const owner = await t.signIn('owner@example.test')
         // First-run confirmation belongs to the installation, not the archive.
         await t.raw('/setup', { cookie: owner, form: new URLSearchParams({ confirm: 'yes' }) })
+        const ocr = await t.api('source-ocr', owner)
+        assert.deepEqual([ocr.enabled, ocr.hasKey], [false, false], 'an archive cannot reactivate OCR or restore its provider credential')
         const restored = (await t.api('app-credentials', owner)).find(item => item.id === app.id)
         assert.deepEqual([restored.state, restored.audience, restored.issuedAt, restored.expiresAt, typeof restored.restoredAt], ['restored', 'reports.read', credential.issued_at, app.expiresAt, 'number'], `OPS-007: the restored credential is disabled with its lineage (${withheld ? 'withheld' : 'legacy'} archive)`)
         assert.ok((await (await t.raw('/app/access', { cookie: owner })).text()).includes('restored from an archive: disabled until you rotate it'))

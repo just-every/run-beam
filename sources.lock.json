@@ -3936,7 +3936,7 @@
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {
-      "sha256": "12f9b5df8b99c18caeecefd8185fb5432b7089eedb695956be257ba837b7e308",
+      "sha256": "b10b9a4945c9fbda96ee444363f7ade1d3230732a76fffcdbab21eb0f2b44dea",
       "executable": false
     },
     "tests/beam/regression-attendance.mjs": {
