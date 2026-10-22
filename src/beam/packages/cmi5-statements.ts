@@ -4,7 +4,7 @@ import { getStatement, sendStatements } from './xapi-client'
 import { lrsAuthorization } from './xapi-catalog'
 import { canonicalJSON, statementDigest, type XapiStatement } from './xapi-protocol'
 import { CMI5, cmi5Context, type Cmi5Session } from './cmi5-runtime'
-export const verbs: Record<string, string> = Object.fromEntries(['launched', 'initialized', 'completed', 'passed', 'failed', 'terminated', 'abandoned', 'satisfied'].map(name => [name, ['abandoned', 'satisfied'].includes(name) ? `https://w3id.org/xapi/adl/verbs/${name}` : `http://adlnet.gov/expapi/verbs/${name}`]))
+export const verbs: Record<string, string> = Object.fromEntries(['launched', 'initialized', 'completed', 'passed', 'failed', 'terminated', 'abandoned', 'waived', 'satisfied'].map(name => [name, ['abandoned', 'waived', 'satisfied'].includes(name) ? `https://w3id.org/xapi/adl/verbs/${name}` : `http://adlnet.gov/expapi/verbs/${name}`]))
 function contains(actual: any, expected: any): boolean {
   if (!expected || typeof expected !== 'object') return actual === expected
   return !!actual && typeof actual === 'object' && Object.entries(expected).every(([key, value]) => Array.isArray(value) ? Array.isArray(actual[key]) && value.every(item => actual[key].some((a: any) => contains(a, item))) : contains(actual[key], value))

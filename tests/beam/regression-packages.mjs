@@ -235,6 +235,13 @@ export async function cmi5Check() {
     assert.deepEqual(await f.h.fetch(resumed.stateUrl('bookmark'), { headers: resumed.headers }).then(r => r.json()), { place: 'temperature-check' })
     await first.send(first.make('terminated', { duration: 'PT1S' }), 403)
     await resumed.send(resumed.make('initialized'))
+    // Beam, as the LMS, alone issues waived: an AU's own waiver is refused before the LRS and satisfies nothing.
+    const waived = resumed.make('completed', { success: true, completion: true, duration: 'PT1S' }); waived.verb.id = 'https://w3id.org/xapi/adl/verbs/waived'
+    const refusedWaiver = await f.h.fetch(`/api/beam/cmi5/${resumed.id}/statements`, { method: 'POST', headers: resumed.headers, body: JSON.stringify(waived) })
+    assert.deepEqual([refusedWaiver.status, (await refusedWaiver.json()).error], [403, 'cmi5_lms_verb_forbidden'])
+    assert.ok(!f.lrs.records.has(waived.id))
+    const afterWaiver = await f.view(assignment)
+    assert.equal(afterWaiver.completion, null); assert.equal(afterWaiver.packages[0].scos[0].completed, false)
     await resumed.send(resumed.make('passed', { success: true, duration: 'PT1S', score: { scaled: 0.4 } }), 422)
     await resumed.send(resumed.make('failed', { success: false, duration: 'PT1S', score: { scaled: 0.4 } }))
     await resumed.send(resumed.make('passed', { success: true, duration: 'PT1S', score: { scaled: 0.9 } }), 409)

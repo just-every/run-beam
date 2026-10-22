@@ -319,6 +319,8 @@ in `If-Match`. Reserved `LMS.*` writes are refused.
 The bridge accepts individual attachment-free xAPI 1.0.3 statements through
 `statements`. The AU initializes first, records Completed/Passed/Failed with the
 cmi5 category, session, grouping, result and duration, and terminates last.
+Launched, Abandoned, Waived and Satisfied are Beam's own LMS statements; an AU
+that posts one is refused (`cmi5_lms_verb_forbidden`) before the LRS write.
 Verbs cannot be duplicated with new ids; exact UUID retries deduplicate and
 reconcile derived progress. Completed and Passed are distinct and can accumulate
 across sessions in one assignment's course registration. Terminated ends the

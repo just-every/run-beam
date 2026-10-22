@@ -17,7 +17,7 @@ async function accept(env: Bindings, request: Request, value: Cmi5Session) {
   if (prior?.status === 'accepted') { await reconcileCmi5(env, value); return request.method === 'PUT' ? new Response(null, { status: 204, headers }) : json([statement.id]) }
   insist(!value.session.ended_at && !['abandoned', 'terminated', 'restored', 'launching'].includes(value.session.lifecycle), 'cmi5_session_ended', 403)
   const verb = Object.keys(verbs).find(name => verbs[name] === statement.verb.id) ?? 'allowed'
-  insist(!['launched', 'abandoned', 'satisfied'].includes(verb), 'cmi5_lms_verb_forbidden', 403)
+  insist(!['launched', 'abandoned', 'waived', 'satisfied'].includes(verb), 'cmi5_lms_verb_forbidden', 403)
   const sessionVerbs = await all(env, "SELECT verb,id FROM beam_cmi5_statements WHERE session_id=? AND status='accepted'", value.session.id)
   insist(verb === 'initialized' ? !sessionVerbs.some(s => s.verb !== 'launched') : sessionVerbs.some(s => s.verb === 'initialized'), 'cmi5_initialize_first', 409)
   insist(verb === 'allowed' || !sessionVerbs.some(s => s.verb === verb), 'cmi5_duplicate_verb', 409)
