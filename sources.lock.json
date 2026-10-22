@@ -1251,6 +1251,14 @@
       "sha256": "5c2af39b5a0fdb1af2df5a2a6995cf242ed40e86022f602771cda0c8d868b75f",
       "executable": false
     },
+    "src/beam/caption-file.ts": {
+      "sha256": "ba83a4c94ebcaf7b201f23742f6d8cdc3ed74abfa5efb5dfc1abb683566a7b07",
+      "executable": false
+    },
+    "src/beam/captions.ts": {
+      "sha256": "d1716ebfb458b91149409c9fc6072b652072151b82996f1f780fe73238a958c3",
+      "executable": false
+    },
     "src/beam/catalog.ts": {
       "sha256": "774e8b70b12ba5e3f953cb43bea5ab04a65a964901cea7f1a58376a98450da7c",
       "executable": false
@@ -1736,7 +1744,7 @@
       "executable": false
     },
     "src/beam/source-ocr.ts": {
-      "sha256": "d72d380d9550c1d63b670157d71d073e7d87964c6b14e02c0838b3c22ef67c5e",
+      "sha256": "ac1699e03ccc00d8c84fe5668a36c847108ca00f763025ae7fc4379cc467ff22",
       "executable": false
     },
     "src/beam/source-office.ts": {
