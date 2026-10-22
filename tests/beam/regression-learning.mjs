@@ -1,6 +1,33 @@
 import { languageBrowserCheck } from './regression-language-browser.mjs'
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
+import { randomUUID } from 'node:crypto'
+
+// LEARN-003: retries represent one learner action even when the successful response was lost.
+async function learningReliabilityCheck(f) {
+  const c = await f.course('synthetic-beam-1', true), assignment = await f.assign(c)
+  const lesson = (await f.view(assignment)).lessons[0].id
+  const progress = { assignment, lesson, submission: randomUUID() }
+  await f.api('learner', 'lesson.complete', progress)
+  await f.api('learner', 'lesson.complete', progress)
+  assert.equal((await f.view(assignment)).lessons.filter(item => item.completed).length, 1)
+  const evidence = { assignment, submission: randomUUID(), evidence: 'synthetic-beam-2 observed demonstration', file: file('synthetic-beam-3.txt', 'synthetic-beam-4 evidence bytes') }
+  const first = await f.api('learner', 'practical.submit', evidence)
+  const repeated = await f.api('learner', 'practical.submit', evidence)
+  assert.equal(repeated.id, first.id)
+  assert.equal((await f.view(assignment)).attempts.filter(item => item.kind === 'practical').length, 1)
+  const attempt = await f.api('learner', `attempts/${first.id}`)
+  assert.equal(attempt.evidence, evidence.evidence)
+  const attachment = await f.h.raw(`/app/files/attachment/${attempt.attachment}`, { cookie: f.cookies.learner })
+  assert.equal(await attachment.text(), 'synthetic-beam-4 evidence bytes')
+  await f.api('other', 'practical.submit', evidence, 404)
+  await f.api('learner', 'practical.submit', { ...evidence, submission: randomUUID() }, 409)
+  await f.api('assessor', 'practical.decide', { attempt: first.id, decision: 'accepted', note: 'synthetic-beam-5 observed and accepted' })
+  assert.equal((await f.api('learner', 'practical.submit', evidence)).id, first.id)
+  const records = await f.api('learner', 'records/me')
+  assert.equal(records.completions.filter(item => item.course === c.id).length, 1)
+  assert.equal((await f.view(assignment)).completion.revision, c.revision)
+}
 
 async function assessor(f) {
   const { api, h, cookies, course, assign, view, lessons, ids, request } = f
@@ -300,7 +327,7 @@ async function windows(f) {
   assert.equal((await api('learner', `assignments/${renewal}`)).access.closesAt, renewed.access.closesAt)
   return { a30, aDated, renewal, extension: extended.access.extensions[0] }
 }
-export const learningChecks = [['BEAM-08 live named assessor authority', assessor], ['BEAM-10 exact offline revision', offline], ['BEAM-12 recurring renewal provenance', renewal], ['LEARN-019 reset with history kept', reset], ['AUTO-009 access windows', windows]]
+export const learningChecks = [['LEARN-003 retry without duplicate learning or evidence', learningReliabilityCheck], ['BEAM-08 live named assessor authority', assessor], ['BEAM-10 exact offline revision', offline], ['BEAM-12 recurring renewal provenance', renewal], ['LEARN-019 reset with history kept', reset], ['AUTO-009 access windows', windows]]
 
 // LEARN-017's implemented language slice; other surfaces stay named in the contract Gap.
 export async function languageCheck() {

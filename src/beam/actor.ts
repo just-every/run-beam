@@ -1,3 +1,4 @@
+import { refuseErasedIdentity } from './erasure-fence'
 // The signed-in person as Beam sees them: an operator-auth session joined to
 // a Beam member and that member's learning roles. The owner holds every role.
 import { operatorAuth, type Bindings } from '../auth.server'
@@ -61,6 +62,7 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   let member = await linkedMember(env, session.operator.id, email)
   if (!member && owner) { await ensureMember(env, email, session.operator.displayName, [...ROLES]); member = await linkedMember(env, session.operator.id, email) }
   if (!member) throw new BeamError('not_a_member', 403)
+  insist(!await one(env, 'SELECT 1 FROM beam_members WHERE id=? AND (erasure_pending=1 OR erased_at IS NOT NULL)', member.id), 'member_erased', 403)
   return resolveAuthority(env, member, { sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, owner, agent })
 }
 
@@ -119,6 +121,7 @@ async function linkedMember(env: Bindings, operatorId: string, email: string) {
 
 /** A member for this work email (created with these roles when new), linked to the email's sign-in account if it has one. */
 export async function ensureMember(env: Bindings, email: string, name: string, roles: Role[]) {
+  await refuseErasedIdentity(env, [email])
   const existing = await one<{ id: string; name: string }>(env, 'SELECT id, name FROM beam_members WHERE email = ?', email)
   if (existing) return existing
   const id = newId()

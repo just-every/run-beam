@@ -1,3 +1,4 @@
+import { refuseErasedIdentity } from './erasure-fence'
 // ORG-001: the employee learning directory. Each person carries a stable employee id, preferred name, an optional work
 // email, mobile number, preferred language, employment state, manager, job role, department, location, hire date and
 // the owner's custom fields. Who reads what (ct, 19 Oct 08:48Z): the owner reads and edits everyone; a unit's learning
@@ -129,6 +130,8 @@ export function check(values: Values) {
  * a role, department or location the person already had is a transfer (AUTO-001): unless the edit or row gives a
  * transfer date, it is today in the business time zone. */
 export async function applyValues(env: Bindings, request: Request, actor: Actor, person: Person, given: Values) {
+  insist(!await one(env, 'SELECT 1 FROM beam_members WHERE id=? AND (erasure_pending=1 OR erased_at IS NOT NULL)', person.id), 'erased_identity', 409)
+  await refuseErasedIdentity(env, [given.email, given.employeeId])
   const values = Object.fromEntries(Object.entries(given).filter(([, value]) => value !== undefined)) as Values
   check(values)
   if (values.manager) {
@@ -202,6 +205,7 @@ export async function importRoster(env: Bindings, request: Request, actor: Actor
   const text = file ? new TextDecoder().decode(file.bytes) : input.text('csv', { max: 2_000_000 })
   const [header, ...lines] = parseCsv(text.replace(/^﻿/, ''))
   insist(header && lines.length > 0 && lines.length <= 5000, 'roster_empty')
+  for (const cells of lines) await refuseErasedIdentity(env, cells)
   const fields = await directoryFields(env)
   const columns = header.map(name => COLUMNS[key(name)] ?? fields.find(field => key(field.label) === key(name))?.id ?? null)
   insist(columns.includes('employeeId') && columns.includes('name'), 'roster_headers', 400, { needs: ['Employee ID', 'Name'] })
@@ -278,6 +282,7 @@ export async function holdConflict(env: Bindings, actor: Actor, row: { values: V
  * people only into their units' teams. */
 export async function addPerson(env: Bindings, request: Request, actor: Actor, values: Values, team: { id: string; unit_id: string | null } | undefined) {
   insist(actor.owner || (team && actor.adminUnits.includes(team.unit_id ?? '')), 'outside_your_units', 403)
+  await refuseErasedIdentity(env, [values.email, values.employeeId])
   const id = newId()
   await env.DB.batch([stmt(env, 'INSERT INTO beam_members (id, email, name, created_at) VALUES (?, ?, ?, ?)', id, values.email ?? null, values.name, now()), stmt(env, "INSERT INTO beam_member_roles (member_id, role) VALUES (?, 'learner')", id),
     ...(team ? [stmt(env, 'INSERT OR IGNORE INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team.id, id)] : [])])

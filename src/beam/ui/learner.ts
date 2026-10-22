@@ -47,6 +47,7 @@ import { bookStack, documentSheet } from './drawings'
 import { area, backLink, card, cellLabel, field, select, lessonCount, fileField, form, h, hidden, lessonText, page, pill, progress, raw, rows, when, type Html } from './html'
 import { icon } from './icons'
 import { directoryCard } from './directory'
+import { learningSave, learningSavePage } from './learning-connectivity'
 
 const STATUS: Record<string, string> = { open: 'Open', completed: 'Completed', expiring: 'Expiring', overdue: 'Overdue', cancelled: 'Canceled', replaced: 'Replaced', deferred: 'Deferred', exempt: 'Exempt' }
 const statusLabel = (row: any, actor: Actor) => row.state === 'overdue' ? `${t(actor, 'Overdue')}, ${counted(actor, 'day', 'days', row.daysOverdue)}` : t(actor, STATUS[row.state] ?? row.state)
@@ -149,10 +150,10 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
   const cited = lesson.sources.length ? await all<{ id: string; number: number; title: string }>(env, `SELECT v.id, v.number, s.title FROM beam_source_versions v JOIN beam_sources s ON s.id = v.source_id WHERE v.id IN (${lesson.sources.map(() => '?').join(', ')}) ORDER BY s.title, v.number`, ...lesson.sources) : []
   const sources = cited.length ? h`<p class="muted source-line">${t(actor, 'Source material:')} ${cited.map((version, n) => h`${n ? ', ' : ''}<a href="/app/files/source/${version.id}">${version.title}, ${t(actor, 'version')} ${localeNumber(actor, version.number)}</a>`)}</p>` : ''
   const action = view.assignment.status === 'open' && view.assignment.learner === actor.id && !view.blocked
-    ? form('lesson.complete', next ? `/app/learn/${id}/lessons/${next.id}` : `/app/learn/${id}`, [hidden('assignment', id), hidden('lesson', lesson.id)], lesson.completed ? (next ? t(actor, 'Next lesson') : t(actor, 'Back to course')) : next ? t(actor, 'Mark done and continue') : t(actor, 'Mark done'))
+    ? learningSave(actor, form('lesson.complete', next ? `/app/learn/${id}/lessons/${next.id}` : `/app/learn/${id}`, [hidden('assignment', id), hidden('lesson', lesson.id), hidden('submission', crypto.randomUUID())], lesson.completed ? (next ? t(actor, 'Next lesson') : t(actor, 'Back to course')) : next ? t(actor, 'Mark done and continue') : t(actor, 'Mark done')), actor.locale === 'es-US' ? `Guardado en Beam: ${view.lessons.filter(item => item.completed).length} de ${view.lessons.length} lecciones completadas.` : `Saved on Beam: ${view.lessons.filter(item => item.completed).length} of ${view.lessons.length} lessons done.`)
     : ''
   const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">${t(actor, 'Lesson {n} of {total}', { n: index + 1, total: view.lessons.length })}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">${t(actor, 'Lesson reading')}</p><div class="lesson-body">${await courseLanguageNote(env, actor, view.assignment.revision)}${lessonText(lesson.body, { lead: true })}${renderBlocks(lesson.blocks, (await embedPolicy(env)).hosts, actor.locale)}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? h`${feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`, actor.locale)}<p><a href="/app/discussions/${view.assignment.course}?lesson=${lessonId}">${t(actor, 'Ask about this lesson or discuss it')}</a></p>` : ''}`
-  return mediaPage(env, page(lesson.title, actor, body, { current: '/app/learning', url }))
+  return mediaPage(env, learningSavePage(page(lesson.title, actor, body, { current: '/app/learning', url, script: action ? '/app/learning-connectivity.js' : undefined })))
 }
 
 export async function quizPage(env: Bindings, actor: Actor, id: string, url: URL) {
@@ -179,8 +180,8 @@ export async function practicalPage(env: Bindings, actor: Actor, id: string, url
   requireAccess({ access_opens_at: view.access.opensAt, access_closes_at: view.access.closesAt })
   const names = await memberNames(env)
   const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<h1>${t(actor, 'Practical assessment')}</h1><div class="narrow">${card(t(actor, 'Instructions'), lessonText(view.practical.instructions ?? ''))}
-<section class="card"><p>${t(actor, 'Your evidence goes to {name}, who decides it.', { name: names.get(view.practical.assessor ?? '') ?? '' })}</p>${form('practical.submit', `/app/learn/${id}`, [hidden('assignment', id), area(t(actor, 'What you did'), 'evidence'), fileField(t(actor, 'Evidence file (optional)'), 'file')], t(actor, 'Submit for assessment'), { multipart: true })}</section></div>`
-  return page(t(actor, 'Practical assessment'), actor, body, { current: '/app/learning', url })
+<section class="card"><p>${t(actor, 'Your evidence goes to {name}, who decides it.', { name: names.get(view.practical.assessor ?? '') ?? '' })}</p>${learningSave(actor, form('practical.submit', `/app/learn/${id}`, [hidden('assignment', id), hidden('submission', crypto.randomUUID()), area(t(actor, 'What you did'), 'evidence'), fileField(t(actor, 'Evidence file (optional)'), 'file')], t(actor, 'Submit for assessment'), { multipart: true }), actor.locale === 'es-US' ? 'Todavía no se enviaron pruebas desde esta página.' : 'No evidence submitted from this page yet.')}</section></div>`
+  return learningSavePage(page(t(actor, 'Practical assessment'), actor, body, { current: '/app/learning', url, script: '/app/learning-connectivity.js' }))
 }
 
 export async function recordPage(env: Bindings, actor: Actor, memberId: string, url: URL) {

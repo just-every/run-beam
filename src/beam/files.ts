@@ -1,3 +1,4 @@
+import { refuseErasedIdentity } from './erasure-fence'
 // Content-addressed file custody in the FILES bucket. Bytes are verified after
 // writing and on every read. Uploaded content is data: it is never rendered as
 // HTML or script, and only recognised media types are shown inline.
@@ -28,6 +29,7 @@ export function sniff(bytes: Uint8Array): string {
 
 export async function store(env: Bindings, file: { filename: string; bytes: Uint8Array }): Promise<Stored> {
   const sha256 = await sha256Hex(file.bytes)
+  await refuseErasedIdentity(env, [`file:${sha256}`])
   const mediaType = sniff(file.bytes)
   const key = `sha256/${sha256}`
   if (!await env.FILES.head(key)) await env.FILES.put(key, file.bytes, { httpMetadata: { contentType: 'application/octet-stream' } })

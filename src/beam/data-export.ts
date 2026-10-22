@@ -22,7 +22,7 @@ export async function dataExport(env: Bindings, actor: Actor) {
     records[Object.keys(LEARNING_INVENTORY)[i]] = { count: rows.length, sha256: await digest(rows), rows }
   }
   const sources = records.beam_sources.rows
-  const files = [...records.beam_source_versions.rows.map(row => ({ ...row, source: sources.find(source => source.id === row.source_id) })), ...records.beam_attachments.rows]
+  const files = [...records.beam_source_versions.rows.filter(row => !sources.find(source => source.id === row.source_id)?.erased_at).map(row => ({ ...row, source: sources.find(source => source.id === row.source_id) })), ...records.beam_attachments.rows]
     .map((row: Row) => ({ id: row.id, sha256: row.sha256, size: row.size, filename: row.filename, mediaType: row.media_type,
       href: `/app/data-export/files/${row.sha256}`, licence: row.source?.licence ?? 'employer evidence', licenceEvidence: row.source?.licence_evidence ?? null }))
   const xapiFiles = records.beam_xapi_attachments.rows.map(row => ({
@@ -67,7 +67,7 @@ export async function dataExport(env: Bindings, actor: Actor) {
 export async function dataExportFile(env: Bindings, actor: Actor, sha256: string) {
   requireOwner(actor)
   insist(/^[a-f0-9]{64}$/.test(sha256), 'not_found', 404)
-  const rows = await all(env, `SELECT filename, media_type AS mediaType, size, sha256 FROM beam_source_versions WHERE sha256 = ?
+  const rows = await all(env, `SELECT v.filename, v.media_type AS mediaType, v.size, v.sha256 FROM beam_source_versions v JOIN beam_sources s ON s.id=v.source_id WHERE v.sha256 = ? AND s.erased_at IS NULL
     UNION ALL SELECT filename, media_type AS mediaType, size, sha256 FROM beam_attachments WHERE sha256 = ?
     UNION ALL SELECT original_filename AS filename, 'application/zip' AS mediaType, original_size AS size, original_sha256 AS sha256 FROM beam_packages WHERE original_sha256 = ?
     UNION ALL SELECT path AS filename, media_type AS mediaType, size, sha256 FROM beam_package_assets WHERE sha256 = ?

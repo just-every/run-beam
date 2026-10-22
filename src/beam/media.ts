@@ -1,11 +1,14 @@
 // Structured lesson content. Uploaded HTML is never a renderer or an embed.
+import { normaliseTable } from './lesson-tables'
+import { sourceAssetIds } from './source-extraction'
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
 import { auditVia, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
-export const BLOCK_KINDS = ['text', 'image', 'audio', 'video', 'document', 'link', 'check', 'embed', 'lti'] as const
+export const BLOCK_KINDS = ['text', 'image', 'audio', 'video', 'document', 'link', 'check', 'embed', 'lti', 'table'] as const
 export interface Block {
   id: string; kind: typeof BLOCK_KINDS[number]; text: string; source?: string; url?: string
+  asset?: string; table?: { text: string; colSpan: number; rowSpan: number; header: boolean }[][];
   resource?: string; passPercent?: number;
   choices?: string[]; answer?: number; feedback?: string
   copiedFrom?: { course: string; lesson: string; block: string; courseTitle?: string; lessonTitle?: string }
@@ -61,6 +64,7 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
   if (value === undefined) return []
   insist(Array.isArray(value) && value.length <= 60, 'invalid_blocks')
   const blocks: Block[] = []
+  const assets = new Map<string, Set<string>>()
   for (const item of value) {
     insist(item && BLOCK_KINDS.includes(item.kind) && typeof item.text === 'string' && item.text.trim() && item.text.length <= 10_000, 'invalid_block')
     insist(!/<\/?[a-z!][^>]*>/i.test(item.text), 'active_lesson_html')
@@ -71,7 +75,12 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
       const source = await one(env, 'SELECT media_type FROM beam_source_versions WHERE id = ?', item.source)
       insist(source, 'source_version_not_found', 404)
       const prefix = { image: 'image/', audio: 'audio/', video: 'video/', document: 'application/pdf' }[block.kind as 'image' | 'audio' | 'video' | 'document']
-      insist(source.media_type.startsWith(prefix), 'media_type_mismatch')
+      if (block.kind === 'image' && item.asset !== undefined) {
+        insist(typeof item.asset === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(item.asset), 'invalid_source_asset')
+        if (!assets.has(item.source)) assets.set(item.source, new Set(await sourceAssetIds(env, item.source)))
+        insist(assets.get(item.source)!.has(item.asset), 'source_asset_not_found', 404)
+        block.asset = item.asset
+      } else insist(source.media_type.startsWith(prefix), 'media_type_mismatch')
       block.source = item.source
     }
     if (block.kind === 'embed' || block.kind === 'link') {
@@ -83,6 +92,7 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
       insist(Number.isInteger(item.passPercent) && item.passPercent >= 1 && item.passPercent <= 100, 'invalid_lti_threshold')
       block.resource = item.resource; block.passPercent = item.passPercent
     }
+    if (block.kind === 'table') block.table = normaliseTable(item.table)
     if (block.kind === 'check') {
       insist(Array.isArray(item.choices) && item.choices.length >= 2 && item.choices.length <= 8 && item.choices.every((choice: unknown) => typeof choice === 'string' && choice.trim() && choice.length <= 500), 'invalid_check_choices')
       insist(Number.isInteger(item.answer) && item.answer >= 0 && item.answer < item.choices.length, 'invalid_check_answer')

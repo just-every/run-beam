@@ -1,3 +1,4 @@
+import { refuseErasedIdentity } from './erasure-fence'
 // Flow 1: one business, adult staff identities, teams and learning roles.
 import { operatorAuth, type Bindings } from '../auth.server'
 import { normalizeEmail } from '../modules/operator-auth/index.mjs'
@@ -61,6 +62,7 @@ export async function invitePerson(env: Bindings, request: Request, actor: Actor
   // again gives them one and keeps their restored roles, teams and records. An administrator invites only new people.
   const existing = await one<{ id: string }>(env, 'SELECT id FROM beam_members WHERE email = ?', email)
   insist(!existing || (actor.owner && !await accountOf(env, existing.id)), 'already_member', 409)
+  await refuseErasedIdentity(env, [email])
   await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: '/app' })
   const member = await ensureMember(env, email, name, roles)
   await commit(env, teams.map(team => stmt(env, 'INSERT OR IGNORE INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member.id)), { actor, action: 'person.invite', subject: member.id, detail: { email, roles, teams } })
@@ -74,7 +76,7 @@ async function accountOf(env: Bindings, memberId: string) {
 
 async function memberById(env: Bindings, id: string) {
   const member = await one<{ id: string; email: string | null; name: string }>(env, 'SELECT id, email, name FROM beam_members WHERE id = ?', id)
-  insist(member, 'person_not_found', 404)
+  insist(member && !await one(env, 'SELECT 1 FROM beam_members WHERE id=? AND (erasure_pending=1 OR erased_at IS NOT NULL)', id), 'person_not_found', 404)
   return member
 }
 
@@ -131,7 +133,7 @@ export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) 
   const team = input.text('team')
   await requireUnitTeams(env, actor, [team])
   const members = input.list('members')
-  for (const member of members) insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', member), 'person_not_found', 404)
+  for (const member of members) insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ? AND erased_at IS NULL AND erasure_pending=0', member), 'person_not_found', 404)
   for (const member of members) insist(actor.owner || inScope(actor, member), 'outside_your_units', 403)
   await commit(env, [stmt(env, 'DELETE FROM beam_team_members WHERE team_id = ?', team), ...members.map(member => stmt(env, 'INSERT INTO beam_team_members (team_id, member_id) VALUES (?, ?)', team, member))], { actor, action: 'team.members', subject: team, detail: { members } })
   return { team, members }
@@ -141,7 +143,7 @@ export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) 
 export async function people(env: Bindings, request: Request, actor: Actor, ...permissions: Permission[]) {
   const reach: Permission[] = permissions.length ? permissions : ['people']
   const scope = learnerScope(actor, ...reach), teams = teamScope(actor, ...reach)
-  const members = await all(env, `SELECT m.id, m.email, m.name, m.employee_id AS employeeId, m.employment, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
+  const members = await all(env, `SELECT m.id, m.email, m.name, m.employee_id AS employeeId, m.employment, m.erased_at AS erasedAt, m.erasure_pending AS erasurePending, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
     WHERE ${IN_SCOPE('m.id')} ORDER BY m.name`, scope, scope)
   const statuses = actor.owner ? new Map((await operatorAuth(env).listOperators(request)).map(operator => [operator.id, operator])) : new Map()
   const links = new Map((await all<{ id: string; operator_id: string | null }>(env, 'SELECT id, operator_id FROM beam_members')).map(row => [row.id, row.operator_id]))
@@ -150,7 +152,7 @@ export async function people(env: Bindings, request: Request, actor: Actor, ...p
   // administrators; a custom role keeps the name, email, roles and teams only.
   const directory = actor.owner || actor.managedTeams.length > 0 || actor.adminUnits.length > 0
   return {
-    members: members.map(member => ({ id: member.id, email: member.email, name: member.name, ...(directory ? { employeeId: member.employeeId, employment: member.employment } : {}), roles: account(member)?.role === 'owner' ? [...ROLES] : JSON.parse(member.roles), teams: JSON.parse(member.teams), status: account(member)?.status ?? null, owner: account(member)?.role === 'owner' })),
+    members: members.map(member => ({ id: member.id, email: member.email, name: member.name, ...(actor.owner ? { erasedAt: member.erasedAt, erasurePending: member.erasurePending } : {}), ...(directory ? { employeeId: member.employeeId, employment: member.employment } : {}), roles: account(member)?.role === 'owner' ? [...ROLES] : JSON.parse(member.roles), teams: JSON.parse(member.teams), status: account(member)?.status ?? null, owner: account(member)?.role === 'owner' })),
     teams: await all(env, `SELECT id, name, unit_id AS unit FROM beam_teams WHERE ${IN_SCOPE('id')} ORDER BY name`, teams, teams),
     managers: await teamManagers(env, actor.teams),
   }

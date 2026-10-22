@@ -1,3 +1,6 @@
+import { sourceOcrConfig, sourceOcrPreview } from './source-ocr'
+import { erasureSettings } from './erasure-policy'
+import { erasureReport } from './erasure'
 import { xapiView } from './packages/xapi-catalog'
 import { gustoLanguageView } from './connect/gusto-language'
 import { localeView } from './course-locales'
@@ -71,6 +74,8 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  'source-ocr': sourceOcrConfig, 'source-ocr-preview': (env, actor, _request, id) => sourceOcrPreview(env, actor, id),
+  'erasure-settings': erasureSettings, erasure: (env, actor, _request, id) => erasureReport(env, actor, id),
   webhooks: webhookView,
   'gusto-language': gustoLanguageView,
   language: languageSettings,
@@ -158,6 +163,8 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
+  [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
+  [/^erasure-settings$/, 'erasure-settings'], [/^erasure\/([\w-]+)$/, 'erasure'],
   [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'], [/^xapi$/, 'xapi'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],
   [/^escalation-policy$/, 'escalation-policy'],

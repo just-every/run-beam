@@ -1,3 +1,8 @@
+import { sourceOcrPage, sourceOcrConsentPage } from './ui/source-ocr'
+import { erasurePage } from './ui/erasure'
+import { sourcePreparationPage } from './ui/source-preparation'
+import { sourceAsset } from './source-extraction'
+import { learningConnectivityResponse } from './ui/learning-connectivity'
 import { sequencePage, sequencePreviewPage } from './ui/microlearning'
 import { sequenceView, sequencePreview } from './microlearning'
 import { cmi5PublicResponse } from './packages/cmi5-ingest'
@@ -124,6 +129,8 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     if (url.pathname === '/app/xapi/launch' && request.method === 'POST') { const result = await launchXapi(env, actor, await Input.from(request)); return new Response(null, { status: 303, headers: { location: result.href, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } }) }
     if (url.pathname === '/api/beam/lti/authorize') return await authorizeLti(env, actor, request)
     if (url.pathname === '/app/lti/launch' && request.method === 'POST') { const result = await launchLti(env, actor, await Input.from(request)); return Response.redirect(result.loginUrl, 303) }
+    const sourceAssetMatch = url.pathname.match(/^\/(?:api\/beam\/source-assets|app\/files\/source-asset)\/([^/]+)\/([^/]+)$/)
+    if (sourceAssetMatch && request.method === 'GET') return sourceAsset(env, actor, sourceAssetMatch[1], sourceAssetMatch[2])
     if (api) return await apiResponse(env, actor, request, url)
     return await pageResponse(env, actor, request, url)
   } catch (error) {
@@ -217,6 +224,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (request.method !== 'POST' && path === '/app/data-export.json') return dataExport(env, actor)
   const exportFile = path.match(/^\/app\/data-export\/files\/([a-f0-9]{64})$/)
   if (request.method !== 'POST' && exportFile) return dataExportFile(env, actor, exportFile[1])
+  if (path === '/app/learning-connectivity.js' && request.method === 'GET') return learningConnectivityResponse()
   if (path === '/app/import/client.js' && request.method === 'GET') return importBrowserResponse()
   if (request.method === 'POST') {
     if (path === '/app/dashboards/link') return dashboardLinkAndRedirect(env, actor, await Input.from(request))
@@ -265,6 +273,12 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (path === '/app/learning') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
   if (path === '/app/people') return peoplePage(env, actor, request, url)
+  if (path === '/app/erasure') return erasurePage(env, actor, url)
+  if (path === '/app/sources/ocr') return sourceOcrPage(env, actor, url)
+  const ocrSource = path.match(/^\/app\/sources\/([^/]+)\/ocr$/)
+  if (ocrSource) return sourceOcrConsentPage(env, actor, ocrSource[1], url)
+  const prepareSource = path.match(/^\/app\/sources\/([^/]+)\/prepare$/)
+  if (prepareSource) return sourcePreparationPage(env, actor, prepareSource[1], url)
   if (path === '/app/sources') return sourcesPage(env, actor, url)
   if (path === '/app/courses') return coursesPage(env, actor, url)
   if ((match = path.match(/^\/app\/acknowledgments\/([\w-]+)$/))) return acknowledgmentPage(env, actor, match[1], url)

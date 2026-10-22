@@ -1,3 +1,4 @@
+import { refuseErasedIdentity } from './erasure-fence'
 // ORG-006: bulk people changes with a write-free preview. The owner, or a learning administrator for their units'
 // people, uploads a CSV or XLSX roster; Beam maps its columns by header name (each mapping can be changed) and keeps the
 // file as a batch with one planned action per row: create (and invite, when chosen, a new person with a work email),
@@ -161,6 +162,7 @@ export async function previewBatch(env: Bindings, actor: Actor, input: Input) {
   const invite = input.flag('invite'), missing = input.text('missing', { optional: true, max: 20 }) || 'keep'
   insist(missing === 'keep' || missing === 'deactivate', 'invalid_missing_policy')
   insist(missing === 'keep' || actor.owner, 'owner_required', 403)
+  for (const cells of lines) await refuseErasedIdentity(env, cells)
   const ctx = await context(env, mapping, lines, invite)
   const planned: Row[] = []
   for (const [index, cells] of lines.entries()) {

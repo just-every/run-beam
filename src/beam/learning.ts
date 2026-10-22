@@ -13,7 +13,7 @@ import { accessView, requireAccess } from './access'
 import { isManager, requireRole, type Actor } from './actor'
 import { revisionDetail, type Question } from './courses'
 import { SCORING_RULE, drawQuestions, presentQuestion, weightOf, type Answer } from './question-types'
-import { BeamError, all, commit, insist, newId, now, one, stmt, type Row } from './core'
+import { BeamError, all, commit, insist, newId, now, one, sha256Hex, stmt, type Row } from './core'
 import { serve, store } from './files'
 import type { Input } from './input'
 import { requireBusiness } from './people'
@@ -167,8 +167,16 @@ async function learnerAssignment(env: Bindings, actor: Actor, input: Input) {
 }
 
 export async function completeLesson(env: Bindings, actor: Actor, input: Input) {
-  const assignment = await learnerAssignment(env, actor, input)
+  const existing = await loadAssignment(env, actor, input.text('assignment'))
+  requireAccess(existing)
   const lesson = input.text('lesson')
+  const saved = await one(env, 'SELECT 1 FROM beam_lesson_progress WHERE assignment_id=? AND lesson_revision_id=?', existing.id, lesson)
+  if (saved) {
+    const lessons = (await progress(env, existing)).content.lessons
+    const index = lessons.findIndex(row => row.id === lesson)
+    return { next: lessons[index + 1]?.id ?? null, completion: existing.status === 'open' ? await tryComplete(env, actor, existing.id) : await one(env, 'SELECT * FROM beam_completions WHERE assignment_id=?', existing.id) }
+  }
+  const assignment = await learnerAssignment(env, actor, input)
   const { content } = await progress(env, assignment)
   const index = content.lessons.findIndex(candidate => candidate.id === lesson)
   insist(index >= 0, 'lesson_not_found', 404)
@@ -282,20 +290,37 @@ export async function gradeQuiz(env: Bindings, actor: Actor, input: Input) {
 }
 
 export async function submitPractical(env: Bindings, actor: Actor, input: Input) {
+  const submission = input.text('submission', { optional: true, max: 100 })
+  insist(!submission || /^[a-f0-9-]{36}$/i.test(submission), 'invalid_submission')
+  const bound = await loadAssignment(env, actor, input.text('assignment'))
+  requireAccess(bound)
+  const requestId = submission ? await sha256Hex(new TextEncoder().encode(JSON.stringify([actor.id, bound.id, 'practical', submission]))) : newId()
+  const evidence = input.text('evidence', { max: 10_000 })
+  const file = await input.file('file', { optional: true })
+  const fileHash = file ? await sha256Hex(file.bytes) : null
+  const readPrior = () => one(env, "SELECT t.id,t.number,t.state,t.evidence_text,a.sha256 FROM beam_attempts t LEFT JOIN beam_attachments a ON a.id=t.attachment_id WHERE t.id=? AND t.assignment_id=? AND t.kind='practical'", requestId, bound.id)
+  const replay = (prior: Row) => {
+    insist(prior.evidence_text === evidence && (prior.sha256 ?? null) === fileHash, 'submission_conflict', 409)
+    return { id: prior.id, number: prior.number, state: prior.state }
+  }
+  const prior = await readPrior()
+  if (prior) return replay(prior)
   const assignment = await learnerAssignment(env, actor, input)
   const state = await progress(env, assignment)
   insist(state.practicalRequired, 'no_practical', 409)
   insist(state.lessonsComplete, 'lessons_incomplete', 409)
   insist(!state.practicalAccepted && !state.practicalPending, 'practical_not_open', 409)
-  const evidence = input.text('evidence', { max: 10_000 })
-  const file = await input.file('file', { optional: true })
   const attachment = file ? { id: newId(), ...await store(env, file) } : null
-  const id = newId()
+  const id = requestId
   const number = state.nextNumber('practical')
-  await commit(env, [
+  try { await commit(env, [
     ...(attachment ? [stmt(env, 'INSERT INTO beam_attachments (id, filename, media_type, size, sha256, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?)', attachment.id, attachment.filename, attachment.mediaType, attachment.size, attachment.sha256, actor.id, now())] : []),
     stmt(env, "INSERT INTO beam_attempts (id, assignment_id, assessment_revision_id, kind, number, submitted_at, scoring_rule, retry_decision, state, evidence_text, attachment_id) VALUES (?, ?, ?, 'practical', ?, ?, 'named assessor decision', 'awaiting the named assessor', 'awaiting_review', ?, ?)", id, assignment.id, state.content.assessment!.id, number, now(), evidence, attachment?.id ?? null),
-  ], { actor, action: 'practical.submit', subject: id, detail: { assignment: assignment.id, attachment: attachment?.sha256 ?? null } })
+  ], { actor, action: 'practical.submit', subject: id, detail: { assignment: assignment.id, attachment: attachment?.sha256 ?? null } }) } catch (error) {
+    const stored = submission ? await readPrior() : null
+    if (stored) return replay(stored)
+    throw error
+  }
   return { id, number, state: 'awaiting_review' }
 }
 

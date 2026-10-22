@@ -1,0 +1,40 @@
+// New owner-only OCR account and per-version approval screens. No scripts or GET spend.
+import type { Bindings } from '../../auth.server'
+import type { Actor } from '../actor'
+import { BeamError } from '../core'
+import { sourceOcrConfig, sourceOcrPreview, sourceOcrResult } from '../source-ocr'
+import { backLink, card, field, form, h, hidden, page } from './html'
+
+const usd = (cents: number) => `USD ${(cents / 100).toFixed(2)}`
+export async function sourceOcrPage(env: Bindings, actor: Actor, url: URL) {
+  const config = await sourceOcrConfig(env, actor), back = '/app/sources/ocr'
+  const approval = h`<label class="check"><input type="checkbox" name="consent" value="yes" required> I authorize this server to hold my business's OpenAI account key for OCR. Each original still needs my separate approval before it leaves Beam.</label>`
+  const configure = form('source.ocr.configure', back, [hidden('operation', 'enable'),
+    field(config.hasKey ? 'Replacement OpenAI API key (leave blank to keep the held key)' : 'OpenAI API key', 'apiKey', { type: 'password', required: !config.hasKey }),
+    field('Maximum approved estimate per document (USD cents)', 'maxCostCents', { type: 'number', value: config.maxCostCents || config.estimateCents,
+      hint: `The current conservative estimate is ${usd(config.estimateCents)}. Each source approval names its exact estimate and this maximum. This is an approval ceiling at declared rates, not an OpenAI billing limit.` }), approval], config.enabled ? 'Update OCR account and limit' : 'Enable OCR account')
+  const rotate = config.hasKey ? form('source.ocr.configure', back, [hidden('operation', 'rotate'),
+    field('New OpenAI API key', 'apiKey', { type: 'password' }), hidden('maxCostCents', config.maxCostCents), approval], 'Rotate key and disable OCR') : ''
+  const stop = config.hasKey ? h`${form('source.ocr.configure', back, hidden('operation', 'disable'), 'Disable OCR', { secondary: true })}${form('source.ocr.configure', back, hidden('operation', 'revoke'), 'Revoke and remove the held key', { secondary: true })}` : ''
+  return page('Source OCR account', actor, h`${backLink('/app/sources', 'Sources')}<h1>Source OCR account</h1><p class="lede">OCR reads an explicitly selected PDF through your business's OpenAI account. Opening pages never sends a document.</p>
+    ${card('Account and cost', h`<p>OCR is <strong>${config.enabled ? 'enabled' : 'disabled'}</strong>. ${config.hasKey ? 'A sealed server key is held.' : 'No account key is held.'}</p><p>Provider: OpenAI · model ${config.model} · ${usd(config.estimateCents)} conservative estimate per approved request.</p><p>Retained request estimates: ${usd(config.reservedEstimateCents)}. These include failures and unknown outcomes; your OpenAI invoice determines actual charges.</p><p>Results are source passages for an author to compare and correct. They never publish lessons or decide competence.</p>${configure}${rotate}${stop}`)}
+    ${card('Approved OCR requests', config.runs.length ? h`<ul>${config.runs.map(run => h`<li><a href="/app/sources/${run.source_version_id}/ocr">Source version ${run.source_version_id}</a> · ${run.state === 'running' ? 'Outcome pending or unknown; no automatic retry' : run.state} · estimate ${usd(run.estimate_cents)}, approved maximum ${usd(run.max_cost_cents)}${run.failure ? h` · ${run.failure}` : ''}${run.state === 'running' ? form('source.ocr.close', back, [hidden('run',run.id), h`<label class="check"><input type="checkbox" name="consent" value="yes" required> I acknowledge unknown provider outcome and billing. Close after two minutes; any new request needs a fresh paid approval.</label>`], 'Close interrupted request') : ''}${run.usage ? h`<p>${run.usage.inputTokens} input tokens; ${run.usage.outputTokens} output tokens. At conservative declared rates: ${usd(run.usage.estimatedCostCents)} (not an invoice).</p>` : ''}</li>`)}</ul>` : h`<p>No OCR requests have been approved.</p>`)}`, { current: '/app/sources', url })
+}
+
+export async function sourceOcrConsentPage(env: Bindings, actor: Actor, versionId: string, url: URL) {
+  // Author result reads live on preparation; spending authority stays with the owner.
+  await sourceOcrConfig(env, actor)
+  const result = await sourceOcrResult(env, versionId), back = `/app/sources/${versionId}/ocr`
+  if (result) return page('Source OCR ready for review', actor, h`${backLink('/app/sources', 'Sources')}<h1>OCR is ready for author review</h1><p>${result.pages.length} pages were read. Every passage and uncertainty must be compared with the original and corrected before it becomes draft content.</p><p><a class="button" href="/app/sources/${versionId}/prepare">Review extracted passages</a></p>`, { current: '/app/sources', url })
+  let preview: Awaited<ReturnType<typeof sourceOcrPreview>>
+  try { preview = await sourceOcrPreview(env, actor, versionId) }
+  catch (error) {
+    if (error instanceof BeamError && error.code === 'source_ocr_already_active') return page('Source OCR outcome pending', actor, h`${backLink('/app/sources', 'Sources')}<h1>This original already has an OCR request</h1><p>Its outcome is pending or unknown. Opening this page sends nothing and Beam never retries automatically.</p><p><a href="/app/sources/ocr">View approved OCR requests</a></p>`, { current: '/app/sources', url })
+    if (!(error instanceof BeamError) || !['source_ocr_disabled', 'source_ocr_budget_required'].includes(error.code)) throw error
+    return page('Source OCR needs an account', actor, h`${backLink('/app/sources', 'Sources')}<h1>OCR needs owner configuration</h1><p>No document was sent and no provider request was made.</p><p><a class="button" href="/app/sources/ocr">Configure OCR account and limit</a></p>`, { current: '/app/sources', url })
+  }
+  return page('Approve OCR for this source', actor, h`${backLink('/app/sources', 'Sources')}<h1>Approve OCR for this original</h1>${card('Selected immutable source', h`<h2>${preview.title}</h2><p>${preview.filename} · ${preview.pageCount} pages</p><p>Source version ${preview.sourceVersion}</p><p class="source-digest">SHA-256 ${preview.sha256}</p><p><a class="button secondary" href="/api/beam/source-files/${versionId}" target="_blank" rel="noopener noreferrer">Open this original PDF</a></p>`)}
+    ${card('One document, one paid request', h`<p>The complete original PDF will be sent to OpenAI at api.openai.com using ${preview.model}. Its text and page images leave this installation. OpenAI's account terms and retention apply; erasing Beam's copy does not prove provider erasure.</p><p>Declared conservative estimate: <strong>${usd(preview.estimateCents)}</strong>. Your approved maximum: <strong>${usd(preview.maxCostCents)}</strong>.</p><p>The estimate covers a full model context plus bounded output at declared rates, including long-context and cache-write pricing. Actual usage may be lower. This does not set a provider billing limit. Failed or interrupted requests can still be billed; Beam never retries automatically.</p>
+    ${form('source.ocr.run', back, [hidden('sourceVersion', preview.sourceVersion), hidden('sha256', preview.sha256), hidden('estimateCents', preview.estimateCents), hidden('maxCostCents', preview.maxCostCents), hidden('approval', preview.approval),
+      h`<label class="check"><input type="checkbox" name="consent" value="yes" required> I authorize sending this exact original PDF to OpenAI once, with the declared ${usd(preview.estimateCents)} estimate and my ${usd(preview.maxCostCents)} maximum approval.</label><p class="muted">Approval expires in 15 minutes. The original stays unchanged; an author must compare, acknowledge and correct the result before adding lessons to a draft.</p>`], 'Approve and send this PDF for OCR')}`)}`, { current: '/app/sources', url })
+}

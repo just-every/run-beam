@@ -469,3 +469,8 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
 .xapi-details pre { white-space: pre-wrap; }
 
 .xapi-details input:is([type=url], [type=password]) { width: 100%; max-width: 560px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--white); color: var(--ink); font: 15px/1.4 var(--font-body); }
+
+/* Source preparation keeps original and extracted content readable on narrow screens. */
+.source-preparation,.source-comparison{width:100%;min-width:0}.source-comparison>*{min-width:0}.source-digest{overflow-wrap:anywhere}.source-preparation fieldset{min-width:0;max-width:100%}.source-preparation input,.source-preparation textarea{max-width:100%}
+
+.erasure{min-width:0;overflow-wrap:anywhere}.erasure form{max-width:100%}

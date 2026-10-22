@@ -1,3 +1,7 @@
+import { configureSourceOcr, runSourceOcr, closeSourceOcr } from './source-ocr'
+import { saveErasurePolicy, placeErasureHold, releaseErasureHold } from './erasure-policy'
+import { beginErasure, erasurePreview } from './erasure'
+import { resumeErasure } from './erasure-run'
 import { saveSequence, sequenceAnswer, sequencePause } from './microlearning'
 import { connectLrs, createXapiActivity, revokeXapi, removeXapiActivity } from './packages/xapi-catalog'
 import { launchXapi } from './packages/xapi-launch'
@@ -93,6 +97,10 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'source.ocr.close': closeSourceOcr,
+  'source.ocr.configure': configureSourceOcr, 'source.ocr.run': runSourceOcr,
+  'erasure.policy': saveErasurePolicy, 'erasure.hold': placeErasureHold, 'erasure.hold.release': releaseErasureHold,
+  'erasure.preview': erasurePreview, 'erasure.begin': beginErasure, 'erasure.resume': resumeErasure,
   'course.sequence': saveSequence, 'sequence.answer': sequenceAnswer, 'sequence.pause': sequencePause,
   'xapi.connect': connectLrs, 'xapi.activity': createXapiActivity, 'xapi.revoke': revokeXapi, 'xapi.remove': removeXapiActivity, 'xapi.launch': launchXapi,
   'package.import': importPackage, 'package.remove': removePackage, 'package.launch': launchPackage, 'package.runtime': saveRuntime,

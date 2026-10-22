@@ -12,8 +12,15 @@ const ATTACH_ONLY = 'lti_attach_required'
 
 export async function saveBlock(env: Bindings, actor: Actor, input: Input) {
   await requireCourseRole(env, actor, input.text('course'), 'author')
+  const table = input.has('tableShape') ? input.json('tableShape') as { text: string }[][] : undefined
+  if (table) {
+    insist(Array.isArray(table) && table.length <= 100 && table.every(row => Array.isArray(row) && row.length <= 30), 'invalid_table')
+    const cells = input.list('tableCells', { keepEmpty: true }); let index = 0
+    for (const row of table) for (const cell of row) cell.text = cells[index++]
+    insist(index === cells.length, 'invalid_table_cells')
+  }
   const value = input.has('content') ? input.json('content') : {
-    kind: input.text('kind'), text: input.text('text', { max: 10_000 }), source: input.text('source', { optional: true }), url: input.text('url', { max: 2000, optional: true }),
+    table, asset: input.text('asset', { optional: true }) || undefined, kind: input.text('kind'), text: input.text('text', { max: 10_000 }), source: input.text('source', { optional: true }), url: input.text('url', { max: 2000, optional: true }),
     choices: input.text('choices', { max: 4000, optional: true }).split('\n').filter(Boolean), answer: (input.integer('answer', { min: 1, max: 8, optional: true }) ?? 1) - 1, feedback: input.text('feedback', { max: 2000, optional: true }),
   }
   insist((value as { kind?: unknown } | null)?.kind !== 'lti', ATTACH_ONLY, 403)

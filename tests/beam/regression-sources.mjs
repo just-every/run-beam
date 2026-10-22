@@ -1,18 +1,9 @@
 import assert from 'node:assert/strict'
-import { zip, pdf } from './fixtures.mjs'
+import { pdf, syntheticImage } from './fixtures.mjs'
 import { file } from './harness.mjs'
 
-// A real deflated Office Open XML document. The foreign URL is document data,
-// never a resource the extractor may fetch. All application behavior uses HTTP.
-const document = body => zip([
-  ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
-  ['_rels/.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'],
-  ['word/document.xml', `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}<w:sectPr/></w:body></w:document>`],
-  ['word/_rels/document.xml.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdExternal" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://untrusted.example.test/procedure" TargetMode="External"/></Relationships>'],
-])
-const paragraph = text => `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`
-const heading = text => `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>${text}</w:t></w:r></w:p>`
-const original = document(heading('Prepare the station') + paragraph('Wash hands &amp; inspect tools.') + '<w:tbl><w:tr><w:tc>' + paragraph('Tool') + '</w:tc><w:tc>' + paragraph('Condition') + '</w:tc></w:tr><w:tr><w:tc>' + paragraph('Probe') + '</w:tc><w:tc>' + paragraph('Clean') + '</w:tc></w:tr></w:tbl>' + '<w:p><w:r><w:drawing><wp:inline><wp:docPr id="1" name="Diagram" descr="Probe position"/></wp:inline></w:drawing></w:r></w:p>' + heading('Close the station') + paragraph('&lt;script&gt;do not execute&lt;/script&gt; Store tools.'))
+import { sourceProcedureDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
+const original = sourceProcedureDocx
 
 export async function sourceExtractionCheck(f) {
   const { api, h, cookies, ids } = f
@@ -24,10 +15,14 @@ export async function sourceExtractionCheck(f) {
   assert.equal(preview.provenance, 'Operations manual')
   assert.deepEqual(preview.lessons.map(lesson => lesson.title), ['Prepare the station', 'Close the station'])
   assert.match(preview.lessons[0].body, /Wash hands & inspect tools\./)
-  assert.match(preview.lessons[0].body, /Tool\tCondition\nProbe\tClean/)
-  assert.match(preview.lessons[0].body, /\[Image: Probe position\]/)
+  assert.deepEqual(preview.lessons[0].blocks.find(block => block.kind === 'table').table.map(row => row.map(cell => cell.text)), [['Tool', 'Condition'], ['Probe', 'Clean']])
+  assert.equal(preview.lessons[0].blocks.find(block => block.kind === 'table').table[0][0].header, true)
+  assert.equal(preview.lessons[0].blocks.find(block => block.kind === 'image').text, 'Probe position')
+  assert.deepEqual(Buffer.from(await (await h.raw(preview.assets[0].href, { cookie: cookies.author })).arrayBuffer()), syntheticImage)
+  assert.equal((await h.raw(preview.assets[0].href, { cookie: cookies.learner })).status, 404)
+  assert.ok(preview.passages.some(passage => passage.kind === 'table' && passage.location.startsWith('Document block')))
   assert.match(preview.lessons[1].body, /<script>do not execute<\/script>/)
-  assert.ok(preview.warnings.some(warning => warning.includes('Image bytes are not converted')))
+  assert.ok(preview.warnings.length > 0)
   assert.equal(preview.reviewRequired, true)
   assert.deepEqual(await api('author', `courses/${course.id}`), before) // preview writes no draft or revision
   const bytes = await h.raw(preview.original, { cookie: cookies.author })
@@ -37,8 +32,10 @@ export async function sourceExtractionCheck(f) {
 
   // Corrections and approval are explicit; no conversion may publish or replace
   // a concurrently edited draft. Both JSON and ordinary form doors work.
-  const lessons = preview.lessons.map(lesson => ({ ...lesson }))
+  const lessons = structuredClone(preview.lessons)
   lessons[0].body = lessons[0].body.replace('inspect tools', 'sanitize and inspect tools')
+  lessons[0].blocks.find(block => block.kind === 'image').text = 'Probe position after sanitation'
+  lessons[0].blocks.find(block => block.kind === 'table').table[1][1].text = 'Sanitized'
   const convert = { course: course.id, draftVersion: before.draftVersion, sourceVersion: source.versionId, lessons }
   await api('author', 'source.convert', convert, 409)
   await api('learner', 'source.convert', { ...convert, reviewed: true }, 403)
@@ -60,6 +57,15 @@ export async function sourceExtractionCheck(f) {
   const published = await api('reviewer', `revisions/${frozen}`)
   assert.match(published.lessons[0].body, /sanitize and inspect tools/)
   assert.deepEqual(published.lessons[0].sources, [source.versionId])
+  assert.equal(published.lessons[0].blocks.find(block => block.kind === 'table').table[1][1].text, 'Sanitized')
+  const imageBlock = published.lessons[0].blocks.find(block => block.kind === 'image')
+  assert.equal(imageBlock.source, source.versionId)
+  const preparedLesson = await h.raw(`/app/learn/${assigned}/lessons/${learned.lessons[0].id}`, { cookie: cookies.learner }).then(response => response.text())
+  assert.ok(preparedLesson.includes('<table') && preparedLesson.includes('Sanitized') && preparedLesson.includes('Probe position after sanitation'))
+  const allowedAsset = await h.raw(preview.assets[0].href, { cookie: cookies.learner })
+  assert.equal(allowedAsset.headers.get('x-content-type-options'), 'nosniff')
+  assert.deepEqual(Buffer.from(await allowedAsset.arrayBuffer()), syntheticImage)
+  assert.equal((await h.raw(preview.assets[0].href, { cookie: cookies.other })).status, 404)
 
   // A replacement original is a separate version: extraction and published
   // attribution still refer to exactly the chosen version, never today's file.
@@ -73,11 +79,51 @@ export async function sourceExtractionCheck(f) {
   const audit = await api('owner', `audit?q=${course.id}`)
   assert.ok(audit.events.some(event => event.action === 'source.convert' && event.detail.sourceVersion === source.versionId && event.detail.reviewed === true))
 
+  // The same public preparation door parses real presentations, HTML and PDF.
+  const formats = [
+    ['synthetic-beam-1.pptx', sourceProcedurePptx(), ['Prepare', 'Close']],
+    ['synthetic-beam-2.html', sourceProcedureHtml, ['Prepare', 'Close']],
+    ['synthetic-beam-3.md', '# Prepare\nInspect tools.\n# Close\nStore tools.', ['Prepare', 'Close']],
+    ['synthetic-beam-4.pdf', sourceProcedurePdf(), ['Page 1']],
+    ['synthetic-beam-6-tagged.pdf', sourceTaggedPdf(), ['Prepare the station']],
+  ]
+  for (const [filename, data, titles] of formats) {
+    const imported = await upload(filename, data)
+    const extracted = await api('author', `sources/${imported.versionId}/extraction`)
+    assert.deepEqual(extracted.lessons.map(lesson => lesson.title), titles)
+    assert.ok(extracted.passages.every(passage => passage.location))
+    assert.ok(!JSON.stringify(extracted.lessons).includes('neverRead'))
+    if (/html|pptx/.test(filename)) {
+      assert.ok(extracted.lessons[0].blocks.some(block => block.kind === 'table'))
+      assert.deepEqual(Buffer.from(await (await h.raw(extracted.assets[0].href, { cookie: cookies.author })).arrayBuffer()), syntheticImage)
+    }
+    if (filename.endsWith('html')) assert.equal(extracted.lessons[0].blocks.find(block => block.kind === 'table').table[0][0].rowSpan, 2)
+    if (filename.includes('tagged')) assert.deepEqual(extracted.lessons[0].blocks.find(block => block.kind === 'table').table.map(row => row.map(cell => cell.text)), [['Tool', 'Condition'], ['Probe', 'Clean']])
+    if (filename.endsWith('pdf')) assert.match(extracted.lessons[0].body, /Inspect the clean probe/)
+    const fresh = await api('author', 'course.create', { title: filename, reviewer: ids.reviewer })
+    const fields = { course: fresh.id, draftVersion: fresh.draftVersion, sourceVersion: imported.versionId, reviewed: true, lessons: extracted.lessons, resolvedUncertainties: extracted.uncertainties.map(item => item.id) }
+    const converted = await api('author', 'source.convert', fields)
+    assert.equal(converted.draft.lessons.length, extracted.lessons.length)
+    assert.equal((await api('author', `courses/${fresh.id}`)).publishedRevision, null)
+    const screen = await h.raw(`/app/sources/${imported.versionId}/prepare?course=${fresh.id}`, { cookie: cookies.author }).then(response => response.text())
+    assert.ok(screen.includes('name="reviewed"') && screen.includes(extracted.original))
+    if (extracted.assets.length) await api('author', 'source.convert', { ...fields, draftVersion: converted.draftVersion, lessons: [{ title: 'Forged asset', body: '', blocks: [{ kind: 'image', text: 'Foreign', asset: 'asset-999' }] }] }, 404)
+  }
+  const scanned = await upload('synthetic-beam-5.pdf', sourceProcedurePdf(true))
+  const scan = await api('author', `sources/${scanned.versionId}/extraction`)
+  assert.ok(scan.uncertainties.some(item => item.requiresOcr && item.location === 'Page 1'))
+  assert.equal(scan.assets.length, 1)
+  assert.match((await h.raw(scan.assets[0].href, { cookie: cookies.author })).headers.get('content-type'), /^image\/png/)
+  assert.equal((await api('author', 'source.convert', { course: course.id, draftVersion: (await api('author', `courses/${course.id}`)).draftVersion, sourceVersion: scanned.versionId, reviewed: true, lessons: [{ title: 'Invented OCR', body: 'A typed answer does not become OCR evidence.' }], resolvedUncertainties: scan.uncertainties.map(item => item.id) }, 409)).error, 'source_ocr_required')
+  const held = await h.raw(`/app/sources/${scanned.versionId}/prepare?course=${course.id}`, { cookie: cookies.author }).then(response => response.text())
+  assert.ok(!held.includes('action="/app/do/source.convert"'))
+
   // Unsupported formats, corrupt packages, external entities and oversized
   // documents are actionable refusals, never made-up text or partial success.
   for (const [name, data, code] of [
-    ['scanned.pdf', pdf, 'source_extraction_unsupported'],
-    ['page.html', '<html><script>active()</script></html>', 'source_extraction_unsupported'],
+    ['broken.pdf', 'not a PDF document', 'document_invalid_pdf'],
+    ['page.html', '<html><script>active()</script></html>', 'document_no_lessons'],
+    ['unsupported.bin', 'Unknown data', 'source_extraction_unsupported'],
     ['broken.docx', 'not an Office file', 'document_invalid_zip'],
     ['external.docx', document('<!DOCTYPE w:p [<!ENTITY leak SYSTEM "https://untrusted.example.test/leak">]>' + paragraph('&leak;')), 'document_invalid_xml'],
     ['malformed.docx', document('<w:p><w:r></w:p>'), 'document_invalid_xml'],

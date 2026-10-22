@@ -55,6 +55,14 @@ export async function talentLmsSource(env: Bindings, ownerPrincipalId: string): 
     all<{id: string; email: string}>(env, 'SELECT id, email FROM beam_members'),
     all<{id: string}>(env, 'SELECT id FROM beam_courses'),
   ])
+  const erased = new Set((await all<{digest:string}>(env, 'SELECT digest FROM beam_erasure_tombstones')).map(row => row.digest))
+  const portability = await all<{source_identity:string}>(env, 'SELECT source_identity FROM rer_portability_state WHERE id=1')
+  const refuse = (value: unknown): void => {
+    if (typeof value === 'string') {
+      insist(!erased.has(sha256(`${portability[0]?.source_identity}\0identity\0${value.trim().toLowerCase()}`)), 'erased_identity', 409)
+    } else if (Array.isArray(value)) value.forEach(refuse)
+    else if (value && typeof value === 'object') Object.values(value).forEach(refuse)
+  }
   const members = new Map(people.map(member => [member.email, member.id]))
   const beamCourses = new Set(nativeCourses.map(course => course.id))
   let active: ImportMapping | undefined
@@ -73,7 +81,7 @@ export async function talentLmsSource(env: Bindings, ownerPrincipalId: string): 
       const order = input.dateFormat ?? 'DMY'
       insist(['DMY', 'MDY', 'YMD'].includes(order), 'invalid_date_format')
       const records: ParsedRecord[] = []
-      const record = (kind: string, sourceId: string, payload: Json, artifact: string, row: number) => records.push({kind, sourceId, payload, pointer: `/${artifact.replaceAll('~', '~0').replaceAll('/', '~1')}/${row}`})
+      const record = (kind: string, sourceId: string, payload: Json, artifact: string, row: number) => { refuse(payload); records.push({kind, sourceId, payload, pointer: `/${artifact.replaceAll('~', '~0').replaceAll('/', '~1')}/${row}`}) }
       // Course list CSV.
       const list = readCsv(courseList.bytes, courseList.filename)
       insist(list.rows.length >= 1, 'course_list_empty')

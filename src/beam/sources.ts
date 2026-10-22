@@ -39,6 +39,7 @@ export async function addSourceVersion(env: Bindings, actor: Actor, input: Input
   insist(source, 'source_not_found', 404)
   const provenance = input.text('provenance', { max: 2000 })
   const stored = await store(env, (await input.file('file', { maxBytes: SOURCE_BYTES }))!)
+  insist(await one(env, 'SELECT 1 FROM beam_sources WHERE id=? AND erased_at IS NULL', sourceId), 'source_not_found', 404)
   const latest = await one<{ number: number }>(env, 'SELECT MAX(number) AS number FROM beam_source_versions WHERE source_id = ?', sourceId)
   const id = newId(), number = (latest?.number ?? 0) + 1, at = now()
   // Courses whose published lessons, packages or xAPI activities cite an earlier version of this source.
@@ -76,7 +77,7 @@ export async function listSources(env: Bindings, actor: Actor) {
 
 /** Staff may open any source version; a learner one cited by a course revision assigned to them, inside its access window (AUTO-009). */
 export async function sourceFile(env: Bindings, actor: Actor, versionId: string, download: boolean) {
-  const version = await one(env, 'SELECT filename, media_type AS mediaType, size, sha256 FROM beam_source_versions WHERE id = ?', versionId)
+  const version = await one(env, 'SELECT v.filename, v.media_type AS mediaType, v.size, v.sha256 FROM beam_source_versions v JOIN beam_sources s ON s.id=v.source_id WHERE v.id = ? AND s.erased_at IS NULL', versionId)
   insist(version, 'not_found', 404)
   const staff = actor.owner || ['author', 'reviewer', 'manager'].some(role => actor.roles.has(role as never))
   const authored = !staff && await one(env, `SELECT 1 FROM beam_courses c, json_each(c.draft_json, '$.lessons') l, json_each(l.value, '$.sources') s WHERE s.value = ? AND (c.id IN (SELECT value FROM json_each(?)) OR c.unit_id IN (SELECT value FROM json_each(?))) LIMIT 1`, versionId, JSON.stringify(actor.authorOf), JSON.stringify(courseUnits(actor)))

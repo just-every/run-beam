@@ -12,9 +12,10 @@ function richText(text: string) {
 export function renderBlocks(blocks: Block[] | undefined, hosts: string[], locale: Language = 'en-US'): Html {
   const tr = (key: string, values = {}) => message(locale, key, values)
   return h`${(blocks ?? []).map(block => {
-    const source = `/app/files/source/${encodeURIComponent(block.source ?? '')}`
+    const source = block.asset ? `/app/files/source-asset/${encodeURIComponent(block.source ?? '')}/${encodeURIComponent(block.asset)}` : `/app/files/source/${encodeURIComponent(block.source ?? '')}`
     let content: Html
     if (block.kind === 'text') content = richText(block.text)
+    else if (block.kind === 'table') content = h`<div class="table-wrap"><table><caption>${block.text}</caption><tbody>${block.table?.map(row => h`<tr>${row.map(cell => cell.header ? h`<th scope="col" colspan="${cell.colSpan}" rowspan="${cell.rowSpan}">${cell.text}</th>` : h`<td colspan="${cell.colSpan}" rowspan="${cell.rowSpan}">${cell.text}</td>`)}</tr>`)}</tbody></table></div>`
     else if (block.kind === 'image') content = h`<figure><img class="lesson-image" src="${source}" alt="${block.text}" loading="lazy"><figcaption>${block.text}</figcaption></figure>`
     else if (block.kind === 'audio' || block.kind === 'video') content = h`<figure>${block.kind === 'audio' ? h`<audio controls preload="metadata" src="${source}" aria-label="${block.text}"></audio>` : h`<video controls preload="metadata" src="${source}" aria-label="${block.text}"></video>`}<figcaption>${block.text} · <a href="${source}" download>${tr('Download original')}</a></figcaption></figure>`
     else if (block.kind === 'document') content = h`<figure><figcaption><a href="${source}?download=1" download>${tr('Download {title} (PDF)', { title: block.text })}</a></figcaption><p class="muted">${tr('If your browser supports a protected PDF preview, you can read it here. Otherwise, download the original document.')}</p><details><summary>${tr('Preview PDF')}</summary><iframe class="lesson-document" src="${source}" title="${block.text}" sandbox="" loading="lazy"></iframe></details></figure>`
