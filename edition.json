@@ -71,7 +71,9 @@
           "migrations/core/0082_beam_renewal_notices.sql",
           "migrations/core/0083_beam_course_locales.sql",
           "migrations/core/0084_beam_automation_spend.sql",
-          "migrations/core/0085_beam_gusto_language.sql"
+          "migrations/core/0085_beam_gusto_language.sql",
+          "public/beam-package-player.js",
+          "migrations/core/0086_beam_packages.sql"
         ]
       }
     },

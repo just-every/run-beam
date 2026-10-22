@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "8ad959db2be556c1174f0886952c6753eda5a3afc1d2b80dbc282a2b3e277d19",
+  "manifest": "ac178b9a647beb342807406d51fe81993fd04671140b8c00dfd61670de07ee36",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -71,7 +71,9 @@
           "migrations/core/0082_beam_renewal_notices.sql",
           "migrations/core/0083_beam_course_locales.sql",
           "migrations/core/0084_beam_automation_spend.sql",
-          "migrations/core/0085_beam_gusto_language.sql"
+          "migrations/core/0085_beam_gusto_language.sql",
+          "public/beam-package-player.js",
+          "migrations/core/0086_beam_packages.sql"
         ]
       },
       "baseline": null
@@ -191,7 +193,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "dcedf939fbd73e1ac88a772f15429f02a5b5e13dba6230f02c690e901ec29761",
+      "sha256": "ff4408b746574c3f8883d04c586d0bbd8862d9b9883ae171c4546c08fbf149d5",
       "executable": false
     },
     ".gitignore": {
@@ -299,7 +301,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "8ad959db2be556c1174f0886952c6753eda5a3afc1d2b80dbc282a2b3e277d19",
+      "sha256": "ac178b9a647beb342807406d51fe81993fd04671140b8c00dfd61670de07ee36",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -3935,7 +3937,7 @@
       "executable": false
     },
     "tests/beam/regressions.mjs": {
-      "sha256": "3bfe035bc4b78bd40803a2d2add62dbd52147ea8fca075e57ee4d57e37dee2be",
+      "sha256": "29f6dcce8f8c26dd4f857ba6c29f0746ab34101996d7e55236ab2d811e90d34b",
       "executable": false
     },
     "tests/beam/restore.mjs": {
