@@ -1,3 +1,4 @@
+import { parseCmi5 } from './cmi5-manifest'
 import { insist } from '../core'
 import { packagePath, unpackPackage } from './archive'
 import type { PackageFile, PackageManifest, PackageSco, PackageStandard } from './types'
@@ -7,11 +8,11 @@ const CP = new Set(['http://www.imsproject.org/xsd/imscp_rootv1p1p2', 'http://ww
 const ADL12 = 'http://www.adlnet.org/xsd/adlcp_rootv1p2', ADL04 = 'http://www.adlnet.org/xsd/adlcp_v1p3'
 const ADLSEQ = 'http://www.adlnet.org/xsd/adlseq_v1p3'
 const SEQ = 'http://www.imsglobal.org/xsd/imsss', XML = 'http://www.w3.org/XML/1998/namespace'
-interface Element { name: string; ns: string; attrs: Record<string, string>; children: (Element | string)[]; base: string }
+export interface Element { name: string; ns: string; attrs: Record<string, string>; children: (Element | string)[]; base: string }
 const elements = (node: Element) => node.children.filter((child): child is Element => typeof child !== 'string')
 const text = (node: Element | undefined): string => node ? node.children.map(child => typeof child === 'string' ? child : text(child)).join('').trim() : ''
-function valid(condition: unknown, feature: string): asserts condition { insist(condition, 'package_invalid_manifest', 422, { feature }) }
-function supported(condition: unknown, feature: string): asserts condition { insist(condition, 'package_unsupported_feature', 422, { feature }) }
+export function valid(condition: unknown, feature: string): asserts condition { insist(condition, 'package_invalid_manifest', 422, { feature }) }
+export function supported(condition: unknown, feature: string): asserts condition { insist(condition, 'package_unsupported_feature', 422, { feature }) }
 const key = (ns: string, name: string) => `{${ns}}${name}`
 const attr = (node: Element, name: string, ns = '') => node.attrs[key(ns, name)]
 const children = (node: Element, name: string, ns = node.ns) => elements(node).filter(child => child.name === name && child.ns === ns)
@@ -49,7 +50,7 @@ function decode(value: string) {
 }
 
 /** No DTD, entity expansion, external retrieval, schema fetch or executable markup. */
-function parseXml(bytes: Uint8Array): Element {
+export function parseXml(bytes: Uint8Array): Element {
   valid(bytes.length > 0 && bytes.length <= 2_000_000, 'manifest size (2 MB maximum)')
   let source: string
   try { source = new TextDecoder('utf-8', { fatal: true }).decode(bytes) } catch { valid(false, 'manifest must be UTF-8'); throw new Error('unreachable') }
@@ -186,7 +187,10 @@ function sequencing(node: Element, sco: PackageSco | undefined, maps: ObjectiveM
 
 export function parsePackage(bytes: Uint8Array): { files: PackageFile[]; manifest: PackageManifest } {
   const files = unpackPackage(bytes), inventory = new Set(files.map(file => file.path)), source = files.find(file => file.path === 'imsmanifest.xml')
-  valid(source, 'missing root imsmanifest.xml')
+  const cmi5 = files.find(file => file.path === 'cmi5.xml')
+  valid(!(source && cmi5), 'ambiguous SCORM and cmi5 manifests')
+  if (cmi5) return { files, manifest: parseCmi5(cmi5.bytes, inventory) }
+  valid(source, 'missing root imsmanifest.xml or cmi5.xml')
   const root = parseXml(source!.bytes), cp = root.ns
   valid(root.name === 'manifest' && CP.has(cp), 'SCORM manifest namespace')
   shape(root, ['metadata', 'organizations', 'resources'].map(name => key(cp, name)), ['identifier', 'version'].map(name => key('', name)))
@@ -292,3 +296,5 @@ export function parsePackage(bytes: Uint8Array): { files: PackageFile[]; manifes
   manifest.objectives = [...new Set(manifest.objectives)]
   return { files, manifest }
 }
+
+export const packageXml = { elements, text, attr, children, child, shape, scalar, key, valid, supported }

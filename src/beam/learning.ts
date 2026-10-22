@@ -377,6 +377,7 @@ export async function tryComplete(env: Bindings, actor: Actor, assignmentId: str
   const packages = await packageRequirements(env, assignment)
   const xapiActivities = await xapiRequirements(env, assignment)
   if (xapiActivities.some(activity => !activity.passed)) return null
+  if (await one(env, "SELECT 1 FROM beam_package_sessions s JOIN beam_package_runs r ON r.id=s.run_id JOIN beam_cmi5_sessions c ON c.session_id=s.id WHERE r.assignment_id=? AND s.ended_at IS NULL", assignment.id)) return null
   if (packages.some(pkg => pkg.scos.some(sco => sco.required && (!sco.completed || sco.failed)))) return null
   if (externalTools.some(tool => !tool.passed) || !state.lessonsComplete || (state.quizRequired && !state.quizPassed) || (state.practicalRequired && !state.practicalAccepted) || !state.attendance.met) return null
   const assessment = state.content.assessment

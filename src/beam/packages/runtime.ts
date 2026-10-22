@@ -1,3 +1,4 @@
+import { launchCmi5, cmi5Satisfied } from './cmi5-runtime'
 import { Input as RuntimeInput } from '../input'
 import { navigationTarget } from './navigation'
 import type { Bindings } from '../../auth.server'
@@ -16,12 +17,15 @@ export async function packageRequirements(env: Bindings, assignment: Row) {
   const runs = await all(env, 'SELECT * FROM beam_package_runs WHERE assignment_id=?', assignment.id)
   return packages.map(pkg => ({ id: pkg.id, title: pkg.title, standard: pkg.standard, scos: pkg.manifest.scos.map(sco => {
     const run = runs.find(run => run.package_id === pkg.id && run.sco_id === sco.id)
-    return { id: sco.id, title: sco.title, required: sco.required !== false, ...outcome(pkg.manifest.standard, sco, run ? JSON.parse(run.state_json) : {}), run: run?.id ?? null }
+    const state = run ? JSON.parse(run.state_json) : {}
+    const result = pkg.standard === 'cmi5' ? { completed: cmi5Satisfied(sco.moveOn!, state), passed: !!state.passed, failed: !!state.failed && !cmi5Satisfied(sco.moveOn!, state) } : outcome(pkg.manifest.standard, sco, state)
+    return { id: sco.id, title: sco.title, moveOn: sco.moveOn, required: sco.required !== false, ...result, run: run?.id ?? null }
   }) }))
 }
 export async function launchPackage(env: Bindings, actor: Actor, input: Input) {
   insist(!actor.agent && !actor.viewAs, 'human_session_required', 403)
   const pkg = await packageRecord(env, input.text('package'))
+  if (pkg.standard === 'cmi5') return launchCmi5(env, actor, input)
   const manifest = pkg.manifest
   const scoId = input.text('sco', { optional: true }) || manifest.scos[0].id
   const sco = manifest.scos.find(sco => sco.id === scoId)
@@ -89,6 +93,7 @@ export async function playbackSession(env: Bindings, id: string, actor?: Actor) 
 }
 export async function saveRuntime(env: Bindings, actor: Actor, input: Input) {
   const { session, pkg, sco, run } = await playbackSession(env, input.text('session'), actor)
+  insist(pkg.standard !== 'cmi5', 'cmi5_protocol_required', 409)
   insist(!session.preview, 'preview_does_not_record', 409)
   const expected = input.integer('version', { min: 0 })!
   insist(expected === session.version, 'stale_package_session', 409)

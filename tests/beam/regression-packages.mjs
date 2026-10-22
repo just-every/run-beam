@@ -175,3 +175,132 @@ export async function package2004Check(f) {
   for (const item of withheld) assert.equal((await f.h.raw(item.retrievalHref, { cookie: f.cookies.owner })).status, 200)
   return created
 }
+
+// PACK-004 through import/review/assignment and the AU's public protocol, with only the remote LRS edge faked.
+export async function cmi5Check() {
+  const { xapiFixture } = await import('./xapi-fixture.mjs')
+  const { cmi5Package } = await import('./scorm-fixtures.mjs')
+  const { randomUUID } = await import('node:crypto')
+  const f = await xapiFixture()
+  try {
+    const connection = await f.api('owner', 'xapi.connect', { name: 'cmi5 LRS', endpoint: f.lrs.endpoint, key: 'synthetic-beam-1', secret: 'synthetic-beam-2', consent: true })
+    const source = await f.api('owner', 'source.create', { title: 'Vaccine SOP', licence: 'owned', licenceEvidence: 'Employer-authored SOP', reviewer: f.ids.reviewer, provenance: 'Operations manual', file: file('sop.txt', 'Keep vaccines between 2 and 8 degrees.') })
+    const c = await f.api('owner', 'course.create', { title: 'cmi5 cold chain', reviewer: f.ids.reviewer })
+    const imported = await f.api('owner', 'package.import', { course: c.id, draftVersion: 1, licence: 'owned', licenceEvidence: 'Original CC0 AU', file: file('cmi5.zip', cmi5Package()), connection: connection.id, consent: true, sources: [source.versionId] })
+    assert.equal(imported.manifest.standard, 'cmi5')
+    assert.equal(imported.manifest.scos[0].moveOn, 'CompletedAndPassed')
+    const au = imported.manifest.scos[0].id
+    const native = await f.api('owner', 'course.lesson', { course: c.id, draftVersion: imported.draftVersion, title: 'Native required procedure', body: 'Follow the approved SOP.', sources: [source.versionId] })
+    const assessed = await f.api('owner', 'course.question', { course: c.id, draftVersion: native.draftVersion, prompt: 'Safe vaccine temperature?', choices: '5 degrees\n20 degrees', correct: '1', explanation: '2 to 8 degrees.' })
+    const rules = await f.api('owner', 'course.assessment', { course: c.id, draftVersion: assessed.draftVersion, passPercent: 80, maxAttempts: 3 })
+    const revision = (await f.api('owner', 'course.submit', { course: c.id, draftVersion: rules.draftVersion })).id
+    await f.publish(revision)
+    const assignment = await f.assign(c)
+    await f.api('other', 'package.launch', { package: imported.id, assignment }, 404)
+    async function launch(assignmentId = assignment) {
+      const result = await f.api('learner', 'package.launch', { package: imported.id, assignment: assignmentId })
+      const player = await f.h.raw(result.href, { cookie: f.cookies.learner }).then(r => r.text())
+      const escaped = player.match(/<iframe[^>]+src="([^"]+)"/)[1]
+      const asset = new URL(escaped.replaceAll('&amp;', '&').replaceAll('&#39;', "'"), f.h.origin)
+      const fetchUrl = new URL(asset.searchParams.get('fetch'))
+      const token = await f.h.fetch(fetchUrl.pathname, { method: 'POST' }).then(r => r.json())
+      assert.ok(token['auth-token'])
+      const duplicateFetch = await f.h.fetch(fetchUrl.pathname, { method: 'POST' }).then(r => r.json())
+      assert.equal(duplicateFetch.error.code, '1')
+      const headers = { authorization: `Basic ${token['auth-token']}`, 'x-experience-api-version': '1.0.3', 'content-type': 'application/json' }
+      const stateUrl = id => { const u = new URL(asset.searchParams.get('endpoint') + 'activities/state'); for (const [k,v] of Object.entries({ stateId: id, agent: asset.searchParams.get('actor'), activityId: au, registration: result.registration })) u.searchParams.set(k, v); return u.pathname + u.search }
+      const data = await f.h.fetch(stateUrl('LMS.LaunchData'), { headers }).then(r => r.json())
+      assert.equal(data.moveOn, 'CompletedAndPassed'); assert.equal(data.contextTemplate.extensions['https://w3id.org/xapi/cmi5/context/extensions/sessionid'], result.sessionId)
+      const make = (verb, resultValue) => ({ id: randomUUID(), actor: JSON.parse(asset.searchParams.get('actor')), object: { objectType: 'Activity', id: au }, verb: { id: `http://adlnet.gov/expapi/verbs/${verb}` }, context: { ...structuredClone(data.contextTemplate), ...(resultValue?.success !== undefined || resultValue?.completion !== undefined ? { contextActivities: { ...data.contextTemplate.contextActivities, category: [...data.contextTemplate.contextActivities.category, { id: 'https://w3id.org/xapi/cmi5/context/categories/moveon' }] } } : {}) }, timestamp: new Date().toISOString(), ...(resultValue ? { result: resultValue } : {}) })
+      const send = async (statement, status = 200, extra = {}) => { const r = await f.h.fetch(`/api/beam/cmi5/${result.id}/statements`, { method: 'POST', headers, body: JSON.stringify(statement), ...extra }); assert.equal(r.status, status, await r.text()); return statement }
+      return { ...result, asset, headers, stateUrl, data, make, send }
+    }
+    const first = await launch()
+    await first.send(first.make('completed', { completion: true, duration: 'PT1S' }), 409)
+    await first.send(first.make('initialized'))
+    const foreign = first.make('completed', { completion: true, duration: 'PT1S' }); foreign.actor.account.name = 'synthetic-beam-99'
+    await first.send(foreign, 403)
+    const wrongSession = first.make('completed', { completion: true, duration: 'PT1S' }); wrongSession.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/sessionid'] = randomUUID()
+    await first.send(wrongSession, 403)
+    assert.equal((await f.h.fetch(first.stateUrl('LMS.LaunchData'), { method: 'PUT', headers: first.headers, body: '{}' })).status, 403)
+    const bookmark = await f.h.fetch(first.stateUrl('bookmark'), { method: 'PUT', headers: { ...first.headers, 'if-none-match': '*' }, body: '{"place":"temperature-check"}' })
+    assert.equal(bookmark.status, 204)
+    assert.equal((await f.h.fetch(first.stateUrl('bookmark'), { method: 'PUT', headers: { ...first.headers, 'if-match': '"wrong"' }, body: '{}' })).status, 412)
+    // New session marks an interrupted AU abandoned and preserves both registration and resume state.
+    const resumed = await launch()
+    assert.equal(resumed.registration, first.registration); assert.notEqual(resumed.sessionId, first.sessionId)
+    assert.deepEqual(await f.h.fetch(resumed.stateUrl('bookmark'), { headers: resumed.headers }).then(r => r.json()), { place: 'temperature-check' })
+    await first.send(first.make('terminated', { duration: 'PT1S' }), 401)
+    await resumed.send(resumed.make('initialized'))
+    await resumed.send(resumed.make('passed', { success: true, duration: 'PT1S', score: { scaled: 0.4 } }), 422)
+    await resumed.send(resumed.make('failed', { success: false, duration: 'PT1S', score: { scaled: 0.4 } }))
+    await resumed.send(resumed.make('passed', { success: true, duration: 'PT1S', score: { scaled: 0.9 } }), 409)
+    await resumed.send(resumed.make('terminated', { duration: 'PT1S' }))
+    assert.equal((await f.view(assignment)).completion, null)
+    const passing = await launch()
+    await passing.send(passing.make('initialized'))
+    const completed = passing.make('completed', { completion: true, duration: 'PT1S' })
+    f.lrs.edge.refuse = true
+    await passing.send(completed, 502)
+    assert.equal((await f.view(assignment)).packages[0].scos[0].completed, false)
+    f.lrs.edge.refuse = false
+    await passing.send(completed)
+    await passing.send(completed)
+    assert.equal((await f.view(assignment)).packages[0].scos[0].completed, false, 'CompletedAndPassed requires both distinct verbs')
+    await passing.send(passing.make('passed', { success: true, duration: 'PT1S', score: { scaled: 0.9 } }))
+    await passing.send(passing.make('terminated', { duration: 'PT1S' }))
+    assert.equal((await f.view(assignment)).completion, null, 'native lesson and quiz remain required')
+    await f.lessons(assignment)
+    assert.equal((await f.view(assignment)).completion, null, 'required native quiz is retained')
+    const question = (await f.view(assignment)).quiz.questions[0]
+    const quiz = await f.api('learner', 'quiz.submit', { assignment, [`q_${question.id}`]: ['0'] })
+    assert.ok(quiz)
+    assert.equal((await f.view(assignment)).completion.revision, revision)
+    await passing.send(completed)
+    const evidence = await f.api('learner', `cmi5-evidence/${assignment}`)
+    assert.deepEqual(evidence.sessions.map(s => s.lifecycle), ['abandoned', 'terminated', 'terminated'])
+    assert.equal(evidence.sessions[1].resumed, 1)
+    assert.equal(evidence.statements.filter(s => s.id === completed.id).length, 1)
+    assert.deepEqual(evidence.statements.find(s => s.id === completed.id).statement, completed)
+    assert.equal(evidence.statements.filter(s => s.verb === 'satisfied').length, 1)
+    assert.ok(f.lrs.records.has(completed.id))
+    await f.api('other', `cmi5-evidence/${assignment}`, undefined, 404)
+    const exported = await f.h.raw('/app/data-export.json', { cookie: f.cookies.owner }).then(r => r.json())
+    assert.ok(exported.records.beam_cmi5_statements.rows.some(s => s.id === completed.id))
+    assert.ok(!JSON.stringify(exported).includes(passing.headers.authorization))
+    assert.ok(!JSON.stringify(exported).includes('fetch_hash'))
+    const changed = await f.api('owner', 'source.version', { source: source.id, provenance: 'Updated reviewed range', file: file('sop.txt', 'Keep vaccines between 2 and 6 degrees.') })
+    const notice = (await f.api('owner', `courses/${c.id}`)).notices.find(n => n.new_version_id === changed.id)
+    assert.ok((await f.api('owner', `impact/${notice.id}`)).packages.some(p => p.id === imported.id && p.type === 'cmi5' && p.affected))
+    const pending = await f.assign(c), revoked = await launch(pending)
+    await f.api('owner', 'xapi.revoke', { connection: connection.id })
+    await revoked.send(revoked.make('initialized'), 403)
+    await f.api('learner', 'package.launch', { package: imported.id, assignment: pending }, 403)
+    // The five declared moveOn rules are tested through actual imported/assigned AUs below.
+    for (const rule of ['Passed', 'Completed', 'CompletedOrPassed', 'NotApplicable']) {
+      const conn = await f.api('owner', 'xapi.connect', { name: rule, endpoint: f.lrs.endpoint, key: 'synthetic-beam-1', secret: 'synthetic-beam-2', consent: true })
+      const course = await f.api('owner', 'course.create', { title: rule, reviewer: f.ids.reviewer })
+      const pkg = await f.api('owner', 'package.import', { course: course.id, draftVersion: 1, licence: 'owned', licenceEvidence: 'Original CC0 AU', file: file('cmi5.zip', cmi5Package({ moveOn: rule })), connection: conn.id, consent: true })
+      const rev = (await f.api('owner', 'course.submit', { course: course.id, draftVersion: pkg.draftVersion })).id
+      await f.publish(rev)
+      const assigned = await f.assign(course), launch = await f.api('learner', 'package.launch', { package: pkg.id, assignment: assigned })
+      const html = await f.h.raw(launch.href, { cookie: f.cookies.learner }).then(r => r.text())
+      const asset = new URL(html.match(/<iframe[^>]+src="([^"]+)"/)[1].replaceAll('&amp;', '&'), f.h.origin)
+      const token = await f.h.fetch(new URL(asset.searchParams.get('fetch')).pathname, { method: 'POST' }).then(r => r.json())
+      const headers = { authorization: `Basic ${token['auth-token']}`, 'content-type': 'application/json', 'x-experience-api-version': '1.0.3' }
+      const session = launch.sessionId
+      async function send(verb, result) {
+        const context = { registration: launch.registration, extensions: { 'https://w3id.org/xapi/cmi5/context/extensions/sessionid': session }, contextActivities: { grouping: [{ id: au }], category: [{ id: 'https://w3id.org/xapi/cmi5/context/categories/cmi5' }, ...(result?.success !== undefined || result?.completion !== undefined ? [{ id: 'https://w3id.org/xapi/cmi5/context/categories/moveon' }] : [])] } }
+        const response = await f.h.fetch(`/api/beam/cmi5/${launch.id}/statements`, { method: 'POST', headers, body: JSON.stringify({ id: randomUUID(), actor: JSON.parse(asset.searchParams.get('actor')), verb: { id: `http://adlnet.gov/expapi/verbs/${verb}` }, object: { id: au }, context, timestamp: new Date().toISOString(), ...(result ? { result } : {}) }) })
+        assert.equal(response.status, 200, await response.text())
+      }
+      await send('initialized')
+      assert.equal((await f.view(assigned)).completion, null)
+      if (rule === 'Passed') await send('passed', { success: true, duration: 'PT1S' })
+      if (rule === 'Completed' || rule === 'CompletedOrPassed') await send('completed', { completion: true, duration: 'PT1S' })
+      await send('terminated', { duration: 'PT1S' })
+      assert.equal((await f.view(assigned)).completion.revision, rev, rule)
+    }
+    return { assignment, revision, package: imported.id }
+  } finally { await f.h.close() }
+}

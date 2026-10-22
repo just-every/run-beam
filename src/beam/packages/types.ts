@@ -1,4 +1,4 @@
-export type PackageStandard = '1.2' | '2004-2' | '2004-3' | '2004-4'
+export type PackageStandard = 'cmi5' | '1.2' | '2004-2' | '2004-3' | '2004-4'
 
 export interface PackageSco {
   /** Organization item identifier, not the resource identifier. */
@@ -6,6 +6,9 @@ export interface PackageSco {
   title: string
   /** Decoded package-relative path, followed by the original query/fragment. */
   launch: string
+  moveOn?: string
+  launchParameters?: string
+  activityType?: string
   prerequisites: string[]
   masteryScore: number | null
   objectives: string[]
@@ -18,6 +21,7 @@ export interface PackageSco {
 }
 
 export interface PackageManifest {
+  courseIri?: string
   standard: PackageStandard
   title: string
   objectives: string[]

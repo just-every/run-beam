@@ -120,7 +120,7 @@ async function analyse(env: Bindings, notice: Row) {
       ]),
     ]
     const found = cites ? metadata.flatMap(item => item.text.split('\n').map(text => ({ field: item.field, text, changes: hits(text, changed) }))).filter(item => item.changes.length) : []
-    return { id: row.id as string, type: 'scorm' as const, title: row.title as string, cites, affected: cites && (passages === null || found.length > 0), passages: found }
+    return { id: row.id as string, type: (row.standard === 'cmi5' ? 'cmi5' : 'scorm') as 'cmi5' | 'scorm', title: row.title as string, cites, affected: cites && (passages === null || found.length > 0), passages: found }
   })
   const xapiMetadata = xapiRows.map(row => {
     const cites = (JSON.parse(row.source_version_ids) as string[]).some(version => versions.has(version))

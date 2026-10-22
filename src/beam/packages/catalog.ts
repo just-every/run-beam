@@ -1,3 +1,4 @@
+import { xapiConnection, xapiOwner } from './xapi-catalog'
 import type { Bindings } from '../../auth.server'
 import type { Actor } from '../actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from '../core'
@@ -26,10 +27,16 @@ export async function importPackage(env: Bindings, actor: Actor, input: Input) {
   for (const id of sources) insist(await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', id), 'source_version_not_found', 404)
   const file = (await input.file('file', { maxBytes: 25_000_000 }))!
   const { manifest, files } = parsePackage(file.bytes)
+  let connection: string | null = null
+  if (manifest.standard === 'cmi5') {
+    xapiOwner(actor); insist(input.flag('consent'), 'xapi_consent_required', 422)
+    connection = (await xapiConnection(env, input.text('connection'))).id
+  }
   const original = await store(env, file), id = newId()
   const assets = await Promise.all(files.map(async file => ({ path: file.path, ...await store(env, { filename: file.path, bytes: file.bytes }) })))
   await commit(env, [
     stmt(env, 'INSERT INTO beam_packages(id,course_id,standard,title,manifest_json,source_version_ids,licence,licence_evidence,export_restriction,original_filename,original_sha256,original_size,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, course.id, manifest.standard, manifest.title, JSON.stringify(manifest), JSON.stringify(sources), licence, evidence, restriction || null, original.filename, original.sha256, original.size, actor.id, now()),
+    ...(connection ? [stmt(env, 'INSERT INTO beam_cmi5_packages VALUES(?,?,?,?)', id, connection, actor.id, now())] : []),
     ...assets.map(asset => stmt(env, 'INSERT INTO beam_package_assets(package_id,path,sha256,size,media_type) VALUES(?,?,?,?,?)', id, asset.path, asset.sha256, asset.size, assetType(asset.path))),
   ], { actor, action: 'package.import', subject: id, detail: { course: course.id, standard: manifest.standard, licence, licenceEvidence: evidence, sources } })
   const edited = await editDraft(env, actor, input, 'package.attach', draft => { (draft.packages ??= []).push(id) })

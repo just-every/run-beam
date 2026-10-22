@@ -22,7 +22,7 @@ export async function packageContentResponse(env: Bindings, request: Request): P
   insist(bytes.length === asset.size && await sha256Hex(bytes) === asset.sha256, 'file_integrity', 503)
   const prefix = `${env.AUTH_ORIGIN}/beam-package/${session.id}/`
   let body: BodyInit = bytes as BodyInit
-  if (asset.media_type.startsWith('text/html')) {
+  if (pkg.standard !== 'cmi5' && asset.media_type.startsWith('text/html')) {
     const latest = await one<{payload_json:string}>(env, "SELECT payload_json FROM beam_package_events WHERE session_id=? AND event IN ('commit','terminate') ORDER BY at DESC,rowid DESC LIMIT 1", session.id)
     const initial = JSON.parse(latest?.payload_json ?? session.initial_json) as Record<string,string>
     const script = `<script>${runtimeScript(pkg.manifest.standard, initial, session.id).replaceAll('</script', '<\\/script')}</script>`
@@ -31,6 +31,6 @@ export async function packageContentResponse(env: Bindings, request: Request): P
   }
   return new Response(request.method === 'HEAD' ? null : body, { headers: {
     'content-type': asset.media_type, 'cache-control': 'private, no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff',
-    'content-security-policy': `sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline' ${prefix}; style-src 'unsafe-inline' ${prefix}; img-src data: ${prefix}; font-src ${prefix}; media-src ${prefix}; connect-src 'none'; frame-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'`,
+    'content-security-policy': `sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline' ${prefix}; style-src 'unsafe-inline' ${prefix}; img-src data: ${prefix}; font-src ${prefix}; media-src ${prefix}; connect-src ${pkg.standard === 'cmi5' ? `${env.AUTH_ORIGIN}/api/beam/cmi5/${session.id}/` : "'none'"}; frame-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'`,
   } })
 }

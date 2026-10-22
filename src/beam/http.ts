@@ -1,3 +1,5 @@
+import { cmi5PublicResponse } from './packages/cmi5-ingest'
+import { cmi5Evidence } from './packages/cmi5-runtime'
 import { xapiPublicResponse, xapiAttachment } from './packages/xapi-ingest'
 import { launchXapi, xapiEvidence } from './packages/xapi-launch'
 import { integrationsPage, xapiEvidencePage } from './ui/xapi'
@@ -93,6 +95,8 @@ export async function beamResponse(request: Request, original: Bindings): Promis
 async function beamDoorResponse(request: Request, original: Bindings): Promise<Response | null> {
   const env = runtimeBindings(original)
   const url = new URL(request.url)
+  const cmi5 = await cmi5PublicResponse(env, request)
+  if (cmi5) return cmi5
   const content = await packageContentResponse(env, request).catch(error => { const { code, status } = failure(error); return json({ error: code }, status) })
   if (content) return content
   const xapi = await xapiPublicResponse(env, request)
@@ -171,6 +175,8 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   }
   insist(!path.startsWith('v1/'), 'application_credential_required', 403)
   requireAgentScope(actor, path, request.method)
+  const cmi5EvidenceMatch = url.pathname.match(/^\/api\/beam\/cmi5-evidence\/([^/]+)$/)
+  if (cmi5EvidenceMatch && request.method === 'GET') return json(await cmi5Evidence(env, actor, cmi5EvidenceMatch[1]))
   const xapiEvidenceMatch = url.pathname.match(/^\/api\/beam\/xapi-evidence\/([^/]+)$/)
   if (xapiEvidenceMatch && request.method === 'GET') return json(await xapiEvidence(env, actor, xapiEvidenceMatch[1]))
   if (request.method === 'POST') {
