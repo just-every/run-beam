@@ -161,7 +161,9 @@ export async function microlearningCheck(f) {
   template.questions[0].prompt = '¿Qué temperatura es segura?'; template.questions[0].choices = ['5 grados', '20 grados']
   const prepared = await f.api('author', 'locale.prepare', { course: c.id, baseRevision: revision, locale: 'es-US', glossary: glossary.id, draft: template })
   await f.api('author', 'locale.submit', { translation: prepared.id, version: 1 })
-  const translated = await f.api('owner', 'locale.approve', { translation: prepared.id, version: 1, glossaryReviewed: true, correctnessReviewed: true })
+  const approved = await f.h.submit('locale.approve', f.cookies.owner, { translation: prepared.id, version: 1, glossaryReviewed: 'yes', correctnessReviewed: 'yes' }, `/app/courses/${c.id}`)
+  assert.equal(approved.searchParams.get('error'), null)
+  const translated = { revision: (await f.api('author', `course-locales/${c.id}`)).translations.find(row => row.id === prepared.id).revision_id }
   await f.api('owner', 'person.directory', { member: f.ids.learner, language: 'es-US' })
   const localizedAssignment = await f.assign(c), localized = await f.api('learner', `sequences/${localizedAssignment}`)
   assert.equal(localized.revision, translated.revision)
