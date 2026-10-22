@@ -8,7 +8,8 @@ import { sourceProcedurePdf } from './source-fixtures.mjs'
 import { scormPackage } from './scorm-fixtures.mjs'
 
 async function assignedCourse(f, width) {
-  const c = await f.api('author', 'course.create', { title: `synthetic-beam-${width}`, reviewer: f.ids.reviewer })
+  const title = `Workstation inspection — ${width === 390 ? 'mobile' : 'desktop'}`
+  const c = await f.api('author', 'course.create', { title, reviewer: f.ids.reviewer })
   let draftVersion = c.draftVersion, lesson
   const edit = async (action, fields) => {
     const result = await f.api(action === 'package.import' ? 'owner' : 'author', action, { course: c.id, draftVersion, ...fields })
@@ -18,7 +19,7 @@ async function assignedCourse(f, width) {
   const first = await edit('course.lesson', { title: 'Inspect the station', body: 'Inspect clean tools and record the temperature.', sources: [] })
   lesson = first.draft.lessons[0].id
   for (const [index, kind, extension, bytes] of [[1, 'image', 'png', syntheticImage], [2, 'audio', 'mp3', syntheticAudio], [3, 'video', 'mp4', syntheticVideo], [4, 'document', 'pdf', sourceProcedurePdf()]]) {
-    const asset = await f.api('author', 'source.create', { title: `synthetic-beam-${index}`, licence: 'owned', licenceEvidence: 'Original synthetic Beam media', reviewer: f.ids.reviewer, provenance: 'Synthetic Beam fixture', file: file(`synthetic-beam-${index}.${extension}`, bytes) })
+    const asset = await f.api('author', 'source.create', { title: `Inspection ${kind} original`, licence: 'owned', licenceEvidence: 'Original synthetic Beam media', reviewer: f.ids.reviewer, provenance: 'Synthetic Beam fixture', file: file(`inspection-${kind}.${extension}`, bytes) })
     await edit('course.block', { lesson, content: { kind, source: asset.versionId, text: `Station ${kind}` } })
   }
   await edit('course.block', { lesson, content: { kind: 'check', text: 'Which tool is safe?', choices: ['Clean tool', 'Dirty tool'], answer: 0, feedback: 'Use clean tools.' } })
@@ -28,7 +29,7 @@ async function assignedCourse(f, width) {
   await edit('package.import', { licence: 'owned', licenceEvidence: 'Original Beam package dedicated to CC0', file: file('synthetic-beam-5.zip', scormPackage()) })
   const revision = (await f.api('author', 'course.submit', { course: c.id, draftVersion })).id
   await f.publish(revision)
-  return { ...c, revision, assignment: await f.assign(c) }
+  return { ...c, title, revision, assignment: await f.assign(c) }
 }
 
 /** Real emitted Worker, native media and compatible SCORM, with the browser network actually interrupted. */
@@ -74,7 +75,7 @@ export async function mobileLearningBrowserCheck(f) {
           assert.ok(rect && rect.width >= 44 && rect.height >= 44, 'primary touch control is at least 44px')
         }
         await page.goto(`${f.h.origin}/app/learning`)
-        await activate(page.getByRole('link', { name: new RegExp(`^synthetic-beam-${width}\\b`) }))
+        await activate(page.getByRole('link', { name: c.title, exact: true }))
         await shot('assignment')
         await activate(page.getByRole('link', { name: 'Start', exact: true }))
         await page.locator('[data-save-enhanced=true]').waitFor()
@@ -111,7 +112,7 @@ export async function mobileLearningBrowserCheck(f) {
         await activate(page.getByRole('button', { name: 'Retry save', exact: true }))
         await confirmed('lesson-saved')
         await page.getByRole('heading', { name: 'Record the inspection', exact: true }).waitFor()
-        await activate(page.getByRole('link', { name: `synthetic-beam-${width}`, exact: true }))
+        await activate(page.getByRole('link', { name: c.title, exact: true }))
         // Server resume opens the second lesson after a navigation and a fresh page request.
         await activate(page.getByRole('link', { name: 'Resume', exact: true }))
         await page.getByRole('heading', { name: 'Record the inspection', exact: true }).waitFor()
@@ -144,9 +145,9 @@ export async function mobileLearningBrowserCheck(f) {
         await activate(page.getByRole('button', { name: 'Submit answers', exact: true }))
         await activate(page.getByRole('link', { name: 'Submit evidence', exact: true }))
         await page.locator('[data-save-enhanced=true]').waitFor()
-        const evidenceText = 'synthetic-beam-7 inspected clean tools and recorded the temperature', bytes = Buffer.from('synthetic-beam-8 practical evidence')
+        const evidenceText = 'Inspected clean tools and recorded the temperature before opening.', bytes = Buffer.from('Opening inspection record: clean probe, temperature 5 degrees.')
         await page.getByLabel('What you did', { exact: true }).fill(evidenceText)
-        await page.getByLabel('Evidence file (optional)', { exact: true }).setInputFiles({ name: 'synthetic-beam-9.txt', mimeType: 'text/plain', buffer: bytes })
+        await page.getByLabel('Evidence file (optional)', { exact: true }).setInputFiles({ name: 'opening-inspection.txt', mimeType: 'text/plain', buffer: bytes })
         await page.locator('[data-save-status]').filter({ hasText: /^Pending:/ }).waitFor()
         const submit = page.getByRole('button', { name: 'Submit for assessment', exact: true })
         await target(submit)
@@ -155,7 +156,7 @@ export async function mobileLearningBrowserCheck(f) {
         await activate(submit)
         await page.locator('[data-save-status]').filter({ hasText: /^Save not confirmed/ }).waitFor()
         assert.equal(await page.getByLabel('What you did', { exact: true }).inputValue(), evidenceText)
-        assert.equal(await page.locator('input[type=file]').evaluate(input => input.files[0].name), 'synthetic-beam-9.txt')
+        assert.equal(await page.locator('input[type=file]').evaluate(input => input.files[0].name), 'opening-inspection.txt')
         assert.equal((await f.view(c.assignment)).attempts.filter(item => item.kind === 'practical').length, 0)
         await shot('evidence-interrupted')
         await context.setOffline(false)
@@ -173,7 +174,7 @@ export async function mobileLearningBrowserCheck(f) {
         const attachment = await f.h.raw(`/app/files/attachment/${pending[0].attachment}`, { cookie: f.cookies.learner })
         assert.deepEqual(Buffer.from(await attachment.arrayBuffer()), bytes)
         assert.equal((await f.view(c.assignment)).completion, null, 'pending evidence never awards completion')
-        await f.api('assessor', 'practical.decide', { attempt: pending[0].id, decision: 'accepted', note: 'synthetic-beam-10 observed demonstration accepted' })
+        await f.api('assessor', 'practical.decide', { attempt: pending[0].id, decision: 'accepted', note: 'Observed the complete inspection and checked the reading.' })
         await page.reload()
         await page.getByRole('heading', { name: 'Completion', exact: true }).waitFor()
         await shot('completed')
@@ -187,12 +188,12 @@ export async function mobileLearningBrowserCheck(f) {
         assert.deepEqual(errors, [])
 
         // No private draft survives an account switch or browser history restoration.
-        const privacy = await f.course(`synthetic-beam-${width + 1}`, true), privateAssignment = await f.assign(privacy)
+        const privacy = await f.course(`Equipment inspection — private draft ${width}`, true), privateAssignment = await f.assign(privacy)
         await f.lessons(privateAssignment)
         await page.goto(`${f.h.origin}/app/learn/${privateAssignment}/practical`)
         await page.locator('[data-save-enhanced=true]').waitFor()
-        await page.getByLabel('What you did', { exact: true }).fill('synthetic-beam-11 private draft')
-        await page.getByLabel('Evidence file (optional)', { exact: true }).setInputFiles({ name: 'synthetic-beam-12.txt', mimeType: 'text/plain', buffer: bytes })
+        await page.getByLabel('What you did', { exact: true }).fill('Private draft of the equipment inspection.')
+        await page.getByLabel('Evidence file (optional)', { exact: true }).setInputFiles({ name: 'private-inspection.txt', mimeType: 'text/plain', buffer: bytes })
         await context.clearCookies()
         await context.addCookies(cookies('other'))
         await activate(page.getByRole('button', { name: 'Submit for assessment', exact: true }))
@@ -209,6 +210,6 @@ export async function mobileLearningBrowserCheck(f) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { fixture } = await import('./regression-fixture.mjs')
-  const f = await fixture()
+  const f = await fixture({ businessName:'Sierra Lakes Produce', names:{ owner:'Morgan Hayes', learner:'Riley Morgan', manager:'Nina Brooks', author:'Alex Rivera', reviewer:'Sam Taylor', assessor:'Avery Carter', other:'Jordan Allen' } })
   try { await mobileLearningBrowserCheck(f) } finally { await f.h.close() }
 }

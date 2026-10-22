@@ -3916,7 +3916,7 @@
       "executable": false
     },
     "tests/beam/mobile-learning-browser.mjs": {
-      "sha256": "fd411756cf914d354c5de35de501d38172b8e09ce28e0cbac974e4ae8c462e22",
+      "sha256": "99751e05a9410fde39f27808d248803a482d408f2762abdca562ff63a6c0496a",
       "executable": false
     },
     "tests/beam/package-browser.mjs": {
