@@ -4164,7 +4164,7 @@
       "executable": false
     },
     "tests/beam/source-browser.mjs": {
-      "sha256": "9387ca631b1d1d03e5db5168d29c353650411cab23faa8d61eb29dd068661dcc",
+      "sha256": "e0d09cecfca71cd1080f250147463d122dd1e692790056a2fe4062687fdac016",
       "executable": false
     },
     "tests/beam/source-fixtures.mjs": {

@@ -42,9 +42,10 @@ export async function sourceBrowserCheck(f) {
           await page.getByLabel('Draft course', { exact: true }).selectOption(course.id)
           await page.getByRole('button', { name: 'Prepare for this course', exact: true }).click()
         }
-        const course = await f.api('author', 'course.create', { title: 'Work area opening procedure', reviewer: f.ids.reviewer })
+        const shift = width === 390 ? 'Evening' : 'Morning'
+        const course = await f.api('author', 'course.create', { title: `${shift} work area opening procedure`, reviewer: f.ids.reviewer })
         await as('author')
-        await upload('Work area opening SOP', 'synthetic-beam-1.docx', sourceProcedureDocx)
+        await upload(`${shift} work area opening SOP`, 'synthetic-beam-1.docx', sourceProcedureDocx)
         const originalLink = await page.getByRole('link', { name: 'Open original file', exact: true }).getAttribute('href')
         const original = await f.h.raw(originalLink, { cookie: f.cookies.author })
         assert.deepEqual(Buffer.from(await original.arrayBuffer()), sourceProcedureDocx)
@@ -79,7 +80,7 @@ export async function sourceBrowserCheck(f) {
         assert.equal(await page.getByRole('cell', { name: 'Sanitized', exact: true }).count(), 1)
         await shot('published-learner')
         await as('author')
-        await upload('Work area opening — scanned original', 'synthetic-beam-2.pdf', sourceProcedurePdf(true))
+        await upload(`${shift} work area opening — scanned original`, 'synthetic-beam-2.pdf', sourceProcedurePdf(true))
         assert.equal(await page.locator('form[action="/app/do/source.convert"]').count(), 0)
         assert.equal(await page.locator('a[href$="/ocr"]').count() > 0, true)
         await page.locator('img.lesson-image').first().evaluate(image => image.decode())
