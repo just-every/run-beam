@@ -1866,7 +1866,7 @@
       "executable": false
     },
     "src/beam/ui/managing.ts": {
-      "sha256": "35c1392555c35f1e8befcb81900e410751ef9c4d5a6fffe91cdfd332a4ba9d05",
+      "sha256": "014bb1d38445eebb7a23ce03c4feabab30cef2b6ad8fe779ea759a38502bc964",
       "executable": false
     },
     "src/beam/ui/media.ts": {
