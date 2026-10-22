@@ -18,7 +18,7 @@ Only one trusted statement explicitly reporting both `result.completion=true` an
 
 **Inspect xAPI evidence** on the assigned course shows retained originals, delivery state and authenticated attachment downloads. Procedure changes include the activity's own cited title, objectives and launch metadata in the same impact rule as SCORM; a person replaces the original activity mapping. Data export includes safe activity/revision/actor/registration/statement/attachment records, independently retrievable bytes, counts and digests. Producer credentials, LRS configuration and authentication session IDs stay excluded. Installation archives additionally replace SCORM session capabilities with irreversible evidence identities, withhold producer/LRS credentials, and restore sessions and integrations as terminal. The same fence applies when importing older archives; retained runtime events, statements, attachments and completions remain readable.
 
-The owner-only connection, explicit disclosure/consent, server-only producer trust, connection-specific pseudonyms and deny-by-default host admission are conservative defaults pending ct approval under PACK-003. PACK-004 and PACK-005 inherit the approved xAPI identity/custody policy before they use this bridge.
+The owner-only connection, explicit disclosure/consent, server-only producer trust, connection-specific pseudonyms and deny-by-default host admission were approved by ct with riders on 22 October under PACK-003; the remaining external-tenant and connected-LRS erasure gaps stay named in CONTRACT.md. PACK-004 and PACK-005 inherit the approved xAPI identity/custody policy before they use this bridge.
 
 ## Reproduce the real LRS journey
 

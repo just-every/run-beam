@@ -62,6 +62,10 @@ export async function sourceOcrCheck() {
     const config = await api('owner', 'source-ocr')
     assert.ok(config.runs.some(row => row.state === 'failed' && row.failure === 'source_ocr_provider_denied'))
     assert.ok(config.reservedEstimateCents > before.reservedEstimateCents)
+    const costs = await api('owner', 'costs')
+    assert.ok(costs.providers.some(row => row.kind === 'source_ocr' && row.billing === 'employer_account'))
+    assert.equal(costs.ocr.reservedEstimateCents, config.reservedEstimateCents)
+    assert.equal(costs.ocr.invoice, false)
     await api('owner', 'source.ocr.configure', { operation: 'revoke' })
     assert.equal((await api('owner', 'source-ocr')).hasKey, false)
   } finally { await f.h.close() }

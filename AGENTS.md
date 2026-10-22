@@ -367,4 +367,4 @@ replies. Course restore and approved locale publication preserve program
 structure. Real SMS/Teams send/reply/consent qualification remains blocked on
 unprovisioned provider prerequisites under LEARN-012/NOTICE-003. ct approved
 this boundary as adopted with riders, 22 Oct. Learner erasure of practice
-replies (`beam_sequence_answers`) has no Beam erasure door yet (OPS-003 partial).
+replies (`beam_sequence_answers`) are removed by the owner erasure door, even while assessed evidence is held. OPS-003 remains partial for its named custody/propagation gaps.

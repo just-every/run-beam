@@ -4,7 +4,7 @@ import { requireOwner, type Actor } from './actor'
 import { automationPolicy } from './automation-policy'
 import { reservedAutomationBudget } from './automation-budget'
 import { requireBusiness } from './people'
-import { now } from './core'
+import { now, one } from './core'
 import { localDate } from './time'
 
 export async function providerCosts(env: Bindings, actor: Actor) {
@@ -12,10 +12,13 @@ export async function providerCosts(env: Bindings, actor: Actor) {
   const mail = env.MAIL_PROVIDER && env.MAIL_PROVIDER !== 'development' ? env.MAIL_PROVIDER : null
   const business = await requireBusiness(env), policy = await automationPolicy(env)
   const budget = await reservedAutomationBudget(env, localDate(now(), business.timezone))
+  const ocrConfig = await one<{enabled:number;hasKey:number;max_cost_cents:number}>(env, 'SELECT enabled,key_cipher IS NOT NULL AS hasKey,max_cost_cents FROM beam_source_ocr_config WHERE singleton=1')
+  const ocrTotals = await one<{requests:number;reserved:number;usage:number}>(env, `SELECT count(*) AS requests,coalesce(sum(estimate_cents),0) AS reserved,coalesce(sum(json_extract(usage_json,'$.estimatedCostCents')),0) AS usage FROM beam_source_ocr_runs`)
+  const ocr = ocrConfig?.hasKey || ocrTotals?.requests ? { enabled:ocrConfig?.enabled === 1, approvedMaximumCents:ocrConfig?.max_cost_cents ?? 0, requests:ocrTotals?.requests ?? 0, reservedEstimateCents:ocrTotals?.reserved ?? 0, usageEstimateCents:ocrTotals?.usage ?? 0, invoice:false } : null
   return {
-    currency: 'USD', spentCents: 0, ceilingCents: policy.dailySpendLimitCents,
+    ocr, currency: 'USD', spentCents: 0, ceilingCents: policy.dailySpendLimitCents,
     estimatedReservedCents: budget.estimatedReservedCents, timezone: business.timezone,
-    providers: mail ? [{ kind: 'mail', provider: mail, billing: 'employer_account', chargedByBeamCents: 0 }] : [],
+    providers: [...mail ? [{ kind: 'mail', provider: mail, billing: 'employer_account', chargedByBeamCents: 0 }] : [], ...ocr ? [{ kind:'source_ocr', provider:'openai', billing:'employer_account', chargedByBeamCents:0 }] : []],
     note: 'Beam charges no provider fee. Your provider bills your employer account directly. Automation reserves the owner’s declared per-call USD estimate, including rejected or uncertain requests; these estimates are not provider invoices or proof of delivery.',
   }
 }

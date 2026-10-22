@@ -220,7 +220,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "eb859d7025b88354725dfd49ae3d1147c9f7a9ebaa2038aa95b480ae4d6f8a99",
+      "sha256": "8e9100fae4787229f5219dfcd3f0b07315be2863bbb1d1552d731efbdc05d50f",
       "executable": false
     },
     "base-copies.json": {
@@ -308,7 +308,7 @@
       "executable": false
     },
     "docs/xapi.md": {
-      "sha256": "4b086dac206845b031d9906d330b113b98bd0be73a0a3e5f2b6414f780e84801",
+      "sha256": "6a6ad3d293eb697acee66a7ef2c9b609aeeb693e333fd52b07fd5f6bb5b686e5",
       "executable": false
     },
     "edition.json": {
@@ -1276,7 +1276,7 @@
       "executable": false
     },
     "src/beam/costs.ts": {
-      "sha256": "46a7bf405f1a90044c96da51298cbf48247689112e02bda3fe517f0a63a59c09",
+      "sha256": "6e22b2cd45328f42181a36d30ca26e11815fe2cf32a011aaa9aca1c3952b897b",
       "executable": false
     },
     "src/beam/course-access.ts": {
@@ -1944,7 +1944,7 @@
       "executable": false
     },
     "src/beam/ui/managing.ts": {
-      "sha256": "c0bba9de7c203497270871fe95a747a7c5b1fada29e484514a97361fe601f799",
+      "sha256": "7b2082c355d9dfb491024a34e3795dfdcf45ab528a2605b36242df2387e115b2",
       "executable": false
     },
     "src/beam/ui/media.ts": {
@@ -3900,7 +3900,7 @@
       "executable": false
     },
     "tests/beam/live-source-ocr.mjs": {
-      "sha256": "baccae6b27985780320f9fdf497ab8d40bd8368bef5ab286416219d1f0d27bc0",
+      "sha256": "bc4fa85761de1f99e42c4e274f7fbd59c976b53089f977a230d5f045dd2bfd19",
       "executable": false
     },
     "tests/beam/live-webhook.mjs": {
@@ -4104,7 +4104,7 @@
       "executable": false
     },
     "tests/beam/regression-source-ocr.mjs": {
-      "sha256": "79fe36cac7666f528a64c20d6d329b3a91c4241c582db8dc7c78528937fab3af",
+      "sha256": "07606817a751248573a7c94ddb5824d5e66fdf3f5be531c76448ab5edea7cc0c",
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {

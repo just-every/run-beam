@@ -41,7 +41,8 @@ try {
   let owner
   for(const width of [1440,390]){
    owner=await open(width,'owner')
-   await owner.goto(h.origin+'/app/sources/ocr');await shot(owner,width,'account')
+   await owner.goto(h.origin+'/app/business');await shot(owner,width,'business-costs')
+   await owner.getByRole('link',{name:'OCR account, limits and request history',exact:true}).click();await shot(owner,width,'account')
    await owner.goto(`${h.origin}/app/sources/${source.versionId}/ocr`)
    await owner.getByRole('button',{name:'Approve and send this PDF for OCR',exact:true}).waitFor()
    await shot(owner,width,'source-consent')
