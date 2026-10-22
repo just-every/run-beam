@@ -91,9 +91,13 @@ export async function saltire() {
       const signed = await request(f.action, f.fields)
       const callback = form(signed.html)
       assert.ok(callback.fields.has('JWT'), 'Independent tool produced signed deep-link JWT')
+      const responseClaims = JSON.parse(Buffer.from(callback.fields.get('JWT').split('.')[1], 'base64url'))
+      const itemsClaim = responseClaims['https://purl.imsglobal.org/spec/lti-dl/claim/content_items']
+      console.log('LTI_TOOL deep-link item count=' + (Array.isArray(itemsClaim) ? itemsClaim.length : 'absent'))
       const response = await beamRequest(new URL(callback.action).pathname, { form: callback.fields })
-      assert.equal(response.status, 200, 'Actual tool deep-link accepted by Beam')
-      return { result: await response.json(), replay: () => beamRequest(new URL(callback.action).pathname, { form: callback.fields }) }
+      const result = await response.json()
+      assert.equal(response.status, 200, `Actual tool deep-link accepted by Beam: ${/^[a-z_]+$/.test(result.error ?? '') ? result.error : 'refused'}`)
+      return { result, replay: () => beamRequest(new URL(callback.action).pathname, { form: callback.fields }) }
     },
     async token() {
       const body = standard(); body.set('url', settings.get('t_accesstokenurl')); body.set('authorizationid', settings.get('t_authorizationid')); body.append('scopes[]', 'https://purl.imsglobal.org/spec/lti-ags/scope/score')
