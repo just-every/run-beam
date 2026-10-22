@@ -63,11 +63,14 @@ export function formatWeekday(instant: number, zone: string, locale = 'en-US'): 
 }
 
 /** A zone as people say it: "America/Los_Angeles" is "Los Angeles time". */
-export const zoneName = (zone: string) => `${zone.split('/').pop()!.replace(/_/g, ' ')} time`
+export const zoneName = (zone: string, locale = 'en-US') => {
+  const city = zone.split('/').pop()!.replace(/_/g, ' ')
+  return locale.startsWith('es') ? `hora de ${city}` : `${city} time`
+}
 
 /** Wall-clock date and time in the zone; the zone is named only when it differs from the business's own. */
 export function formatInstant(instant: number, zone: string, home = zone, locale = 'en-US'): string {
-  return zone === home ? formatLocal(instant, zone, locale) : `${formatLocal(instant, zone, locale)} (${zoneName(zone)})`
+  return zone === home ? formatLocal(instant, zone, locale) : `${formatLocal(instant, zone, locale)} (${zoneName(zone, locale)})`
 }
 
 export function formatDate(instant: number, zone: string, locale = 'en-US'): string {

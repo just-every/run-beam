@@ -34,7 +34,7 @@ function describeChange(item: Row, home: string, actor: Actor) {
   if (item.kind === 'cancelled') return t(actor, 'Cancelled: {reason}', { reason: item.detail.reason })
   if (item.kind === 'updated') return t(actor, 'Changed ({fields}) on {date}', { fields: item.detail.changed.map((key: string) => t(actor, ({ joinUrl: 'Join link', instructor: 'Instructor', location: 'Location', materials: 'Materials and preparation', title: 'Title', format: 'Format' } as Record<string, string>)[key] ?? key)).join(', '), date: formatInstant(item.at, home, home, actor.locale) })
   const { from, to } = item.detail
-  return t(actor, 'Rescheduled on {date}: was {from}, now {to}', { date: formatInstant(item.at, home, home, actor.locale), from: `${formatDay(from.date, actor.locale)} ${from.time} ${zoneName(from.timezone)}`, to: `${formatDay(to.date, actor.locale)} ${to.time} ${zoneName(to.timezone)}` })
+  return t(actor, 'Rescheduled on {date}: was {from}, now {to}', { date: formatInstant(item.at, home, home, actor.locale), from: `${formatDay(from.date, actor.locale)} ${from.time} ${zoneName(from.timezone, actor.locale)}`, to: `${formatDay(to.date, actor.locale)} ${to.time} ${zoneName(to.timezone, actor.locale)}` })
 }
 
 function summary(session: Row, home: string, actor: Actor, extra: unknown = '') {
