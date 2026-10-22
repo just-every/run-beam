@@ -3900,7 +3900,7 @@
       "executable": false
     },
     "tests/beam/live-source-ocr.mjs": {
-      "sha256": "bc4fa85761de1f99e42c4e274f7fbd59c976b53089f977a230d5f045dd2bfd19",
+      "sha256": "6d204b511e93aba2d1e35669475874f15ffaebc67efa569b2a628070c87d29db",
       "executable": false
     },
     "tests/beam/live-webhook.mjs": {
@@ -4152,7 +4152,7 @@
       "executable": false
     },
     "tests/beam/source-browser.mjs": {
-      "sha256": "eb6f948db9cc34ce4a2ab42bdf42ea7ebfaaeda220f513318c5df2b045a9fcc8",
+      "sha256": "97a40695e63efbe27371f66124e27c537457e4bc4b70cf2d24a8824c233b214a",
       "executable": false
     },
     "tests/beam/source-fixtures.mjs": {

@@ -72,7 +72,8 @@ try {
    await author.getByLabel('I compared the extracted lessons',{exact:false}).check()
    await shot(author,width,'original-and-correction')
    await author.getByRole('button',{name:'Add reviewed lessons to draft',exact:true}).click()
-   await author.waitForURL(`**/app/courses/${course.id}`)
+   await author.waitForURL(url => url.pathname === `/app/courses/${course.id}`)
+   assert.equal(new URL(author.url()).searchParams.get('error'),null)
    await shot(author,width,'draft-editor')
    await author.getByRole('button',{name:'Submit for review',exact:true}).click()
    const revision=(await api('author',`courses/${course.id}`)).revisions.find(row=>row.state==='in_review').id
