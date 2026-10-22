@@ -69,12 +69,16 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const mf = new Miniflare({ ...options, resourcePersistencePath: join(directory, 'state') })
   const close = async () => { await mf.dispose(); await rm(directory, { recursive: true, force: true }) }
   try {
+    if (publicOrigin) console.log('LTI_RUNTIME waiting for built Worker')
     await mf.ready
+    if (publicOrigin) console.log('LTI_RUNTIME built Worker ready')
     const db = await mf.getD1Database('DB')
+    if (publicOrigin) console.log('LTI_RUNTIME database connected')
     const migrations = join(workerRoot, 'migrations/core')
     for (const name of (await readdir(migrations)).filter(name => name.endsWith('.sql')).sort()) {
       for (const statement of splitSql(await readFile(join(migrations, name), 'utf8'))) await db.prepare(statement).run()
     }
+    if (publicOrigin) console.log('LTI_RUNTIME migrations applied')
   } catch (error) { await close(); throw error }
   /** Requests reach the Worker directly; a relative path resolves against the origin. */
   const fetch = async (input, init = {}) => {
