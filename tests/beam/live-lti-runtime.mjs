@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { emittedWorker } from '../runtime.mjs'
 export async function ltiFixture(origin) {
-  const h = await emittedWorker({ bindings: { AUTH_ORIGIN: origin, BEAM_LTI_HOSTS: 'saltire.lti.app' } })
+  const h = await emittedWorker({ bindings: { AUTH_ORIGIN: origin, BEAM_LTI_HOSTS: 'saltire.lti.app' }, directWorker: true })
   const cookies = {}, ids = {}
   const raw = (path, { cookie, body, form, method, headers, bytes } = {}) => h.fetch(origin + path, { method: method ?? (body !== undefined || form ? 'POST' : 'GET'), headers: headers ? Object.fromEntries(headers) : { origin, host: new URL(origin).host, ...(cookie ? { cookie } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) }, body: bytes && !['GET', 'HEAD'].includes(method) ? new Uint8Array(bytes) : body !== undefined ? JSON.stringify(body) : form })
   const api = async (role, action, body, status = 200) => {
