@@ -222,7 +222,7 @@ export async function ltiCheck() {
   const { fixture } = await import('./regression-fixture.mjs')
   const { generateKeyPairSync, sign, verify, createPublicKey } = await import('node:crypto')
   const f = await fixture({ bindings: { BEAM_LTI_HOSTS: 'synthetic-beam-2.example.test', BEAM_WEBHOOK_HOSTS: 'synthetic-beam-1.example.test' } })
-  const { h, api, ids, cookies, course, assign, publish } = f
+  const { h, api, ids, cookies, course, assign, publish, nextRevision, request } = f
   const LTI = 'https://purl.imsglobal.org/spec/lti/claim/', DL = 'https://purl.imsglobal.org/spec/lti-dl/claim/', AGS = 'https://purl.imsglobal.org/spec/lti-ags/'
   const pair = kid => {
     const keys = generateKeyPairSync('rsa', { modulusLength: 2048 })
@@ -288,8 +288,28 @@ export async function ltiCheck() {
     await protocol('deep-link', { body: responseBody, status: 409 })
     await api('author', 'lti.attach', { resource: resource.id, course: c.id, draftVersion: draft.draftVersion, lesson: draft.draft.lessons[0].id, passPercent: 80 }, 403)
     const attached = await api('owner', 'lti.attach', { resource: resource.id, course: c.id, draftVersion: draft.draftVersion, lesson: draft.draft.lessons[0].id, passPercent: 80 })
-    await api('author', 'course.block', { course: c.id, draftVersion: attached.draftVersion, lesson: draft.draft.lessons[0].id, content: { kind: 'lti', text: 'Tampered threshold', resource: resource.id, passPercent: 1 } }, 404)
-    const revision = (await api('author', 'course.submit', { course: c.id, draftVersion: attached.draftVersion })).id
+    // Only the owner's lti.attach brings an external-tool block into a draft, for a resource selected for that course.
+    const lesson = draft.draft.lessons[0].id, block = attached.draft.lessons[0].blocks.find(item => item.kind === 'lti')
+    const other = await course('LTI fence target'), otherDraft = await api('author', `courses/${other.id}`)
+    const prep = (await request('/api/beam/agent.issue', { role: 'author', body: { expiresInSeconds: 600 } })).data.token
+    for (const [target, draftVersion, into] of [[c.id, attached.draftVersion, lesson], [other.id, otherDraft.draftVersion, otherDraft.draft.lessons[0].id]]) {
+      for (const [path, fields] of [['course.block', { content: { kind: 'lti', text: 'External safety exercise', resource: resource.id, passPercent: 80 } }], ['course.block.reuse', { from: `${c.id}:${lesson}:${block.id}` }]]) {
+        const body = { course: target, draftVersion, lesson: into, ...fields }
+        await api('author', path, body, 403)
+        assert.equal((await request('/api/beam/' + path, { token: prep, body })).status, 403, `preparation credential ${path}`)
+      }
+    }
+    const borrowed = { ...otherDraft.draft, lessons: [{ ...otherDraft.draft.lessons[0], blocks: [block] }] }
+    assert.equal((await request('/api/beam/proposal.create', { token: prep, body: { course: other.id, draftVersion: otherDraft.draftVersion, summary: 'Borrow a tool', inputs: [], draft: borrowed } })).status, 404)
+    const copy = await api('owner', 'course.clone', { course: c.id })
+    assert.equal(copy.externalToolsLeftOut, 1)
+    assert.ok(!(await api('owner', `courses/${copy.id}`)).draft.lessons.some(item => item.blocks?.some(b => b.kind === 'lti')), 'a course copy waits for the owner to attach its own tool')
+    // Duplicating, reordering and removing within the course stay open.
+    let edited = await api('author', 'course.block.change', { course: c.id, draftVersion: attached.draftVersion, lesson, block: block.id, operation: 'duplicate' })
+    const duplicate = edited.draft.lessons[0].blocks.find(item => item.kind === 'lti' && item.id !== block.id)
+    edited = await api('author', 'course.block.change', { course: c.id, draftVersion: edited.draftVersion, lesson, block: duplicate.id, operation: 'up' })
+    edited = await api('author', 'course.block.change', { course: c.id, draftVersion: edited.draftVersion, lesson, block: duplicate.id, operation: 'remove' })
+    const revision = (await api('author', 'course.submit', { course: c.id, draftVersion: edited.draftVersion })).id
     await publish(revision)
     const assignment = await assign(c), view = await api('learner', `assignments/${assignment}`)
     assert.equal(view.externalTools[0].passed, false)
@@ -343,8 +363,9 @@ export async function ltiCheck() {
     assert.ok(openExport.records.beam_lti_results.rows.some(result => result.id === evidence.externalTools[0].result))
     assert.ok(openExport.records.beam_lti_lineitems.rows.some(item => item.revision_id === revision && item.assignment_id === assignment))
     for (const excluded of ['beam_lti_tools', 'beam_lti_platform_keys', 'beam_lti_tokens', 'beam_lti_launches']) assert.equal(openExport.records[excluded], undefined)
-    const subscription = await api('owner', 'webhook.subscribe', { name: 'Archive receiver', endpoint: 'https://synthetic-beam-1.example.test/hooks', consent: true, courses: [c.id], teams: [ids.team], events: ['completion'] })
+    const subscription = await api('owner', 'webhook.subscribe', { name: 'Archive receiver', endpoint: 'https://synthetic-beam-1.example.test/hooks', consent: true, courses: [c.id], teams: [ids.team], events: ['completion', 'publication'] })
     await api('owner', 'webhook.state', { subscription: subscription.id, enabled: true, consent: true })
+    await publish(await nextRevision(c))
     const { integrationArchiveCheck } = await import('./regression-archive.mjs')
     await integrationArchiveCheck(f, { tool: tool.id, subscription: subscription.id, completion: completed.id, token: token.access_token, key: subscription.key })
     if (process.env.BEAM_LTI_BROWSER === '1') await ltiBrowserCheck(f, { course: c.id, revision, assignment, resource: resource.id, configure })

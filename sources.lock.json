@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "373d193e3a4c8b86495589929882ac0524407397dfaf35993b2c4bac949733ef",
+  "manifest": "6e45f31f3fc900dcf6b11a3a8a449b53d7501cf1f1d790296efb28f57583fc4c",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -62,7 +62,8 @@
           "migrations/core/0073_beam_media_blocks.sql",
           "migrations/core/0074_beam_webhooks.sql",
           "migrations/core/0075_beam_language_defaults.sql",
-          "migrations/core/0076_beam_lti.sql"
+          "migrations/core/0076_beam_lti.sql",
+          "migrations/core/0077_beam_restored_webhook_deliveries.sql"
         ]
       },
       "baseline": null
@@ -290,7 +291,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "373d193e3a4c8b86495589929882ac0524407397dfaf35993b2c4bac949733ef",
+      "sha256": "6e45f31f3fc900dcf6b11a3a8a449b53d7501cf1f1d790296efb28f57583fc4c",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -599,6 +600,10 @@
     },
     "migrations/core/0076_beam_lti.sql": {
       "sha256": "f9ff910c4d59cc02590276449685e88b08de40e2de82928c3356ffe90cfe3d30",
+      "executable": false
+    },
+    "migrations/core/0077_beam_restored_webhook_deliveries.sql": {
+      "sha256": "dfd36bf3d10da7ad6c4b9bcf45e343d899652df28668fa30c26725bee06c7243",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1150,7 +1155,7 @@
       "executable": false
     },
     "src/beam/blocks.ts": {
-      "sha256": "18728c96526e5b7549bcd9633ff0b888f8a3435f1c5b38f1d52824aedc34ca27",
+      "sha256": "71249a493bd1496c1d205013e9aff956d0eaaa1e3260f4595bab719c42334f30",
       "executable": false
     },
     "src/beam/catalog.ts": {
@@ -1182,7 +1187,7 @@
       "executable": false
     },
     "src/beam/courses.ts": {
-      "sha256": "5e0877403598bd00cc09b3914ae736f1ec53816a6b4f3aa3a647a94791ad5e11",
+      "sha256": "e2566a46e5530b5aeebbb715d7e648877bac7f387a752cda06bf4497b4c101fd",
       "executable": false
     },
     "src/beam/dashboards.ts": {
@@ -1226,7 +1231,7 @@
       "executable": false
     },
     "src/beam/estate.ts": {
-      "sha256": "e414e55851c68f4e372a4005e07f1d731293292c71a0da29e895d2cdcc23ac98",
+      "sha256": "67e597d5928ef91ab2fadef0dbf4cd74d28749a567368e3e129852b4668d0f7f",
       "executable": false
     },
     "src/beam/evaluations.ts": {
@@ -1310,11 +1315,11 @@
       "executable": false
     },
     "src/beam/lti.ts": {
-      "sha256": "768b60cddc86d86d467ca3a0e23167874b8d33e0e865ffa6232b690e8cd1a639",
+      "sha256": "067ebe1e6340a5d9b63e72c56d42cef0ed1ce05977c62b487fd3c1e5d4868528",
       "executable": false
     },
     "src/beam/maintenance.ts": {
-      "sha256": "46d27f9986e2589b045b9f5abcb1543a75b21a356fefb2524f4ad565648a917d",
+      "sha256": "21e8fd2428c34be79e47b525d31493aff0242de2666a6d5c9930c7112a5c730c",
       "executable": false
     },
     "src/beam/managers.ts": {
@@ -1326,7 +1331,7 @@
       "executable": false
     },
     "src/beam/media.ts": {
-      "sha256": "50453b1f3da4b4aaf1ffae6567223f0c62e15705d59ce69253e120716ac469bb",
+      "sha256": "2f9d47370cc58ae726d82c15c55127ffdc3968d8b1f572420e4abff78cffdd5b",
       "executable": false
     },
     "src/beam/messages.ts": {
@@ -1526,7 +1531,7 @@
       "executable": false
     },
     "src/beam/ui/authoring.ts": {
-      "sha256": "4861cb1735d58dbf1e1c1ff11aead95435394439df642e6777d4b490b4d616d6",
+      "sha256": "93cd8cda1466f0297ae6a0e438d9325b750d1c68d75a897123688192ec50e9e3",
       "executable": false
     },
     "src/beam/ui/automation-controls.ts": {

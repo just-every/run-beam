@@ -116,7 +116,7 @@ export async function coursePage(env: Bindings, actor: Actor, id: string, url: U
     const available = await listCourses(env, actor.owner || actor.roles.has('author') ? null : { units: courseUnits(actor), courses: actor.authorOf })
     for (const item of available) {
       const source = await loadCourse(env, item.id)
-      for (const lesson of source.draft.lessons) for (const block of lesson.blocks ?? []) reusable.push({ value: `${item.id}:${lesson.id}:${block.id}`, label: `${item.title} / ${lesson.title} / ${block.text.slice(0, 60)}` })
+      for (const lesson of source.draft.lessons) for (const block of lesson.blocks ?? []) if (block.kind !== 'lti') reusable.push({ value: `${item.id}:${lesson.id}:${block.id}`, label: `${item.title} / ${lesson.title} / ${block.text.slice(0, 60)}` })
     }
   }
   const base = [hidden('course', id), hidden('draftVersion', course.draftVersion)]

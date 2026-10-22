@@ -62,7 +62,7 @@ export async function loadCourse(env: Bindings, id: string) {
 }
 
 /** Validates a complete draft, as edited in the UI or proposed through the API. */
-export async function normaliseDraft(env: Bindings, value: unknown, { admit = true } = {}): Promise<Draft> {
+export async function normaliseDraft(env: Bindings, value: unknown, course: string, { admit = true } = {}): Promise<Draft> {
   insist(value && typeof value === 'object', 'invalid_draft')
   const draft = value as Draft
   insist(typeof draft.title === 'string' && draft.title.trim().length > 0 && draft.title.length <= 160, 'invalid_draft_title')
@@ -72,7 +72,7 @@ export async function normaliseDraft(env: Bindings, value: unknown, { admit = tr
   for (const lesson of draft.lessons) {
     insist(lesson && typeof lesson.title === 'string' && lesson.title.trim() && lesson.title.length <= 160 && typeof lesson.body === 'string' && lesson.body.length <= 50_000 && Array.isArray(lesson.sources), 'invalid_lesson')
     for (const version of lesson.sources) insist(typeof version === 'string' && await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', version), 'source_version_not_found', 404)
-    const blocks = await normaliseBlocks(env, lesson.blocks, { admit })
+    const blocks = await normaliseBlocks(env, lesson.blocks, { admit, course })
     lessons.push({ ...(blocks.length ? { blocks } : {}), id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set([...lesson.sources, ...blocks.flatMap(block => block.source ? [block.source] : [])])] })
   }
   const questions: Question[] = []
@@ -105,13 +105,23 @@ export async function normaliseDraft(env: Bindings, value: unknown, { admit = tr
   return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent, drawCount, shuffle: draft.shuffle === true, feedback, assessor: practical ? null : assessor, survey }
 }
 
-export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}, version?: number) {
+const toolResources = (draft: Draft) => new Set(draft.lessons.flatMap(lesson => (lesson.blocks ?? []).flatMap(block => block.kind === 'lti' ? [block.resource] : [])))
+/** PACK-006: an external-tool block enters a draft only through the owner's lti.attach (`attach`, its resource). Every
+ * other change keeps, moves, duplicates or removes the external-tool blocks the draft already has. */
+export function keepsTools(before: Draft, after: Draft, attach?: string) {
+  const kept = toolResources(before)
+  insist([...toolResources(after)].every(resource => resource === attach || kept.has(resource)), 'lti_attach_required', 403)
+}
+
+export async function editDraft(env: Bindings, actor: Actor, input: Input, action: string, change: (draft: Draft) => void | Promise<void>, detail: Record<string, unknown> = {}, version?: number, attach?: string) {
   await requireCourseRole(env, actor, input.text('course'), 'author')
   const course = await loadCourse(env, input.text('course'))
   const expected = version ?? input.integer('draftVersion', { min: 1, max: 1_000_000 })
   insist(expected === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
+  const before = structuredClone(course.draft)
   await change(course.draft)
-  const draft = await normaliseDraft(env, course.draft, { admit: false })
+  const draft = await normaliseDraft(env, course.draft, course.id, { admit: false })
+  keepsTools(before, draft, attach)
   const result = await env.DB.batch([
     stmt(env, 'UPDATE beam_courses SET draft_json = ?, draft_version = draft_version + 1, title = ? WHERE id = ? AND draft_version = ?', JSON.stringify(draft), draft.title, course.id, expected),
     stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail, via) SELECT ?, ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, course.id, JSON.stringify({ from: expected, ...detail }), auditVia(actor)),
@@ -227,7 +237,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   await requireCourseRole(env, actor, input.text('course'), 'author')
   const course = await loadCourse(env, input.text('course'))
   insist(input.integer('draftVersion', { min: 1, max: 1_000_000 }) === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
-  const draft = await normaliseDraft(env, course.draft)
+  const draft = await normaliseDraft(env, course.draft, course.id)
   insist(draft.lessons.length > 0, 'lessons_required')
   insist(draft.questions.length === 0 || (draft.passPercent !== null && draft.maxAttempts !== null), 'quiz_rules_required')
   insist(!draft.drawCount || draft.drawCount <= draft.questions.length, 'draw_exceeds_bank')

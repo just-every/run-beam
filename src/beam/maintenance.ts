@@ -3,7 +3,7 @@
 // versions they were prepared from. A reviewer decides; nothing is applied silently.
 import type { Bindings } from '../auth.server'
 import { requireRole, type Actor } from './actor'
-import { loadCourse, normaliseDraft } from './courses'
+import { keepsTools, loadCourse, normaliseDraft } from './courses'
 import { commit, insist, newId, now, one, stmt } from './core'
 import type { Input } from './input'
 import { noticeImpact } from './impact'
@@ -39,7 +39,8 @@ export async function createProposal(env: Bindings, actor: Actor, fields: Propos
   insist(base === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
   const inputs = fields.inputs
   for (const version of inputs) insist(await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', version), 'source_version_not_found', 404)
-  const draft = await normaliseDraft(env, fields.draft)
+  const draft = await normaliseDraft(env, fields.draft, course.id)
+  keepsTools(course.draft, draft)
   const id = newId()
   const { agent, summary, passages, missing } = fields
   await commit(env, [stmt(env, "INSERT INTO beam_proposals (id, course_id, base_draft_version, input_version_ids, prepared_by, agent, summary, draft_json, state, created_at, passages_json, missing_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)", id, course.id, base, JSON.stringify(inputs), actor.id, agent, summary, JSON.stringify(draft), now(), JSON.stringify(passages), JSON.stringify(missing))], { actor, action: 'proposal.create', subject: id, detail: { course: course.id, base, inputs, agent, viaAgent: actor.agent, ...link } })
@@ -57,7 +58,8 @@ export async function decideProposal(env: Bindings, actor: Actor, input: Input) 
     return { id: proposal.id, state: 'declined' }
   }
   insist(decision === 'accept', 'invalid_decision')
-  const draft = await normaliseDraft(env, JSON.parse(proposal.draft_json))
+  const draft = await normaliseDraft(env, JSON.parse(proposal.draft_json), proposal.course_id)
+  keepsTools((await loadCourse(env, proposal.course_id)).draft, draft)
   // The draft must still be the one the proposal was prepared from.
   const result = await env.DB.batch([
     stmt(env, 'UPDATE beam_courses SET draft_json = ?, title = ?, draft_version = draft_version + 1 WHERE id = ? AND draft_version = ?', JSON.stringify(draft), draft.title, proposal.course_id, proposal.base_draft_version),

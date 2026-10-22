@@ -110,8 +110,8 @@ export async function integrationArchiveCheck(f, expected) {
     assert.ok(restored.revokedAt)
     await target.api('lti.deep-link', owner, { tool: expected.tool, course: before.course_id }, 403)
     await target.api('webhook.state', owner, { subscription: expected.subscription, enabled: true, consent: true }, 409)
-    await target.api('webhook.run', owner, {})
-    assert.equal(target.edge.webhooks.length, 0)
+    const held = (await target.api('webhooks', owner)).deliveries.find(row => row.subscription_id === expected.subscription)
+    assert.deepEqual([held.state, held.outcome], ['held', 'restored'])
     const after = await target.db.prepare('SELECT * FROM beam_completions WHERE id=?').bind(expected.completion).first()
     assert.deepEqual(after, before, 'archiving and restoring preserve exact native and LTI completion lineage')
     const originalResults = await f.h.db.prepare('SELECT * FROM beam_lti_results ORDER BY id').all(), restoredResults = await target.db.prepare('SELECT * FROM beam_lti_results ORDER BY id').all()
@@ -119,6 +119,10 @@ export async function integrationArchiveCheck(f, expected) {
     const rotated = await target.api('webhook.rotate', owner, { subscription: expected.subscription })
     assert.notEqual(rotated.key, expected.key)
     await target.api('webhook.state', owner, { subscription: expected.subscription, enabled: true, consent: true })
+    await target.api('webhook.run', owner, {})
+    assert.equal(target.edge.webhooks.length, 0, 'a restored delivery is not sent after rotation and re-enabling')
+    await target.api('webhook.replay', owner, { delivery: held.id })
+    assert.deepEqual(target.edge.webhooks.map(message => message.headers['x-beam-event-id']), [held.event_id], 'only the explicit replay sends it')
     console.log('PASS integration archives withhold keys/tokens, disable restored deployments and preserve result lineage')
   } finally { await target.close(); await rm(directory, { recursive: true, force: true }) }
 }

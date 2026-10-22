@@ -5,7 +5,9 @@
 // it, or clones it. Retirement stops every new assignment of the course (assignments.ts refuses it, so individual,
 // team, path and renewal assignments all stop) while its revisions, open assignments, completions and certificates
 // stay readable and open assignments can still be finished. A clone is a new, unpublished course whose draft copies
-// the source's current draft, in the same unit with the same named reviewer; nothing else is shared.
+// the source's current draft, in the same unit with the same named reviewer; nothing else is shared. External-tool blocks
+// stay with the course their resource was selected for (PACK-006): the copy leaves them out until the owner deep-links
+// and attaches the tool for the copy.
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { commit, insist, newId, now, one, stmt } from './core'
@@ -39,10 +41,15 @@ export async function cloneCourse(env: Bindings, actor: Actor, input: Input) {
   await requireCourseRole(env, actor, source.id, ...(source.is_template ? ['author' as const] : []))
   const title = input.text('title', { optional: true, max: 160 }) || `Copy of ${source.title}`.slice(0, 160)
   const id = newId()
+  const externalToolsLeftOut = source.draft.lessons.flatMap(lesson => (lesson.blocks ?? []).filter(block => block.kind === 'lti')).length
+  const lessons = source.draft.lessons.map(({ blocks, ...lesson }) => {
+    const kept = (blocks ?? []).filter(block => block.kind !== 'lti')
+    return kept.length ? { ...lesson, blocks: kept } : lesson
+  })
   await commit(env, [stmt(env, 'INSERT INTO beam_courses (id, title, reviewer_id, created_by, created_at, draft_json, draft_version, unit_id, cloned_from, folder, tags, objectives, language, duration_minutes, owner_id) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)',
-    id, title, source.reviewer_id, actor.id, now(), JSON.stringify({ ...source.draft, title }), source.unit_id ?? null, source.id, source.folder ?? null, source.tags, source.objectives, source.language, source.duration_minutes ?? null, actor.id)],
-    { actor, action: 'course.clone', subject: id, detail: { from: source.id, draftVersion: source.draft_version, title } })
-  return { id, draftVersion: 1, clonedFrom: source.id }
+    id, title, source.reviewer_id, actor.id, now(), JSON.stringify({ ...source.draft, title, lessons }), source.unit_id ?? null, source.id, source.folder ?? null, source.tags, source.objectives, source.language, source.duration_minutes ?? null, actor.id)],
+    { actor, action: 'course.clone', subject: id, detail: { from: source.id, draftVersion: source.draft_version, title, externalToolsLeftOut } })
+  return { id, draftVersion: 1, clonedFrom: source.id, externalToolsLeftOut }
 }
 
 const tagList = (value: string) => [...new Set(value.split(',').map(tag => tag.trim().toLowerCase()).filter(Boolean))]

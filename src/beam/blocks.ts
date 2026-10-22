@@ -6,12 +6,17 @@ import type { Input } from './input'
 import { normaliseBlocks } from './media'
 import { requireCourseRole } from './units'
 
+// PACK-006: an external-tool block enters a draft only through the owner's lti.attach, for a resource selected for the
+// same course; these doors never add or copy one. Duplicating, moving and removing within the course stay open.
+const ATTACH_ONLY = 'lti_attach_required'
+
 export async function saveBlock(env: Bindings, actor: Actor, input: Input) {
   await requireCourseRole(env, actor, input.text('course'), 'author')
   const value = input.has('content') ? input.json('content') : {
     kind: input.text('kind'), text: input.text('text', { max: 10_000 }), source: input.text('source', { optional: true }), url: input.text('url', { max: 2000, optional: true }),
     choices: input.text('choices', { max: 4000, optional: true }).split('\n').filter(Boolean), answer: (input.integer('answer', { min: 1, max: 8, optional: true }) ?? 1) - 1, feedback: input.text('feedback', { max: 2000, optional: true }),
   }
+  insist((value as { kind?: unknown } | null)?.kind !== 'lti', ATTACH_ONLY, 403)
   const [block] = await normaliseBlocks(env, [value], { admit: true })
   return editDraft(env, actor, input, 'course.block', draft => {
     const lesson = draft.lessons.find(item => item.id === input.text('lesson'))
@@ -34,7 +39,7 @@ export async function changeBlock(env: Bindings, actor: Actor, input: Input) {
     const operation = input.text('operation')
     if (operation === 'remove') blocks.splice(index, 1)
     else if (operation === 'duplicate') {
-      await normaliseBlocks(env, [blocks[index]], { admit: true })
+      await normaliseBlocks(env, [blocks[index]], { admit: true, course: input.text('course') })
       blocks.splice(index + 1, 0, { ...structuredClone(blocks[index]), id: newId(), copiedFrom: blocks[index].copiedFrom ?? { course: input.text('course'), lesson: input.text('lesson'), block: blocks[index].id, courseTitle: draft.title, lessonTitle: lesson!.title } })
     } else {
       insist(operation === 'up' || operation === 'down', 'invalid_block_operation')
@@ -51,6 +56,7 @@ export async function reuseBlock(env: Bindings, actor: Actor, input: Input) {
   const source = sourceCourse.draft.lessons.find(item => item.id === from[1])
   const block = source?.blocks?.find(item => item.id === from[2])
   insist(block, 'block_not_found', 404)
+  insist(block.kind !== 'lti', ATTACH_ONLY, 403)
   await normaliseBlocks(env, [block], { admit: true })
   return editDraft(env, actor, input, 'course.block.reuse', draft => {
     const target = draft.lessons.find(item => item.id === input.text('lesson'))

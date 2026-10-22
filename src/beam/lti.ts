@@ -96,7 +96,7 @@ export async function attachLti(env: Bindings, actor: Actor, input: Input) {
     const lesson = draft.lessons.find(item => item.id === input.text('lesson'))
     insist(lesson, 'lesson_not_found', 404)
     ;(lesson.blocks ??= []).push({ id: newId(), kind: 'lti', text: resource.title, resource: resource.id, passPercent: threshold })
-  }, { resource: resource.id, tool: resource.tool_id, passPercent: threshold })
+  }, { resource: resource.id, tool: resource.tool_id, passPercent: threshold }, undefined, resource.id)
 }
 export async function authorizeLti(env: Bindings, actor: Actor, request: Request) {
   insist(request.method === 'GET' && !actor.agent && !actor.viewAs, 'lti_authorization_refused', 403)

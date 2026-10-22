@@ -56,7 +56,8 @@ export async function allowedEmbed(env: Bindings, value: string) {
   insist(url.origin !== new URL(env.AUTH_ORIGIN).origin && policy.hosts.includes(url.hostname), 'embed_host_not_allowed')
   return url.href
 }
-export async function normaliseBlocks(env: Bindings, value: unknown, { admit = false } = {}): Promise<Block[]> {
+/** `course` is the draft's own course: an external-tool block names a resource the owner selected and approved for it. */
+export async function normaliseBlocks(env: Bindings, value: unknown, { admit = false, course }: { admit?: boolean; course?: string } = {}): Promise<Block[]> {
   if (value === undefined) return []
   insist(Array.isArray(value) && value.length <= 60, 'invalid_blocks')
   const blocks: Block[] = []
@@ -78,7 +79,7 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
       block.url = block.kind === 'embed' ? (admit ? await allowedEmbed(env, item.url) : safeUrl(embedUrl(item.url)).href) : safeUrl(item.url).href
     }
     if (block.kind === 'lti') {
-      insist(typeof item.resource === 'string' && await one(env, 'SELECT 1 FROM beam_lti_resources WHERE id=? AND approved_by IS NOT NULL AND pass_percent=?', item.resource, item.passPercent), 'lti_resource_not_found', 404)
+      insist(course && typeof item.resource === 'string' && await one(env, 'SELECT 1 FROM beam_lti_resources WHERE id=? AND course_id=? AND approved_by IS NOT NULL AND pass_percent=?', item.resource, course, item.passPercent), 'lti_resource_not_found', 404)
       insist(Number.isInteger(item.passPercent) && item.passPercent >= 1 && item.passPercent <= 100, 'invalid_lti_threshold')
       block.resource = item.resource; block.passPercent = item.passPercent
     }
