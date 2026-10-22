@@ -9,11 +9,11 @@ import type { Actor } from './actor'
 import { all, now, type Row } from './core'
 import { learnerRecord } from './records'
 import { requireBusiness } from './people'
-import { externalTranscript } from './external'
+import { formatDay } from './time'
 
 export interface TranscriptEntry { at: number; kind: string; course: string; revision: number | null; detail: string; lineage?: string; by: string; record: string }
 
-const pick = (payload: Row, skip: string[]) => Object.entries(payload).filter(([key, value]) => !skip.includes(key) && value !== null && value !== '').map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`).join('; ')
+const pick = (payload: Row, skip: string[], actor: Actor) => Object.entries(payload).filter(([key, value]) => !skip.includes(key) && value !== null && value !== '').map(([key, value]) => `${t(actor, key)}: ${typeof value === 'object' ? JSON.stringify(value) : value}`).join('; ')
 
 export async function transcript(env: Bindings, actor: Actor, memberId: string) {
   const record = await learnerRecord(env, actor, memberId)
@@ -37,25 +37,37 @@ export async function transcript(env: Bindings, actor: Actor, memberId: string) 
     all(env, `SELECT x.id, x.extended_at AS at, x.days, x.reason, ${name('x.extended_by')} AS by, c.title, r.number AS revision FROM beam_access_extensions x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.id, x.reset_at AS at, x.reason, x.kind, ${name('x.reset_by')} AS by, c.title, r.number AS revision FROM beam_assignment_resets x ${of} WHERE a.learner_id = ?`, memberId),
     all(env, `SELECT x.subject AS id, x.at, x.detail, ${name('x.actor')} AS by, c.title, r.number AS revision FROM beam_audit x JOIN beam_assignments a ON a.id = x.subject JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE x.action = 'assignment.cancel' AND a.learner_id = ?`, memberId),
-    externalTranscript(env, memberId),
+    all(env, `SELECT c.*, q.name AS requirementName, ${name('c.uploaded_by')} AS uploadedBy, ${name('c.decided_by')} AS decidedBy FROM beam_external_certificates c JOIN beam_external_requirements q ON q.id = c.requirement_id WHERE c.learner_id = ? ORDER BY c.uploaded_at, c.rowid`, memberId),
   ])
+  const reasonLabel = (value: string) => value.startsWith('rule ') ? tr('automation rule {id}', { id: value.slice(5) }) : value.startsWith('audience ') ? tr('audience {id}', { id: value.slice(9) }) : tr(value)
   const day = (at: number) => actor.locale === 'es-US' ? new Intl.DateTimeFormat(actor.locale, { timeZone: zone, dateStyle: 'medium', timeStyle: 'short' }).format(at) : new Date(at).toISOString()
   const tr = (key: string, values = {}) => t(actor, key, values)
+  const externalEntries: TranscriptEntry[] = external.flatMap(row => {
+    const label = tr('{issuer} {number}, issued {date}', { issuer: row.issuer, number: row.number, date: formatDay(row.issued_on, actor.locale) })
+      + (row.expires_on ? tr(', expires {date}', { date: formatDay(row.expires_on, actor.locale) }) : '') + tr('; external, no Beam certificate')
+    const entry = (at: number, kind: string, detail: string, by = '') => ({ at, kind, course: row.requirementName, revision: null, detail, by, record: row.id })
+    return [
+      entry(row.uploaded_at, 'external certificate uploaded', label, row.uploadedBy ?? ''),
+      ...(row.state !== 'pending' ? [entry(row.decided_at, row.state === 'rejected' ? 'external certificate rejected' : 'external certificate approved', label + (row.state === 'rejected' ? tr('; reason: {reason}', { reason: row.reason }) : ''), row.decidedBy ?? '')] : []),
+      ...(row.state === 'replaced' ? [entry(row.replaced_at, 'external certificate replaced', label + tr('; replaced by a newer approved certificate'))] : []),
+      ...(row.state !== 'rejected' && row.state !== 'pending' && row.expires_at && row.expires_at <= asOf ? [entry(row.expires_at, 'external certificate expired', label)] : []),
+    ]
+  })
   const entries: TranscriptEntry[] = [
-    ...assigned.map(row => ({ at: row.at, kind: 'assigned', course: row.title, revision: row.number, detail: `${tr('due {date}', { date: day(row.dueAt) })}${row.reason ? `; ${row.reason}` : ''}`, by: row.by ?? '', record: row.id })),
+    ...assigned.map(row => ({ at: row.at, kind: 'assigned', course: row.title, revision: row.number, detail: `${tr('due {date}', { date: day(row.dueAt) })}${row.reason ? `; ${reasonLabel(row.reason)}` : ''}`, by: row.by ?? '', record: row.id })),
     ...attempts.map(row => ({ at: row.at, kind: `${row.kind} attempt`, course: row.title, revision: row.revision, detail: `${tr('attempt {n}: {result}', { n: localeNumber(actor, row.number), result: row.kind === 'quiz' ? tr('{score} of {total}, {result}', { score: localeNumber(actor, row.score), total: localeNumber(actor, row.maxScore), result: tr(row.passed ? 'passed' : 'not passed') }) + (row.closeReason === 'expired' ? tr(', time ran out') : '') : tr(row.state.replace(/_/g, ' ')) })}${row.reset ? tr('; before a reset') : ''}`, by: '', record: row.id })),
     ...decisions.map(row => ({ at: row.at, kind: 'assessor decision', course: row.title, revision: row.revision, detail: tr('attempt {n} {decision}: {note}', { n: localeNumber(actor, row.number), decision: tr(row.decision), note: row.note }), by: row.by ?? '', record: row.id })),
-    ...completions.map(row => ({ at: row.at, kind: row.method === 'offline' ? 'offline attendance completion' : 'completion', course: row.title, revision: row.revision, detail: `${row.certificate ? tr('certificate {number}', { number: row.certificate }) : tr('no certificate')}${row.expiresAt ? tr(', expires {date}', { date: day(row.expiresAt) }) : ''}${row.method === 'offline' ? `; ${pick(JSON.parse(row.evidence), ['attachment'])}` : ''}`, by: '', record: row.id })),
+    ...completions.map(row => ({ at: row.at, kind: row.method === 'offline' ? 'offline attendance completion' : 'completion', course: row.title, revision: row.revision, detail: `${row.certificate ? tr('certificate {number}', { number: row.certificate }) : tr('no certificate')}${row.expiresAt ? tr(', expires {date}', { date: day(row.expiresAt) }) : ''}${row.method === 'offline' ? `; ${pick(JSON.parse(row.evidence), ['attachment'], actor)}` : ''}`, by: '', record: row.id })),
     ...attendance.map(row => ({ at: row.at, kind: 'live attendance', course: row.title, revision: row.revision,
-      detail: `session ${row.sessionTitle}; ${row.status}; ${row.minutes} minutes; decision ${row.decision}${row.note ? `; note: ${row.note}` : ''}${row.amends ? `; amendment: ${row.reason}` : ''}${row.supersededAt !== null ? `; superseded at ${day(row.supersededAt)}` : '; current attendance record'}`,
-      lineage: `attendance: ${row.id}; session: ${row.session}; registration: ${row.registration}; assignment: ${row.assignment}; course revision: ${row.courseRevision}; recorded by: ${row.recordedBy}${row.attachment ? `; attachment: ${row.attachment}` : ''}${row.amends ? `; amends: ${row.amends}` : ''}${row.supersededBy ? `; superseded by: ${row.supersededBy}` : ''}`,
+      detail: tr('session {title}; {status}; {minutes} minutes; decision {decision}', { title: row.sessionTitle, status: tr(row.status), minutes: row.minutes, decision: tr(row.decision) }) + (row.note ? tr('; note: {note}', { note: row.note }) : '') + (row.amends ? tr('; amendment: {reason}', { reason: row.reason }) : '') + (row.supersededAt !== null ? tr('; superseded at {date}', { date: day(row.supersededAt) }) : tr('; current attendance record')),
+      lineage: `${tr('attendance')}: ${row.id}; ${tr('session')}: ${row.session}; ${tr('registration')}: ${row.registration}; ${tr('assignment')}: ${row.assignment}; ${tr('course revision')}: ${row.courseRevision}; ${tr('recorded by')}: ${row.recordedBy}${row.attachment ? `; ${tr('attachment')}: ${row.attachment}` : ''}${row.amends ? `; ${tr('amends')}: ${row.amends}` : ''}${row.supersededBy ? `; ${tr('superseded by')}: ${row.supersededBy}` : ''}`,
       by: row.by ?? '', record: row.id })),
     ...dues.map(row => ({ at: row.at, kind: 'due date changed', course: row.title, revision: row.revision, detail: tr('from {from} to {to}: {reason}', { from: day(row.previous), to: day(row.dueAt), reason: row.reason }), by: row.by ?? '', record: row.id })),
     ...extensions.map(row => ({ at: row.at, kind: 'access extended', course: row.title, revision: row.revision, detail: tr('{n} days: {reason}', { n: localeNumber(actor, row.days), reason: row.reason }), by: row.by ?? '', record: row.id })),
-    ...resets.map(row => ({ at: row.at, kind: row.kind === 'move' ? 'moved to a new revision' : 'progress reset', course: row.title, revision: row.revision, detail: row.reason, by: row.by ?? '', record: row.id })),
+    ...resets.map(row => ({ at: row.at, kind: row.kind === 'move' ? 'moved to a new revision' : 'progress reset', course: row.title, revision: row.revision, detail: row.kind === 'move' && /^Moved to revision (\d+); the assessment changed$/.test(row.reason) ? tr('Moved to revision {n}; the assessment changed', { n: localeNumber(actor, Number(row.reason.match(/revision (\d+)/)[1])) }) : row.reason, by: row.by ?? '', record: row.id })),
     ...cancels.map(row => ({ at: row.at, kind: 'assignment cancelled', course: row.title, revision: row.revision, detail: JSON.parse(row.detail).reason ?? '', by: row.by ?? '', record: row.id })),
-    ...record.history.map((row: Row) => ({ at: Date.parse(`${row.completedOn}T00:00:00Z`) || 0, kind: 'imported history', course: row.sourceCourseName ?? '', revision: null, detail: `completed ${row.completedOn} in ${row.source}${row.accepted ? ', reviewed' : ''}; provenance ${pick(row, ['id', 'kind', 'member', 'sourceCourseName', 'completedOn', 'source', 'accepted'])}; never counts as a Beam completion`, by: '', record: row.id })),
-    ...external,
+    ...record.history.map((row: Row) => ({ at: Date.parse(`${row.completedOn}T00:00:00Z`) || 0, kind: 'imported history', course: row.sourceCourseName ?? '', revision: null, detail: tr('completed {date} in {source}', { date: formatDay(row.completedOn, actor.locale), source: row.source }) + (row.accepted ? tr(', reviewed') : '') + tr('; provenance {provenance}; never counts as a Beam completion', { provenance: pick(row, ['id', 'kind', 'member', 'sourceCourseName', 'completedOn', 'source', 'accepted'], actor) }), by: '', record: row.id })),
+    ...externalEntries,
   ].sort((a, b) => a.at - b.at || a.kind.localeCompare(b.kind))
   return { member: record.member, zone, asOf, filters: 'every record of this person; nothing left out', count: entries.length, entries }
 }

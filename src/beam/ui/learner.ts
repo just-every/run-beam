@@ -1,3 +1,4 @@
+import { localeRevisionLanguage } from '../course-locales'
 import { historyCredits } from './history-credits'
 import { t, counted, localeNumber, quizDecision } from '../messages'
 import { languagePreference } from '../language'
@@ -118,7 +119,7 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const blockers = a.learner === actor.id ? blockerCard(view, id, zone, actor.locale) : ''
   const exceptions = a.learner !== actor.id && permits(actor, 'enrollment') ? exceptionCard(view, id, zone) : ''
   const completion = view.completion ? card(t(actor, 'Completion'), h`<p><mark class="hl">${t(actor, 'Completed')}</mark> ${when(view.completion.completedAt, a.timezone, zone, actor.locale)} ${t(actor, 'against revision {n}.', { n: localeNumber(actor, a.revisionNumber) })} <a href="/app/certificates/${view.completion.certificate}">${t(actor, 'Certificate')}</a></p>`) : ''
-  const body = h`${backLink('/app/learning', t(actor, 'My learning'))}${await courseLanguageNote(env, actor, a.course)}<h1>${a.courseTitle}</h1>
+  const body = h`${backLink('/app/learning', t(actor, 'My learning'))}${await courseLanguageNote(env, actor, a.revision)}<h1>${a.courseTitle}</h1>
 <p class="subtitle">${t(actor, 'Revision {revision}', { revision: localeNumber(actor, a.revisionNumber) })} · ${t(actor, STATUS[a.status] ?? a.status)} · ${t(actor, 'Due {date}', { date: formatDate(a.dueAt, a.timezone, actor.locale) })}${a.status === 'open' && accessNote(view.access, zone, actor.locale) ? ` · ${accessNote(view.access, zone, actor.locale)}` : ''}${a.learner !== actor.id ? h` · ${t(actor, 'Learner')} ${names.get(a.learner)}` : ''}</p>
 ${view.dueExceptions.length ? h`<p class="muted">${view.dueExceptions.map(change => t(actor, 'Due date moved from {date} by {name}: {reason}', { date: when(change.previousDueAt, a.timezone, zone, actor.locale), name: change.approvedByName, reason: change.reason })).join(' · ')}</p>` : ''}
 ${view.blocked ? h`<p class="flash">${t(actor, 'Complete the prerequisite course first; your manager can see this requirement.')}</p>` : ''}
@@ -141,7 +142,7 @@ export async function lessonPage(env: Bindings, actor: Actor, id: string, lesson
   const action = view.assignment.status === 'open' && view.assignment.learner === actor.id && !view.blocked
     ? form('lesson.complete', next ? `/app/learn/${id}/lessons/${next.id}` : `/app/learn/${id}`, [hidden('assignment', id), hidden('lesson', lesson.id)], lesson.completed ? (next ? t(actor, 'Next lesson') : t(actor, 'Back to course')) : next ? t(actor, 'Mark done and continue') : t(actor, 'Mark done'))
     : ''
-  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">${t(actor, 'Lesson {n} of {total}', { n: index + 1, total: view.lessons.length })}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">${t(actor, 'Lesson reading')}</p><div class="lesson-body">${await courseLanguageNote(env, actor, view.assignment.course)}${lessonText(lesson.body, { lead: true })}${renderBlocks(lesson.blocks, (await embedPolicy(env)).hosts, actor.locale)}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? h`${feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`, actor.locale)}<p><a href="/app/discussions/${view.assignment.course}?lesson=${lessonId}">${t(actor, 'Ask about this lesson or discuss it')}</a></p>` : ''}`
+  const body = h`${backLink(`/app/learn/${id}`, view.assignment.courseTitle)}<p class="muted">${t(actor, 'Lesson {n} of {total}', { n: index + 1, total: view.lessons.length })}</p><h1>${lesson.title}</h1><article class="card lesson-card"><p class="muted lesson-label">${t(actor, 'Lesson reading')}</p><div class="lesson-body">${await courseLanguageNote(env, actor, view.assignment.revision)}${lessonText(lesson.body, { lead: true })}${renderBlocks(lesson.blocks, (await embedPolicy(env)).hosts, actor.locale)}</div></article>${sources}${action}${view.assignment.learner === actor.id && !actor.viewAs ? h`${feedbackForm(id, lessonId, `/app/learn/${id}/lessons/${lessonId}`, actor.locale)}<p><a href="/app/discussions/${view.assignment.course}?lesson=${lessonId}">${t(actor, 'Ask about this lesson or discuss it')}</a></p>` : ''}`
   return mediaPage(env, page(lesson.title, actor, body, { current: '/app/learning', url }))
 }
 
@@ -203,8 +204,8 @@ function surveyCard(id: string, view: Awaited<ReturnType<typeof assignmentView>>
   return card(t(actor, 'Course survey'), h`<p class="muted">${t(actor, 'Optional. Answers are kept without your name and never affect passing or completion.')}</p>${form('survey.answer', `/app/learn/${id}`, [hidden('assignment', id), ...fields], t(actor, 'Send survey'))}`)
 }
 
-async function courseLanguageNote(env: Bindings, actor: Actor, course: string) {
- const original = (await one(env, 'SELECT language FROM beam_courses WHERE id=?', course))?.language ?? 'en'
+async function courseLanguageNote(env: Bindings, actor: Actor, revision: string) {
+ const original = await localeRevisionLanguage(env, revision)
  if (original.toLowerCase().split('-')[0] === (actor.locale ?? 'en-US').split('-')[0]) return ''
  return card(t(actor, 'Language fallback'), h`<p>${t(actor, 'A reviewed {language} version is not available. This course opens in its original language ({original}).', { language: t(actor, actor.locale === 'es-US' ? 'Spanish' : 'English'), original })}</p>`)
 }

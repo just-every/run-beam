@@ -1,7 +1,13 @@
 // OPS-002: explicit columns keep later auth/provider fields out of learning interchange.
 export const LEARNING_INVENTORY = {
-  beam_renewal_rules: 'id, course_id, basis, lead_days, grace_days, state, created_by, created_at, previewed_at, enabled_by, enabled_at',
+  beam_gusto_language_mappings: 'id, member_id, employee_id, employee_uuid, company_uuid, field_id, environment, version, enabled, consented_by, consented_at, last_attempt_at, last_synced_at, last_outcome, last_failure',
+  beam_locale_glossaries: 'id, course_id, locale, terms_json, created_by, created_at, approved_by, approved_at',
+  beam_course_locales: 'id, course_id, base_revision_id, locale, glossary_id, draft_json, version, state, prepared_by, prepared_at, submitted_by, submitted_at, approved_by, approved_at, revision_id',
+  beam_locale_maintenance: 'id, locale_id, cause, source_id, new_version_id, base_revision_id, event_key, created_at',
+  beam_renewal_rules: 'id, course_id, basis, lead_days, grace_days, state, created_by, created_at, previewed_at, enabled_by, enabled_at, notice_enabled, notice_cost_cents, notice_version, notice_consent_by, notice_consent_at, notice_activated_at',
   beam_renewal_cycles: 'completion_id, rule_id, assignment_id, expires_at, due_date, timezone, created_at',
+  beam_credit_renewal_cycles: 'credit_id, member_id, rule_id, assignment_id, history_id, source, expires_at, due_date, timezone, created_at',
+  beam_renewal_notices: 'id, rule_id, assignment_id, learner_id, recipient_id, route, consent_version, cost_cents, consented_by, consented_at, activated_at, state, outcome, attempts, language, provider, provider_message_id, sent_at, send_token, send_started_at, send_expires_at, created_at',
   beam_escalation_policy: 'id, version, enabled, reminder_hours, manager_hours, fallback_hours, updated_by, updated_at',
   beam_escalation_messages: 'id, assignment_id, recipient_id, route, status, sent_at',
   beam_escalation_resolutions: 'assignment_id, reason, resolved_by, resolved_at',

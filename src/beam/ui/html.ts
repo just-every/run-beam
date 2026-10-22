@@ -1,3 +1,5 @@
+import { describeError } from './errors'
+export { describeError } from './errors'
 import { t } from '../messages'
 import type { Language } from '../language'
 // Page frame and small form helpers. Every value is escaped; pages need no script except the quiz's countdown and
@@ -138,58 +140,6 @@ export function bytes(value: number) {
   return `${size.toLocaleString('en-US', { maximumFractionDigits: size < 10 ? 1 : 0 })} ${units[unit]}`
 }
 
-const ERRORS: Record<string, string> = {
-  stale_draft: 'someone else saved this draft first. Reload and apply your change again.',
-  exemption_not_allowed: 'the owner’s exception policy lets managers defer this, not exempt it. Ask a learning administrator or the owner.',
-  exception_too_long: 'that end date is longer than the exception policy allows.',
-  exception_ends_in_past: 'the end date has already passed.',
-  exception_active: 'an exception already holds this assignment until its end date.',
-  blocker_already_reported: 'a blocker is already waiting for a decision on this assignment.',
-  backdated_completion: 'this attendance is dated before the due date of an assignment that was already overdue, so it cannot close it. Cancel that assignment with a reason first, then record the attendance.',
-  proposal_stale: 'what this proposal was prepared from changed after it was prepared, so it cannot be applied as is.',
-  lessons_incomplete: 'finish every lesson first.',
-  prerequisite_incomplete: 'the prerequisite course must be completed first.',
-  session_in_past: 'the first meeting must be in the future.',
-  session_started: 'this session has already started; choose another one.',
-  session_cancelled: 'this session was cancelled.',
-  session_not_offered: 'you can choose a session only of a course assigned to you.',
-  announcement_replies_closed: 'replies are closed because the sender no longer has access to this scheduled session.',
-  not_an_instructor: 'that person has no instructor access for this course. Grant it under Instructors on People first.',
-  no_attempts_remaining: 'no attempts remain. Ask your manager for another attempt.',
-  named_reviewer_required: 'only the course’s named reviewer can decide this revision.',
-  named_assessor_required: 'only the named assessor can decide this attempt.',
-  reviewed_fingerprint_changed: 'the import changed since it was reviewed. Preview it again.',
-  course_not_published: 'publish a revision of this course first.',
-  business_not_configured: 'the owner must name the business and its time zone first.',
-  proposal_changed: 'this proposal is not the one you reviewed. Reload the page.',
-  proposal_decided: 'someone already decided this proposal.',
-  practice_step_moved: 'that step was already answered. Here is where you are now.',
-  answers_required: 'answer at least one question, or choose not to answer.',
-  already_responded: 'you already responded to these questions.',
-  questions_closed: 'these questions have closed.',
-  self_assessment_refused: 'nobody can accept their own evidence. The owner or another named assessor decides it.',
-  self_attestation_refused: 'nobody can attest their own attendance. Ask another manager or the owner to record it.',
-  attempts_remaining: 'this person still has quiz attempts left, or has passed.',
-  import_changed_since_earlier: 'some records were imported earlier with other details, for example a person who has since joined. Undo the earlier import, then preview and apply these files again.',
-  already_member: 'this person already has access.',
-  person_not_found: 'that person is not in Beam.',
-  owner_access_fixed: 'the owner’s access cannot be changed.',
-  completed_assignment_not_reset: 'a completed assignment is never reset; its completion stays with its revision. Assign the course again instead.',
-  learner_outside_your_team: 'you can do this only for people in one of your teams.',
-  attempt_closed_by_reset: 'this attempt was closed when the assignment was reset.',
-  access_not_open: 'this course is not open yet. It opens on the date shown on the course.',
-  access_ended: 'access to this course has ended. Your records and certificates stay readable; your manager can extend access.',
-  no_access_window: 'this assignment has no access window to extend.',
-  time_expired: 'the time limit has passed. Only the answers saved before it were scored.',
-  quiz_not_started: 'start the timed quiz first.',
-  quiz_not_timed: 'this quiz has no time limit.',
-  window_closes_before_it_opens: 'the closing date must be on or after the opening date.',
-  outside_your_units: 'this is outside the business units you administer.',
-  owner_required: 'only the owner can do this.',
-  grant_exists: 'this person already administers that unit.',
-  expiry_in_past: 'the end date must be in the future.',
-}
-export const describeError = (code: string) => ERRORS[code] ?? code.replace(/_/g, ' ') + '.'
 
 export const hidden = (name: string, value: unknown) => h`<input type="hidden" name="${name}" value="${value}">`
 

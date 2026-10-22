@@ -6,6 +6,10 @@ import { fixture } from './regression-fixture.mjs'
 export async function renewalCheck() {
   const f = await fixture()
   try { await renewals(f) } finally { await f.h.close() }
+  const { creditRenewalCheck } = await import('./regression-credit-renewals.mjs')
+  await creditRenewalCheck()
+  const { renewalNoticeCheck } = await import('./regression-renewal-notices.mjs')
+  await renewalNoticeCheck()
 }
 
 async function renewals(f) {

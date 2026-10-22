@@ -26,7 +26,7 @@ import { prerequisiteCompleted } from './due-rules'
 import { surveyState } from './survey'
 
 export async function loadAssignment(env: Bindings, actor: Actor, id: string, { manage = false } = {}) {
-  const assignment = await one(env, 'SELECT a.*, c.title AS course_title FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.id = ?', id)
+  const assignment = await one(env, 'SELECT a.*, r.title AS course_title FROM beam_assignments a JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE a.id = ?', id)
   // Another learner's assignment is indistinguishable from a missing one.
   if (!assignment || !(assignment.learner_id === actor.id || (manage && manages(actor, assignment.learner_id, 'enrollment', 'people')))) throw new BeamError('not_found', 404)
   return assignment

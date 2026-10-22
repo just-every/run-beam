@@ -1,3 +1,4 @@
+import { markLocaleSourceChange } from './course-locales'
 // Flow 3: editable courses with one version-checked draft; submission freezes
 // an immutable revision that only the course's named reviewer can publish.
 import type { Bindings } from '../auth.server'
@@ -260,6 +261,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
 export async function decideRevision(env: Bindings, actor: Actor, input: Input) {
   const revision = await one(env, 'SELECT r.*, c.reviewer_id, c.published_revision_id, c.unit_id, c.self_review FROM beam_course_revisions r JOIN beam_courses c ON c.id = r.course_id WHERE r.id = ?', input.text('revision'))
   insist(revision, 'revision_not_found', 404)
+  insist(!await one(env, 'SELECT 1 FROM beam_course_locales WHERE revision_id=?', revision.id), 'locale_review_required', 409)
   // ORG-003: the named reviewer holds the reviewer role, or, where the owner allows self-review, administers the
   // course's unit. Deciding one's own submission needs that allowance (the owner's own is always allowed), and is recorded.
   const named = revision.reviewer_id === actor.id && (actor.roles.has('reviewer') || (revision.self_review === 1 && actor.adminUnits.includes(revision.unit_id)))
@@ -279,10 +281,11 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
   insist(['none', 'open', 'everyone'].includes(reassignment), 'invalid_reassignment')
   const dueDays = input.integer('dueDays', { min: 1, max: 365, optional: true }) ?? 14
   await commit(env, [
-    stmt(env, "UPDATE beam_course_revisions SET state = 'superseded' WHERE course_id = ? AND state = 'published'", revision.course_id),
+    stmt(env, "UPDATE beam_course_revisions SET state = 'superseded' WHERE course_id = ? AND state = 'published' AND id NOT IN (SELECT revision_id FROM beam_course_locales WHERE revision_id IS NOT NULL)", revision.course_id),
     stmt(env, "UPDATE beam_course_revisions SET state = 'published', reviewed_by = ?, reviewed_at = ?, review_note = ?, reassignment = ?, self_reviewed = ? WHERE id = ? AND state = 'in_review'", actor.id, now(), note || null, reassignment, self, revision.id),
     stmt(env, 'UPDATE beam_courses SET published_revision_id = ? WHERE id = ?', revision.id, revision.course_id),
   ], { actor, action: 'revision.publish', subject: revision.id, detail: { reassignment, previous: revision.published_revision_id, selfReviewed: self === 1 } })
+  await markLocaleSourceChange(env, { course: revision.course_id, baseRevision: revision.id })
   const reassigned = revision.published_revision_id ? await reassignAfterPublish(env, actor, revision.course_id, revision.id, reassignment, dueDays) : 0
   // AGENT-004: retraining the named reviewer required on a source change.
   const retrained = await retrainAfterPublish(env, actor, revision.course_id, revision.id)

@@ -1,11 +1,15 @@
-// AUTO-004: native recurrence only. Imported credit and delivered notices remain explicit gaps.
+// AUTO-004: native and approved historical-credit recurrence, with separately
+// consented notices for future cycles. Provider acceptance is never delivery.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
 import { insertAssignments } from './assignments'
 import { controlledExecution } from './automation-execution'
+import { assignCreditRenewal, creditRenewalCandidates, creditRenewalCycles } from './credit-renewals'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { business, requireBusiness } from './people'
+import { captureRenewalNotices, renewalNoticeView } from './renewal-notice-outbox'
+import { runRenewalNotices } from './renewal-notices'
 import { addDays, DAY, localDate, zonedInstant } from './time'
 
 async function ruleFor(env: Bindings, actor: Actor, id: string) {
@@ -26,9 +30,12 @@ export async function saveRenewal(env: Bindings, actor: Actor, input: Input) {
   return { id }
 }
 
-/** One latest native completion per person/course. Audit order breaks tied offline dates, as in BEAM-12. */
+/** Approved credit first, then the latest native completion per person/course.
+ * Audit order breaks tied offline native dates, as in BEAM-12. */
 async function candidates(env: Bindings, rule: Row): Promise<Row[]> {
   const settings = await requireBusiness(env), today = localDate(now(), settings.timezone)
+  const creditItems = await creditRenewalCandidates(env, rule, settings.timezone)
+  const covered = new Set(creditItems.filter(row => row.expiresAt > now() && !row.renewedAssignment && !row.nativeCurrent && !row.nativeSuperseded).map(row => row.learner))
   const records = await all(env, `SELECT c.id AS completion,c.learner_id AS learner,m.name AS learnerName,c.completed_at,c.expires_at,
       a.renewal_days AS renewalDays,a.path_revision_id AS pathRevision,a.prerequisite_course_id AS prerequisite,
       cy.assignment_id AS renewedAssignment,
@@ -41,15 +48,16 @@ async function candidates(env: Bindings, rule: Row): Promise<Row[]> {
       SELECT latest.id FROM beam_completions latest LEFT JOIN beam_audit recorded ON recorded.action='completion.record' AND recorded.subject=latest.id
       WHERE latest.learner_id=c.learner_id AND latest.course_id=c.course_id
       ORDER BY latest.completed_at DESC,recorded.id DESC,latest.id DESC LIMIT 1) ORDER BY m.name,c.id`, rule.course_id)
-  return records.flatMap(row => {
+  return [...creditItems, ...records.flatMap(row => {
+    if (covered.has(row.learner)) return []
     const expiresAt = rule.basis === 'annual' ? row.completed_at + 365 * DAY : row.expires_at
     if (expiresAt === null) return []
     const expiryDate = localDate(expiresAt, settings.timezone), opensOn = addDays(expiryDate, -rule.lead_days)
     const dueDate = addDays(expiryDate, rule.grace_days)
     const outcome = row.renewedAssignment ? 'already_renewed' : row.openAssignment ? 'already_open' : row.retired_at || !row.published_revision_id ? 'course_unavailable' : today < opensOn ? 'not_due' : 'would_assign'
-    return [{ ...row, expiresAt, expiryDate, opensOn, dueDate, timezone: settings.timezone, outcome,
+    return [{ ...row, source: 'native', event: row.completion, expiresAt, expiryDate, opensOn, dueDate, timezone: settings.timezone, outcome,
       coverage: now() > zonedInstant(dueDate, '17:00', settings.timezone) ? 'overdue' : now() < expiresAt ? 'current' : rule.basis === 'expiry' ? 'expired_in_grace' : 'cycle_due_in_grace' }]
-  })
+  })]
 }
 
 export async function previewRenewal(env: Bindings, actor: Actor, input: Input) {
@@ -77,25 +85,33 @@ export async function runRenewals(env: Bindings, manual = false, only?: string) 
   for (const rule of await all(env, "SELECT * FROM beam_renewal_rules WHERE state='active' AND (? IS NULL OR id=?) ORDER BY created_at", only ?? null, only ?? null)) {
     for (const item of await candidates(env, rule)) {
       if (item.outcome !== 'would_assign') continue
-      const outcome = await controlledExecution(env, { kind: 'renewal', rule: rule.id, event: item.completion, learner: item.learner, authority: rule.enabled_by, unit: null, manual,
-        input: { completion: item.completion, course: rule.course_id, basis: rule.basis, expiresAt: item.expiresAt, dueDate: item.dueDate, timezone: item.timezone, leadDays: rule.lead_days, graceDays: rule.grace_days } }, async artifact => {
+      const outcome = await controlledExecution(env, { kind: 'renewal', rule: rule.id, event: item.event, learner: item.learner, authority: rule.enabled_by, unit: null, manual,
+        input: { completion: item.completion, ...(item.source === 'history_credit' ? { credit: item.credit, history: item.history, source: item.creditSource, learner: item.learner } : {}), course: rule.course_id, basis: rule.basis, expiresAt: item.expiresAt, dueDate: item.dueDate, timezone: item.timezone, leadDays: rule.lead_days, graceDays: item.source === 'history_credit' ? 0 : rule.grace_days } }, async artifact => {
         insist(await one(env, "SELECT 1 FROM beam_renewal_rules WHERE id=? AND state='active' AND enabled_by=?", rule.id, rule.enabled_by), 'renewal_rule_changed', 409)
         // Recheck the source and open enrollment immediately before the write, including an interrupted replay.
-        const current = (await candidates(env, rule)).find(row => row.completion === item.completion)
+        const current = (await candidates(env, rule)).find(row => row.event === item.event)
         const prior = await one(env, 'SELECT id FROM beam_assignments WHERE id=?', artifact)
         insist(current, 'renewal_source_changed', 409)
         if (!prior && current.outcome !== 'would_assign') return current.outcome
+        if (item.source === 'history_credit') {
+          insist(current.expiresAt === item.expiresAt && current.dueDate === item.dueDate && current.timezone === item.timezone,
+            'renewal_source_changed', 409)
+          return await assignCreditRenewal(env, rule, current, artifact)
+        }
         const inserted = prior ? { created: [prior.id] } : await insertAssignments(env, { id: rule.enabled_by } as Actor, [{ id: artifact, learner: item.learner, course: rule.course_id,
           dueDate: item.dueDate, dueTime: '17:00', timezone: item.timezone, reason: 'scheduled renewal', renewalDays: item.renewalDays,
           pathRevision: item.pathRevision, prerequisite: item.prerequisite }], 'assignment.renewal')
         if (!inserted.created.length) return 'already_open'
-        await commit(env, [stmt(env, 'INSERT OR IGNORE INTO beam_renewal_cycles VALUES(?,?,?,?,?,?,?)', item.completion, rule.id, artifact, item.expiresAt, item.dueDate, item.timezone, now())],
+        const cycleAt = now()
+        await commit(env, [stmt(env, 'INSERT OR IGNORE INTO beam_renewal_cycles VALUES(?,?,?,?,?,?,?)', item.completion, rule.id, artifact, item.expiresAt, item.dueDate, item.timezone, cycleAt),
+          ...captureRenewalNotices(env, rule, artifact, cycleAt)],
           { actor: rule.enabled_by, action: 'renewal.assign', subject: artifact, detail: { completion: item.completion, rule: rule.id, expiresAt: item.expiresAt, dueDate: item.dueDate } })
         return 'assigned'
       })
-      results.push({ rule: rule.id, completion: item.completion, outcome })
+      results.push({ rule: rule.id, completion: item.completion, ...(item.source === 'history_credit' ? { credit: item.credit, learner: item.learner, history: item.history } : {}), outcome })
     }
   }
+  await runRenewalNotices(env, only)
   return results
 }
 
@@ -109,6 +125,8 @@ export async function renewalView(env: Bindings, actor: Actor) {
   requireOwner(actor)
   const rules = await all(env, 'SELECT r.*,c.title FROM beam_renewal_rules r JOIN beam_courses c ON c.id=r.course_id ORDER BY r.created_at DESC')
   return { rules: await Promise.all(rules.map(async rule => ({ ...rule, items: await candidates(env, rule) }) as Row)),
-    cycles: await all(env, `SELECT cy.*,m.name AS learnerName,c.title FROM beam_renewal_cycles cy JOIN beam_completions done ON done.id=cy.completion_id
-      JOIN beam_members m ON m.id=done.learner_id JOIN beam_courses c ON c.id=done.course_id ORDER BY cy.created_at DESC LIMIT 100`) }
+    cycles: [...await all(env, `SELECT cy.*,m.name AS learnerName,c.title FROM beam_renewal_cycles cy JOIN beam_completions done ON done.id=cy.completion_id
+      JOIN beam_members m ON m.id=done.learner_id JOIN beam_courses c ON c.id=done.course_id ORDER BY cy.created_at DESC LIMIT 100`),
+      ...await creditRenewalCycles(env)].sort((a, b) => b.created_at - a.created_at).slice(0, 100),
+    notices: await renewalNoticeView(env) }
 }

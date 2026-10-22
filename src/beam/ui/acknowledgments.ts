@@ -18,7 +18,7 @@ export async function acknowledgmentPage(env: Bindings, actor: Actor, id: string
   const own = item.learner === actor.id, back = `/app/acknowledgments/${id}`
   const decide = own && item.state === 'open'
     ? h`${item.viewedAt
-        ? card(tr(item.kind === 'signature' ? 'Sign' : 'Acknowledge'), form('acknowledgment.decide', back, [hidden('acknowledgment', id), hidden('decision', 'sign'), h`<label class="check"><input type="checkbox" name="agree" value="yes" required> ${item.intent}</label>`, item.kind === 'signature' ? field(tr('Type your full name to sign'), 'signature', { hint: tr('As it appears in Beam: {name}', { name: actor.name }) }) : ''], tr(item.kind === 'signature' ? 'Sign' : 'Acknowledge')))
+        ? card(tr(item.kind === 'signature' ? 'Sign' : 'Acknowledge'), form('acknowledgment.decide', back, [hidden('acknowledgment', id), hidden('decision', 'sign'), hidden('intentLocale', item.intentLocale), hidden('intent', item.intent), h`<label class="check"><input type="checkbox" name="agree" value="yes" required> ${item.intent}</label>`, item.kind === 'signature' ? field(tr('Type your full name to sign'), 'signature', { hint: tr('As it appears in Beam: {name}', { name: actor.name }) }) : ''], tr(item.kind === 'signature' ? 'Sign' : 'Acknowledge')))
         : card(tr('Open the document first'), h`<p>${tr(item.kind === 'signature' ? 'Open and read the document above; then you can sign it here.' : 'Open and read the document above; then you can acknowledge it here.')}</p>`)}
       ${card(tr('Decline'), form('acknowledgment.decide', back, [hidden('acknowledgment', id), hidden('decision', 'decline'), area(tr('Why you are declining'), 'reason')], tr('Decline'), { secondary: true }))}`
     : ''

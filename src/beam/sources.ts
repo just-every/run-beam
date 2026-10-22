@@ -1,3 +1,4 @@
+import { markLocaleSourceChange } from './course-locales'
 // Flow 2: owned source documents and media with provenance, licence evidence
 // and a responsible reviewer. Versions are immutable; a new version flags every
 // course whose current material cites an earlier one (procedure maintenance).
@@ -50,6 +51,7 @@ export async function addSourceVersion(env: Bindings, actor: Actor, input: Input
     ...askAgainStatements(env, actor, sourceId, id, at),
     ...cited.map(row => stmt(env, "INSERT OR IGNORE INTO beam_source_notices (id, course_id, source_id, previous_version_id, new_version_id, state, created_at) VALUES (?, ?, ?, ?, ?, 'open', ?)", newId(), row.course_id, sourceId, row.version_id, id, at)),
   ], { actor, action: 'source.version', subject: sourceId, detail: { number, sha256: stored.sha256, flaggedCourses: cited.map(row => row.course_id) } })
+  await markLocaleSourceChange(env, { source: sourceId, newVersion: id })
   return { id, number, flaggedCourses: [...new Set(cited.map(row => row.course_id))], ...stored }
 }
 

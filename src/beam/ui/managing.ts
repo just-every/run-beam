@@ -1,3 +1,4 @@
+import { gustoLanguageCards } from './gusto-language'
 import { t, counted, localeNumber, quizDecision, quizScoringRule } from '../messages'
 // Owner and manager pages: business, people and teams, paths, and practical attempts for their assessor. The
 // manager's main screen is ui/compliance.ts.
@@ -37,9 +38,9 @@ export async function businessPage(env: Bindings, actor: Actor, url: URL) {
   requireOwner(actor)
   const current = await business(env)
   // OPS-009: US time zones (with their daylight saving) come first; due dates and reminders follow each zone's rules.
-  const zones = Intl.supportedValuesOf('timeZone'), us = zones.filter(usZone)
-  const costs = providerCosts(env, actor)
-  const body = h`<h1>${current ? 'Business settings' : 'Set up your business'}</h1>${current ? '' : h`<p class="subtitle">Name your business and its time zone before anything else.</p>`}<div class="card settings">${form('business.configure', '/app', [field('Business name', 'name', { value: current?.name ?? '' }), select('Time zone for due dates', 'timezone', [...us.map(zone => ({ value: zone, label: zone, group: 'United States' })), ...zones.filter(zone => !usZone(zone)).map(zone => ({ value: zone, label: zone, group: 'Elsewhere' }))], current?.timezone ?? 'America/Chicago', { hint: 'Daylight saving time applies automatically.' })], 'Save')}</div>${current ? h`${card('Provider costs (USD)', h`<p>Spent through Beam: USD ${(costs.spentCents / 100).toFixed(2)}. External-spend ceiling for automation: USD ${(costs.ceilingCents / 100).toFixed(2)}.</p><p class="muted">${costs.note}</p>`)}${policyCard(await exceptionPolicy(env))}${card('Data export', h`<p>Download learning records as documented JSON, with stable identifiers, file digests and links to original files and certificates.</p><p><a href="/app/data-export.json" download>Download learning data</a></p><p class="muted">Keep this private: it includes employee records and assessment evidence. Installation backups use rer export. <a href="https://github.com/just-every/run-beam/blob/main/docs/data-export.md">Format documentation</a>.</p>`)}` : ''}`
+  const zones = [...new Set([...(current?.timezone ? [current.timezone] : []), ...Intl.supportedValuesOf('timeZone')])], us = zones.filter(usZone)
+  const costs = await providerCosts(env, actor)
+  const body = h`<h1>${current ? 'Business settings' : 'Set up your business'}</h1>${current ? '' : h`<p class="subtitle">Name your business and its time zone before anything else.</p>`}<div class="card settings">${form('business.configure', '/app', [field('Business name', 'name', { value: current?.name ?? '' }), select('Time zone for due dates', 'timezone', [...us.map(zone => ({ value: zone, label: zone, group: 'United States' })), ...zones.filter(zone => !usZone(zone)).map(zone => ({ value: zone, label: zone, group: 'Elsewhere' }))], current?.timezone ?? 'America/Chicago', { hint: 'Daylight saving time applies automatically.' })], 'Save')}</div>${current ? h`${card('Provider costs (USD)', h`<p>Charged by Beam: USD ${(costs.spentCents / 100).toFixed(2)}. Estimated provider reservations today: USD ${(costs.estimatedReservedCents / 100).toFixed(2)} (${costs.timezone}). Daily automation ceiling: USD ${(costs.ceilingCents / 100).toFixed(2)}.</p><p class="muted">${costs.note}</p>`)}${policyCard(await exceptionPolicy(env))}${card('Data export', h`<p>Download learning records as documented JSON, with stable identifiers, file digests and links to original files and certificates.</p><p><a href="/app/data-export.json" download>Download learning data</a></p><p class="muted">Keep this private: it includes employee records and assessment evidence. Installation backups use rer export. <a href="https://github.com/just-every/run-beam/blob/main/docs/data-export.md">Format documentation</a>.</p>`)}` : ''}`
   return page('Business', actor, body, { url })
 }
 
@@ -77,7 +78,7 @@ ${await rolesCard(env, actor, list.members, list.teams)}
 ${await auditorsCard(env, actor, list.members, list.teams)}
 ${await instructorsCard(env, actor, list.members as { id: string; name: string }[])}
 ${await inactivityCard(env, actor, list.teams as { id: string; name: string }[], zone, request)}`
-  return page('People', actor, body, { current: '/app/people', url, wide: true })
+  return page('People', actor, h`${body}${await gustoLanguageCards(env, actor)}`, { current: '/app/people', url, wide: true })
 }
 
 export async function pathsPage(env: Bindings, actor: Actor, url: URL) {

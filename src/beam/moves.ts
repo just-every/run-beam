@@ -1,3 +1,4 @@
+import { localizedRevision } from './course-locales'
 // AUTHOR-010: carrying a published fix to learners in progress. When the named reviewer publishes a revision and moves the
 // course's open assignments to it, each earlier assignment ends as replaced and a new one on the new revision records
 // the move. A lesson whose title, text and cited source versions are unchanged keeps the learner's completion of it; a
@@ -67,8 +68,10 @@ export async function movePreview(env: Bindings, actor: Actor, revisionId: strin
   const cache = new Map<string, Awaited<ReturnType<typeof compare>>>()
   const moves = []
   for (const assignment of await openElsewhere(env, revision.course_id, revision.id)) {
-    if (!cache.has(assignment.course_revision_id)) cache.set(assignment.course_revision_id, await compare(env, assignment.course_revision_id, revision.id))
-    const compared = cache.get(assignment.course_revision_id)!, planned = await plan(env, assignment, compared)
+    const target = await localizedRevision(env, revision.id, assignment.learner_id), key = `${assignment.course_revision_id}:${target}`
+    if (target === assignment.course_revision_id) continue
+    if (!cache.has(key)) cache.set(key, await compare(env, assignment.course_revision_id, target))
+    const compared = cache.get(key)!, planned = await plan(env, assignment, compared)
     moves.push({ assignment: assignment.id, learner: assignment.learner_id, learnerName: assignment.learner_name, fromRevision: assignment.revision_number, kept: planned.kept.map(lesson => lesson.title), reopened: planned.reopened.map(lesson => lesson.title), assessment: compared.assessment, attemptsCarried: planned.carried.length, attemptsVoided: planned.voided.length })
   }
   const finished = await all(env, `SELECT DISTINCT m.id AS learner, m.name AS learnerName FROM beam_completions c JOIN beam_members m ON m.id = c.learner_id WHERE c.course_id = ? AND c.course_revision_id != ?
@@ -78,20 +81,22 @@ export async function movePreview(env: Bindings, actor: Actor, revisionId: strin
 
 /** Moves every open assignment of the course on another revision to this one. */
 export async function moveOpenAssignments(env: Bindings, actor: Actor, course: string, revision: string) {
-  const number = (await one<{ number: number }>(env, 'SELECT number FROM beam_course_revisions WHERE id = ?', revision))!.number
   const cache = new Map<string, Awaited<ReturnType<typeof compare>>>()
   let moved = 0
   for (const old of await openElsewhere(env, course, revision)) {
-    if (!cache.has(old.course_revision_id)) cache.set(old.course_revision_id, await compare(env, old.course_revision_id, revision))
-    const compared = cache.get(old.course_revision_id)!, planned = await plan(env, old, compared)
-    await commit(env, [stmt(env, "UPDATE beam_assignments SET status = 'replaced' WHERE id = ? AND status = 'open'", old.id)], { actor, action: 'assignment.replace', subject: course, detail: { revision, replaced: [old.id] } })
+    const target = await localizedRevision(env, revision, old.learner_id), key = `${old.course_revision_id}:${target}`
+    if (target === old.course_revision_id) continue
+    const number = (await one<{ number: number }>(env, 'SELECT number FROM beam_course_revisions WHERE id=?', target))!.number
+    if (!cache.has(key)) cache.set(key, await compare(env, old.course_revision_id, target))
+    const compared = cache.get(key)!, planned = await plan(env, old, compared)
+    await commit(env, [stmt(env, "UPDATE beam_assignments SET status = 'replaced' WHERE id = ? AND status = 'open'", old.id)], { actor, action: 'assignment.replace', subject: course, detail: { revision: target, replaced: [old.id] } })
     await insertAssignments(env, actor, [{ learner: old.learner_id, course, dueDate: old.due_date, dueTime: old.due_time, timezone: old.timezone, reason: 'revision', pathRevision: old.path_revision_id, prerequisite: old.prerequisite_course_id, renewalDays: old.renewal_days, access: { opensAt: old.access_opens_at, closesAt: old.access_closes_at, rule: old.access_rule } }], 'assignment.revision')
     const fresh = await one(env, "SELECT id FROM beam_assignments WHERE learner_id = ? AND course_id = ? AND status = 'open'", old.learner_id, course)
     if (!fresh) continue
     const at = now(), progress = new Map((await all(env, 'SELECT lesson_revision_id, completed_at FROM beam_lesson_progress WHERE assignment_id = ?', old.id)).map(row => [row.lesson_revision_id as string, row.completed_at as number]))
     const reset = planned.voided.length || compared.assessment === 'changed' ? newId() : null
     await commit(env, [
-      stmt(env, 'INSERT INTO beam_assignment_moves (id, assignment_id, from_assignment, from_revision, to_revision, assessment, carried_lessons, reopened_lessons, voided_attempts, moved_by, moved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', newId(), fresh.id, old.id, old.course_revision_id, revision, compared.assessment,
+      stmt(env, 'INSERT INTO beam_assignment_moves (id, assignment_id, from_assignment, from_revision, to_revision, assessment, carried_lessons, reopened_lessons, voided_attempts, moved_by, moved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', newId(), fresh.id, old.id, old.course_revision_id, target, compared.assessment,
         JSON.stringify(planned.kept.map(lesson => lesson.id)), JSON.stringify(planned.reopened.map(lesson => lesson.id)), JSON.stringify(planned.voided.map(attempt => attempt.id)), actor.id, at),
       ...planned.kept.map(lesson => stmt(env, 'INSERT OR IGNORE INTO beam_lesson_progress (assignment_id, lesson_revision_id, completed_at) VALUES (?, ?, ?)', fresh.id, lesson.id, progress.get(lesson.from!))),
       ...(reset ? [
@@ -99,7 +104,7 @@ export async function moveOpenAssignments(env: Bindings, actor: Actor, course: s
         stmt(env, "UPDATE beam_attempts SET reset_id = ? WHERE assignment_id = ? AND reset_id IS NULL AND state = 'awaiting_review'", reset, old.id),
         stmt(env, "UPDATE beam_quiz_sessions SET closed_at = ?, close_reason = 'reset' WHERE assignment_id = ? AND closed_at IS NULL", at, old.id),
       ] : []),
-    ], { actor, action: 'assignment.move', subject: fresh.id, detail: { from: old.id, fromRevision: old.course_revision_id, toRevision: revision, kept: planned.kept.length, reopened: planned.reopened.length, assessment: compared.assessment, carried: planned.carried.length, voided: planned.voided.map(attempt => attempt.id) } })
+    ], { actor, action: 'assignment.move', subject: fresh.id, detail: { from: old.id, fromRevision: old.course_revision_id, toRevision: target, kept: planned.kept.length, reopened: planned.reopened.length, assessment: compared.assessment, carried: planned.carried.length, voided: planned.voided.map(attempt => attempt.id) } })
     moved++
   }
   return moved

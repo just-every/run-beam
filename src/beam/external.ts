@@ -206,21 +206,6 @@ export async function externalView(env: Bindings, actor: Actor) {
   }
 }
 
-/** Transcript entries for one person (REPORT-003): every upload, decision, replacement and expiry. */
-export async function externalTranscript(env: Bindings, memberId: string) {
-  const at = now(), items = await requirements(env)
-  const name = (id: string) => items.find(item => item.id === id)?.name ?? ''
-  return (await certificatesOf(env, [memberId])).flatMap(row => {
-    const label = `${row.issuer} ${row.number}, issued ${row.issuedOn}${row.expiresOn ? `, expires ${row.expiresOn}` : ''}; external, no Beam certificate`
-    return [
-      { at: row.uploadedAt, kind: 'external certificate uploaded', course: name(row.requirement), revision: null, detail: label, by: row.uploadedBy ?? '', record: row.id },
-      ...(row.state !== 'pending' ? [{ at: row.decidedAt, kind: row.state === 'rejected' ? 'external certificate rejected' : 'external certificate approved', course: name(row.requirement), revision: null, detail: row.state === 'rejected' ? `${label}; reason: ${row.reason}` : label, by: row.decidedBy ?? '', record: row.id }] : []),
-      ...(row.state === 'replaced' ? [{ at: row.replacedAt, kind: 'external certificate replaced', course: name(row.requirement), revision: null, detail: `${label}; replaced by a newer approved certificate`, by: '', record: row.id }] : []),
-      ...(row.state !== 'rejected' && row.state !== 'pending' && row.expiresAt && row.expiresAt <= at ? [{ at: row.expiresAt, kind: 'external certificate expired', course: name(row.requirement), revision: null, detail: label, by: '', record: row.id }] : []),
-    ]
-  })
-}
-
 /** The certificate's file, as a download of inert bytes: for the person, the reviewer, and whoever reads their record. */
 export async function externalFile(env: Bindings, actor: Actor, id: string) {
   const row = await one(env, 'SELECT c.learner_id, c.requirement_id, a.filename, a.media_type AS mediaType, a.size, a.sha256 FROM beam_external_certificates c JOIN beam_attachments a ON a.id = c.attachment_id WHERE c.id = ?', id)

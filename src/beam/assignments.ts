@@ -1,3 +1,4 @@
+import { localizedRevision } from './course-locales'
 // Flows 4, 5 and renewals: role paths with prerequisites and renewal intervals,
 // assignments to individuals and teams with due dates in an explicit time zone.
 import { moveOpenAssignments } from './moves'
@@ -42,11 +43,12 @@ export async function insertAssignments(env: Bindings, actor: Actor, items: NewA
     insist(course.published_revision_id, 'course_not_published', 409)
     // AUTHOR-005: a retired course is never newly assigned, by any door (person, team, path or renewal).
     insist(!course.retired_at, 'course_retired', 409, { course: item.course, title: course.title })
+    const revision = await localizedRevision(env, course.published_revision_id, item.learner)
     const dueAt = zonedInstant(item.dueDate, item.dueTime, item.timezone)
     const id = item.id ?? newId(), at = now()
     const window = item.access ?? await enrolmentWindow(env, item.course, item.pathRevision, at)
     const [result] = await env.DB.batch([
-      stmt(env, "INSERT OR IGNORE INTO beam_assignments (id, learner_id, course_id, course_revision_id, path_revision_id, prerequisite_course_id, renewal_days, due_date, due_time, timezone, due_at, status, reason, assigned_by, assigned_at, access_opens_at, access_closes_at, access_rule, due_anchor, due_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id", id, item.learner, item.course, course.published_revision_id, item.pathRevision ?? null, item.prerequisite ?? null, item.renewalDays ?? null, item.dueDate, item.dueTime, item.timezone, dueAt, item.reason, actor.id, at, window.opensAt, window.closesAt, window.rule, item.dueAnchor ?? null, item.dueDays ?? null),
+      stmt(env, "INSERT OR IGNORE INTO beam_assignments (id, learner_id, course_id, course_revision_id, path_revision_id, prerequisite_course_id, renewal_days, due_date, due_time, timezone, due_at, status, reason, assigned_by, assigned_at, access_opens_at, access_closes_at, access_rule, due_anchor, due_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id", id, item.learner, item.course, revision, item.pathRevision ?? null, item.prerequisite ?? null, item.renewalDays ?? null, item.dueDate, item.dueTime, item.timezone, dueAt, item.reason, actor.id, at, window.opensAt, window.closesAt, window.rule, item.dueAnchor ?? null, item.dueDays ?? null),
       stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail) SELECT ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, id, JSON.stringify(item)),
     ])
     ;(result.results.length === 1 ? created : kept).push(result.results.length === 1 ? id : `${item.learner}:${item.course}`)

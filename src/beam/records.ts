@@ -75,7 +75,7 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
   if (!(memberId === actor.id || manages(actor, memberId, 'people'))) throw new BeamError('not_found', 404)
   const member = await one(env, 'SELECT id, name, email FROM beam_members WHERE id = ?', memberId)
   if (!member) throw new BeamError('not_found', 404)
-  const assignments = await all(env, `SELECT a.id, a.course_id AS course, c.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,
+  const assignments = await all(env, `SELECT a.id, a.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, a.status, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, a.due_at AS dueAt, a.reason, a.prerequisite_course_id AS prerequisite,
     (SELECT COUNT(*) FROM beam_lesson_progress p WHERE p.assignment_id = a.id) AS lessonsDone, (SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id = a.course_revision_id) AS lessonsTotal,
     k.id AS completion, k.expires_at AS expiresAt, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt, ${LATEST_EXCEPTION('a.id')} AS exception
     FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id LEFT JOIN beam_completions k ON k.assignment_id = a.id WHERE a.learner_id = ? ORDER BY a.status = 'open' DESC, a.due_at`, memberId)
@@ -93,8 +93,8 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
 
 export async function reminders(env: Bindings, actor: Actor) {
   const soon = now() + 3 * DAY
-  return await all(env, `SELECT a.id, c.title AS courseTitle, a.due_at AS dueAt, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, CASE WHEN a.due_at < ? THEN 'overdue' ELSE 'due_soon' END AS kind
-    FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id WHERE a.learner_id = ? AND a.status = 'open' AND a.due_at <= ? AND NOT ${EXCEPTED('a.id')} ORDER BY a.due_at`, now(), actor.id, soon, now())
+  return await all(env, `SELECT a.id, r.title AS courseTitle, a.due_at AS dueAt, a.due_date AS dueDate, a.due_time AS dueTime, a.timezone, CASE WHEN a.due_at < ? THEN 'overdue' ELSE 'due_soon' END AS kind
+    FROM beam_assignments a JOIN beam_course_revisions r ON r.id = a.course_revision_id WHERE a.learner_id = ? AND a.status = 'open' AND a.due_at <= ? AND NOT ${EXCEPTED('a.id')} ORDER BY a.due_at`, now(), actor.id, soon, now())
 }
 
 export async function queues(env: Bindings, actor: Actor) {

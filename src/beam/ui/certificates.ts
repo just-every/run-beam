@@ -46,7 +46,7 @@ export async function verifyPage(env: Bindings, token: string, url?: URL) {
   const locale = supportedLanguage(url?.searchParams.get('lang')) ?? 'en-US'
   const tr = (key: string, values = {}) => message(locale, key, values)
   const language = h`<nav aria-label="${tr('Language')}"><a href="?lang=en-US" lang="en-US">English (US)</a> · <a href="?lang=es-US" lang="es-US">Español (EE. UU.)</a></nav>`
-  const result = await verification(env, token)
+  const result = await verification(env, token, locale)
   if (!result) return page(tr('Not found'), null, h`${language}<h1>${tr('No certificate at this link')}</h1><p>${tr('Check the link you were given.')}</p>`, { status: 404, locale })
   if (result.revoked) return page(tr('Link revoked'), null, h`${language}<h1>${tr('This link was revoked')}</h1><p>${tr('The certificate holder or their employer withdrew it. Ask the holder for a current link.')}</p>`, { status: 410, locale })
   return page(tr('Certificate verification'), null, h`${language}<h1>${tr('Certificate verified')}</h1><p class="muted">${tr('Issued in Beam. This page shows only what the issuer allows a link to show.')}</p>

@@ -1,4 +1,5 @@
 import { message } from './messages'
+import type { Language } from './language'
 // LEARN-002: certificate templates, PDFs, verification links and corrections. The owner (or a custom role with the
 // certificates permission) saves immutable templates (heading, approved wording, signatory, and the fields a
 // verification link may reveal) and names a course's template; each certificate keeps the template it was issued with
@@ -97,7 +98,7 @@ export async function revokeLink(env: Bindings, actor: Actor, input: Input) {
 /** What a visitor with the link sees: only the fields the certificate's template approves, as the certificate stands
  * now, or that the link was revoked. Null when no link has this token. OPS-007: a link an installation restore brought
  * back never verifies again (its archive carried no token hash); the holder creates a new link. */
-export async function verification(env: Bindings, token: string) {
+export async function verification(env: Bindings, token: string, locale: Language = 'en-US') {
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return null
   const link = await one(env, `SELECT l.revoked_at, l.restored_at, k.id, k.number, k.issuer, k.template_id, c.completed_at, c.expires_at, r.title, m.name FROM beam_certificate_links l JOIN beam_certificates k ON k.id = l.certificate_id
     JOIN beam_completions c ON c.id = k.completion_id JOIN beam_course_revisions r ON r.id = c.course_revision_id JOIN beam_members m ON m.id = c.learner_id WHERE l.token_hash = ?`, await sha256Hex(new TextEncoder().encode(token)))
@@ -106,8 +107,8 @@ export async function verification(env: Bindings, token: string) {
   const fields = link.template_id ? JSON.parse((await one(env, 'SELECT verify_fields FROM beam_certificate_templates WHERE id = ?', link.template_id))!.verify_fields) as string[] : STANDARD.verifyFields
   const latest = await one(env, 'SELECT number, learner_name, issued_at FROM beam_certificate_corrections WHERE certificate_id = ? ORDER BY issued_at DESC, rowid DESC LIMIT 1', link.id)
   const zone = (await requireBusiness(env)).timezone
-  const values: Row = { learner: latest?.learner_name ?? link.name, course: link.title, completedOn: formatDate(link.completed_at, zone), expiresOn: link.expires_at ? formatDate(link.expires_at, zone) : 'does not expire', number: latest?.number ?? link.number, issuer: link.issuer }
-  return { revoked: false as const, corrected: latest ? formatDate(latest.issued_at, zone) : null, fields: Object.fromEntries(VERIFY_FIELDS.filter(field => fields.includes(field)).map(field => [field, values[field]])) as Record<string, string> }
+  const values: Row = { learner: latest?.learner_name ?? link.name, course: link.title, completedOn: formatDate(link.completed_at, zone, locale), expiresOn: link.expires_at ? formatDate(link.expires_at, zone, locale) : 'does not expire', number: latest?.number ?? link.number, issuer: link.issuer }
+  return { revoked: false as const, corrected: latest ? formatDate(latest.issued_at, zone, locale) : null, fields: Object.fromEntries(VERIFY_FIELDS.filter(field => fields.includes(field)).map(field => [field, values[field]])) as Record<string, string> }
 }
 
 /** The certificate as an accessible PDF download, as it stands now. */

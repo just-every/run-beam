@@ -126,3 +126,36 @@ export async function integrationArchiveCheck(f, expected) {
     console.log('PASS integration archives withhold keys/tokens, disable restored deployments and preserve result lineage')
   } finally { await target.close(); await rm(directory, { recursive: true, force: true }) }
 }
+
+// AUTO-004: the real portability archive retains notices but never restores permission to send them.
+export async function renewalNoticeArchiveCheck(f, rule) {
+  const scratch = await mkdtemp(join(tmpdir(), 'beam-renewal-archive-'))
+  try {
+    const archive = join(scratch, 'renewals.rer')
+    await exportArchive(await createPortability({ db: f.h.db, buckets: { files: f.h.files }, policy }), archive)
+    const t = await harness()
+    try {
+      await importArchive(await createPortability({ db: t.db, buckets: { files: t.files }, policy, migrations }), archive)
+      assert.equal((await t.raw('/auth/bootstrap', { body: { token: t.vars.SETUP_TOKEN, displayName: 'Owner' } })).status, 303)
+      const owner = await t.signIn('owner@example.test')
+      await t.raw('/setup', { cookie: owner, form: new URLSearchParams({ confirm: 'yes' }) })
+      let view = await t.api('renewals', owner)
+      const restoredRule = view.rules.find(row => row.id === rule)
+      assert.equal(restoredRule.notice_enabled, 0)
+      assert.ok(view.notices.some(row => row.outcome === 'restored'))
+      assert.ok(view.notices.some(row => row.outcome === 'outcome_unknown'))
+      const before = t.edge.attempts.length
+      await t.scheduled()
+      await t.api('renewal.notice-consent', owner, { rule, version: restoredRule.notice_version, enabled: true, consent: true, costCents: 1 })
+      for (const n of view.notices.filter(row => row.outcome === 'restored')) await t.api('renewal.notice-replay', owner, { notice: n.id })
+      view = await t.api('renewals', owner)
+      assert.ok(view.notices.filter(row => row.outcome !== 'outcome_unknown' && row.state !== 'accepted').every(row => ['suppressed','held'].includes(row.state)))
+      assert.equal(t.edge.attempts.length, before, 'fresh consent cannot reactivate any archived mail cycle')
+      assert.ok(view.cycles.length > 0, 'real renewal assignments and policy history survive')
+      if (process.env.BEAM_RENEWAL_BROWSER === '1') {
+        const { renewalBrowser } = await import('./regression-credit-renewals.mjs')
+        await renewalBrowser({ h: t, cookies: { owner } }, { course: 'Notice renewal', notices: true, prefix: 'restored-renewal' })
+      }
+    } finally { await t.close() }
+  } finally { await rm(scratch, { recursive: true, force: true }) }
+}

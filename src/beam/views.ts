@@ -1,3 +1,5 @@
+import { gustoLanguageView } from './connect/gusto-language'
+import { localeView } from './course-locales'
 import { ltiView } from './lti'
 import { languageSettings } from './language'
 import { webhookView } from './webhooks'
@@ -69,6 +71,7 @@ type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promi
 
 export const views: Record<string, View> = {
   webhooks: webhookView,
+  'gusto-language': gustoLanguageView,
   language: languageSettings,
   lti: ltiView,
   'escalation-policy': async (env, actor) => { requireOwner(actor); return await escalationPolicy(env) },
@@ -94,6 +97,7 @@ export const views: Record<string, View> = {
     insist(courseUnits(actor).length || actor.authorOf.length, 'forbidden', 403)
     return await listCourses(env, { units: courseUnits(actor), courses: actor.authorOf })
   },
+  'course-locales': (env, actor, _request, id) => localeView(env, actor, id),
   course: (env, actor, _request, id) => courseDetail(env, actor, id),
   compare: (env, actor, request) => { const query = new URL(request.url).searchParams; return compareRevisions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
   'source-compare': (env, actor, request) => { const query = new URL(request.url).searchParams; return compareSourceVersions(env, actor, query.get('from') ?? '', query.get('to') ?? '') },
@@ -160,6 +164,8 @@ const ROUTES: [RegExp, string][] = [
   [/^automation-controls$/, 'automation-controls'],
   [/^me$/, 'me'], [/^units$/, 'units'], [/^roles$/, 'roles'], [/^evidence$/, 'evidence'], [/^auditors$/, 'auditors'], [/^people$/, 'people'], [/^directory$/, 'directory-fields'], [/^directory\/([\w-]+)$/, 'directory'], [/^members$/, 'members'], [/^sources$/, 'sources'], [/^acknowledgments$/, 'acknowledgments'], [/^acknowledgments\/([\w-]+)$/, 'acknowledgment'], [/^courses$/, 'courses'], [/^courses\/([\w-]+)$/, 'course'],
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
+  [/^gusto-language$/, 'gusto-language'],
+  [/^course-locales\/([\w-]+)$/, 'course-locales'],
   [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^import-settings$/, 'import-settings'], [/^history$/, 'history'],
   [/^dashboards$/, 'dashboards'], [/^dashboards\/([\w-]+)$/, 'dashboard'], [/^messages$/, 'messages'], [/^report$/, 'report'], [/^coverage$/, 'coverage'], [/^credits$/, 'credits'], [/^quality$/, 'quality'], [/^costs$/, 'costs'], [/^diagnoses$/, 'diagnoses'], [/^diagnosis-imports\/([\w-]+)$/, 'diagnosis-comparison'], [/^outcomes\/([\w-]+)$/, 'outcome'], [/^evaluations\/([\w-]+)$/, 'evaluation'], [/^app-credentials$/, 'app-credentials'], [/^skills$/, 'skills'], [/^skills\/([\w-]+)$/, 'skill-recommendations'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^impact\/([\w-]+)$/, 'impact'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^audiences$/, 'audiences'], [/^roster-batches$/, 'roster-batches'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'], [/^recognition$/, 'recognition'], [/^discussions\/([\w-]+)$/, 'discussions'], [/^discussion-notices$/, 'discussion-notices'],
 ]

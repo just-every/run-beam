@@ -163,7 +163,7 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   if (request.method === 'POST') {
     if (path === 'agent.issue') return json(await issueAgentCredential(env, actor, await Input.from(request)))
     const input = await Input.from(request)
-    if (path === 'revision.decide' && input.text('decision') === 'publish') throw new BeamError('human_publication_form_required', 403)
+    if (path === 'locale.approve' || path === 'revision.decide' && input.text('decision') === 'publish') throw new BeamError('human_publication_form_required', 403)
     const action = actions[path]
     if (!action) throw new BeamError('not_found', 404)
     return json(await action(env, actor, input, request))

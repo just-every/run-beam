@@ -1,3 +1,4 @@
+import { languageBrowserCheck } from './regression-language-browser.mjs'
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
 
@@ -303,6 +304,10 @@ export const learningChecks = [['BEAM-08 live named assessor authority', assesso
 
 // LEARN-017's implemented language slice; other surfaces stay named in the contract Gap.
 export async function languageCheck() {
+  const { courseLocaleCheck } = await import('./regression-course-locales.mjs')
+  await courseLocaleCheck()
+  const { hrisLanguageCheck } = await import('./regression-hris-language.mjs')
+  await hrisLanguageCheck()
   const { fixture } = await import('./regression-fixture.mjs')
   const f = await fixture(), { api, h, ids, cookies, assign } = f
   try {
@@ -322,6 +327,8 @@ export async function languageCheck() {
     // HRIS/importers inherit the existing directory preference; no unheld connector is simulated.
     await api('owner', 'person.directory', { member: ids.learner, language: 'es-US' })
     assert.deepEqual(await language(), { language: 'es-US', source: 'person' })
+    const { languageErrorCheck } = await import('./regression-language-errors.mjs')
+    await languageErrorCheck(f)
     const c = await api('author', 'course.create', { title: 'English safety course', reviewer: ids.reviewer })
     const lesson = await api('author', 'course.lesson', { course: c.id, draftVersion: c.draftVersion, title: 'English procedure', body: 'USER CONTENT: My learning. Use clean tools.', sources: [] })
     const block = await api('author', 'course.block', { course: c.id, draftVersion: lesson.draftVersion, lesson: lesson.draft.lessons[0].id, content: { kind: 'check', text: 'USER PRACTICE CHECK', choices: ['USER CHECK CHOICE', 'USER OTHER CHECK'], answer: 0, feedback: 'USER CHECK FEEDBACK' } })
@@ -365,6 +372,17 @@ export async function languageCheck() {
       assert.ok(html.includes(spanish), `${name} uses Spanish interface controls`)
       assert.match(html, /<html lang="es-US">/)
     }
+    const acknowledgmentPath = peripheral.pages.find(([name]) => name === 'acknowledgment')[1]
+    const acknowledgmentId = acknowledgmentPath.split('/').at(-1)
+    const declaration = await api('learner', `acknowledgments/${acknowledgmentId}`)
+    assert.equal(declaration.intentLocale, 'es-US')
+    assert.ok(declaration.intent.startsWith('Firmo'))
+    await api('learner', 'acknowledgment.decide', { acknowledgment: acknowledgmentId, decision: 'sign', agree: 'yes', signature: 'learner', intentLocale: 'en-US', intent: declaration.intent }, 409)
+    const signed = await h.submit('acknowledgment.decide', cookies.learner, { acknowledgment: acknowledgmentId, decision: 'sign', agree: 'yes', signature: 'learner', intentLocale: declaration.intentLocale, intent: declaration.intent }, acknowledgmentPath)
+    assert.equal(signed.searchParams.get('error'), null)
+    const signatureEvidence = await (await h.raw(acknowledgmentPath + '/evidence', { cookie: cookies.learner })).text()
+    assert.ok(signatureEvidence.includes(declaration.intent) && signatureEvidence.includes('es-US'))
+    if (process.env.BEAM_LANGUAGE_BROWSER === '1') await languageBrowserCheck(f, { signedPath: acknowledgmentPath })
     const link = await api('learner', 'certificate.link', { certificate })
     const linksPage = await page(`/app/certificates/${certificate}?link=${link.id}`)
     assert.ok(linksPage.includes('Enlace de verificación') && linksPage.includes('Revocar'))
@@ -388,6 +406,7 @@ export async function languageCheck() {
     assert.equal(change.searchParams.get('error'), null)
     assert.deepEqual(await language(), { language: 'en-US', source: 'person' })
     assert.ok((await page('/app/learning')).includes('<h1>My learning</h1>'))
+    assert.equal((await api('learner', `acknowledgments/${acknowledgmentId}`)).intent, declaration.intent, 'a language switch never rewrites the signed declaration')
     const second = await f.course('Language reminder 2'), secondAssignment = await assign(second)
     await h.db.prepare('UPDATE beam_assignments SET due_at=? WHERE id=?').bind(Date.now() - 3_600_000, secondAssignment).run()
     await api('owner', 'escalation.run', {})
@@ -467,61 +486,4 @@ async function languagePeripheralFixture(f, item) {
     ['access-window', `/app/learn/${futureAssignment}`, 'Este curso abre el'], ['blocker', `/app/learn/${practicalAssignment}`, 'Impedimento:'], ['survey', `/app/learn/${timedAssignment}`, 'Enviar encuesta'],
   ]
   return { pages, timed: timedAssignment }
-}
-
-async function languageBrowserCheck(f, item) {
-  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
-  const { mkdir } = await import('node:fs/promises'), { join } = await import('node:path')
-  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
-  await mkdir(evidence, { recursive: true })
-  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
-  const overflow = []
-  try {
-    for (const width of [1440, 390]) {
-      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
-      await context.addCookies(f.cookies.learner.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))
-      const page = await context.newPage()
-      const screenshot = async (name, evidenceWidth = width) => {
-        assert.equal(await page.locator('html').getAttribute('lang'), 'es-US')
-        if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) overflow.push(`${name} at ${width}`)
-        await page.screenshot({ path: join(evidence, `${evidenceWidth}-language-${name}.png`), fullPage: true, mask: [page.locator('a[href^="/verify/"]')] })
-      }
-      await page.goto(f.h.origin + '/app/learning'); await page.getByRole('heading', { name: 'Mi aprendizaje', exact: true }).waitFor(); await screenshot('learning')
-      await page.goto(`${f.h.origin}/app/learn/${item.assignment}`); await page.getByText(/No hay una versión revisada en español/).waitFor(); await screenshot('course')
-      await page.goto(`${f.h.origin}/app/learn/${item.assignment}/lessons/${item.lesson}`); await page.getByText('USER CONTENT: My learning. Use clean tools.').waitFor(); await screenshot('lesson')
-      if (width === 1440) await page.getByRole('button', { name: 'Marcar como completada', exact: true }).click()
-      await page.goto(`${f.h.origin}/app/learn/${item.assignment}/quiz`)
-      await page.getByRole('button', { name: 'Enviar respuestas', exact: true }).waitFor(); await screenshot('quiz')
-      if (width === 1440) {
-        await page.getByLabel('Clean', { exact: true }).check()
-        await page.getByRole('button', { name: 'Enviar respuestas', exact: true }).click()
-      }
-      const record = await f.api('learner', 'records/me'), certificate = record.completions.find(row => row.course === item.course).certificate
-      const verification = await f.api('learner', 'certificate.link', { certificate })
-      await page.goto(`${f.h.origin}/app/certificates/${certificate}?link=${verification.id}`); await page.getByText(/Certificado de finalización/).waitFor(); await screenshot('certificate')
-      await page.locator(`a[href="/verify/${verification.id}"]`).click()
-      await page.getByRole('link', { name: 'Español (EE. UU.)', exact: true }).click()
-      await page.getByRole('heading', { name: 'Certificado verificado', exact: true }).waitFor(); await screenshot('verification')
-      const completed = await f.api('learner', `assignments/${item.assignment}`)
-      await page.goto(`${f.h.origin}/app/attempts/${completed.attempts[0].id}`); await screenshot('attempt')
-      for (const [name, path, spanish] of item.peripheral.pages) {
-        await page.goto(f.h.origin + path)
-        await page.getByText(spanish, { exact: false }).first().waitFor()
-        await screenshot(name)
-      }
-      await page.goto(`${f.h.origin}/app/learn/${item.peripheral.timed}/quiz`)
-      if (width === 1440) {
-        await page.getByRole('button', { name: 'Comenzar el cuestionario con límite de tiempo', exact: true }).waitFor(); await screenshot('timed-start')
-        await page.setViewportSize({ width: 390, height: 900 }); await screenshot('timed-start', 390)
-        await page.setViewportSize({ width, height: 900 })
-        await page.getByRole('button', { name: 'Comenzar el cuestionario con límite de tiempo', exact: true }).click()
-      }
-      await page.getByRole('button', { name: 'Guardar respuestas', exact: true }).waitFor()
-      await screenshot('timed-running')
-      await page.goto(f.h.origin + '/app/learning'); await screenshot('learning-peripheral-cards')
-      await context.close()
-      console.log(`PASS language learner/core/timed/peripheral ${width}`)
-    }
-    assert.deepEqual(overflow, [], 'learner screens fit each viewport')
-  } finally { await browser.close() }
 }

@@ -1,3 +1,5 @@
+import { configureGustoLanguage, revokeGustoLanguage, pullGustoLanguage } from './connect/gusto-language'
+import { saveLocaleGlossary, approveLocaleGlossary, prepareCourseLocale, editCourseLocale, submitCourseLocale, approveCourseLocale } from './course-locales'
 import { registerLti, rotateLtiKeys, revokeLti, rotateLtiPlatform, deepLinkLti, attachLti, launchLti, reconcileLti } from './lti'
 import { setMyLanguage, setLanguageDefault } from './language'
 import { requireOwner } from './actor'
@@ -6,6 +8,8 @@ import { saveBlock, changeBlock, reuseBlock } from './blocks'
 import { saveEmbedPolicy } from './media'
 import { convertSource } from './source-extraction'
 import { saveRenewal, previewRenewal, setRenewalState, replayRenewal } from './renewals'
+import { setRenewalNoticeConsent } from './renewal-notice-outbox'
+import { replayRenewalNotice } from './renewal-notices'
 import { saveEscalationPolicy, resolveEscalation, runEscalationsNow } from './escalations'
 import { withdrawErrors } from './diagnosis-evidence'
 import { prepareDiagnosis } from './diagnosis-comparison'
@@ -141,6 +145,8 @@ export const actions: Record<string, Handler> = {
   'renewal.preview': previewRenewal,
   'renewal.state': setRenewalState,
   'renewal.replay': replayRenewal,
+  'renewal.notice-consent': setRenewalNoticeConsent,
+  'renewal.notice-replay': replayRenewalNotice,
   'automation.policy': (env, actor, input) => saveAutomationPolicy(env, actor, input),
   'automation.approve': (env, actor, input) => approveAutomation(env, actor, input),
   'automation.save': (env, actor, input) => saveRule(env, actor, input),
@@ -215,6 +221,15 @@ export const actions: Record<string, Handler> = {
   'course.survey': (env, actor, input) => saveSurvey(env, actor, input),
   'course.submit': (env, actor, input) => submitForReview(env, actor, input),
   'course.restore': (env, actor, input) => restoreRevision(env, actor, input),
+  'gusto.language.configure': configureGustoLanguage,
+  'gusto.language.revoke': revokeGustoLanguage,
+  'gusto.language.pull': pullGustoLanguage,
+  'glossary.save': saveLocaleGlossary,
+  'glossary.approve': approveLocaleGlossary,
+  'locale.prepare': prepareCourseLocale,
+  'locale.edit': editCourseLocale,
+  'locale.submit': submitCourseLocale,
+  'locale.approve': approveCourseLocale,
   'revision.decide': (env, actor, input) => decideRevision(env, actor, input),
   'proposal.create': (env, actor, input) => proposeDraft(env, actor, input, input.json('draft')),
   'proposal.decide': (env, actor, input) => decideProposal(env, actor, input),

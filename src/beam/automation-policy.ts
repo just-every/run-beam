@@ -2,11 +2,14 @@
 // change invalidates approvals; old policy snapshots and attempts remain readable.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
+import { MAX_AUTOMATION_CENTS, reservedAutomationBudget } from './automation-budget'
 import { all, commit, insist, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
+import { requireBusiness } from './people'
+import { localDate } from './time'
 
-interface Policy { version: number; paused: number; quietStart: number; quietEnd: number; dailyLimit: number }
-export const automationPolicy = async (env: Bindings) => (await one<Policy>(env, 'SELECT version, paused, quiet_start AS quietStart, quiet_end AS quietEnd, daily_limit AS dailyLimit FROM beam_automation_policy WHERE id=1'))!
+interface Policy { version: number; paused: number; quietStart: number; quietEnd: number; dailyLimit: number; dailySpendLimitCents: number }
+export const automationPolicy = async (env: Bindings) => (await one<Policy>(env, 'SELECT version, paused, quiet_start AS quietStart, quiet_end AS quietEnd, daily_limit AS dailyLimit, daily_spend_limit_cents AS dailySpendLimitCents FROM beam_automation_policy WHERE id=1'))!
 
 export async function saveAutomationPolicy(env: Bindings, actor: Actor, input: Input) {
   requireOwner(actor)
@@ -20,15 +23,16 @@ export async function saveAutomationPolicy(env: Bindings, actor: Actor, input: I
     const exists = kind === 'webhook' ? await one(env, 'SELECT 1 FROM beam_webhook_subscriptions WHERE id=?', rule) : kind === 'renewal' ? await one(env, 'SELECT 1 FROM beam_renewal_rules WHERE id=?', rule) : kind === 'escalation' ? await one(env, "SELECT 1 FROM beam_escalation_policy WHERE id=1 AND ?='overdue-work'", rule) : await one(env, `SELECT 1 FROM ${kind === 'follow_on' ? 'beam_automation_rules' : kind === 'audience' ? 'beam_audiences' : 'beam_notification_rules'} WHERE id=?`, rule)
     insist(exists, 'rule_not_found', 404)
     controls.push(stmt(env, 'INSERT INTO beam_automation_controls VALUES(?,?,?) ON CONFLICT(kind,rule_id) DO UPDATE SET mode=excluded.mode', kind, rule, mode))
-  } else policy = { ...current, paused: input.flag('paused') ? 1 : 0, quietStart: input.integer('quietStart', { max: 23 })!, quietEnd: input.integer('quietEnd', { max: 23 })!, dailyLimit: input.integer('dailyLimit', { max: 100000 })! }
+  } else policy = { ...current, paused: input.flag('paused') ? 1 : 0, quietStart: input.integer('quietStart', { max: 23 })!, quietEnd: input.integer('quietEnd', { max: 23 })!, dailyLimit: input.integer('dailyLimit', { max: 100000 })!,
+    dailySpendLimitCents: input.has('dailySpendLimitCents') ? input.integer('dailySpendLimitCents', { max: MAX_AUTOMATION_CENTS })! : current.dailySpendLimitCents }
   const at = now()
   // The leading optimistic update owns the version; a stale request aborts the
   // whole D1 batch via the snapshot's primary key, rather than changing controls.
   await commit(env, [
     stmt(env, 'INSERT INTO beam_automation_policy_versions(version,settings_json,at) VALUES(?,?,?)', version + 1, '{}', at),
     ...controls,
-    stmt(env, 'UPDATE beam_automation_policy SET version=?, paused=?, quiet_start=?, quiet_end=?, daily_limit=?, updated_by=?, updated_at=? WHERE id=1 AND version=?', version + 1, policy.paused, policy.quietStart, policy.quietEnd, policy.dailyLimit, actor.id, at, version),
-    stmt(env, `UPDATE beam_automation_policy_versions SET settings_json=json_object('paused',?,'quietStart',?,'quietEnd',?,'dailyLimit',?,'externalSpendCents',0,'controls',json((SELECT json_group_array(json_object('kind',kind,'rule',rule_id,'mode',mode)) FROM beam_automation_controls))) WHERE version=?`, policy.paused, policy.quietStart, policy.quietEnd, policy.dailyLimit, version + 1),
+    stmt(env, 'UPDATE beam_automation_policy SET version=?, paused=?, quiet_start=?, quiet_end=?, daily_limit=?, daily_spend_limit_cents=?, updated_by=?, updated_at=? WHERE id=1 AND version=?', version + 1, policy.paused, policy.quietStart, policy.quietEnd, policy.dailyLimit, policy.dailySpendLimitCents, actor.id, at, version),
+    stmt(env, `UPDATE beam_automation_policy_versions SET settings_json=json_object('paused',?,'quietStart',?,'quietEnd',?,'dailyLimit',?,'dailySpendLimitCents',?,'currency','USD','controls',json((SELECT json_group_array(json_object('kind',kind,'rule',rule_id,'mode',mode)) FROM beam_automation_controls))) WHERE version=?`, policy.paused, policy.quietStart, policy.quietEnd, policy.dailyLimit, policy.dailySpendLimitCents, version + 1),
   ], { actor, action: 'automation.policy', subject: 'policy', detail: { ...policy, version: version + 1, ...(input.has('rule') ? { kind: input.text('kind'), rule: input.text('rule'), mode: input.text('mode') } : {}) } })
   return await automationPolicy(env)
 }
@@ -51,5 +55,9 @@ export async function automationControlView(env: Bindings, actor: Actor) {
     all(env, 'SELECT version, settings_json AS settings, at FROM beam_automation_policy_versions ORDER BY version DESC LIMIT 100'),
     all(env, 'SELECT a.* FROM beam_automation_attempts a ORDER BY a.at DESC,a.rowid DESC LIMIT 200'),
   ])
-  return { policy: { ...policy, externalSpendCents: 0 }, controls, executions: executions.map(row => ({ ...row, input: JSON.parse(row.input_json) }) as Row), versions: versions.map(row => ({ ...row, settings: JSON.parse(row.settings) })), attempts }
+  const { timezone } = await requireBusiness(env), day = localDate(now(), timezone)
+  const reserved = await reservedAutomationBudget(env, day)
+  return { policy: { ...policy, currency: 'USD' }, budget: { currency: 'USD', day, timezone, ...reserved,
+    dailySpendLimitCents: policy.dailySpendLimitCents, estimatedRemainingCents: Math.max(0, policy.dailySpendLimitCents - reserved.estimatedReservedCents) },
+    controls, executions: executions.map(row => ({ ...row, input: JSON.parse(row.input_json) }) as Row), versions: versions.map(row => ({ ...row, settings: JSON.parse(row.settings) })), attempts }
 }
