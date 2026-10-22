@@ -8,13 +8,14 @@ import policy from '../../scripts/installer/portability-policy.mjs'
 import { harness } from './harness.mjs'
 import { migrations } from './regression-archive.mjs'
 import { createHash } from 'node:crypto'
-import { fixture } from './regression-fixture.mjs'
+import { xapiFixture, sendXapi } from './xapi-fixture.mjs'
+import { prepareXapi, xapiStatement } from './regression-xapi.mjs'
 import { file } from './harness.mjs'
 import { courseListCsv, courseReport } from './fixtures.mjs'
 import { prepareMicrolearning } from './regression-collab.mjs'
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 export async function erasureCheck() {
-  const f = await fixture()
+  const f = await xapiFixture()
   const scratch = await mkdtemp(join(tmpdir(), 'beam-erasure-'))
   const old = join(scratch, 'before.rer'), later = join(scratch, 'after.rer')
   const portability = () => createPortability({ db: f.h.db, buckets: { files: f.h.files }, policy })
@@ -41,6 +42,10 @@ export async function erasureCheck() {
     const evidence = await api('learner', 'practical.submit', { assignment: assigned, evidence: 'Observed pressure check.', file: file('synthetic-beam-1.txt', 'Observed equipment evidence') })
     await api('assessor', 'practical.decide', { attempt: evidence.id, decision: 'accepted', note: 'Observed and accepted.' })
     const completion = (await api('learner', 'records/me')).completions.find(row => row.course === c.id)
+    const external = await prepareXapi(f, 'erasure custody')
+    const launch = await api('learner','xapi.launch',{assignment:external.assignment,activity:external.activity})
+    const externalStatement = xapiStatement(launch)
+    assert.equal((await sendXapi(f,external.activity,externalStatement)).status,200)
     const hold = await api('owner', 'erasure.hold', { kind: 'person', subject: ids.learner, justification: 'Open workplace investigation; preserve assessed evidence.' })
     const sequence = await prepareMicrolearning(f, 'erasure')
     const revision = (await api('author', 'course.submit', { course: sequence.id, draftVersion: sequence.draftVersion })).id
@@ -109,6 +114,9 @@ export async function erasureCheck() {
     }
     assert.ok(report.outcomes.native.some(row => row.table === 'beam_sequence_answers' && row.removed > 0))
     assert.ok(report.providers.some(row => row.state === 'failed'), 'provider deletion remains visibly unresolved')
+    assert.ok(report.providers.some(row=>row.connection_id===external.connection && row.state==='failed' && row.failure==='connected_lrs_erasure_api_required'))
+    assert.ok(f.lrs.records.has(externalStatement.id), 'external statements are not falsely reported erased')
+    assert.equal(f.lrs.edge.writes,1,'erasure never fabricates an LRS destructive API or sends a replacement statement')
     await exportArchive(await portability(), later)
     const target = await harness()
     try {
