@@ -17,8 +17,8 @@ async function affected(env: Bindings, member: string) {
     UNION SELECT id FROM beam_completions WHERE learner_id=?1
     UNION SELECT c.id FROM beam_certificates c JOIN beam_completions x ON x.id=c.completion_id WHERE x.learner_id=?1
     UNION SELECT id FROM beam_imported_history WHERE json_extract(payload,'$.member')=?1 OR lower(json_extract(payload,'$.email'))=(SELECT lower(email) FROM beam_members WHERE id=?1)`
-  const contains = ['inputs_json','reasons_json','excluded_json','payload_json','result_json'].map(field => `EXISTS(SELECT 1 FROM json_tree(p.${field}) j WHERE j.atom IN (${selectors}))`).join(' OR ')
-  return all<Row>(env, `SELECT p.* FROM beam_agent_proposals p WHERE p.withdrawn_at IS NULL AND p.state IN ('waiting','declined') AND ${independent} AND (${contains}) ORDER BY p.id LIMIT 40`, member)
+  const contains = ['inputs_json','reasons_json','excluded_json','payload_json','result_json'].map(field => `EXISTS(SELECT 1 FROM json_tree(p.${field}) j WHERE j.atom IN (SELECT value FROM subjects))`).join(' OR ')
+  return all<Row>(env, `WITH subjects(value) AS (${selectors}) SELECT p.* FROM beam_agent_proposals p WHERE p.withdrawn_at IS NULL AND p.state IN ('waiting','declined') AND ${independent} AND (${contains}) ORDER BY p.id LIMIT 40`, member)
 }
 const fingerprint = (row: Row) => sha256Hex(new TextEncoder().encode(JSON.stringify(fields.map(field => row[field]))))
 export async function proposalSnapshots(env: Bindings, member: string) {

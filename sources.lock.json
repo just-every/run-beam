@@ -1376,7 +1376,7 @@
       "executable": false
     },
     "src/beam/erasure-proposals.ts": {
-      "sha256": "80b239fe9f6f448912d27a933feb448d948200fc64db45fa274a17177bcaed87",
+      "sha256": "612c1d906f0059ff809b06a8e920875f85fea50667168f222e4b33f74aab98fa",
       "executable": false
     },
     "src/beam/erasure-run.ts": {
