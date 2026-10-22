@@ -56,8 +56,13 @@ export async function mobileLearningBrowserCheck(f) {
           await page.screenshot({ path: join(evidence, `${width}-mobile-learning-${name}.png`), fullPage: true })
         }
         const activate = async control => {
-          if (width === 390) await control.tap()
-          else { await control.focus(); await page.keyboard.press('Enter') }
+          const href = await control.evaluate(element => element instanceof HTMLAnchorElement ? element.href : null)
+          const action = async () => {
+            if (width === 390) await control.tap()
+            else { await control.focus(); await page.keyboard.press('Enter') }
+          }
+          if (href && new URL(href).origin === f.h.origin) await Promise.all([page.waitForURL(href), action()])
+          else await action()
         }
         const confirmed = async name => {
           await page.locator('[data-save-status]').filter({ hasText: /^Saved on Beam\.$/ }).waitFor()
