@@ -1,3 +1,4 @@
+import { withdrawRuleSnapshots } from './erasure-snapshots'
 import { configureSourceOcr, runSourceOcr, closeSourceOcr } from './source-ocr'
 import { saveErasurePolicy, placeErasureHold, releaseErasureHold } from './erasure-policy'
 import { beginErasure, erasurePreview } from './erasure'
@@ -100,7 +101,8 @@ export const actions: Record<string, Handler> = {
   'source.ocr.close': closeSourceOcr,
   'source.ocr.configure': configureSourceOcr, 'source.ocr.run': runSourceOcr,
   'erasure.policy': saveErasurePolicy, 'erasure.hold': placeErasureHold, 'erasure.hold.release': releaseErasureHold,
-  'erasure.preview': erasurePreview, 'erasure.begin': beginErasure, 'erasure.resume': resumeErasure,
+  'erasure.preview': erasurePreview, 'erasure.snapshots.withdraw': withdrawRuleSnapshots,
+  'erasure.begin': beginErasure, 'erasure.resume': resumeErasure,
   'course.sequence': saveSequence, 'sequence.answer': sequenceAnswer, 'sequence.pause': sequencePause,
   'xapi.connect': connectLrs, 'xapi.activity': createXapiActivity, 'xapi.revoke': revokeXapi, 'xapi.remove': removeXapiActivity, 'xapi.launch': launchXapi,
   'package.import': importPackage, 'package.remove': removePackage, 'package.launch': launchPackage, 'package.runtime': saveRuntime,
