@@ -296,7 +296,7 @@ publication must pass current admission. Live provider playback is still owed;
 synthetic URLs in HTTP/browser checks prove admission and isolation only.
 
 
-## cmi5 package profile (PACK-004, partial pending ct)
+## cmi5 package profile (PACK-004, partial)
 
 The existing package editor also imports a ZIP with root `cmi5.xml`. The human
 owner supplies `connection` (an explicitly consented xAPI LRS) and `consent: true`
@@ -328,8 +328,10 @@ session immediately; a replacement AU/session records Abandoned for interrupted
 work. Native assessment gates still apply. The public learner record is
 `GET /api/beam/cmi5-evidence/:assignment` and the existing package evidence page.
 Learning export excludes capabilities; installation archives withhold them and
-both modern/legacy restore disable access. This boundary remains subject to ct
-approval; no claim of general cmi5 conformance or browser-derived competence.
+both modern/legacy restore disable access. ct approved this boundary as adopted
+with riders, 22 Oct; no claim of general cmi5 conformance or browser-derived
+competence. A learner erasure does not yet reach statements already written to
+the connected LRS (OPS-003 partial).
 
 
 ## Five-day microlearning (AUTHOR-009, partial)
@@ -363,4 +365,6 @@ is added. Practice replies never enter the shared audit; continuation records on
 the existing lesson-complete event, without a choice or feedback. The learning export retains program, pause state and exact-revision
 replies. Course restore and approved locale publication preserve program
 structure. Real SMS/Teams send/reply/consent qualification remains blocked on
-unprovisioned provider prerequisites under LEARN-012/NOTICE-003.
+unprovisioned provider prerequisites under LEARN-012/NOTICE-003. ct approved
+this boundary as adopted with riders, 22 Oct. Learner erasure of practice
+replies (`beam_sequence_answers`) has no Beam erasure door yet (OPS-003 partial).
