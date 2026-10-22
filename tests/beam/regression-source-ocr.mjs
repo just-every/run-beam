@@ -45,7 +45,7 @@ export async function sourceOcrCheck() {
     await f.publish(revision)
     assert.match((await api('reviewer', `revisions/${revision}`)).lessons[0].body, /starting the equipment/)
     assert.deepEqual(Buffer.from(await (await h.raw(`/api/beam/source-files/${source.versionId}`, { cookie: cookies.author })).arrayBuffer()), original)
-    const audit = await api('owner', 'audit?category=all')
+    const audit = await api('owner', 'audit?category=content')
     const events = audit.events.filter(row => row.action.startsWith('source.ocr.'))
     assert.ok(events.length > 0)
     assert.ok(!JSON.stringify(events).includes('Inspect the work area') && !JSON.stringify(events).includes('synthetic-beam-1 private provider detail'))

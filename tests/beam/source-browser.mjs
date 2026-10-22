@@ -23,8 +23,10 @@ export async function sourceBrowserCheck(f) {
           }))
         }
         async function shot(name) {
-          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: horizontal overflow at ${width}`)
           await page.screenshot({ path: join(evidence, `${width}-source-${name}.png`), fullPage: true })
+          const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)
+          if (overflow) console.log('source layout overflow', await page.evaluate(() => [...document.querySelectorAll('main *')].map(node => ({tag:node.tagName,kind:node.className,right:Math.round(node.getBoundingClientRect().right),width:Math.round(node.getBoundingClientRect().width)})).filter(node=>node.right>innerWidth).slice(0,12)))
+          assert.equal(overflow, false, `${name}: horizontal overflow at ${width}`)
         }
         async function upload(title, name, buffer) {
           await page.goto(`${f.h.origin}/app/sources`)
@@ -48,6 +50,8 @@ export async function sourceBrowserCheck(f) {
         assert.deepEqual(Buffer.from(await original.arrayBuffer()), sourceProcedureDocx)
         await page.getByLabel('Lesson text', { exact: true }).first().fill('Wash hands, sanitize and inspect tools.')
         await page.getByLabel('Row 2, cell 2', { exact: true }).fill('Sanitized')
+        await page.getByLabel('First row contains column headings', {exact:true}).uncheck()
+        await page.getByLabel('First row contains column headings', {exact:true}).check()
         await page.getByLabel('Accessible image description', { exact: true }).fill('Probe position after sanitation')
         await page.getByLabel('I compared the extracted lessons', { exact: false }).check()
         await page.locator('img.lesson-image').first().evaluate(image => image.decode())

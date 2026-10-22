@@ -5,6 +5,7 @@ import { BeamError, insist } from './core'
 import { SourceContent } from './source-content'
 import { pdfRasterPng } from './source-png'
 import { taggedPdfContent } from './source-pdf-structure'
+import { geometricPdfContent } from './source-pdf-layout'
 
 export async function extractPdf(bytes: Uint8Array, content: SourceContent) {
   insist(bytes.length <= 10_000_000, 'document_pdf_size', 422)
@@ -22,7 +23,7 @@ export async function extractPdf(bytes: Uint8Array, content: SourceContent) {
     timer = setTimeout(() => { timedOut = true; void task.destroy().catch(() => {}) }, 15_000)
     pdf = await task.promise
     insist(pdf.numPages > 0 && pdf.numPages <= 60, 'document_page_limit', 422)
-    content.warnings.add('PDF text retains page references. Tagged headings and simple table cells are preserved when their complete reading order is available. Check merged cells, visual layout, untagged table structure and image descriptions against the original; these cannot be inferred reliably. Scanned pages require actual OCR before conversion.')
+    content.warnings.add('PDF text retains page references. Tagged headings and simple table cells are preserved when their complete reading order is available. Clear repeated rectangular rows in untagged PDFs can be preserved as tables; their headers are unspecified. Check inferred cells, reading order, merged cells, complex visual layout and image descriptions against the original. Scanned pages require actual OCR before conversion.')
     for (let number = 1; number <= pdf.numPages; number++) {
       const page = await pdf.getPage(number), location = `Page ${number}`
       content.heading(`Page ${number}`, location)
@@ -33,7 +34,8 @@ export async function extractPdf(bytes: Uint8Array, content: SourceContent) {
         value += item.str + (item.hasEOL ? '\n' : ' ')
         insist(value.length <= 50_000, 'document_lesson_limit', 422)
       }
-      const structured = taggedPdfContent(await page.getStructTree(), text.items)
+      const tagged = taggedPdfContent(await page.getStructTree(), text.items)
+      const structured = tagged ?? geometricPdfContent(text.items)
       if (structured) for (const part of structured) {
         if (part.kind === 'heading') content.heading(part.text, location)
         else if (part.kind === 'table') content.table(part.table, location, `${location} table`)
@@ -47,7 +49,9 @@ export async function extractPdf(bytes: Uint8Array, content: SourceContent) {
         content.uncertain(location, '', 'This page has no extractable text. An authorized OCR provider must read the original before its passages can become draft lessons.', true)
         // Retain a visible page even if its image is encoded in an unsupported PDF operator.
         if (!images.length) content.text('[No extractable page text. Open the original page; OCR is required.]', location)
-      } else content.uncertain(location, value.trim(), 'PDF reading order and text recognition must be compared with this original page.', false)
+      } else content.uncertain(location, value.trim(), !tagged && structured
+        ? 'Table cells and page reading order were inferred from repeated text positions, without authored table semantics. Compare every row with the original and identify any header cells before conversion. Merged cells and complex layouts remain unproved.'
+        : 'PDF reading order and text recognition must be compared with this original page.', false)
       page.cleanup()
     }
   } catch (error) {

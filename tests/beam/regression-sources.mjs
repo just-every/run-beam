@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { pdf, syntheticImage } from './fixtures.mjs'
 import { file } from './harness.mjs'
 
-import { sourceProcedureDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
+import { sourceProcedureDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceUntaggedTablePdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
 const original = sourceProcedureDocx
 
 export async function sourceExtractionCheck(f) {
@@ -86,6 +86,7 @@ export async function sourceExtractionCheck(f) {
     ['synthetic-beam-3.md', '# Prepare\nInspect tools.\n# Close\nStore tools.', ['Prepare', 'Close']],
     ['synthetic-beam-4.pdf', sourceProcedurePdf(), ['Page 1']],
     ['synthetic-beam-6-tagged.pdf', sourceTaggedPdf(), ['Prepare the station']],
+    ['synthetic-beam-7-grid.pdf', sourceUntaggedTablePdf(), ['Page 1']],
   ]
   for (const [filename, data, titles] of formats) {
     const imported = await upload(filename, data)
@@ -99,11 +100,14 @@ export async function sourceExtractionCheck(f) {
     }
     if (filename.endsWith('html')) assert.equal(extracted.lessons[0].blocks.find(block => block.kind === 'table').table[0][0].rowSpan, 2)
     if (filename.includes('tagged')) assert.deepEqual(extracted.lessons[0].blocks.find(block => block.kind === 'table').table.map(row => row.map(cell => cell.text)), [['Tool', 'Condition'], ['Probe', 'Clean']])
+    if (filename.includes('grid.pdf')) assert.deepEqual(extracted.lessons[0].blocks.find(block=>block.kind==='table').table.map(row=>row.map(cell=>cell.text)),[['Tool','Condition'],['Probe','Clean'],['Gloves','Intact']])
     if (filename.endsWith('pdf')) assert.match(extracted.lessons[0].body, /Inspect the clean probe/)
+    if (filename.includes('grid.pdf')) for (const cell of extracted.lessons[0].blocks.find(block=>block.kind==='table').table[0]) cell.header = true
     const fresh = await api('author', 'course.create', { title: filename, reviewer: ids.reviewer })
     const fields = { course: fresh.id, draftVersion: fresh.draftVersion, sourceVersion: imported.versionId, reviewed: true, lessons: extracted.lessons, resolvedUncertainties: extracted.uncertainties.map(item => item.id) }
     const converted = await api('author', 'source.convert', fields)
     assert.equal(converted.draft.lessons.length, extracted.lessons.length)
+    if (filename.includes('grid.pdf')) assert.ok(converted.draft.lessons[0].blocks.find(block=>block.kind==='table').table[0].every(cell=>cell.header))
     assert.equal((await api('author', `courses/${fresh.id}`)).publishedRevision, null)
     const screen = await h.raw(`/app/sources/${imported.versionId}/prepare?course=${fresh.id}`, { cookie: cookies.author }).then(response => response.text())
     assert.ok(screen.includes('name="reviewed"') && screen.includes(extracted.original))
@@ -377,7 +381,7 @@ export async function multimediaBrowserCheck(f, media) {
       await as('author')
       await page.goto(`${f.h.origin}/app/courses/${media.course}`)
       await page.locator('summary').filter({hasText:/^1\. Inspect the station$/}).click()
-      await page.locator('summary').filter({hasText:/^4\. Video/}).click()
+      await page.locator('summary').filter({hasText:/^\d+\. Video · Station video$/}).click()
       const captionForm=page.locator('form[action="/app/do/course.block"]').filter({has:page.locator('input[name="block"][value="'+(await f.api('author',`courses/${media.course}`)).draft.lessons[0].blocks.find(row=>row.kind==='video').id+'"]')})
       await captionForm.getByLabel('Caption source version (WebVTT)',{exact:true}).selectOption(media.assets.caption)
       await captionForm.getByLabel('Caption language (BCP47, for example en-AU)',{exact:true}).fill('en')

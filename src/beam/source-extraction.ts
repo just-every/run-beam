@@ -75,13 +75,16 @@ function reviewedLessons(input: Input, original: ExtractedLesson[]) {
   const titles = input.list('lessonTitles', { keepEmpty: true }), bodies = input.list('lessonBodies', { keepEmpty: true })
   const descriptions = input.list('imageDescriptions', { keepEmpty: true }), cells = input.list('tableCells', { keepEmpty: true })
   insist(titles.length === original.length && bodies.length === original.length, 'invalid_extracted_lessons')
-  const lessons = structuredClone(original)
+  const lessons = structuredClone(original), headers = new Set(input.list('tableHeaders'))
   let image = 0, cell = 0
   for (const [index, lesson] of lessons.entries()) {
     lesson.title = titles[index]; lesson.body = bodies[index]
-    for (const block of lesson.blocks ?? []) {
+    for (const [blockIndex, block] of (lesson.blocks ?? []).entries()) {
       if (block.kind === 'image') block.text = descriptions[image++]
-      else for (const row of block.table ?? []) for (const entry of row) entry.text = cells[cell++]
+      else for (const [rowIndex, row] of (block.table ?? []).entries()) for (const entry of row) {
+        entry.text = cells[cell++]
+        if (rowIndex === 0) entry.header = headers.has(`${index}:${blockIndex}`)
+      }
     }
   }
   insist(image === descriptions.length && cell === cells.length, 'invalid_extracted_blocks')

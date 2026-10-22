@@ -58,7 +58,7 @@ export async function erasureCheck() {
     // An accepted native edit after planning creates a real failed-apply custody fact.
     const conflictBundle = Buffer.from(JSON.stringify({ ...JSON.parse(bundle), reports: [{ course: '101', file: file('course-101.xlsx', courseReport({ learnerEmail: 'learner@example.test', score: 95 })) }], exportNote: 'Second reviewed snapshot' }))
     const conflictPlan = await ownerRequest('plan', { uploadId: await upload(conflictBundle), catchup: true })
-    await api('owner', 'history.accept', { history: imported[0].id, note: 'Confirmed against the retained assessment.' })
+    await api('owner', 'history.accept', { history: imported.find(row => row.score)?.id, note: 'Confirmed against the retained assessment.' })
     let refused = false
     for (let step = 0; step < 30; step++) {
       const result = await ownerRequest('apply', { planId: conflictPlan.planId, reviewedFingerprint: conflictPlan.fingerprint }, [200, 409])

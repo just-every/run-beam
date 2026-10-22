@@ -41,6 +41,13 @@ export function sourceProcedurePdf(scan = false) {
   return pdfObjects(objects)
 }
 
+// Ordinary untagged PDF: the table is represented by repeated real text coordinates.
+export function sourceUntaggedTablePdf() {
+  const runs = [[20,220,18,'Opening inspection'],[20,190,12,'Inspect the clean probe.'],[20,130,12,'Tool'],[200,130,12,'Condition'],[20,105,12,'Probe'],[200,105,12,'Clean'],[20,80,12,'Gloves'],[200,80,12,'Intact'],[20,35,12,'Record the inspection before starting.']]
+  const stream = Buffer.from(runs.map(([x,y,size,text])=>`BT /F1 ${size} Tf ${x} ${y} Td (${text}) Tj ET`).join('\n'))
+  return pdfObjects(['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Count 1 /Kids [3 0 R] >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 250] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',Buffer.concat([Buffer.from(`<< /Length ${stream.length} >>\nstream\n`),stream,Buffer.from('\nendstream')]),'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'].map(value=>Buffer.isBuffer(value)?value:Buffer.from(value)))
+}
+
 export function sourceTaggedPdf() {
   const runs = ['Prepare the station', 'Inspect the clean probe.', 'Tool', 'Condition', 'Probe', 'Clean']
   const stream = Buffer.from(runs.map((text, index) => `/Span << /MCID ${index} >> BDC BT /F1 ${index ? 12 : 18} Tf ${index === 3 || index === 5 ? 180 : 20} ${index < 2 ? 130 - index * 25 : index < 4 ? 70 : 45} Td (${text}) Tj ET EMC`).join('\n'))
