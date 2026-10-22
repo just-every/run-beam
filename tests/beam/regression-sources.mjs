@@ -212,7 +212,7 @@ export async function multimediaCheck(f) {
   for (const [kind, filename, bytes] of [
     ['image', 'synthetic-beam-1.png', syntheticImage],
     ['audio', 'synthetic-beam-2.mp3', syntheticAudio],
-    ['video', 'synthetic-beam-3.mp4', syntheticVideo],
+    ['video', 'synthetic-beam-3.webm', syntheticVideo],
     ['document', 'synthetic-beam-4.pdf', pdf],
   ]) assets[kind] = (await api('author', 'source.create', { title: `Synthetic ${kind}`, licence: 'owned', licenceEvidence: 'Generated for this integration journey', reviewer: ids.reviewer, provenance: 'Synthetic Beam media fixture', file: file(filename, bytes) })).versionId
   const captionOriginal = await api('author','source.create',{title:'Inspection captions',licence:'owned',licenceEvidence:'Employer-authored captions',reviewer:ids.reviewer,provenance:'Original captions',file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean pool.\n')})

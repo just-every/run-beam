@@ -20,7 +20,7 @@ async function assignedCourse(f, width) {
   const captions = await f.api('author','source.version',{source:captionOriginal.id,provenance:'Corrected probe terminology against the original video',file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean probe.\n')})
   const first = await edit('course.lesson', { title: 'Inspect the station', body: 'Inspect clean tools and record the temperature.', sources: [] })
   lesson = first.draft.lessons[0].id
-  for (const [index, kind, extension, bytes] of [[1, 'image', 'png', syntheticImage], [2, 'audio', 'mp3', syntheticAudio], [3, 'video', 'mp4', syntheticVideo], [4, 'document', 'pdf', sourceProcedurePdf()]]) {
+  for (const [index, kind, extension, bytes] of [[1, 'image', 'png', syntheticImage], [2, 'audio', 'mp3', syntheticAudio], [3, 'video', 'webm', syntheticVideo], [4, 'document', 'pdf', sourceProcedurePdf()]]) {
     const asset = await f.api('author', 'source.create', { title: `Inspection ${kind} original`, licence: 'owned', licenceEvidence: 'Original synthetic Beam media', reviewer: f.ids.reviewer, provenance: 'Synthetic Beam fixture', file: file(`inspection-${kind}.${extension}`, bytes) })
     await edit('course.block', { lesson, content: { kind, source: asset.versionId, text: `Station ${kind}`, ...(kind === 'video' ? {captions:{source:captions.id,language:'en',label:'English'}} : {}) } })
   }
