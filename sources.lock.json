@@ -1751,6 +1751,10 @@
       "sha256": "ac1699e03ccc00d8c84fe5668a36c847108ca00f763025ae7fc4379cc467ff22",
       "executable": false
     },
+    "src/beam/source-office-merges.ts": {
+      "sha256": "f13afee247e3e9dbe354bdfcb826b0becd9161cb12b324e8d0cbaf0fbeac319a",
+      "executable": false
+    },
     "src/beam/source-office.ts": {
       "sha256": "55e5a181ca8470d11ab46bbd5e8960e885843be4d47c40c09fcf12a0c9f331ff",
       "executable": false
