@@ -4008,7 +4008,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "55d6a26fed9389e7ac2f03f807549d8aa586e6fc1a004007e98a055dc11edd42",
+      "sha256": "33bfd22eda83d6cc64e3a7887aaac4ef4df0504c6a36fc9254fb1ec72ee74d20",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
