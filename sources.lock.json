@@ -3912,7 +3912,7 @@
       "executable": false
     },
     "tests/beam/live-source-ocr.mjs": {
-      "sha256": "2e1aab04a24660b2384e310eb831e2de6b667b6848e085b8683c01676431a60e",
+      "sha256": "50a69f97038a69f3ce7d5c92978dc8be9a2c780c04dca426d6c2e8f7825dbd24",
       "executable": false
     },
     "tests/beam/live-webhook.mjs": {

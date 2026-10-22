@@ -66,6 +66,13 @@ try {
   const receipt=(await api('owner','source-ocr')).runs.find(row=>row.state==='completed')
   assert.ok(receipt?.provider_response_id && receipt.usage)
   console.log('Actual provider OCR completed',JSON.stringify({candidate:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),model:receipt.model,providerResponseId:receipt.provider_response_id,sourceDigest:receipt.sha256,usage:receipt.usage,providerCalls:calls}))
+  for(const width of [1440,390]){
+   const completedOwner = await open(width,'owner')
+   await completedOwner.goto(`${h.origin}/app/sources/${source.versionId}/ocr`);await shot(completedOwner,width,'source-result')
+   await completedOwner.goto(h.origin+'/app/sources/ocr');await shot(completedOwner,width,'request-history')
+   await completedOwner.goto(h.origin+'/app/business');await shot(completedOwner,width,'business-costs-after')
+   assert.equal(calls,1,'reading completed OCR and costs never sends another paid request')
+  }
   const extraction=await api('author',`sources/${source.versionId}/extraction`)
   assert.ok(extraction.lessons.length>0 && !extraction.uncertainties.some(row=>row.requiresOcr))
   const text=extraction.lessons.map(row=>row.body).join('\n')
