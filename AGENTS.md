@@ -328,3 +328,36 @@ work. Native assessment gates still apply. The public learner record is
 Learning export excludes capabilities; installation archives withhold them and
 both modern/legacy restore disable access. This boundary remains subject to ct
 approval; no claim of general cmi5 conformance or browser-derived competence.
+
+
+## Five-day microlearning (AUTHOR-009, partial)
+
+A course author saves `course.sequence` with `course`, `draftVersion` and
+`sequence: { workStart, workEnd, workDays, days }`. Work hours are whole hours,
+start inclusive/end exclusive (end 24 means next midnight); workDays uses Sunday
+0 through Saturday 6 and defaults to Monday–Friday. Exactly five days name
+five distinct draft lesson ids, each short and citing source versions. Each day
+has `prompt` and 2–4 `choices: [{label, feedback, next: 'retry'|'continue'}]`,
+including at least one retry and one continue. The existing course editor
+supplies these fields; remove from draft with `remove: true`. Normal draft
+version, course authority and named human publication rules apply. Submission
+maps the selected lessons into the exact immutable revision ids.
+
+`/app/courses/:course/sequence?channel=web|sms|teams` previews the draft; add
+`revision=:id` to inspect a review/published snapshot. The SMS text and Teams
+Adaptive Card payload are local representations, not proof of provider
+rendering, sending, receipt or messaging reply. No provider call is simulated.
+The learner opens `/app/learn/:assignment/sequence` or reads
+`GET /api/beam/sequences/:assignment`. `sequence.pause` takes `assignment`,
+`version` and `pause: true|false`; `sequence.answer` adds the current `day` and
+zero-based `choice`. Both require that learner's live human access. Releases
+advance one reviewed workday at a time in the assignment zone; pause shifts the
+release anchor by elapsed paused time. Conditional versions and a unique
+continued-day record prevent duplicate advancement. Reply evidence and native
+lesson progress commit together; all existing required assessments still gate
+completion. The full web course remains available for voluntary learning.
+Only the learner and owner inspect personal reply text; no manager permission
+is added. The learning export retains program, pause state and exact-revision
+replies. Course restore and approved locale publication preserve program
+structure. Real SMS/Teams send/reply/consent qualification remains blocked on
+unprovisioned provider prerequisites under LEARN-012/NOTICE-003.
