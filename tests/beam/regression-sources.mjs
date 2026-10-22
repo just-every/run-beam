@@ -328,7 +328,8 @@ export async function multimediaBrowserCheck(f, media) {
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence, { recursive: true })
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  // Chromium's media service also needs trust for the harness's synthetic TLS certificate.
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic', '--ignore-certificate-errors'] })
   try {
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
@@ -383,7 +384,10 @@ export async function multimediaBrowserCheck(f, media) {
       await page.goto(f.h.origin + media.learnerPath)
       await page.waitForFunction(() => document.querySelector('video').readyState >= 1, { timeout: 15000 })
       await page.locator('video').evaluate(async video => { video.muted = true; await video.play() })
-      await page.waitForFunction(() => document.querySelector('video').currentTime > 0)
+      await page.waitForFunction(() => document.querySelector('video').currentTime > 0).catch(async error => {
+        console.error('Native video state', await page.locator('video').evaluate(video => ({ readyState: video.readyState, networkState: video.networkState, paused: video.paused, ended: video.ended, time: video.currentTime, error: video.error?.code, buffered: [...Array(video.buffered.length)].map((_, index) => [video.buffered.start(index), video.buffered.end(index)]) })))
+        throw error
+      })
       await page.locator('video').evaluate(video => video.pause())
       await page.locator('video track').evaluate(track=>{track.track.mode='showing'})
       await page.locator('video').evaluate(video=>{video.currentTime=0.25})

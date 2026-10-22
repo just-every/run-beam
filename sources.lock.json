@@ -3928,7 +3928,7 @@
       "executable": false
     },
     "tests/beam/mobile-learning-browser.mjs": {
-      "sha256": "16c749e646e2740702c85ad01b9a0d368bcfbebebc80ef467ba619099f48d319",
+      "sha256": "e9f7ee5e599fdabded934194aeb5be8427387d68c0ac05a44050440f01cd7892",
       "executable": false
     },
     "tests/beam/package-browser.mjs": {
@@ -4120,7 +4120,7 @@
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {
-      "sha256": "dc84f53a6c170dafe5efe6cf174b7dce65db2738ae9988472aab60fc01f403c2",
+      "sha256": "4cc08a42e6ef1f1934fbf378ff3be725a22aa0dc74fe7c78fe8161af1017a922",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {
