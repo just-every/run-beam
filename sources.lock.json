@@ -212,7 +212,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "0bf9ceda92d7336a65caebdfd0471e56b6bb4455404f4e3f4fe8ad3782d99fa3",
+      "sha256": "cd4b8423c46abc987e0a226d867782f0a2018cb57e7d67235223291a6bb191b6",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -220,7 +220,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "1ec409390730150c6c70ea085f186bcde39ad87d8d2c37046b394aff511e8680",
+      "sha256": "9986af21a35dfdd673f516133b2ac1112e38ab1a69b5af37d795b3f40c4a23cb",
       "executable": false
     },
     "base-copies.json": {
@@ -232,7 +232,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "38e508d7029e0f927686e3f99653e6ae1826edda0632babae3e64f35798d3e51",
+      "sha256": "fc94f23696e7e470c607ce4bea49c1bc44fd18951690986991c7d2d386966baf",
       "executable": false
     },
     "DEMO.md": {
@@ -1376,7 +1376,7 @@
       "executable": false
     },
     "src/beam/erasure-proposals.ts": {
-      "sha256": "430173c095442a07a8867efef8aac6b92241db0b933c40fbe8d336d65049cf1b",
+      "sha256": "80b239fe9f6f448912d27a933feb448d948200fc64db45fa274a17177bcaed87",
       "executable": false
     },
     "src/beam/erasure-run.ts": {
@@ -1384,7 +1384,7 @@
       "executable": false
     },
     "src/beam/erasure-snapshots.ts": {
-      "sha256": "df1d5e097106bdbab858a3045df820c417008c8ac5bc87de5b0b8ee749a36f2b",
+      "sha256": "7a0cd66d897d13ac00b85fee661ace3c7fc214e92d6da3fa6988cf3e94143846",
       "executable": false
     },
     "src/beam/erasure.ts": {
@@ -4192,7 +4192,7 @@
       "executable": false
     },
     "tests/beam/source-browser.mjs": {
-      "sha256": "84615bcdeaa517421bf389e096b1937643c8c5339b6d19d875ad48db84efaa21",
+      "sha256": "a58364330b8f8ee3a20f605985582a13f00ac67cd52c726ffcacd30e39e77c96",
       "executable": false
     },
     "tests/beam/source-fixtures.mjs": {

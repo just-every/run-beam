@@ -1,3 +1,4 @@
+import { htmlCompanionZip } from './source-html-fixtures.mjs'
 import { taggedMergedPdf } from './source-pdf-fixtures.mjs'
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
@@ -30,7 +31,7 @@ export async function sourceBrowserCheck(f) {
           if (overflow) console.log('source layout overflow', await page.evaluate(() => [...document.querySelectorAll('main *')].map(node => ({tag:node.tagName,kind:node.className,right:Math.round(node.getBoundingClientRect().right),width:Math.round(node.getBoundingClientRect().width)})).filter(node=>node.right>innerWidth).slice(0,12)))
           assert.equal(overflow, false, `${name}: horizontal overflow at ${width}`)
         }
-        async function upload(title, name, buffer) {
+        async function upload(title, name, buffer, target = course) {
           await page.goto(`${f.h.origin}/app/sources`)
           const form = page.locator('form[action="/app/do/source.create"]')
           await form.getByLabel('Title', { exact: true }).fill(title)
@@ -41,7 +42,7 @@ export async function sourceBrowserCheck(f) {
           await form.getByRole('button', { name: 'Add source', exact: true }).click()
           const source = page.locator('section.card').filter({ has: page.getByRole('heading', { name: title, exact: true }) })
           await source.getByRole('link', { name: 'Prepare lessons', exact: true }).click()
-          await page.getByLabel('Draft course', { exact: true }).selectOption(course.id)
+          await page.getByLabel('Draft course', { exact: true }).selectOption(target.id)
           await page.getByRole('button', { name: 'Prepare for this course', exact: true }).click()
         }
         const shift = width === 390 ? 'Evening' : 'Morning'
@@ -120,6 +121,31 @@ export async function sourceBrowserCheck(f) {
         assert.equal(await page.getByRole('cell', { name: 'Sanitized', exact: true }).count(), 1)
         await shot(`merged-table-${format}-learner`)
         }
+        await as('author')
+        const htmlCourse = await f.api('author', 'course.create', { title: `${shift} packaged HTML inspection`, reviewer: f.ids.reviewer })
+        await upload(`${shift} HTML procedure and companion images`, 'synthetic-beam-19.html.zip', htmlCompanionZip({nested:true}), htmlCourse)
+        const htmlImage = page.getByRole('img', { name: 'Probe placement', exact: true })
+        await htmlImage.evaluate(image => image.decode())
+        await page.getByLabel('Accessible image description', { exact: true }).fill('Probe placement beside clean tools')
+        await page.getByLabel('Row 2, cell 2', { exact: true }).fill('Sanitized')
+        await page.getByLabel('I compared the extracted lessons', { exact: false }).check()
+        await shot('html-companion-correction')
+        await page.getByRole('button', { name: 'Add reviewed lessons to draft', exact: true }).click()
+        await page.waitForURL(url => url.pathname === `/app/courses/${htmlCourse.id}`)
+        assert.equal(new URL(page.url()).searchParams.get('error'), null)
+        await page.getByRole('button', { name: 'Submit for review', exact: true }).click()
+        const htmlRevision = (await f.api('author', `courses/${htmlCourse.id}`)).revisions.find(item => item.state === 'in_review').id
+        await as('reviewer')
+        await page.goto(`${f.h.origin}/app/revisions/${htmlRevision}`)
+        await page.getByRole('img', { name: 'Probe placement beside clean tools', exact: true }).evaluate(image => image.decode())
+        await shot('html-companion-human-review')
+        await page.getByRole('button', { name: 'Publish this revision', exact: true }).click()
+        const htmlAssignment = await f.assign(htmlCourse), htmlLearning = await f.view(htmlAssignment)
+        await as('learner')
+        await page.goto(`${f.h.origin}/app/learn/${htmlAssignment}/lessons/${htmlLearning.lessons[0].id}`)
+        await page.getByRole('img', { name: 'Probe placement beside clean tools', exact: true }).evaluate(image => image.decode())
+        assert.equal(await page.getByRole('cell', { name: 'Sanitized', exact: true }).count(), 1)
+        await shot('html-companion-learner')
         console.log(`PASS source browser original/correction/table/image/review/publication/scan-refusal ${width}`)
       } finally { await context.close() }
     }

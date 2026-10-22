@@ -13,7 +13,7 @@ export async function ruleSnapshots(env: Bindings, member: string) {
       SELECT ?1 UNION SELECT id FROM beam_assignments WHERE learner_id=?1
       UNION SELECT id FROM beam_completions WHERE learner_id=?1
       UNION SELECT email FROM beam_members WHERE id=?1
-    )) ORDER BY id`, member)
+    )) ORDER BY id LIMIT 40`, member)
   return Promise.all(rows.map(async row => ({ id: row.id, name: row.name, state: row.state,
     digest: await sha256Hex(new TextEncoder().encode(row.preview_json)) })))
 }

@@ -248,7 +248,7 @@ Authors use Sources → Prepare lessons, or `GET /api/beam/sources/:versionId/ex
 for bounded DOCX/PPTX ZIPs, inert HTML, UTF-8 text/Markdown and PDFs. Extraction
 retains immutable provenance, located original passages, editable tables and
 accessible raster image assets; no remote document resources are fetched. Tagged
-PDF tables and unambiguous repeated rectangular rows are preserved; complex
+PDF authored order and bounded rectangular table spans, unambiguous repeated rows and package-local HTML ZIP images are preserved; complex
 layouts and unsupported objects remain explicit warnings/gaps. The authenticated
 original stays available beside the extraction. `source.convert` requires checked
 comparison, resolved uncertainty ids, current draft version and source-bound
@@ -272,7 +272,7 @@ journals import/native/file/provider steps; practice replies are deleted even
 when assessed evidence is held. Import custody includes uploads/chunks, plans,
 approvals, scope and apply failures while permanent settings and revoked keys
 remain. Personal audit payload/routes are redacted while decision ids and times
-survive. Unmapped references/shared machine snapshots refuse execution. The owner may separately withdraw complete affected follow-on dry runs through the custody preview, with fresh digest consent; this pauses their rules and requires a new dry run before activation. Other shared snapshot classes remain refused. Provider
+survive. Unmapped references/shared machine snapshots refuse execution. The owner may separately withdraw complete affected follow-on dry runs through the custody preview, with fresh digest consent; this pauses their rules and requires a new dry run before activation. Waiting/declined agent preparations without outcome dependencies may also be explicitly withdrawn; stored text is removed, original decision state and value-free lineage remain, old decisions are refused and the privacy checkpoint advances. Approved/dependent work and other shared snapshot classes remain refused. Provider
 API deletion remains visibly unresolved, never reported as success. Reconnects
 are fenced by installation-specific hashes; older restores require the later
 trusted privacy journal. Journal loss, downloaded/native caches, derived cited
