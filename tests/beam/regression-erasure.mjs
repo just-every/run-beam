@@ -22,7 +22,7 @@ export async function erasureCheck() {
   const ownerRequest = async (action, body, expected = 200) => {
     const response = await h.fetch(`/api/operator/import/${action}`, { method: 'POST', headers: { 'content-type': 'application/json', origin: h.origin, 'X-Import-Source': 'talentlms', cookie: cookies.owner }, body: JSON.stringify(body) })
     const result = await response.json()
-    assert.equal(response.status, expected, `${action}: ${JSON.stringify(result).slice(0,200)}`)
+    assert.ok([expected].flat().includes(response.status), `${action}: ${response.status} ${JSON.stringify(result).slice(0,200)}`)
     return result
   }
   const upload = async (bytes, name = 'talentlms.json') => {
@@ -59,7 +59,13 @@ export async function erasureCheck() {
     const conflictBundle = Buffer.from(JSON.stringify({ ...JSON.parse(bundle), reports: [{ course: '101', file: file('course-101.xlsx', courseReport({ learnerEmail: 'learner@example.test', score: 95 })) }], exportNote: 'Second reviewed snapshot' }))
     const conflictPlan = await ownerRequest('plan', { uploadId: await upload(conflictBundle), catchup: true })
     await api('owner', 'history.accept', { history: imported[0].id, note: 'Confirmed against the retained assessment.' })
-    await ownerRequest('apply', { planId: conflictPlan.planId, reviewedFingerprint: conflictPlan.fingerprint }, 409)
+    let refused = false
+    for (let step = 0; step < 30; step++) {
+      const result = await ownerRequest('apply', { planId: conflictPlan.planId, reviewedFingerprint: conflictPlan.fingerprint }, [200, 409])
+      if (result.error) { assert.match(result.error, /^import_door_apply_/); refused = true; break }
+      assert.notEqual(result.job?.state, 'completed', 'a target edited after review cannot complete apply')
+    }
+    assert.ok(refused, 'bounded apply reaches the edited row and records the refusal')
     const failed = await ownerRequest('status', { planId: conflictPlan.planId })
     assert.ok(failed.failureCode, 'a real failed apply is present before erasure')
     // Source erasure executes with import-door custody present too; a hold retains the original.

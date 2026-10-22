@@ -75,7 +75,7 @@ export async function mobileLearningBrowserCheck(f) {
           assert.ok(rect && rect.width >= 44 && rect.height >= 44, 'primary touch control is at least 44px')
         }
         await page.goto(`${f.h.origin}/app/learning`)
-        await activate(page.getByRole('link', { name: c.title, exact: true }))
+        await activate(page.getByRole('link', { name: new RegExp(`^${c.title}`) }))
         await shot('assignment')
         await activate(page.getByRole('link', { name: 'Start', exact: true }))
         await page.locator('[data-save-enhanced=true]').waitFor()
