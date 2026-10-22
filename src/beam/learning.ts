@@ -1,4 +1,5 @@
 import { packageRequirements } from './packages/runtime'
+import { xapiRequirements } from './packages/xapi-launch'
 import { ltiRequirements } from './lti-requirements'
 // Flows 6-9: learners resume lessons, take deterministic quizzes and submit
 // practical evidence; completion is recorded only when every requirement of the
@@ -120,6 +121,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
     packages: await packageRequirements(env, assignment),
+    xapiActivities: await xapiRequirements(env, assignment),
     externalTools: await ltiRequirements(env, assignment),
     quiz: state.quizRequired ? { passPercent: assessment!.pass_percent, attemptsLeft: state.quizAttemptsLeft, passed: state.quizPassed, grading: state.quizGrading, bank: assessment!.questions.length, draw: assessment!.draw_count ?? null, shuffle: assessment!.shuffle === 1, feedback: assessment!.feedback ?? 'attempt', points: asked.reduce((sum, question) => sum + weightOf(question), 0), questions: (launchable ? asked : []).map(presentQuestion), ...timed! } : null,
     attendance: state.attendance.required === null ? null : { percent: state.attendance.required, met: state.attendance.met, record: state.attendance.record },
@@ -373,12 +375,14 @@ export async function tryComplete(env: Bindings, actor: Actor, assignmentId: str
   const state = await progress(env, assignment)
   const externalTools = await ltiRequirements(env, assignment)
   const packages = await packageRequirements(env, assignment)
+  const xapiActivities = await xapiRequirements(env, assignment)
+  if (xapiActivities.some(activity => !activity.passed)) return null
   if (packages.some(pkg => pkg.scos.some(sco => sco.required && (!sco.completed || sco.failed)))) return null
   if (externalTools.some(tool => !tool.passed) || !state.lessonsComplete || (state.quizRequired && !state.quizPassed) || (state.practicalRequired && !state.practicalAccepted) || !state.attendance.met) return null
   const assessment = state.content.assessment
   const quiz = state.attempts.find(attempt => attempt.kind === 'quiz' && attempt.passed === 1)
   const practical = state.attempts.find(attempt => attempt.kind === 'practical' && attempt.state === 'accepted')
-  const evidence = { ...(packages.length ? { packages: packages.map(pkg => ({ package: pkg.id, revision: assignment.course_revision_id, scos: pkg.scos.map(sco => ({ sco: sco.id, run: sco.run, completed: sco.completed, passed: sco.passed })) })) } : {}), ...(externalTools.length ? { externalTools: externalTools.map(tool => ({ resource: tool.resource, lineitem: tool.lineitem, result: tool.result, revision: assignment.course_revision_id })) } : {}), lessons: state.content.lessons.map(lesson => lesson.id), quizAttempt: quiz?.id ?? null, practicalAttempt: practical?.id ?? null, ...(state.attendance.record ? { attendance: state.attendance.record.id } : {}) }
+  const evidence = { ...(xapiActivities.length ? { xapiActivities: xapiActivities.map(activity => ({ activity: activity.id, launch: activity.launch, registration: activity.registration, revision: assignment.course_revision_id, rule: activity.rule })) } : {}), ...(packages.length ? { packages: packages.map(pkg => ({ package: pkg.id, revision: assignment.course_revision_id, scos: pkg.scos.map(sco => ({ sco: sco.id, run: sco.run, completed: sco.completed, passed: sco.passed })) })) } : {}), ...(externalTools.length ? { externalTools: externalTools.map(tool => ({ resource: tool.resource, lineitem: tool.lineitem, result: tool.result, revision: assignment.course_revision_id })) } : {}), lessons: state.content.lessons.map(lesson => lesson.id), quizAttempt: quiz?.id ?? null, practicalAttempt: practical?.id ?? null, ...(state.attendance.record ? { attendance: state.attendance.record.id } : {}) }
   return await recordCompletion(env, actor, { assignment: assignment.id, learner: assignment.learner_id, course: assignment.course_id, revision: assignment.course_revision_id, assessmentRevision: assessment?.id ?? null, method: assessment ? 'assessed' : 'lessons', evidence, renewalDays: assignment.renewal_days })
 }
 

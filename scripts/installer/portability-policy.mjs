@@ -5,8 +5,17 @@
 // travels unchanged: who issued, scoped, rotated or revoked the grant, and when. On restore, migration 0070 marks the
 // grants it brings back disabled until the owner reissues them (rotate a credential; create a new link). Nothing here
 // changes the archive's secret or configuration inventory, so archives made before this policy still restore.
+import { createHash } from 'node:crypto'
+
 export const WITHHELD = 'withheld'
 const LINKS = new Set(['beam_certificate_links', 'beam_dashboard_shares'])
+// Playback session ids are bearer capabilities. Keep a stable, irreversible
+// evidence identity shared by sessions and events, never the original id.
+const packageSession = id => /^withheld:[a-f0-9]{64}$/.test(id) ? id : `${WITHHELD}:${createHash('sha256').update(`beam-package-session\0${id}`).digest('hex')}`
+const endedSession = row => {
+  const endedAt = row.ended_at ?? Date.now()
+  return { ...row, auth_session_id: WITHHELD, ended_at: endedAt, expires_at: Math.min(row.expires_at, endedAt) }
+}
 
 export default {
   product: 'learning/beam',
@@ -14,6 +23,12 @@ export default {
   buckets: { files: { prefix: 'sha256/' } },
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   exportRow(table, row) {
+    if (table === 'beam_package_sessions') return { ...endedSession(row), id: packageSession(row.id) }
+    if (table === 'beam_package_events') return { ...row, session_id: packageSession(row.session_id) }
+    // xAPI registration and launch ids identify evidence, not authentication.
+    if (table === 'beam_xapi_launches') return endedSession(row)
+    if (table === 'beam_xapi_connections') return { ...row, authorization_sealed: WITHHELD, revoked_at: row.revoked_at ?? Date.now() }
+    if (table === 'beam_xapi_activities') return { ...row, producer_sealed: WITHHELD, revoked_at: row.revoked_at ?? Date.now() }
     if (table === 'beam_lti_platform_keys') return { ...row, private_cipher: WITHHELD }
     if (table === 'beam_webhook_subscriptions') return { ...row, key_cipher: WITHHELD, enabled: 0 }
     if (table === 'beam_app_credentials') return { ...row, secret_sha256: WITHHELD }

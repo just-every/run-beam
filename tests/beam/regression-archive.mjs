@@ -159,3 +159,119 @@ export async function renewalNoticeArchiveCheck(f, rule) {
     } finally { await t.close() }
   } finally { await rm(scratch, { recursive: true, force: true }) }
 }
+
+// PACK-001/003 inherit OPS-007: learning evidence travels; playback and LRS
+// authority do not. Call once with a combined SCORM/xAPI fixture, or omit the
+// xAPI fields for a package-only qualification. Fixtures are created through
+// the existing public package and xAPI HTTP doors by the caller.
+// expected: { packageAssignment?, packageSession?, xapiAssignment?,
+//             xapiConnection?, xapiActivity?, xapiStatement?, completion? }
+export async function packageArchiveCheck(f, expected) {
+  // Archive import may allocate different SQLite rowids; compare complete records by stable content.
+  const stable = rows => [...rows].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+  const retained = ['beam_packages', 'beam_package_assets', 'beam_revision_packages', 'beam_package_runs',
+    'beam_revision_xapi', 'beam_xapi_actors', 'beam_xapi_statements', 'beam_xapi_attachments', 'beam_completions']
+  const authority = ['beam_package_sessions', 'beam_package_events', 'beam_xapi_connections', 'beam_xapi_activities', 'beam_xapi_launches']
+  const source = Object.fromEntries(await Promise.all([...retained, ...authority].map(async table => [table, (await f.h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results])))
+  assert.ok(source.beam_package_sessions.length, 'archive qualification needs a real package launch')
+  if (expected.packageSession) assert.ok(source.beam_package_sessions.some(row => row.id === expected.packageSession))
+  if (expected.xapiStatement) assert.ok(source.beam_xapi_statements.some(row => row.id === expected.xapiStatement && row.status === 'accepted'))
+  if (expected.completion) assert.ok(source.beam_completions.some(row => row.id === expected.completion))
+  const packageEvidence = expected.packageAssignment ? await f.api('owner', `package-evidence/${expected.packageAssignment}`) : null
+  const xapiEvidence = expected.xapiAssignment ? await f.api('owner', `xapi-evidence/${expected.xapiAssignment}`) : null
+  const assignments = [...new Set([expected.packageAssignment, expected.xapiAssignment].filter(Boolean))]
+  const completions = new Map(await Promise.all(assignments.map(async id => [id, (await f.api('owner', `assignments/${id}`)).completion])))
+  const scratch = await mkdtemp(join(tmpdir(), 'beam-package-archive-'))
+  try {
+    const archive = join(scratch, 'packages.rer'), legacy = join(scratch, 'legacy-packages.rer')
+    await exportArchive(await createPortability({ db: f.h.db, buckets: { files: f.h.files }, policy }), archive)
+    const records = []
+    for await (const record of fileRecords(archive, readArchive)) if (record.kind === 'part') records.push(...record.items.filter(item => item.kind === 'row'))
+    const archived = table => records.filter(item => item.table === table).map(item => item.row)
+    const text = await readFile(archive, 'utf8')
+    const secrets = [...source.beam_package_sessions.flatMap(row => [row.id, row.auth_session_id]),
+      ...source.beam_xapi_launches.map(row => row.auth_session_id),
+      ...source.beam_xapi_connections.map(row => row.authorization_sealed),
+      ...source.beam_xapi_activities.map(row => row.producer_sealed), f.h.vars.SESSION_SECRET, f.h.vars.MAIL_API_KEY]
+    assert.ok(secrets.filter(value => value && value !== WITHHELD).every(value => !text.includes(value)), 'archive contains no playback capability, parent session id, sealed producer/LRS credential or installation secret')
+    const remapped = new Map(source.beam_package_events.map(event => [event.session_id, archived('beam_package_events').find(row => row.id === event.id)?.session_id]))
+    for (const session of source.beam_package_sessions) {
+      const id = remapped.get(session.id)
+      assert.ok(id?.startsWith('withheld:') && id !== session.id, 'playback capability becomes an irreversible evidence identity')
+      assert.ok(archived('beam_package_sessions').some(row => row.id === id), 'event foreign keys retain their session lineage')
+    }
+    const { exportRow, ...unwithheld } = policy
+    await exportArchive(await createPortability({ db: f.h.db, buckets: { files: f.h.files }, policy: unwithheld }), legacy)
+    for (const [path, modern] of [[archive, true], [legacy, false]]) {
+      const target = await harness({ bindings: { BEAM_XAPI_HOSTS: f.h.vars.BEAM_XAPI_HOSTS ?? 'synthetic-beam-1.example.test' } })
+      try {
+        await importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations }), path)
+        assert.equal((await target.raw('/auth/bootstrap', { body: { token: target.vars.SETUP_TOKEN, displayName: 'Owner' } })).status, 303)
+        const owner = await target.signIn('owner@example.test')
+        await target.raw('/setup', { cookie: owner, form: new URLSearchParams({ confirm: 'yes' }) })
+        // This database read is the same archive-fidelity check used by the
+        // existing integration archive proof; live behavior is asserted below.
+        for (const table of retained) assert.deepEqual(stable((await target.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results), stable(source[table]), `${table}: exact evidence survives ${modern ? 'withheld' : 'legacy'} restore`)
+        const sessions = (await target.db.prepare('SELECT * FROM beam_package_sessions ORDER BY rowid').all()).results
+        assert.equal(sessions.length, source.beam_package_sessions.length)
+        for (const session of sessions) {
+          const original = source.beam_package_sessions.find(row => (modern ? remapped.get(row.id) : row.id) === session.id)
+          assert.ok(original)
+          const { id, auth_session_id, expires_at, ended_at, ...lineage } = session
+          const { id: oldId, auth_session_id: oldAuth, expires_at: oldExpiry, ended_at: oldEnd, ...originalLineage } = original
+          assert.deepEqual(lineage, originalLineage)
+          assert.ok(auth_session_id === WITHHELD && ended_at !== null && expires_at <= Date.now(), 'restored playback sessions are terminal')
+          assert.equal(id, modern ? remapped.get(oldId) : oldId, 'restored session retains the archive evidence identity')
+          const asset = (await target.raw(`/beam-package/${encodeURIComponent(id)}/index.html`)).status
+          assert.ok([403, 404].includes(asset), 'restored session cannot serve a package asset')
+          assert.ok([403, 404].includes((await target.raw(`/beam-package/${oldId}/index.html`)).status), 'the original capability cannot serve an asset')
+        }
+        const events = (await target.db.prepare('SELECT * FROM beam_package_events ORDER BY rowid').all()).results
+        assert.deepEqual(stable(events), stable(source.beam_package_events.map(row => ({ ...row, session_id: modern ? remapped.get(row.session_id) : row.session_id }))), 'all runtime events retain their linked session, values and timing')
+        if (packageEvidence) {
+          const restored = await target.api(`package-evidence/${expected.packageAssignment}`, owner)
+          assert.deepEqual(stable(restored.runs), stable(packageEvidence.runs))
+          assert.deepEqual(stable(restored.events), stable(packageEvidence.events), 'restored package evidence remains publicly readable')
+        }
+        for (const assignment of assignments) assert.deepEqual((await target.api(`assignments/${assignment}`, owner)).completion, completions.get(assignment), 'restored native completion keeps its exact revision and evidence')
+        const exported = await target.raw('/app/data-export.json', { cookie: owner }).then(response => response.json())
+        for (const pkg of source.beam_packages.filter(row => !row.export_restriction)) {
+          const original = exported.files.find(item => item.id === pkg.id)
+          assert.ok(original, 'restored package originals remain in learning-data export')
+          const bytes = await target.raw(original.href, { cookie: owner })
+          assert.equal(bytes.status, 200)
+          assert.equal(sha(Buffer.from(await bytes.arrayBuffer())), pkg.original_sha256, 'restored original package bytes are intact')
+        }
+        if (!expected.xapiActivity) continue
+        const configuration = await target.api('xapi', owner)
+        assert.ok(configuration.connections.find(row => row.id === expected.xapiConnection)?.revoked_at, 'restored LRS consent is terminal')
+        assert.ok(configuration.activities.find(row => row.id === expected.xapiActivity)?.revoked_at, 'restored producer consent is terminal')
+        const ciphers = (await target.db.prepare('SELECT authorization_sealed FROM beam_xapi_connections UNION ALL SELECT producer_sealed FROM beam_xapi_activities').all()).results
+        assert.ok(ciphers.every(row => row.authorization_sealed === WITHHELD), 'legacy restore erases credential ciphers as well as revoking them')
+        const launches = (await target.db.prepare('SELECT * FROM beam_xapi_launches ORDER BY rowid').all()).results
+        assert.equal(launches.length, source.beam_xapi_launches.length)
+        for (const launch of launches) {
+          const { auth_session_id, expires_at, ended_at, ...lineage } = launch
+          const { auth_session_id: oldAuth, expires_at: oldExpiry, ended_at: oldEnd, ...originalLineage } = source.beam_xapi_launches.find(row => row.id === launch.id)
+          assert.deepEqual(lineage, originalLineage, 'launch ids, registrations and outcomes remain exact evidence')
+          assert.ok(auth_session_id === WITHHELD && ended_at !== null && expires_at <= Date.now(), 'restored xAPI launches are terminal')
+        }
+        if (xapiEvidence) {
+          const evidence = await target.api(`xapi-evidence/${expected.xapiAssignment}`, owner)
+          assert.deepEqual(stable(evidence.statements), stable(xapiEvidence.statements))
+          assert.deepEqual(stable(evidence.attachments), stable(xapiEvidence.attachments))
+          for (const attachment of evidence.attachments) {
+            const response = await target.raw(`/app/xapi/attachments/${attachment.statement_id}/${attachment.sha256}`, { cookie: owner })
+            assert.equal(response.status, 200)
+            assert.equal(sha(Buffer.from(await response.arrayBuffer())), attachment.sha256, 'restored statement attachment bytes survive')
+          }
+        }
+        const actor = await target.api('me', owner), activity = source.beam_xapi_activities.find(row => row.id === expected.xapiActivity)
+        const assigned = await target.api('assignment.create', owner, { course: activity.course_id, learners: [actor.id], dueDate: '2030-10-01' })
+        const refused = await target.api('xapi.launch', owner, { assignment: assigned.created[0] ?? assigned.kept[0], activity: activity.id }, 403)
+        assert.equal(refused.error, 'xapi_activity_not_assigned', 'a fresh owner session cannot launch a revoked restored producer')
+      } finally { await target.close() }
+    }
+    console.log('PASS package archives withhold capabilities and credentials, fence legacy access and preserve exact learning evidence')
+  } finally { await rm(scratch, { recursive: true, force: true }) }
+}

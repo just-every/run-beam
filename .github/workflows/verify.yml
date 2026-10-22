@@ -30,11 +30,11 @@ jobs:
       - run: node tests/beam/dev-personas.mjs
   verify:
     runs-on: ubuntu-latest
-    # The complete wall is split with durability below so every push job finishes within 15 minutes.
+    # The complete wall is split with durability and package custody below so every push job finishes within 15 minutes.
     timeout-minutes: 15
     env:
       CI: 'true'
-      BEAM_REGRESSION_EXCLUDE: 'OPS-007,AUTO-004'
+      BEAM_REGRESSION_EXCLUDE: 'OPS-007,AUTO-004,PACK-003-custody'
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -83,6 +83,28 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=OPS-007,AUTO-004
+  package-custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reclaim unused hosted-runner SDKs
+        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
+        run: |
+          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=PACK-003-custody
   source:
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -1,3 +1,5 @@
+import { connectLrs, createXapiActivity, revokeXapi, removeXapiActivity } from './packages/xapi-catalog'
+import { launchXapi } from './packages/xapi-launch'
 import { importPackage, removePackage } from './packages/catalog'
 import { launchPackage, saveRuntime } from './packages/runtime'
 import { configureGustoLanguage, revokeGustoLanguage, pullGustoLanguage } from './connect/gusto-language'
@@ -90,6 +92,7 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'xapi.connect': connectLrs, 'xapi.activity': createXapiActivity, 'xapi.revoke': revokeXapi, 'xapi.remove': removeXapiActivity, 'xapi.launch': launchXapi,
   'package.import': importPackage, 'package.remove': removePackage, 'package.launch': launchPackage, 'package.runtime': saveRuntime,
   'lti.register': registerLti, 'lti.keys': rotateLtiKeys, 'lti.revoke': revokeLti,
   'lti.platform.rotate': rotateLtiPlatform, 'lti.deep-link': deepLinkLti, 'lti.attach': attachLti, 'lti.launch': launchLti, 'lti.reconcile': reconcileLti,

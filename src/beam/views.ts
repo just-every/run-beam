@@ -1,3 +1,4 @@
+import { xapiView } from './packages/xapi-catalog'
 import { gustoLanguageView } from './connect/gusto-language'
 import { localeView } from './course-locales'
 import { ltiView } from './lti'
@@ -74,6 +75,7 @@ export const views: Record<string, View> = {
   'gusto-language': gustoLanguageView,
   language: languageSettings,
   lti: ltiView,
+  xapi: xapiView,
   'escalation-policy': async (env, actor) => { requireOwner(actor); return await escalationPolicy(env) },
   notifications: (env, actor) => notificationInbox(env, actor),
   'notification-rules': (env, actor) => notificationRulesView(env, actor),
@@ -156,7 +158,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
-  [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'],
+  [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'], [/^xapi$/, 'xapi'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],
   [/^escalation-policy$/, 'escalation-policy'],
   [/^notifications$/, 'notifications'], [/^notification-rules$/, 'notification-rules'],

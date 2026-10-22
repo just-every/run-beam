@@ -17,6 +17,10 @@ export interface Bindings {
  BEAM_WEBHOOK_HOSTS?: string
  /** Server-admitted external LTI tool hostnames; empty denies registrations and launches. */
  BEAM_LTI_HOSTS?: string
+ /** Owner-admitted LRS and learning activity hosts; empty denies external xAPI connections. */
+ BEAM_XAPI_HOSTS?: string
+ /** Isolated local qualification only; effective solely when AUTH_ORIGIN is loopback. */
+ BEAM_XAPI_LOCAL_SANDBOX?: string
  DB: D1Database
  /** Content-addressed source, evidence and attachment bytes. */
  FILES: R2Bucket

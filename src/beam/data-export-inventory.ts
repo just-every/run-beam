@@ -28,6 +28,13 @@ export const LEARNING_INVENTORY = {
   beam_package_runs: 'id, assignment_id, package_id, sco_id, state_json, total_time, version, updated_at',
   // Playback sessions grant asset access. Raw runtime events retain their run lineage without that capability.
   beam_package_events: 'id, run_id, event, payload_json, at',
+  // LRS connection configuration, sealed producer keys and authentication session IDs are never interchange data.
+  beam_xapi_actors: 'connection_id, learner_id, actor_name',
+  beam_xapi_activities: 'id, course_id, title, activity_iri, launch_url, objectives, source_version_ids, rule, created_by, created_at, revoked_at',
+  beam_revision_xapi: 'course_revision_id, activity_id, position',
+  beam_xapi_launches: 'id, assignment_id, activity_id, actor_id, registration, created_at, expires_at, ended_at, outcome',
+  beam_xapi_statements: 'id, launch_id, digest, original_json, status, received_at, accepted_at, lrs_stored, failure',
+  beam_xapi_attachments: 'statement_id, sha256, size, media_type, filename',
   beam_assessment_revisions: 'id, course_revision_id, questions_json, pass_percent, max_attempts, practical_instructions, assessor_id, time_limit_minutes, draw_count, shuffle, feedback',
   beam_paths: 'id, name, team_id, current_revision_id, created_at',
   beam_path_revisions: 'id, path_id, number, created_by, created_at',

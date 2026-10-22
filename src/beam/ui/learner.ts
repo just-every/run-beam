@@ -1,3 +1,5 @@
+import { xapiUrl } from '../packages/xapi-catalog'
+import { learnerXapi } from './xapi'
 import { learnerPackages } from './packages'
 import { localeRevisionLanguage } from '../course-locales'
 import { historyCredits } from './history-credits'
@@ -126,9 +128,15 @@ ${view.dueExceptions.length ? h`<p class="muted">${view.dueExceptions.map(change
 ${view.blocked ? h`<p class="flash">${t(actor, 'Complete the prerequisite course first; your manager can see this requirement.')}</p>` : ''}
 ${resetNotice}${exceptionNotice(view, a, zone, actor.locale)}${a.status === 'open' ? accessBanner(view.access, zone, actor.locale) : ''}
 ${launchable && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? t(actor, 'Resume') : t(actor, 'Start')}</a></p>` : ''}
-${completion}${learnerPackages(view.packages, id, launchable && !view.blocked && a.learner === actor.id && !actor.viewAs)}${view.externalTools.length ? card(t(actor, 'External learning tools'), h`${view.externalTools.map(tool => h`<div><h3>${tool.title}</h3><p>${tool.passed ? t(actor, 'Required grade received') : t(actor, 'Required grade: {percent}%', { percent: localeNumber(actor, tool.passPercent) })}. ${t(actor, 'Native lessons and assessment are still required.')}</p>${launchable && !view.blocked && a.learner === actor.id && !actor.viewAs ? h`<form method="post" action="/app/lti/launch">${hidden('assignment', id)}${hidden('resource', tool.resource)}<button type="submit">${t(actor, 'Open {title}', { title: tool.title })}</button></form>` : ''}</div>`)}${launchable && !view.blocked && a.learner === actor.id && !actor.viewAs ? form('lti.reconcile', `/app/learn/${id}`, [hidden('assignment', id)], t(actor, 'Check external results'), { secondary: true }) : ''}`) : ''}
+${completion}${learnerXapi(view.xapiActivities, id, launchable && !view.blocked && a.learner === actor.id && !actor.viewAs)}${learnerPackages(view.packages, id, launchable && !view.blocked && a.learner === actor.id && !actor.viewAs)}${view.externalTools.length ? card(t(actor, 'External learning tools'), h`${view.externalTools.map(tool => h`<div><h3>${tool.title}</h3><p>${tool.passed ? t(actor, 'Required grade received') : t(actor, 'Required grade: {percent}%', { percent: localeNumber(actor, tool.passPercent) })}. ${t(actor, 'Native lessons and assessment are still required.')}</p>${launchable && !view.blocked && a.learner === actor.id && !actor.viewAs ? h`<form method="post" action="/app/lti/launch">${hidden('assignment', id)}${hidden('resource', tool.resource)}<button type="submit">${t(actor, 'Open {title}', { title: tool.title })}</button></form>` : ''}</div>`)}${launchable && !view.blocked && a.learner === actor.id && !actor.viewAs ? form('lti.reconcile', `/app/learn/${id}`, [hidden('assignment', id)], t(actor, 'Check external results'), { secondary: true }) : ''}`) : ''}
 <div class="${view.lessons.length ? 'split' : 'stack'}">${lessons}<div class="stack">${moved}${feedbackCard}${quiz}${surveyCard(id, view, actor)}${practical}${attendance}${practiceCard}${attempts}${history}${access}${blockers}${manage}${exceptions}</div></div>`
-  return page(a.courseTitle, actor, body, { current: '/app/learning', url })
+  const response = page(a.courseTitle, actor, body, { current: '/app/learning', url })
+  const targets = new Set<string>()
+  if (a.learner === actor.id && launchable && !view.blocked && !actor.viewAs) for (const activity of view.xapiActivities) {
+    try { targets.add(new URL(xapiUrl(env, activity.launch_url)).origin) } catch { /* A removed host remains denied. */ }
+  }
+  if (targets.size) response.headers.set('content-security-policy', response.headers.get('content-security-policy')!.replace("form-action 'self'", `form-action 'self' ${[...targets].join(' ')}`))
+  return response
 }
 
 export async function lessonPage(env: Bindings, actor: Actor, id: string, lessonId: string, url: URL) {

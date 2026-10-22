@@ -26,8 +26,14 @@ original ZIP identity. Revision links join packages to the exact course revision
 runtime runs join an assignment, package and SCO to stored state and total time.
 Raw runtime events retain their run ID, event, payload and time. Playback sessions
 and event `session_id` fields are withheld because they grant package asset access.
-These records are not
-an authorization database and cannot sign anyone in.
+xAPI activity metadata and revision links retain the exact title, objectives,
+activity IRI, launch URL and source-version citations. Launch records join the
+activity, assignment and learner to their pseudonymous registration and outcome;
+the launch ID and registration retain evidence context without authenticating a
+request. Statement records retain the original JSON, its digest, launch lineage,
+receipt and acceptance times, LRS storage time and any recorded failure. Original
+JSON is preserved without adding an authority. These records are not an
+authorization database and cannot sign anyone in.
 
 `files` lists each source version and evidence attachment with its stable record
 ID, original filename, media type, byte size, SHA-256 and `href`. Download each
@@ -38,6 +44,9 @@ its downloadable PDF; certificate records/templates/corrections retain the exact
 historical evidence independently of the PDF's current corrected display. Each
 PDF and each decided signature evidence download (`signatures`) also has its
 byte size and SHA-256; download and verify it before treating the export as complete.
+xAPI attachments are employer-authorized evidence with no separate export
+restriction. Their `files` entries retain the statement ID, filename, media type,
+size and digest, and use the same authenticated owner download door.
 
 The file inventory retains recorded source licence and licence evidence. Each
 package's original ZIP and every extracted asset also retains its package ID,
@@ -55,6 +64,9 @@ before shipping, with any licence-limited file explicitly enumerated.
 
 The format deliberately contains learning records, not auth sessions, provider
 settings, model keys, application/preparation credentials or sharing tokens.
+It also withholds xAPI LRS connection records, sealed producer credentials and
+launch `auth_session_id` values. Statement JSON remains learning evidence rather
+than connection configuration or an authentication grant.
 Every manifest and file request checks the owner's current session. Revocation
 ends downloads. A file changed or missing in storage fails visibly rather than
 returning different bytes. An export is complete only after downloading its

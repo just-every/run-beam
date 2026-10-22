@@ -4,13 +4,13 @@ export async function fixture(options) {
   const h = await harness(options), cookies = {}, ids = {}
   try {
     const api = (role, path, body, status = 200) => h.api(path, cookies[role], body, status)
-    assert.equal((await h.raw('/auth/bootstrap', { body: { token: h.vars.SETUP_TOKEN, displayName: 'Owner' } })).status, 303)
+    assert.equal((await h.raw('/auth/bootstrap', { body: { token: h.vars.SETUP_TOKEN, displayName: options?.ownerName ?? 'Owner' } })).status, 303)
     cookies.owner = await h.signIn('owner@example.test')
     ids.owner = (await api('owner', 'me')).id
     await h.raw('/setup', { cookie: cookies.owner, form: new URLSearchParams({ confirm: 'yes' }) })
-    await api('owner', 'business.configure', { name: 'Regression training', timezone: 'UTC' })
+    await api('owner', 'business.configure', { name: options?.businessName ?? 'Regression training', timezone: 'UTC' })
     for (const [name, roles] of Object.entries({ author: ['author'], reviewer: ['reviewer', 'author'], learner: ['learner'], assessor: ['assessor', 'learner'], other: ['assessor'], manager: ['manager'] })) {
-      ids[name] = (await api('owner', 'person.invite', { email: `${name}@example.test`, name, roles })).id
+      ids[name] = (await api('owner', 'person.invite', { email: `${name}@example.test`, name: options?.names?.[name] ?? name, roles })).id
       cookies[name] = await h.signIn(`${name}@example.test`, { requested: true })
     }
     // ORG-004: the owner sets a team and its members; the manager manages it and only it.

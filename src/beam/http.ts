@@ -1,3 +1,6 @@
+import { xapiPublicResponse, xapiAttachment } from './packages/xapi-ingest'
+import { launchXapi, xapiEvidence } from './packages/xapi-launch'
+import { integrationsPage, xapiEvidencePage } from './ui/xapi'
 import { packageContentResponse } from './packages/content'
 import { packagePlayer, packageEvidencePage } from './packages/player'
 import { runtimeEvidence } from './packages/runtime'
@@ -92,6 +95,8 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
   const url = new URL(request.url)
   const content = await packageContentResponse(env, request).catch(error => { const { code, status } = failure(error); return json({ error: code }, status) })
   if (content) return content
+  const xapi = await xapiPublicResponse(env, request)
+  if (xapi) return xapi
   const api = url.pathname.startsWith('/api/beam/')
   const protocol = await ltiPublicResponse(env, request).catch(error => { const { code, status } = failure(error); return json({ error: code }, status) })
   if (protocol) return protocol
@@ -110,6 +115,7 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     actor.locale = (await languagePreference(env, actor.id)).language
     const view = await viewDoor(env, actor, request, url, api)
     if (view) return view
+    if (url.pathname === '/app/xapi/launch' && request.method === 'POST') { const result = await launchXapi(env, actor, await Input.from(request)); return new Response(null, { status: 303, headers: { location: result.href, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } }) }
     if (url.pathname === '/api/beam/lti/authorize') return await authorizeLti(env, actor, request)
     if (url.pathname === '/app/lti/launch' && request.method === 'POST') { const result = await launchLti(env, actor, await Input.from(request)); return Response.redirect(result.loginUrl, 303) }
     if (api) return await apiResponse(env, actor, request, url)
@@ -165,6 +171,8 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   }
   insist(!path.startsWith('v1/'), 'application_credential_required', 403)
   requireAgentScope(actor, path, request.method)
+  const xapiEvidenceMatch = url.pathname.match(/^\/api\/beam\/xapi-evidence\/([^/]+)$/)
+  if (xapiEvidenceMatch && request.method === 'GET') return json(await xapiEvidence(env, actor, xapiEvidenceMatch[1]))
   if (request.method === 'POST') {
     if (path === 'agent.issue') return json(await issueAgentCredential(env, actor, await Input.from(request)))
     const input = await Input.from(request)
@@ -184,6 +192,11 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
 }
 
 async function pageResponse(env: Bindings, actor: Actor, request: Request, url: URL): Promise<Response> {
+  if (url.pathname === '/app/integrations' && request.method === 'GET') return integrationsPage(env, actor, url)
+  const xapiEvidenceMatch = url.pathname.match(/^\/app\/xapi\/evidence\/([^/]+)$/)
+  if (xapiEvidenceMatch && request.method === 'GET') return xapiEvidencePage(env, actor, xapiEvidenceMatch[1], url)
+  const xapiAttachmentMatch = url.pathname.match(/^\/app\/xapi\/attachments\/([^/]+)\/([a-f0-9]{64})$/)
+  if (xapiAttachmentMatch && request.method === 'GET') return xapiAttachment(env, actor, xapiAttachmentMatch[1], xapiAttachmentMatch[2])
   const path = url.pathname
   if (request.method !== 'POST' && path === '/app/data-export.json') return dataExport(env, actor)
   const exportFile = path.match(/^\/app\/data-export\/files\/([a-f0-9]{64})$/)

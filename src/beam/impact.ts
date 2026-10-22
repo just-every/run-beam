@@ -1,6 +1,6 @@
 // AGENT-004: what one procedure change invalidates in one course. Beam compares the two immutable source versions of
 // a source-change notice line by line and matches every changed passage against the course draft's lessons that cite
-// the source, its quiz questions (prompt versus answer), its practical instructions, cited package metadata and the
+// the source, its quiz questions (prompt versus answer), its practical instructions, cited package/xAPI metadata and the
 // practice scenarios of its published revision; everything else is listed as untouched. Affected job roles come from LEARN-007 role mappings
 // and from the roles of people holding a completion of an earlier revision, with counts and renewal dates, never names.
 // The impact proposal is deterministic, never simulated model output: it rewrites only lesson lines that quote a
@@ -93,11 +93,19 @@ async function analyse(env: Bindings, notice: Row) {
     const lines = cites ? lesson.body.split('\n').map(line => ({ line, changes: hits(line, changed) })).filter(row => row.changes.length) : []
     return { id: lesson.id, title: lesson.title, cites, affected: cites && (passages === null || lines.length > 0), passages: lines.map(row => ({ text: row.line.trim(), changes: row.changes })) }
   })
-  // Only a package's own citations qualify its metadata. Package bytes and immutable manifests are never rewritten.
-  const packages = (await all(env, `SELECT p.* FROM beam_packages p WHERE p.course_id = ? AND
-    (p.id IN (SELECT value FROM json_each(?)) OR p.id IN
-      (SELECT package_id FROM beam_revision_packages WHERE course_revision_id = ?)) ORDER BY p.created_at, p.id`,
-  course.id, JSON.stringify(course.draft.packages ?? []), course.published_revision_id)).map(row => {
+  // Only each item's own citations qualify its metadata. Immutable packages and activities are never rewritten.
+  const [packageRows, xapiRows] = await Promise.all([
+    all(env, `SELECT p.* FROM beam_packages p WHERE p.course_id = ? AND
+      (p.id IN (SELECT value FROM json_each(?)) OR p.id IN
+        (SELECT package_id FROM beam_revision_packages WHERE course_revision_id = ?)) ORDER BY p.created_at, p.id`,
+    course.id, JSON.stringify(course.draft.packages ?? []), course.published_revision_id),
+    all(env, `SELECT id, title, objectives, activity_iri, launch_url, source_version_ids
+      FROM beam_xapi_activities WHERE course_id = ? AND
+      (id IN (SELECT value FROM json_each(?)) OR id IN
+        (SELECT activity_id FROM beam_revision_xapi WHERE course_revision_id = ?)) ORDER BY created_at, id`,
+    course.id, JSON.stringify(course.draft.xapiActivities ?? []), course.published_revision_id),
+  ])
+  const packageMetadata = packageRows.map(row => {
     const manifest = JSON.parse(row.manifest_json) as PackageManifest
     const cites = (JSON.parse(row.source_version_ids) as string[]).some(version => versions.has(version))
     const metadata = [
@@ -112,8 +120,15 @@ async function analyse(env: Bindings, notice: Row) {
       ]),
     ]
     const found = cites ? metadata.flatMap(item => item.text.split('\n').map(text => ({ field: item.field, text, changes: hits(text, changed) }))).filter(item => item.changes.length) : []
-    return { id: row.id as string, title: row.title as string, cites, affected: cites && (passages === null || found.length > 0), passages: found }
+    return { id: row.id as string, type: 'scorm' as const, title: row.title as string, cites, affected: cites && (passages === null || found.length > 0), passages: found }
   })
+  const xapiMetadata = xapiRows.map(row => {
+    const cites = (JSON.parse(row.source_version_ids) as string[]).some(version => versions.has(version))
+    const metadata = ['title', 'objectives', 'activity_iri', 'launch_url'].map(field => ({ field, text: row[field] as string }))
+    const found = cites ? metadata.flatMap(item => item.text.split('\n').map(text => ({ field: item.field, text, changes: hits(text, changed) }))).filter(item => item.changes.length) : []
+    return { id: row.id as string, type: 'xapi' as const, title: row.title as string, cites, affected: cites && (passages === null || found.length > 0), passages: found }
+  })
+  const packages = [...packageMetadata, ...xapiMetadata]
   const cited = lessons.some(lesson => lesson.cites)
   const questions = course.draft.questions.map(question => {
     const parts = questionParts(question), answer = parts.answer.flatMap(text => hits(text, changed)), prompt = hits(parts.prompt, changed)
@@ -179,7 +194,9 @@ export async function proposeImpact(env: Bindings, actor: Actor, input: Input) {
   const quoted = new Map<string, string>()
   for (const change of passages ?? []) if (change.removed.length === change.added.length) change.removed.forEach((line, index) => quoted.set(line, change.added[index]))
   const used: { sourceVersion: string; quote: string; lesson: string }[] = [], missing: string[] = []
-  for (const item of packages.filter(item => item.affected)) missing.push(`Package “${item.title}”: a person updates metadata in the original and uploads a replacement; this immutable package is unchanged. Check ${passages === null ? 'the cited source; text comparison unavailable' : [...new Set(item.passages.map(passage => passage.field))].join(', ')}.`)
+  for (const item of packages.filter(item => item.affected)) missing.push(item.type === 'xapi'
+    ? `xAPI activity “${item.title}”: a person prepares replacement metadata; this immutable activity is unchanged. Check ${passages === null ? 'the cited source; text comparison unavailable' : [...new Set(item.passages.map(passage => passage.field))].join(', ')}.`
+    : `Package “${item.title}”: a person updates metadata in the original and uploads a replacement; this immutable package is unchanged. Check ${passages === null ? 'the cited source; text comparison unavailable' : [...new Set(item.passages.map(passage => passage.field))].join(', ')}.`)
   for (const found of lessons.filter(lesson => lesson.affected)) {
     const lesson = draft.lessons.find(item => item.id === found.id)!
     const manual = found.passages.filter(passage => !quoted.has(passage.text))
