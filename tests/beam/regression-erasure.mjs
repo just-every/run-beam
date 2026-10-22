@@ -69,7 +69,7 @@ export async function erasureCheck() {
     let report
     for (let i = 0; i < 60; i++) {
       report = await api('owner', 'erasure.resume', { job: job.id })
-      assert.notEqual(report.state, 'failed', report.failure)
+      assert.notEqual(report.state, 'failed', `${report.phase}: ${report.failure}`)
       if (report.state === 'complete') break
       assert.notEqual(i, 59, 'erasure converges')
     }
@@ -94,7 +94,7 @@ export async function erasureCheck() {
     await api('owner', 'erasure.hold.release', { hold: hold.id, justification: 'Investigation closed.' })
     const next = await api('owner', 'erasure.preview', { kind: 'person', subject: ids.learner })
     const erase = await api('owner', 'erasure.begin', { kind: 'person', subject: ids.learner, digest: next.digest, justification: 'Retention released.', consent: true })
-    for (let i = 0; i < 60; i++) { report = await api('owner', 'erasure.resume', { job: erase.id }); assert.notEqual(report.state, 'failed', report.failure); if (report.state === 'complete') break; assert.notEqual(i, 59) }
+    for (let i = 0; i < 60; i++) { report = await api('owner', 'erasure.resume', { job: erase.id }); assert.notEqual(report.state, 'failed', `${report.phase}: ${report.failure}`); if (report.state === 'complete') break; assert.notEqual(i, 59) }
     const final = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
     assert.ok(!final.records.beam_completions.rows.some(row => row.id === completion.id))
     assert.ok(!final.records.beam_attempts.rows.some(row => row.id === evidence.id))

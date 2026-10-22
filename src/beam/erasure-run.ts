@@ -92,7 +92,8 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
     }
     await stmt(env, 'UPDATE beam_erasure_jobs SET phase=?,state=?,cursor=?,continuation=?,report_json=?,selectors_json=CASE WHEN ? THEN ? ELSE selectors_json END,lease_until=NULL WHERE id=? AND version=?', phase, phase === 'complete' ? 'complete' : 'pending', cursor, continuation, JSON.stringify(outcomes), phase === 'complete' ? 1 : 0, '{}', id, job.version + 1).run()
   } catch (error) {
-    const code = error instanceof Error && /^[A-Za-z_]+(?::|$)/.test(error.message) ? error.message.split(':')[0].slice(0, 100) : 'erasure_step_failed'
+    if (error instanceof Error) console.error('erasure_step_failed', { phase, type: error.name, frames: error.stack?.split('\n').filter(line => /^\s+at /.test(line)).slice(0, 6) })
+    const code = error instanceof Error && /^[A-Za-z_][A-Za-z0-9_]*(?::|$)/.test(error.message) ? error.message.split(':')[0].slice(0, 100) : 'erasure_step_failed'
     await stmt(env, "UPDATE beam_erasure_jobs SET state='failed',failure=?,lease_until=NULL WHERE id=? AND version=?", code, id, job.version + 1).run()
   }
   return erasureReport(env, actor, id)
