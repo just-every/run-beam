@@ -48,8 +48,9 @@ export async function beginErasure(env: Bindings, actor: Actor, input: Input) {
   const member = preview.kind === 'person' ? await one(env, 'SELECT * FROM beam_members WHERE id=?', preview.subject) : null
   const values = member ? [...new Set([member.id, member.email, member.name, member.employee_id, member.username].filter(Boolean))] as string[] : [preview.subject]
   const identities = member ? [member.id, member.email, member.employee_id, member.username].filter(Boolean) as string[] : preview.inventory.fileHashes.map(value => `file:${value}`)
-  const targets = member ? await all(env, `SELECT id,kind FROM beam_imported_history WHERE EXISTS(SELECT 1 FROM json_tree(payload) j WHERE j.atom IN (SELECT value FROM json_each(?))) ORDER BY id`, JSON.stringify(values)) : []
-  const selectors = { values, targets: [...targets, { id: preview.subject, kind: 'person' }], operator: member?.operator_id ?? null }
+  const historical = member ? await all(env, `SELECT id,kind,payload FROM beam_imported_history WHERE EXISTS(SELECT 1 FROM json_tree(payload) j WHERE j.atom IN (SELECT value FROM json_each(?))) ORDER BY id`, JSON.stringify(values)) : []
+  for (const row of historical) { const payload = JSON.parse(row.payload); for (const key of ['email','name']) if (typeof payload[key] === 'string' && payload[key] && !values.includes(payload[key])) values.push(payload[key]); if (payload.email && !identities.includes(payload.email)) identities.push(payload.email) }
+  const selectors = { values, targets: [{ id: preview.subject, kind: 'person' }], operator: member?.operator_id ?? null }
   const statements = [
     stmt(env, 'INSERT INTO beam_erasure_jobs(id,kind,subject_id,requested_by,requested_at,phase,state,selectors_json,inventory_json,retention_json) VALUES(?,?,?,?,?,?,?,?,?,?)', id, preview.kind, preview.subject, actor.id, at, preview.kind === 'person' ? 'imports' : 'native', 'pending', JSON.stringify(selectors), JSON.stringify(preview.inventory), JSON.stringify({ ...preview.retention, requestedReason: reason, retainUntil: preview.retention.retainUntil })),
     ...await preparedCheckpoint(env),

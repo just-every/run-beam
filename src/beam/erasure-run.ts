@@ -3,7 +3,7 @@ import type { Actor } from './actor'
 import type { Input } from './input'
 import { all, commit, insist, now, one, stmt } from './core'
 import { retireD1ImportCustody, type D1Database } from '../modules/import-kit/src/d1/index'
-import { historyTargets } from './movein/target'
+import { erasureTargets, personIdentitySql } from './erasure-identity'
 import { mappingVersion } from './movein/source'
 import { ownerPredicate } from './movein/door'
 import { personEraseStatements, personCustody } from './erasure-custody'
@@ -41,9 +41,9 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
       const target = selectors.targets[cursor]
       if (target) {
         const identities = new Set<string>(selectors.values)
-        const result = await retireD1ImportCustody({ target: { kind: target.kind, id: target.id }, values: selectors.values, related: { source: record => contains(record.payload, identities), original: () => true } }, [], {
+        const result = await retireD1ImportCustody({ target: { kind: target.kind, id: target.id }, values: selectors.values, related: { source: record => contains(record.payload, identities), original: () => true } }, personIdentitySql(job.subject_id, now()), {
           destination: 'history', namespace: 'talentlms', mappingVersion,
-          storage: { database: env.DB as unknown as D1Database, targets: historyTargets },
+          storage: { database: env.DB as unknown as D1Database, targets: erasureTargets },
           authorization: { principalId: actor.id, predicate: () => {
             const owner = ownerPredicate(actor)
             return { sql: `(${owner.sql}) AND EXISTS(SELECT 1 FROM beam_erasure_jobs WHERE id=? AND version=?)`, params: [...owner.params ?? [], id, job.version + 1] }
@@ -54,7 +54,7 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
       }
       if (cursor >= selectors.targets.length) { phase = 'native'; cursor = 0 }
     } else if (phase === 'native') {
-      const native = job.kind === 'person' ? await personEraseStatements(env, job.subject_id, retention.retain) : [
+      const native = job.kind === 'person' ? await personEraseStatements(env, job.subject_id, retention.retain, selectors.values) : [
         stmt(env, "UPDATE beam_source_ocr_runs SET state='failed',failure='source_erased',result_json=NULL WHERE source_version_id IN (SELECT id FROM beam_source_versions WHERE source_id=?)", job.subject_id),
         stmt(env, "UPDATE beam_source_versions SET filename='Erased original',provenance='erased by owner' WHERE source_id=?", job.subject_id),
         stmt(env, "UPDATE beam_sources SET title='Erased source',licence_evidence='erased by owner',erased_at=? WHERE id=?", now(), job.subject_id),
@@ -72,7 +72,7 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
       phase = 'files'
     } else if (phase === 'files') {
       if (!outcomes.native) {
-        const remaining = job.kind === 'person' ? (await personCustody(env, job.subject_id)).rows : []
+        const remaining = job.kind === 'person' ? (await personCustody(env, job.subject_id, selectors.values)).rows : []
         outcomes.native = JSON.parse(job.inventory_json).rows.map((before: {table:string;category:string;count:number}) => {
           const kept = job.kind === 'source' ? before.count : remaining.find(row => row.table === before.table && row.category === before.category)?.count ?? 0
           return {table:before.table,category:before.category,before:before.count,retained:kept,removed:Math.max(0,before.count-kept),handling: before.table === 'beam_members' || before.table === 'beam_audit' || job.kind === 'source' ? 'redacted or held' : before.category === 'authored' ? 'anonymous attribution retained' : kept ? 'retained under policy or shared custody' : 'deleted'}

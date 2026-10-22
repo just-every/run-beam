@@ -1,3 +1,4 @@
+import { personIdentitySql } from './erasure-identity'
 // Native custody only. Auth/session revocation, import originals and object-store cleanup belong to the caller.
 import type { Bindings } from '../auth.server'
 import { all, insist, one, stmt } from './core'
@@ -114,10 +115,10 @@ const snapshots: Record<string, string> = {
   outcome_evaluations: 'evaluation_json retirable_json', outcome_retirements: 'assignments_json',
 }
 
-async function context(env: Bindings, memberId: string) {
+async function context(env: Bindings, memberId: string, aliases: string[] = []) {
   const member = await one(env, `SELECT m.*, o.role AS operator_role FROM beam_members m LEFT JOIN oa_operators o ON o.id=m.operator_id WHERE m.id=?`, memberId)
   insist(member, 'member_not_found', 404)
-  const values = [memberId, member.email, member.employee_id, member.username].filter(value => typeof value === 'string' && value.length)
+  const values = [memberId, member.email, member.employee_id, member.username, ...aliases].filter(value => typeof value === 'string' && value.length)
   const lineage = await all<{ id: string }>(env, `SELECT id FROM beam_assignments WHERE learner_id=?1
     UNION SELECT id FROM beam_attempts WHERE assignment_id IN (${assignments})
     UNION SELECT id FROM beam_completions WHERE learner_id=?1 UNION SELECT id FROM beam_certificates WHERE completion_id IN (${completions})`, memberId)
@@ -130,8 +131,8 @@ async function context(env: Bindings, memberId: string) {
   return { member, columns, tables, prepare }
 }
 
-export async function personCustody(env: Bindings, memberId: string) {
-  const ctx = await context(env, memberId), rows: CustodyRow[] = [], unsupported: string[] = []
+export async function personCustody(env: Bindings, memberId: string, aliases: string[] = []) {
+  const ctx = await context(env, memberId, aliases), rows: CustodyRow[] = [], unsupported: string[] = []
   const count = async (table: string, where: string, category: Category, extra: Partial<CustodyRow> = {}) => {
     if (!ctx.tables.has(table)) return
     const result = await ctx.prepare(`SELECT count(*) AS count FROM ${table} WHERE ${where}`).first<{ count: number }>()
@@ -164,10 +165,10 @@ export async function personCustody(env: Bindings, memberId: string) {
     authoredMaterial: 'Published/authored documents and their pseudonymous member references remain; this is not full erasure of authored material.' }
 }
 
-export async function personEraseStatements(env: Bindings, memberId: string, retainAssessment: boolean): Promise<D1PreparedStatement[]> {
-  const ctx = await context(env, memberId)
+export async function personEraseStatements(env: Bindings, memberId: string, retainAssessment: boolean, aliases: string[] = []): Promise<D1PreparedStatement[]> {
+  const ctx = await context(env, memberId, aliases)
   insist(ctx.member.operator_role !== 'owner' && ctx.member.email?.toLowerCase() !== env.OWNER_EMAIL.toLowerCase(), 'owner_erasure_forbidden', 409)
-  const inventory = await personCustody(env, memberId)
+  const inventory = await personCustody(env, memberId, aliases)
   insist(!inventory.unsupported.length, 'unsupported_person_custody', 409, inventory.unsupported)
   // Capture selectors before deleting evidence; uploads made by a manager still belong to the learner.
   const attachments = await ctx.prepare(`SELECT id FROM beam_attachments WHERE ${personalAttachments}`).all<{ id: string }>()
@@ -215,9 +216,7 @@ export async function personEraseStatements(env: Bindings, memberId: string, ret
   result.push(stmt(env, 'UPDATE beam_instructor_grants SET revoked_at=COALESCE(revoked_at,?) WHERE member_id=?', Date.now(), memberId))
   result.push(stmt(env, 'DELETE FROM beam_instructor_grants WHERE member_id=? AND id NOT IN (SELECT instructor_grant_id FROM beam_announcements WHERE instructor_grant_id IS NOT NULL)', memberId))
   result.push(stmt(env, 'UPDATE beam_members SET manager_id=NULL WHERE manager_id=?', memberId))
-  result.push(stmt(env, `UPDATE beam_members SET email=NULL,name='Erased person',operator_id=NULL,employee_id=NULL,preferred_name=NULL,mobile=NULL,
-    language=NULL,employment='terminated',manager_id=NULL,job_role=NULL,department=NULL,location=NULL,hire_date=NULL,custom_json='{}',
-    transfer_date=NULL,username=NULL,time_zone=NULL WHERE id=?`, memberId))
+  result.push(...personIdentitySql(memberId, Date.now()).map(item => stmt(env,item.sql,...item.params ?? [])))
   // Never remove an attachment still supporting another person's record, authored post, or held evidence.
   result.push(stmt(env, `DELETE FROM beam_attachments WHERE id IN (SELECT value FROM json_each(?))
     AND id NOT IN (SELECT attachment_id FROM beam_attempts WHERE attachment_id IS NOT NULL)
