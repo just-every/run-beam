@@ -151,6 +151,28 @@ export async function microlearningCheck(f) {
   const future = await f.api('learner', `sequences/${assigned}`)
   assert.equal(future.available, false)
   await f.api('learner', 'sequence.answer', { assignment: assigned, day: 1, choice: 0, version: future.version }, 409)
+  // A reviewed work-hour window refuses replies now, even with a current enrollment and correct learner.
+  const clone = await f.api('owner', 'course.clone', { course: c.id, title: 'Work-window qualification' })
+  const cloned = await f.api('owner', `courses/${clone.id}`), zone = 'America/New_York'
+  const localHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hourCycle: 'h23' }).format(Date.now()))
+  const startHour = (localHour + 2) % 24
+  let windowed = await f.api('owner', 'course.sequence', { course: clone.id, draftVersion: 1, sequence: { ...cloned.draft.sequence, workStart: startHour, workEnd: startHour + 1 } })
+  let windowRevision = (await f.api('owner', 'course.submit', { course: clone.id, draftVersion: windowed.draftVersion })).id
+  await f.publish(windowRevision)
+  let windowAssignment = (await f.api('manager', 'assignment.create', { course: clone.id, learners: [f.ids.learner], dueDate: '2030-10-01', timezone: zone })).created[0]
+  const outside = await f.api('learner', `sequences/${windowAssignment}`)
+  assert.equal(outside.available, false)
+  await f.api('learner', 'sequence.answer', { assignment: windowAssignment, day: 1, choice: 0, version: outside.version }, 409)
+  await f.api('manager', 'assignment.cancel', { assignment: windowAssignment, reason: 'Qualify the reviewed weekday schedule.' })
+  windowed = await f.api('owner', 'course.sequence', { course: clone.id, draftVersion: windowed.draftVersion, sequence: { ...cloned.draft.sequence, workStart: 9, workEnd: 17, workDays: [1,2,3,4,5] } })
+  windowRevision = (await f.api('owner', 'course.submit', { course: clone.id, draftVersion: windowed.draftVersion })).id
+  await f.publish(windowRevision)
+  windowAssignment = (await f.api('manager', 'assignment.create', { course: clone.id, learners: [f.ids.learner], dueDate: '2030-10-01', timezone: zone })).created[0]
+  await f.h.db.prepare('UPDATE beam_assignments SET assigned_at=? WHERE id=?').bind(Date.parse('2026-10-30T13:00:00Z'), windowAssignment).run()
+  const calendar = await f.api('learner', `sequences/${windowAssignment}`)
+  assert.equal(new Date(calendar.schedule[0].opensAt).toISOString(), '2026-10-30T13:00:00.000Z')
+  assert.equal(new Date(calendar.schedule[1].opensAt).toISOString(), '2026-11-02T14:00:00.000Z', 'weekend is skipped and 09:00 work time survives the DST change')
+  assert.ok(calendar.schedule.every(slot => ![0,6].includes(new Date(slot.date + 'T12:00:00Z').getUTCDay())))
   // A reviewed language revision keeps the same five-day structure and its own exact lesson identities.
   const template = (await f.api('author', `course-locales/${c.id}`)).template
   const glossary = await f.api('author', 'glossary.save', { course: c.id, locale: 'es-US', terms: [{ source: 'vaccines', target: 'vacunas' }] })

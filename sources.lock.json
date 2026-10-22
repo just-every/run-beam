@@ -3866,7 +3866,7 @@
       "executable": false
     },
     "tests/beam/regression-collab.mjs": {
-      "sha256": "34e5ed1003e26830c0a97e14aa14ca590ef894d9547001c3949996b5a28423c3",
+      "sha256": "0c9be4d7e07620f797dbe63f5e85a54e77dc15edddca4629a08b7446178b2d02",
       "executable": false
     },
     "tests/beam/regression-course-locale-browser.mjs": {
