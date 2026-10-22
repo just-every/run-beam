@@ -475,13 +475,13 @@ removed or changed by this contract-only round.
 
 ## Status
 
-Judged from the code and tests at commit `7662d4b3b2a0a3cca5ac7a107bbb86c4705d6466` (21 October 2026).
+Each status below names its current implementation and public-door acceptance evidence.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 55 | 31 | 40 | 126 |
-| All | 75 | 31 | 40 | 146 |
+| Target and push further | 56 | 31 | 39 | 126 |
+| All | 76 | 31 | 39 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
