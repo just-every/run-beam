@@ -68,4 +68,7 @@ export const LEARNING_INVENTORY = {
   beam_lti_resources: 'id, tool_id, course_id, url, title, selected_by, selected_at, pass_percent, approved_by',
   beam_lti_lineitems: 'id, tool_id, assignment_id, revision_id, resource_id, learner_id, subject, launched_at',
   beam_lti_results: 'id, lineitem_id, score_given, score_maximum, activity_progress, grading_progress, timestamp, received_at',
+  beam_report_settings: 'id, expiring_days, version, updated_by, updated_at',
+  beam_history_credits: 'id, course_id, interval_days, reason, approved_by, approved_at, undone_by, undone_at, undo_reason',
+  beam_history_credit_people: 'credit_id, member_id, history_id, source, completed_on, expires_at',
 } as const

@@ -8,8 +8,8 @@ Open **Reports**. Filter by **Course**, **Team** and **Status**, then press **Ap
 | --- | --- |
 | Open | Assigned and not yet complete. |
 | Overdue | Assigned and past its due time. |
-| Completed | Completed against the named revision, and current for more than 30 days. |
-| Expiring | Completed, and the completion expires within 30 days. |
+| Completed | Completed against the named revision, and current beyond the expiring window. |
+| Expiring | Completed, and the completion expires within the expiring window: 30 days unless the owner changes it on **Compliance coverage**. |
 | Deferred | Assigned, with a deferral that still holds: not counted overdue until its end date. |
 | Exempt | Assigned, with an exemption that still holds: the requirement is waived until its end date. |
 
@@ -20,6 +20,22 @@ Each row shows the learner, the course and revision, the due time in its time zo
 **Download CSV** or **Download XLSX** gives you the same rows as a spreadsheet; every row (or the workbook's Definitions sheet) says when it was produced, the time zone and the filters, and nothing is left out.
 
 For a BI tool, the owner issues a **reports.read** credential on **Access** (optionally for some teams). The tool reads the whole report over HTTPS at `/api/beam/v1/report/feed.csv` or `/api/beam/v1/report/feed.json` with the header `Authorization: Bearer <token>` and the same course, team and status filters. Each refresh is a full snapshot as of its watermark; the schema id `beam.report-feed.v1` keeps the field names and types stable, and evidence files, answers and contact details are never in it. Revoke the credential on Access and the next refresh is refused. Beam has not yet been checked against Power BI Desktop, Excel Power Query or Google Sheets themselves.
+
+## Compliance coverage
+
+From **Reports**, open **Compliance coverage** to see who is covered against what they are required to complete. Every active employee a requirement applies to counts once per course: the current revision of their team's role path, an audience that enrolls them, an assignment, or an external-certificate requirement, each shown with the date its policy took effect. People on leave or no longer employed are not counted.
+
+| Status | Meaning |
+| --- | --- |
+| Current | A completion of the course that is still valid, or a credit for imported history until its credited expiry. |
+| Expiring | Current, but it expires within the expiring window. |
+| Overdue, Open | Not current, with an assignment past its due time or not yet due. |
+| Deferred, Exempt | Not current, with a deferral or exemption that still holds on the assignment. |
+| Missing | Required, with no current completion, credit or open assignment. |
+
+A Beam completion always wins over a credit. The line above the tables adds up: required = current + expiring + overdue + open + deferred + exempt + missing, out of the active people in your report scope. Filter by **Team**, **Role**, **Location**, **Course**, **Status** and **Policy effective by**, and open any course, role, location, team or requirement to see only its people. Each row names the requirements behind it and the evidence: the completion and its revision, the open assignment and its due time, or the credit "credited from TalentLMS history" with its expiry and the decision behind it. History imported from a previous system is counted beside a row and never counts as current learning. Role and location are shown, filtered and grouped only for people whose directory record you may read (the owner, their units' learning administrators and their team managers).
+
+The owner sets the **Expiring window** (1 to 365 days) at the foot of the page; the training report, **Manage** and learner records use the same window. The same figures are at `GET /api/beam/coverage` with the same filters as query parameters.
 
 ## Course quality
 

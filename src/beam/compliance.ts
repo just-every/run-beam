@@ -97,6 +97,6 @@ export async function complianceView(env: Bindings, actor: Actor, filters: Compl
   }
   // AUTO-006: blockers waiting for a decision and the records a deferral or exemption holds now.
   const excepted = shaped.filter(row => row.status === 'deferred' || row.status === 'exempt')
-  return { filters, counts, total: rows.length, teams, queue, selected, detail, coverage, waiting, activity, renewals: work.renewals.length, blockers: work.blockers, excepted, at }
+  return { filters, window: report.window, counts, total: rows.length, teams, queue, selected, detail, coverage, waiting, activity, renewals: work.renewals.length, blockers: work.blockers, excepted, at }
 }
 export type ComplianceView = Awaited<ReturnType<typeof complianceView>>

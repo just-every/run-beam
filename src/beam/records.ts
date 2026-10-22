@@ -10,7 +10,7 @@ import { store } from './files'
 import type { Input } from './input'
 import { recordCompletion } from './learning'
 import { requireBusiness } from './people'
-import { parseException, recordStatus } from './report'
+import { expiringWindow, parseException, recordStatus } from './report'
 import { EXCEPTED, LATEST_EXCEPTION, openBlockers } from './exceptions'
 import { DAY, calendarDays, localDate, zonedInstant } from './time'
 import { inScope, manages, permits, requireLearnerScope } from './scope'
@@ -79,9 +79,9 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
     k.id AS completion, k.expires_at AS expiresAt, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt, ${LATEST_EXCEPTION('a.id')} AS exception
     FROM beam_assignments a JOIN beam_courses c ON c.id = a.course_id JOIN beam_course_revisions r ON r.id = a.course_revision_id LEFT JOIN beam_completions k ON k.assignment_id = a.id WHERE a.learner_id = ? ORDER BY a.status = 'open' DESC, a.due_at`, memberId)
   // `state` is the record's one status, the same as Manage and the report show; `status` stays the stored assignment state.
-  const at = now()
+  const at = now(), window = await expiringWindow(env)
   const shaped = assignments.map(row => {
-    const exception = parseException(row.exception, at), state = recordStatus({ ...row, exception, assignmentStatus: row.status } as any, at)
+    const exception = parseException(row.exception, at), state = recordStatus({ ...row, exception, assignmentStatus: row.status } as any, at, window.days)
     return { ...row, exception, access: accessState({ access_opens_at: row.accessOpensAt, access_closes_at: row.accessClosesAt }, at), state, daysOverdue: state === 'overdue' ? calendarDays(row.dueAt, at, row.timezone) : null } as Row
   })
   const completions = await all(env, `SELECT c.id, c.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, c.course_revision_id AS revision, c.assessment_revision_id AS assessmentRevision, c.method, c.evidence_json AS evidence, c.completed_at AS completedAt, c.expires_at AS expiresAt, k.id AS certificate

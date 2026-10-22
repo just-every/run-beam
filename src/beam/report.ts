@@ -3,8 +3,9 @@
 // quiz attempts, practical decision, completion, certificate and expiry. The
 // CSV carries the same rows the page shows.
 import type { Bindings } from '../auth.server'
-import type { Actor } from './actor'
-import { all, insist, now, type Row } from './core'
+import { requireOwner, type Actor } from './actor'
+import { all, auditVia, insist, now, one, stmt, type Row } from './core'
+import type { Input } from './input'
 import { closeAllExpired } from './learning'
 import { LATEST_EXCEPTION } from './exceptions'
 import { DAY } from './time'
@@ -15,11 +16,31 @@ import { externalReportRows } from './external'
 export const STATUSES = ['all', 'open', 'overdue', 'completed', 'expiring', 'deferred', 'exempt', 'missing'] as const
 export interface Filters { course: string; team: string; status: string }
 
+/** How many days ahead a current record counts as expiring: 30 until the owner changes it. */
+export async function expiringWindow(env: Bindings) {
+  const row = await one(env, 'SELECT expiring_days, version FROM beam_report_settings WHERE id = 1')
+  return { days: (row?.expiring_days ?? 30) as number, version: (row?.version ?? 0) as number }
+}
+
+/** The owner (acting as admin) sets the installation's expiring window, 1-365 days, against the version they read. */
+export async function saveExpiringWindow(env: Bindings, actor: Actor, input: Input) {
+  requireOwner(actor)
+  insist(!actor.agent && !actor.viewAs, 'human_session_required', 403)
+  const days = input.integer('days', { min: 1, max: 365 })!, expected = input.integer('version', { min: 0, max: 1_000_000 })!
+  const result = await env.DB.batch([
+    stmt(env, 'INSERT INTO beam_report_settings (id, expiring_days, version, updated_by, updated_at) SELECT 1, ?, 1, ?, ? WHERE ? = 0 OR EXISTS (SELECT 1 FROM beam_report_settings WHERE id = 1 AND version = ?) ON CONFLICT(id) DO UPDATE SET expiring_days = excluded.expiring_days, version = beam_report_settings.version + 1, updated_by = excluded.updated_by, updated_at = excluded.updated_at WHERE beam_report_settings.version = ?',
+      days, actor.id, now(), expected, expected, expected),
+    stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail, via) SELECT ?, ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, 'report.window', 'expiring-window', JSON.stringify({ days, version: expected + 1 }), auditVia(actor)),
+  ])
+  insist(result[0].meta.changes === 1, 'stale_report_window', 409)
+  return { days, version: expected + 1 }
+}
+
 /** A record's one status, as the report, Manage and the learner record show it: a completion is completed (expiring
- * within 30 days of `at`); an open assignment under an AUTO-006 exception that still holds is deferred or exempt;
+ * within the expiring window, 30 days unless the owner changed it, of `at`); an open assignment under an AUTO-006 exception that still holds is deferred or exempt;
  * otherwise an open assignment past its due instant is overdue. */
-export const recordStatus = (row: { completion?: unknown; expiresAt?: number | null; assignmentStatus: string; dueAt?: number | null; exception?: { kind: string; endsAt: number } | null }, at: number) =>
-  row.completion ? (row.expiresAt && row.expiresAt <= at + 30 * DAY ? 'expiring' : 'completed')
+export const recordStatus = (row: { completion?: unknown; expiresAt?: number | null; assignmentStatus: string; dueAt?: number | null; exception?: { kind: string; endsAt: number } | null }, at: number, windowDays = 30) =>
+  row.completion ? (row.expiresAt && row.expiresAt <= at + windowDays * DAY ? 'expiring' : 'completed')
     : ['cancelled', 'replaced'].includes(row.assignmentStatus) ? row.assignmentStatus
     : row.exception && row.exception.endsAt > at ? (row.exception.kind === 'exemption' ? 'exempt' : 'deferred')
     : row.dueAt! < at ? 'overdue' : 'open'
@@ -43,7 +64,7 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
   const scope = learnerScope(actor, 'reports')
   if (filters.team) requireTeamScope(actor, filters.team, 'reports')
   await closeAllExpired(env, actor)
-  const at = now()
+  const at = now(), window = await expiringWindow(env)
   const rows = await all(env, `SELECT a.id AS assignment, a.learner_id AS learner, m.name AS learnerName, a.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, a.course_revision_id AS revision,
       a.status AS assignmentStatus, a.due_at AS dueAt, a.timezone, a.reason, a.access_opens_at AS accessOpensAt, a.access_closes_at AS accessClosesAt,
       (SELECT json_object('days', SUM(e.days), 'reason', (SELECT x.reason FROM beam_access_extensions x WHERE x.assignment_id = a.id ORDER BY x.extended_at DESC, x.rowid DESC LIMIT 1), 'by', (SELECT xm.name FROM beam_access_extensions x JOIN beam_members xm ON xm.id = x.extended_by WHERE x.assignment_id = a.id ORDER BY x.extended_at DESC, x.rowid DESC LIMIT 1), 'count', COUNT(*))
@@ -69,11 +90,11 @@ export async function trainingReport(env: Bindings, actor: Actor, filters: Filte
   const shaped = rows.map(row => {
     const [practicalState, assessor] = row.practical ? String(row.practical).split('|') : [null, null]
     const exception = parseException(row.exception, at)
-    const status = recordStatus({ ...row, exception } as any, at)
+    const status = recordStatus({ ...row, exception } as any, at, window.days)
     return { ...row, practical: practicalState ? { state: practicalState, assessor: assessor || null } : null, extension: row.extension ? JSON.parse(row.extension) : null, exception, status } as Row
-  }).concat(await externalReportRows(env, scope, filters, at)).filter(row => filters.status === 'all' || row.status === filters.status)
+  }).concat(await externalReportRows(env, scope, filters, at, window.days)).filter(row => filters.status === 'all' || row.status === filters.status)
   const count = (status: string) => shaped.filter(row => row.status === status).length
-  return { filters, asOf: at, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open'), deferred: count('deferred'), exempt: count('exempt'), missing: count('missing') } }
+  return { filters, asOf: at, window, rows: shaped, summary: { rows: shaped.length, overdue: count('overdue'), completed: count('completed'), expiring: count('expiring'), open: count('open'), deferred: count('deferred'), exempt: count('exempt'), missing: count('missing') } }
 }
 
 export const COLUMNS: [string, (row: any) => unknown][] = [

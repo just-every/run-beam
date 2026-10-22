@@ -14,12 +14,14 @@ import { manageExceptions } from './exceptions'
 
 const CARDS: { status: Queue; label: string; icon: IconName; tone: string }[] = [
   { status: 'completed', label: 'Completed', icon: 'person', tone: 'done' },
-  { status: 'expiring', label: 'Expiring in 30 days', icon: 'clock', tone: 'waiting' },
+  { status: 'expiring', label: 'Expiring soon', icon: 'clock', tone: 'waiting' },
   { status: 'overdue', label: 'Overdue', icon: 'alert', tone: 'late' },
   { status: 'open', label: 'Open', icon: 'document', tone: 'quiet' },
 ]
-const TITLES: Record<Queue, string> = { overdue: 'Overdue training', expiring: 'Expiring in 30 days', open: 'Open training', completed: 'Completed training' }
-const EMPTY: Record<Queue, string> = { overdue: 'Nothing overdue.', expiring: 'No renewals due in the next 30 days.', open: 'Nothing open.', completed: 'No completions yet.' }
+// REPORT-001: the expiring queue follows the owner's expiring window (30 days unless changed).
+const TITLES = (days: number): Record<Queue, string> => ({ overdue: 'Overdue training', expiring: `Expiring in ${days} days`, open: 'Open training', completed: 'Completed training' })
+const EMPTY = (days: number): Record<Queue, string> => ({ overdue: 'Nothing overdue.', expiring: `No renewals due in the next ${days} days.`, open: 'Nothing open.', completed: 'No completions yet.' })
+const label = (item: typeof CARDS[number], days: number) => item.status === 'expiring' ? `Expiring in ${days} days` : item.label
 const plural = (value: number, one: string, many = `${one}s`) => `${count(value)} ${value === 1 ? one : many}`
 
 const dot = (tone: string) => h`<i class="dot dot-${tone}" aria-hidden="true"></i>`
@@ -43,7 +45,7 @@ export async function managePage(env: Bindings, actor: Actor, request: Request, 
   const tools = h`<details class="pop"><summary>${teamName ?? 'All teams'}${raw(icon('chevron', { size: 16, className: 'pop-chevron' }))}</summary><ul><li><a href="${link({ team: '' })}"${filters.team ? '' : raw(' aria-current="true"')}>All teams</a></li>${view.teams.map(team => h`<li><a href="${link({ team: team.id })}"${team.id === filters.team ? raw(' aria-current="true"') : ''}>${team.name}</a></li>`)}</ul></details>`
 
   const head = h`<div class="page-head"><h1>Manage training</h1>${view.teams.length ? h`<ul class="chips" aria-label="Teams">${view.teams.map(team => h`<li><a href="${link({ team: team.id === filters.team ? '' : team.id })}"${team.id === filters.team ? raw(' aria-current="true"') : ''}>${team.name}<b>${count(team.people)}</b></a></li>`)}</ul>` : ''}</div>`
-  const cards = h`<ul class="counts" aria-label="Training records by status">${CARDS.map(item => h`<li><a class="count-card tone-${item.tone}" href="${link({ status: item.status })}"${item.status === filters.status ? raw(' aria-current="true"') : ''}><strong>${count(view.counts[item.status])}</strong><span>${item.label}</span><i class="disc">${raw(icon(item.icon, { size: 22 }))}</i></a></li>`)}</ul>`
+  const cards = h`<ul class="counts" aria-label="Training records by status">${CARDS.map(item => h`<li><a class="count-card tone-${item.tone}" href="${link({ status: item.status })}"${item.status === filters.status ? raw(' aria-current="true"') : ''}><strong>${count(view.counts[item.status])}</strong><span>${label(item, view.window.days)}</span><i class="disc">${raw(icon(item.icon, { size: 22 }))}</i></a></li>`)}</ul>`
   const courseList = courses.filter(course => course.publishedRevision).map(course => ({ id: course.id, title: course.title }))
   const body = h`<div class="manage">${head}${cards}${agentStrip(view, zone)}${queue(view, link, zone, courseList)}${decision(view, link, zone)}
 ${coverage(view)}${manageExceptions(view, zone)}
@@ -85,7 +87,7 @@ function filterMenu(view: ComplianceView, link: Link, courses: { id: string; tit
   const item = (href: string, label: string, current: boolean) => h`<li><a href="${href}"${current ? raw(' aria-current="true"') : ''}>${label}</a></li>`
   const report = `/app/reports?${new URLSearchParams(Object.entries({ status, team, course }).filter(([, value]) => value)).toString()}`
   return h`<details class="pop filters-menu"><summary class="button secondary small">${raw(icon('filter', { size: 16 }))}<span>Filters${active ? ` · ${active}` : ''}</span></summary><div class="pop-panel">
-<p class="pop-head">Status</p><ul>${CARDS.map(card => item(link({ status: card.status }), card.label, card.status === status))}</ul>
+<p class="pop-head">Status</p><ul>${CARDS.map(card => item(link({ status: card.status }), label(card, view.window.days), card.status === status))}</ul>
 <p class="pop-head">Team</p><ul>${item(link({ team: '' }), 'All teams', !team)}${view.teams.map(entry => item(link({ team: entry.id }), entry.name, entry.id === team))}</ul>
 <p class="pop-head">Course</p><ul>${item(link({ course: '' }), 'All courses', !course)}${courses.map(entry => item(link({ course: entry.id }), entry.title, entry.id === course))}</ul>
 <p class="pop-foot"><a href="${report}">Open these records in the report</a></p></div></details>`
@@ -97,8 +99,8 @@ function queue(view: ComplianceView, link: Link, zone: string, courses: { id: st
   const renew = status === 'expiring' && view.renewals ? form('assignment.renewals', link({ status: 'expiring' }), [], 'Assign all renewals', { className: 'inline-form' }) : ''
   const aside = h`${search}${renew}${filterMenu(view, link, courses)}`
   const rowsHtml = view.queue.length ? view.queue.map(row => h`<tr${row.key === view.selected?.key ? raw(' class="selected" aria-current="true"') : ''}><th scope="row"><a href="${link({ status, select: row.key }, '#decision')}">${row.learnerName}</a></th>${cols.map(col => h`<td${col.className ? h` class="${col.className}"` : ''}>${cellLabel(col.head.replace(' ↓', ''))}${col.cell(row)}</td>`)}</tr>`)
-    : h`<tr><td colspan="${cols.length + 1}" class="muted">${view.filters.q ? 'Nothing matches that search.' : EMPTY[status]}</td></tr>`
-  return card(`${TITLES[status]} (${count(view.queue.length)})`, h`<div class="table-wrap"><table class="queue-table stacked"><thead><tr><th scope="col">Name</th>${cols.map(col => h`<th scope="col">${col.head}</th>`)}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`, { id: 'queue-title', className: 'queue', aside })
+    : h`<tr><td colspan="${cols.length + 1}" class="muted">${view.filters.q ? 'Nothing matches that search.' : EMPTY(view.window.days)[status]}</td></tr>`
+  return card(`${TITLES(view.window.days)[status]} (${count(view.queue.length)})`, h`<div class="table-wrap"><table class="queue-table stacked"><thead><tr><th scope="col">Name</th>${cols.map(col => h`<th scope="col">${col.head}</th>`)}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`, { id: 'queue-title', className: 'queue', aside })
 }
 
 function decision(view: ComplianceView, link: Link, zone: string): Html {

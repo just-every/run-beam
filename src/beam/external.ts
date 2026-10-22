@@ -161,8 +161,8 @@ async function audience(env: Bindings, items: Requirement[], visible: (learner: 
 }
 
 /** LIB-006 rows for REPORT-001: one per person a requirement applies to, labelled external. Current counts as completed
- * (expiring within 30 days, as for courses); a pending, rejected or lapsed certificate leaves the person missing. */
-export async function externalReportRows(env: Bindings, scope: string | null, filters: { course: string; team: string }, at: number) {
+ * (expiring within the report's expiring window, as for courses); a pending, rejected or lapsed certificate leaves the person missing. */
+export async function externalReportRows(env: Bindings, scope: string | null, filters: { course: string; team: string }, at: number, windowDays = 30) {
   const items = (await requirements(env)).filter(item => !filters.course || item.id === filters.course)
   if (!items.length) return []
   const inScope = scope === null ? null : new Set(JSON.parse(scope) as string[])
@@ -171,7 +171,7 @@ export async function externalReportRows(env: Bindings, scope: string | null, fi
   const certificates = await certificatesOf(env, [...new Set(people.map(row => row.learner))]), zone = (await requireBusiness(env)).timezone
   return people.map(({ requirement: item, learner, learnerName }) => {
     const state = standing(item, certificates.filter(row => row.learner === learner), at, zone), current = state.current
-    const status = current ? (current.expiresAt && current.expiresAt <= at + 30 * DAY ? 'expiring' : 'completed') : 'missing'
+    const status = current ? (current.expiresAt && current.expiresAt <= at + windowDays * DAY ? 'expiring' : 'completed') : 'missing'
     return { assignment: null, learner, learnerName, course: item.id, courseTitle: item.name, revisionNumber: null, revision: null, assignmentStatus: 'external', dueAt: null, timezone: null,
       lessonsDone: 0, lessonsTotal: 0, quizAttempts: 0, bestPercent: null, quizPassed: null, practical: null, extension: null, exception: null, originalDueAt: null,
       completion: current?.id ?? null, method: current ? 'external' : null, completedAt: current?.decidedAt ?? null, expiresAt: current?.expiresAt ?? null, certificate: current ? `${current.issuer} ${current.number}` : null, certificateId: null,

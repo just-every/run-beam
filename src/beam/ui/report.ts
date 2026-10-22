@@ -39,14 +39,14 @@ export async function reportPage(env: Bindings, actor: Actor, url: URL) {
   const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value && value !== 'all')).toString()
   const s = report.summary
   const body = h`<h1>Training report</h1>
-<p><a href="/app/dashboards${query ? `?${query}` : ''}">Saved dashboards · save or share this selection</a> · <a href="/app/quality">Course quality and effort</a></p>
+<p><a href="/app/dashboards${query ? `?${query}` : ''}">Saved dashboards · save or share this selection</a> · <a href="/app/coverage">Compliance coverage by role, location and team</a> · <a href="/app/quality">Course quality and effort</a></p>
 <form class="card filters" method="get" action="/app/reports">
 <div>${select('Course', 'course', courses.map((course: any) => ({ value: course.id, label: course.title, group: course.group })), filters.course, { required: false, blank: 'All courses' })}</div>
 <div>${select('Team', 'team', teams.map(team => ({ value: team.id, label: team.name })), filters.team, { required: false, blank: 'All teams' })}</div>
 <fieldset class="radios"><legend>Status</legend>${['all', 'open', 'overdue', 'completed', 'expiring', 'deferred', 'exempt', 'missing'].map(status => h`<label class="check"><input type="radio" name="status" value="${status}"${status === filters.status ? raw(' checked') : ''}> ${STATUS_LABELS[status]}</label>`)}</fieldset>
 <div class="filter-actions"><button type="submit">Apply</button><a href="/app/reports.csv${query ? `?${query}` : ''}" download>Download CSV</a> <a href="/app/reports.xlsx${query ? `?${query}` : ''}" download>Download XLSX</a></div>
 </form>
-<p class="summary"><strong>${count(s.rows)} ${s.rows === 1 ? 'record' : 'records'}</strong> · ${count(s.completed)} completed · ${count(s.expiring)} expiring in 30 days · ${count(s.overdue)} overdue · ${count(s.open)} open${s.deferred ? ` · ${count(s.deferred)} deferred` : ''}${s.exempt ? ` · ${count(s.exempt)} exempt` : ''}${s.missing ? ` · ${count(s.missing)} missing` : ''}</p>
+<p class="summary"><strong>${count(s.rows)} ${s.rows === 1 ? 'record' : 'records'}</strong> · ${count(s.completed)} completed · ${count(s.expiring)} expiring in ${report.window.days} days · ${count(s.overdue)} overdue · ${count(s.open)} open${s.deferred ? ` · ${count(s.deferred)} deferred` : ''}${s.exempt ? ` · ${count(s.exempt)} exempt` : ''}${s.missing ? ` · ${count(s.missing)} missing` : ''}</p>
 <section class="card table-card"><div class="table-wrap"><table class="report stacked">
 <thead><tr><th scope="col">Learner</th><th scope="col">Course and revision</th><th scope="col">Status</th><th scope="col">Due</th><th scope="col">Lessons</th><th scope="col">Quiz attempts</th><th scope="col">Practical</th><th scope="col">Completed and certificate</th><th scope="col">Expires</th></tr></thead>
 <tbody>${report.rows.length ? report.rows.map(row => h`<tr>

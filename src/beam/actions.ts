@@ -54,6 +54,8 @@ import { completeLesson, decidePractical, gradeQuiz, saveQuizAnswers, startQuiz,
 import { decideNotice, decideProposal, proposeDraft } from './maintenance'
 import { proposeImpact } from './impact'
 import { acceptHistory } from './movein/talentlms'
+import { approveCredit, previewCredit, undoCredit } from './credits'
+import { saveExpiringWindow } from './report'
 import { saveImportSettings } from './movein/door'
 import { configureBusiness, createTeam, invitePerson, setAccess, setRoles, setTeamMembers } from './people'
 import { choosePractice, restartPractice } from './practice'
@@ -274,6 +276,11 @@ export const actions: Record<string, Handler> = {
   'offline.record': (env, actor, input) => recordOffline(env, actor, input),
   'import.settings': (env, actor, input) => saveImportSettings(env, actor, input),
   'history.accept': (env, actor, input) => acceptHistory(env, actor, input),
+  // REPORT-001 / MOVE-009: the expiring window and imported-history credit decisions.
+  'report.window': (env, actor, input) => saveExpiringWindow(env, actor, input),
+  'credit.preview': (env, actor, input) => previewCredit(env, actor, input),
+  'credit.approve': (env, actor, input) => approveCredit(env, actor, input),
+  'credit.undo': (env, actor, input) => undoCredit(env, actor, input),
   'agent.propose': (env, actor, input) => propose(env, actor, input),
   'agent.decide': (env, actor, input) => decide(env, actor, input),
   'practice.choose': (env, actor, input) => choosePractice(env, actor, input),

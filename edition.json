@@ -63,7 +63,8 @@
           "migrations/core/0074_beam_webhooks.sql",
           "migrations/core/0075_beam_language_defaults.sql",
           "migrations/core/0076_beam_lti.sql",
-          "migrations/core/0077_beam_restored_webhook_deliveries.sql"
+          "migrations/core/0077_beam_restored_webhook_deliveries.sql",
+          "migrations/core/0078_beam_coverage_credits.sql"
         ]
       }
     },
