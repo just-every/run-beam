@@ -11,7 +11,15 @@ let calls = 0
 const f = await fixture({ businessName:'Sierra Lakes Produce', names:{author:'Jordan Lee',reviewer:'Sam Taylor',learner:'Riley Morgan',assessor:'Avery Carter',manager:'Nina Brooks'}, outboundService: async request => {
  if (request.url !== 'https://api.openai.com/v1/responses') return null
  calls++
- const response = await fetch(request.url,{method:'POST',headers:request.headers,body:new Uint8Array(await request.arrayBuffer()),redirect:'error',signal:AbortSignal.timeout(90000)})
+ const requestHeaders = new Headers(request.headers)
+ for (const name of ['content-length','host','connection','transfer-encoding']) requestHeaders.delete(name)
+ let response
+ try { response = await fetch(request.url,{method:'POST',headers:requestHeaders,body:new Uint8Array(await request.arrayBuffer()),redirect:'manual',signal:AbortSignal.timeout(90000)}) }
+ catch(error) {
+  const codes = new Set(['ECONNRESET','ECONNREFUSED','ENOTFOUND','EAI_AGAIN','UND_ERR_CONNECT_TIMEOUT','UND_ERR_REQ_CONTENT_LENGTH_MISMATCH','UND_ERR_INVALID_ARG','CERT_HAS_EXPIRED','UNABLE_TO_GET_ISSUER_CERT_LOCALLY','ERR_INVALID_ARG_TYPE'])
+  console.log('OCR transport rejection',JSON.stringify({type:error.name,code:codes.has(error.cause?.code)?error.cause.code:'other',hints:{redirect:/redirect/i.test(error.message),headers:/header/i.test(error.message),body:/body|length/i.test(error.message)}}))
+  throw error
+ }
  console.log('OCR actual provider HTTP',response.status)
  if (!response.ok) {
   const error = (await response.clone().json().catch(()=>({}))).error ?? {}
