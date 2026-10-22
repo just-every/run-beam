@@ -80,6 +80,20 @@ export async function saltire() {
       return claims
     },
     async deepLink(beamRequest) {
+      // Only static UI metadata is reported: no control values, session URLs, keys or JWTs.
+      const actions = [...current.html.matchAll(/<(?:button|input)\b[^>]*>/gi)].flatMap(match => {
+        const attributes = attrs(match[0]), call = attributes.onclick?.match(/doSubmitContent\(['"]([a-zA-Z_]+)['"]\)/)
+        if (!call) return []
+        const end = match.index + match[0].length
+        const text = /^<button/i.test(match[0]) ? current.html.slice(end, current.html.indexOf('</button>', end)).replace(/<[^>]+>/g, '').trim() : attributes.type === 'button' ? attributes.value ?? '' : ''
+        return [{ action: call[1], label: /^[a-zA-Z0-9 ,.!?()\-/]*$/.test(text) ? text.slice(0, 120) : 'nonplain_label' }]
+      })
+      const typeSelect = current.html.match(/<select\b[^>]*id=["']id_bespoke_type["'][^>]*>[\s\S]*?<\/select>/i)?.[0] ?? ''
+      const types = [...typeSelect.matchAll(/<option\b[^>]*>/gi)].map(match => attrs(match[0]).value).filter(value => /^[a-zA-Z_]+$/.test(value ?? ''))
+      const contentForm = form(current.html, 'id_contentitems')
+      const names = [...new Set(contentForm.fields.keys())].filter(name => /^[a-zA-Z_]+$/.test(name))
+      const selections = [...current.html.matchAll(/<input\b[^>]*class=["'][^"']*documenttarget[^"']*["'][^>]*>/gi)].map(match => attrs(match[0]).id).filter(id => /^[a-zA-Z_]+$/.test(id ?? ''))
+      console.log('LTI_TOOL deep-link UI ' + JSON.stringify({ actions, types, formFields: names, selections }))
       const items = { bespoke: { checked: true, target: ['window'], type: 'ltiResourceLink', title: 'synthetic-beam-1', text: 'Synthetic external exercise', url: toolOrigin + '/tool', mediatype: '', custom: '' }, target: ['window'], message: { msg: '', log: '', errormsg: '', errorlog: '' } }
       await save({ t_contentitems: JSON.stringify(items) })
       const f = form(current.html, 'id_contentitems')
@@ -100,7 +114,7 @@ export async function saltire() {
       return { result, replay: () => beamRequest(new URL(callback.action).pathname, { form: callback.fields }) }
     },
     async token() {
-      const body = standard(); body.set('url', settings.get('t_accesstokenurl')); body.set('authorizationid', settings.get('t_authorizationid')); body.append('scopes[]', 'https://purl.imsglobal.org/spec/lti-ags/scope/score')
+      const body = standard(); body.set('url', settings.get('t_accesstokenurl')); body.set('authorizationid', settings.get('t_authorizationid')); const scopeControl = current.html.match(/<input\b[^>]*id=["']id_c_scope_score["'][^>]*>/)?.[0]; assert.ok(scopeControl, 'Real tool advertises AGS score scope'); body.append('scopes[]', attrs(scopeControl).value)
       const data = JSON.parse((await request('/tp-accesstoken.php', body)).html)
       assert.ok(data.http?.ok, `saLTIre AGS token request failed (HTTP ${data.http?.status ?? 'unknown'})`)
       const result = typeof data.http.response === 'string' ? JSON.parse(data.http.response) : data.http.response
