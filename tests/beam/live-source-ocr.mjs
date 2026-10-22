@@ -12,6 +12,7 @@ const f = await fixture({ businessName:'Sierra Lakes Produce', names:{author:'Jo
  if (request.url !== 'https://api.openai.com/v1/responses') return null
  calls++
  const response = await fetch(request.url,{method:'POST',headers:request.headers,body:new Uint8Array(await request.arrayBuffer()),redirect:'error',signal:AbortSignal.timeout(90000)})
+ console.log('OCR actual provider HTTP',response.status)
  if (!response.ok) {
   const error = (await response.clone().json().catch(()=>({}))).error ?? {}
   const params = new Set(['model','input','service_tier','reasoning.effort','max_output_tokens','text.format.schema'])
@@ -20,7 +21,11 @@ const f = await fixture({ businessName:'Sierra Lakes Produce', names:{author:'Jo
  }
  // Cross the Node/Miniflare response boundary with the provider's actual bytes,
  // status and headers, as the live LRS adapter does; never substitute a result.
- return new Response(await response.arrayBuffer(),{status:response.status,headers:response.headers})
+ const headers = new Headers(response.headers)
+ // Node has decoded the transfer body. Its old compression/length headers no
+ // longer describe these bytes and must not make the Worker decode them again.
+ headers.delete('content-encoding');headers.delete('content-length')
+ return new Response(await response.arrayBuffer(),{status:response.status,headers})
 }})
 let browser
 try {
