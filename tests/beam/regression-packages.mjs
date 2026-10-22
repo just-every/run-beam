@@ -107,9 +107,10 @@ export async function package12Check(f) {
 }
 
 export async function package2004Check(f) {
+  const source = await f.api('owner', 'source.create', { title: '2004 vaccine procedure', licence: 'owned', licenceEvidence: 'Employer-authored SOP', reviewer: f.ids.reviewer, provenance: 'Operations manual', file: file('vaccines.txt', 'Keep vaccines between 2 and 8 degrees.') })
   const created = []
   for (const standard of ['2004-2', '2004-3', '2004-4']) {
-    const c = await publishPackage(f, await preparePackage(f, standard, { multi: true }))
+    const c = await publishPackage(f, await preparePackage(f, standard, { multi: true, sources: [source.versionId] }))
     created.push(c)
     assert.equal(c.manifest.standard, standard)
     assert.deepEqual(c.manifest.scos[1].prerequisites, ['one'])
@@ -141,11 +142,36 @@ export async function package2004Check(f) {
     assert.equal((await f.view(c.assignment)).completion.revision, c.revision)
   }
   const invalid = await f.api('owner', 'course.create', { title: 'Invalid import', reviewer: f.ids.reviewer })
-  for (const kind of ['xml', 'launch']) {
+  for (const kind of ['xml', 'launch', 'unsupported']) {
     const result = await f.api('owner', 'package.import', { course: invalid.id, draftVersion: 1, licence: 'owned', licenceEvidence: 'CC0 1.0', file: file('invalid.zip', scormPackage('2004-4', { invalid: kind })) }, 422)
-    assert.equal(result.error, 'package_invalid_manifest')
+    assert.equal(result.error, kind === 'unsupported' ? 'package_unsupported_feature' : 'package_invalid_manifest')
     assert.ok(result.detail.feature)
   }
   assert.deepEqual((await f.api('owner', `courses/${invalid.id}`)).draft.packages || [], [])
+  const revised = await f.api('owner', 'source.version', { source: source.id, provenance: 'New approved range', file: file('vaccines.txt', 'Keep vaccines between 2 and 6 degrees.') })
+  for (const c of created) {
+    const notice = (await f.api('owner', `courses/${c.id}`)).notices.find(notice => notice.new_version_id === revised.id)
+    assert.ok(notice)
+    const impact = await f.api('owner', `impact/${notice.id}`)
+    assert.ok(impact.packages.some(pkg => pkg.id === c.package && pkg.affected))
+  }
+  // Every edition inherits the same independent interchange and restricted-file contract.
+  const baseline = await preparePackage(f, '1.2')
+  const native = await f.course('Mixed estate native procedure')
+  const restricted = await preparePackage(f, '2004-4', { multi: true, restriction: 'Internal training license: no redistribution' })
+  const exported = await f.h.raw('/app/data-export.json', { cookie: f.cookies.owner }).then(response => response.json())
+  assert.ok(exported.records.beam_lesson_revisions.rows.some(row => row.course_revision_id === native.revision))
+  assert.ok(exported.files.some(item => item.id === baseline.package))
+  for (const c of created) {
+    const original = exported.files.find(item => item.id === c.package)
+    assert.ok(original)
+    assert.deepEqual(Buffer.from(await (await f.h.raw(original.href, { cookie: f.cookies.owner })).arrayBuffer()), c.bytes)
+    assert.ok(exported.records.beam_revision_packages.rows.some(row => row.course_revision_id === c.revision && row.package_id === c.package))
+    assert.ok(exported.records.beam_package_events.rows.some(row => JSON.parse(row.payload_json)['cmi.interactions.0.learner_response'] === '5'))
+  }
+  const withheld = exported.exclusions.filter(item => item.packageId === restricted.package)
+  assert.equal(withheld.length, exported.records.beam_package_assets.rows.filter(row => row.package_id === restricted.package).length + 1)
+  assert.ok(withheld.every(item => item.reason.includes('no redistribution') && item.sha256 && item.size && item.retrievalHref))
+  for (const item of withheld) assert.equal((await f.h.raw(item.retrievalHref, { cookie: f.cookies.owner })).status, 200)
   return created
 }
