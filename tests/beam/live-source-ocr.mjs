@@ -57,6 +57,9 @@ try {
    throw error
   }
   assert.equal(calls,1)
+  const receipt=(await api('owner','source-ocr')).runs.find(row=>row.state==='completed')
+  assert.ok(receipt?.provider_response_id && receipt.usage)
+  console.log('Actual provider OCR completed',JSON.stringify({candidate:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),model:receipt.model,providerResponseId:receipt.provider_response_id,sourceDigest:receipt.sha256,usage:receipt.usage,providerCalls:calls}))
   const extraction=await api('author',`sources/${source.versionId}/extraction`)
   assert.ok(extraction.lessons.length>0 && !extraction.uncertainties.some(row=>row.requiresOcr))
   const text=extraction.lessons.map(row=>row.body).join('\n')

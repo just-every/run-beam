@@ -200,7 +200,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "c5502bded2424d00d0cfc78da0bb3f51321186106ed24a4cc734cdc5e06c4e28",
+      "sha256": "ae9c5efb37f9911149502cbd1d5f6c1f6ab6a1fd36ab3856e1b3a977da7af787",
       "executable": false
     },
     ".gitignore": {
@@ -232,7 +232,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8cc829d92368118ee7fa30e71d95d75255ae65e7b623218035a8d2de47755e39",
+      "sha256": "a5b499f4011ffbfd5ab351797d1b18e73fb11ec8a7ae7b9a47d0516f296c9d2d",
       "executable": false
     },
     "DEMO.md": {
@@ -728,7 +728,7 @@
       "executable": false
     },
     "public/beam.css": {
-      "sha256": "e96757ce493ecc64cb804e74ed95f614235eadb3bddbf01bed5e18d30e018e07",
+      "sha256": "4064795571c5048a78d663a3a3fef7053ce8068e959babc3933893ca198bef9f",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1220,7 +1220,7 @@
       "executable": false
     },
     "src/beam/audit.ts": {
-      "sha256": "b8eb1831b20d18b821baad0425d43d49a066fd8a6da47b3984dceea244bb7193",
+      "sha256": "c86d1b37b7cf92fd0429ed828afaf29d1684c759c255fd36ac2f25bebaf5c233",
       "executable": false
     },
     "src/beam/auditors.ts": {
@@ -3912,7 +3912,7 @@
       "executable": false
     },
     "tests/beam/live-source-ocr.mjs": {
-      "sha256": "6d204b511e93aba2d1e35669475874f15ffaebc67efa569b2a628070c87d29db",
+      "sha256": "46c5732b091daaee1e59007f4745d8c6bd1ef4ca060a1692a9f7974d86e33607",
       "executable": false
     },
     "tests/beam/live-webhook.mjs": {
@@ -4020,7 +4020,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "5d3f649eb17684fa83528c08d99553a1dd60deaed5bd724a2cd0310a9991075c",
+      "sha256": "ea57869896cd148da5a0ffcbc1a584130bd689c6ebc5be39fac4b2cb02753e04",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {

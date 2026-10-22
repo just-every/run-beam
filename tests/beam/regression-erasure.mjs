@@ -92,6 +92,8 @@ export async function erasureCheck() {
     assert.equal(await h.files.head(`sha256/${hash(originalBytes)}`), null)
     assert.equal((await h.raw(`/api/beam/source-files/${source.versionId}`, { cookie: cookies.author })).status, 404)
     await api('author', 'source.create', { title: 'Reconnect erased original', reviewer: ids.reviewer, licence: 'owned', licenceEvidence: 'Employer-authored original', provenance: 'Same original', file: file('obsolete.txt', originalBytes) }, 409)
+    const auditBefore = (await api('owner','audit?q=learner%40example.test')).events.map(({id,at,action})=>({id,at,action}))
+    assert.ok(auditBefore.length)
     await exportArchive(await portability(), old)
     const preview = await api('owner', 'erasure.preview', { kind: 'person', subject: ids.learner })
     assert.deepEqual(preview.inventory.unsupported, [], 'existing learner custody is covered')
@@ -117,10 +119,17 @@ export async function erasureCheck() {
     assert.ok(report.providers.some(row=>row.connection_id===external.connection && row.state==='failed' && row.failure==='connected_lrs_erasure_api_required'))
     assert.ok(f.lrs.records.has(externalStatement.id), 'external statements are not falsely reported erased')
     assert.equal(f.lrs.edge.writes,1,'erasure never fabricates an LRS destructive API or sends a replacement statement')
+    const auditAfter = (await api('owner','audit')).events
+    for (const original of auditBefore) {
+      const event = auditAfter.find(row=>row.id===original.id)
+      assert.ok(event, 'erasure retains the decision event')
+      assert.deepEqual({id:event.id,at:event.at,action:event.action},original)
+      assert.ok(!JSON.stringify(event.detail).includes('learner@example.test'),'personal audit payload is erased while event identity and time survive')
+    }
     await exportArchive(await portability(), later)
     const target = await harness()
     try {
-      await assert.rejects(importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations }), old, { journal: later }), /erasure_epoch/)
+      await assert.rejects(importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations }), old, undefined, later), /erasure_epoch/)
     } finally { await target.close() }
     const exported = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
     assert.equal(exported.records.beam_sequence_answers.rows.filter(row => row.assignment_id === practice).length, 0)

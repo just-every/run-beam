@@ -5,7 +5,9 @@
 // learning administrator the events about their units, an auditor those about
 // the completions shared with them. Only the owner appends a correction, a new
 // event that explains an earlier one, never an edit. No door
-// updates or deletes a row. Anonymous answers are recorded without the person
+// updates or deletes an event identity. The explicit owner-erasure operation
+// under OPS-003 redacts personal payload/route fields while retaining event ids,
+// actor/subject ids, action and time. Anonymous answers are recorded without the person
 // (actor 'respondent', no content) and practice runs are never audited.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
