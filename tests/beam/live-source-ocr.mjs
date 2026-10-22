@@ -8,7 +8,7 @@ import { file } from './harness.mjs'
 assert.equal(process.env.BEAM_LIVE_PROOF, '1', 'Live OCR needs explicit qualification mode')
 assert.ok(process.env.BEAM_OCR_KEY, 'Inject only the held OCR key through _od08-env.py')
 let calls = 0
-const f = await fixture({ businessName:'Sierra Lakes Produce', outboundService: async request => {
+const f = await fixture({ businessName:'Sierra Lakes Produce', names:{author:'Jordan Lee',reviewer:'Sam Taylor',learner:'Riley Morgan',assessor:'Avery Carter',manager:'Nina Brooks'}, outboundService: async request => {
  if (request.url !== 'https://api.openai.com/v1/responses') return null
  calls++
  const response = await fetch(request.url,{method:'POST',headers:request.headers,body:new Uint8Array(await request.arrayBuffer()),redirect:'error',signal:AbortSignal.timeout(90000)})
@@ -66,7 +66,7 @@ try {
   assert.match(text,/inspect the work area/i);assert.match(text,/2\s*(?:and|to|–|-)\s*8/i)
   const corrected='Inspect the work area before starting.\n\nKeep the probe between 2 and 8 degrees.\n\nRecord the reading before closing.'
   for(const width of [1440,390]){
-   const course=await api('author','course.create',{title:`Reviewed scanned procedure ${width}`,reviewer:ids.reviewer})
+   const course=await api('author','course.create',{title:'Opening the work area — reviewed scan',reviewer:ids.reviewer})
    const author=await open(width,'author')
    await author.goto(`${h.origin}/app/sources/${source.versionId}/prepare?course=${course.id}`)
    await author.getByLabel('Lesson title',{exact:true}).first().fill('Opening the work area')
