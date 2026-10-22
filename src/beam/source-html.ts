@@ -5,6 +5,7 @@ import { utf8 } from './source-archive'
 import { SourceContent, type SourceCell } from './source-content'
 
 interface HtmlNode { nodeName: string; tagName?: string; value?: string; attrs?: { name: string; value: string }[]; childNodes?: HtmlNode[] }
+export type HtmlImageResolver = (source: string) => { bytes: Uint8Array; filename: string } | undefined
 const blocked = new Set(['head', 'script', 'style', 'template', 'noscript', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form', 'input', 'button', 'select', 'textarea', 'canvas', 'svg', 'math'])
 const attr = (node: HtmlNode, name: string) => node.attrs?.find(item => item.name === name)?.value ?? ''
 const kids = (node: HtmlNode) => node.childNodes ?? []
@@ -18,7 +19,7 @@ function inner(node: HtmlNode) { return text(node).replace(/[\t ]+/g, ' ').repla
 function find(node: HtmlNode, name: string): HtmlNode[] {
   return kids(node).flatMap(item => item.tagName === name ? [item] : item.tagName === 'table' || blocked.has(item.tagName ?? '') ? [] : find(item, name))
 }
-function image(node: HtmlNode, content: SourceContent, location: string) {
+function image(node: HtmlNode, content: SourceContent, location: string, resolve?: HtmlImageResolver) {
   const source = attr(node, 'src'), alt = attr(node, 'alt') || attr(node, 'title')
   const embedded = source.match(/^data:image\/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/]*={0,2})$/i)
   if (embedded) {
@@ -26,17 +27,23 @@ function image(node: HtmlNode, content: SourceContent, location: string) {
     try { bytes = Uint8Array.from(atob(embedded[2]), character => character.charCodeAt(0)) } catch { insist(false, 'document_invalid_image', 422) }
     content.image(bytes, `image.${embedded[1].toLowerCase()}`, alt, location)
   } else {
-    content.warnings.add('Remote and relative HTML images were not fetched. Upload a licensed local image before using that image in a lesson.')
-    content.image(undefined, 'image', alt, location)
+    const resource = resolve?.(source)
+    if (resource) content.image(resource.bytes, resource.filename, alt, location)
+    else {
+      content.warnings.add(resolve
+        ? 'Remote and unavailable relative HTML images were not fetched. Upload a licensed local image before using that image in a lesson.'
+        : 'Remote and relative HTML images were not fetched. Upload a licensed local image before using that image in a lesson.')
+      content.image(undefined, 'image', alt, location)
+    }
   }
 }
-function htmlTable(node: HtmlNode, content: SourceContent, location: string) {
+function htmlTable(node: HtmlNode, content: SourceContent, location: string, resolve?: HtmlImageResolver) {
   const rows: SourceCell[][] = find(node, 'tr').map(row => kids(row).filter(cell => ['td', 'th'].includes(cell.tagName ?? '')).map(cell => ({ text: inner(cell), colSpan: Number(attr(cell, 'colspan') || 1), rowSpan: Number(attr(cell, 'rowspan') || 1), header: cell.tagName === 'th' })))
   content.table(rows, location, find(node, 'caption').map(inner).join(' ') || 'Procedure table')
-  for (const img of find(node, 'img')) image(img, content, location)
+  for (const img of find(node, 'img')) image(img, content, location, resolve)
   if (find(node, 'table').length) content.warnings.add('A nested HTML table was reduced to its enclosing cell text. Inspect its structure against the original.')
 }
-export function extractHtml(bytes: Uint8Array, content: SourceContent) {
+export function extractHtml(bytes: Uint8Array, content: SourceContent, resolve?: HtmlImageResolver) {
   insist(bytes.length <= 1_000_000, 'document_text_size', 422)
   const root = parse(utf8(bytes)) as unknown as HtmlNode
   let count = 0
@@ -52,12 +59,12 @@ export function extractHtml(bytes: Uint8Array, content: SourceContent) {
     const tag = node.tagName ?? '', location = `HTML block ${++position}`
     if (blocked.has(tag) || attr(node, 'hidden') !== '' || node.attrs?.some(item => item.name === 'hidden') || attr(node, 'aria-hidden') === 'true') return
     if (/^h[1-6]$/.test(tag)) { const value = inner(node); if (value) content.heading(value, location); return }
-    if (tag === 'table') { htmlTable(node, content, location); return }
-    if (tag === 'img') { image(node, content, location); return }
+    if (tag === 'table') { htmlTable(node, content, location, resolve); return }
+    if (tag === 'img') { image(node, content, location, resolve); return }
     if (['p', 'li', 'pre', 'blockquote', 'figcaption', 'dt', 'dd'].includes(tag)) {
       const value = inner(node)
       if (value) content.text(tag === 'li' ? `- ${value}` : value, location)
-      for (const img of find(node, 'img')) image(img, content, location)
+      for (const img of find(node, 'img')) image(img, content, location, resolve)
       return
     }
     if (node.nodeName === '#text') { if (node.value?.trim()) content.text(node.value.trim(), location); return }

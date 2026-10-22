@@ -4,6 +4,7 @@ import { SourceContent } from './source-content'
 import { utf8 } from './source-archive'
 import { extractDocx, extractPptx } from './source-office'
 import { extractHtml } from './source-html'
+import { extractHtmlArchive } from './source-html-archive'
 import { extractPdf } from './source-pdf'
 export type { ExtractedLesson, SourceDocument, SourceAsset, SourceBlock, SourceCell, SourceUncertainty } from './source-content'
 
@@ -13,9 +14,10 @@ export async function extractDocument(bytes: Uint8Array, filename: string, title
   if (extension === 'docx') extractDocx(bytes, content)
   else if (extension === 'pptx') extractPptx(bytes, content)
   else if (extension === 'html' || extension === 'htm') extractHtml(bytes, content)
+  else if (extension === 'zip') extractHtmlArchive(bytes, content)
   else if (extension === 'pdf') await extractPdf(bytes, content)
   else {
-    insist(['txt', 'md', 'markdown'].includes(extension), 'source_extraction_unsupported', 422, { supported: ['txt', 'md', 'markdown', 'docx', 'pptx', 'html', 'pdf'] })
+    insist(['txt', 'md', 'markdown'].includes(extension), 'source_extraction_unsupported', 422, { supported: ['txt', 'md', 'markdown', 'docx', 'pptx', 'html', 'pdf', 'zip'] })
     insist(bytes.length <= 1_000_000, 'document_text_size', 422)
     const value = utf8(bytes)
     insist(!/[\x00-\x08\x0e-\x1f]/.test(value), 'document_not_text', 422)

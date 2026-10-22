@@ -1,51 +1,75 @@
 // Tagged PDFs carry authored reading order, heading and table semantics.
-// Use those only when every extracted text run is accounted for; otherwise the
-// page remains a plain-text extraction with an explicit layout warning.
+// Account for text by marked-content identity, independently of paint order.
 import { insist } from './core'
 import type { SourceCell } from './source-content'
-interface Structure { role?: string; type?: string; id?: string; children?: Structure[] }
+import { taggedPdfTable, type PdfStructure } from './source-pdf-tables'
 interface TextRun { str?: string; hasEOL?: boolean; type?: string; id?: string }
 type Part = { kind: 'heading' | 'text'; text: string } | { kind: 'table'; table: SourceCell[][] }
 const normalize = (value: string) => value.replace(/\s/g, '')
 export function taggedPdfContent(tree: unknown, runs: TextRun[]): Part[] | null {
   if (!tree) return null
   const mapped = new Map<string, string>(), stack: string[] = []
-  let raw = '', nodes = 0
   for (const run of runs) {
     if (typeof run.str === 'string') {
-      const value = run.str + (run.hasEOL ? '\n' : ' ')
-      raw += value
+      // Untagged wrappers do not hide their nearest marked-content ancestor.
       const id = stack.at(-1)
-      if (id) mapped.set(id, (mapped.get(id) ?? '') + value)
-    } else if (run.type === 'beginMarkedContent' || run.type === 'beginMarkedContentProps') stack.push(run.id ?? '')
-    else if (run.type === 'endMarkedContent') stack.pop()
+      if (!id && normalize(run.str)) return null
+      if (id) mapped.set(id, (mapped.get(id) ?? '') + run.str + (run.hasEOL ? '\n' : ' '))
+    } else if (run.type === 'beginMarkedContent' || run.type === 'beginMarkedContentProps') stack.push(run.id || stack.at(-1) || '')
+    else if (run.type === 'endMarkedContent') { if (!stack.length) return null; stack.pop() }
   }
-  const root = tree as Structure
-  function text(node: Structure, depth = 0): string {
+  if (stack.length) return null
+  const root = tree as PdfStructure, cached = new Map<PdfStructure, string>(), referenced = new Set<string>()
+  let nodes = 0, valid = true
+  function index(node: PdfStructure, depth = 0): string {
     insist(++nodes <= 20_000 && depth <= 64, 'document_pdf_structure_limit', 422)
-    return node.type === 'content' ? mapped.get(node.id ?? '') ?? '' : (node.children ?? []).map(item => text(item, depth + 1)).join(' ')
+    if (cached.has(node)) { valid = false; return '' }
+    cached.set(node, '')
+    let value: string
+    if (node.type === 'content') {
+      if (!node.id || referenced.has(node.id) || node.children?.length) valid = false
+      else referenced.add(node.id)
+      value = mapped.get(node.id ?? '') ?? ''
+    } else value = (node.children ?? []).map(item => index(item, depth + 1)).join(' ')
+    cached.set(node, value)
+    return value
   }
-  if (normalize(text(root)) !== normalize(raw)) return null
-  const parts: Part[] = []
-  function rows(node: Structure): Structure[] {
-    return (node.children ?? []).flatMap(item => item.role === 'TR' ? [item] : rows(item))
+  const authored = index(root)
+  const textIds = [...mapped].filter(([, value]) => normalize(value)).map(([id]) => id)
+  if (!valid || textIds.some(id => !referenced.has(id))) return null
+  const parts: Part[] = [], represented: string[] = [], consumed = new Set<string>()
+  function take(node: PdfStructure): string {
+    function account(item: PdfStructure) {
+      if (item.type === 'content' && item.id && normalize(mapped.get(item.id) ?? '')) {
+        if (consumed.has(item.id)) valid = false
+        consumed.add(item.id)
+      }
+      for (const child of item.children ?? []) account(child)
+    }
+    account(node)
+    return cached.get(node) ?? ''
   }
-  function visit(node: Structure) {
-    if (/^H[1-6]?$/.test(node.role ?? '')) { const value = text(node).trim(); if (value) parts.push({ kind: 'heading', text: value }); return }
+  function visit(node: PdfStructure) {
+    if (/^H[1-6]?$/.test(node.role ?? '')) {
+      const value = take(node).trim()
+      if (value) { parts.push({ kind: 'heading', text: value }); represented.push(value) }
+      return
+    }
     if (node.role === 'Table') {
-      const table = rows(node).map(row => (row.children ?? []).filter(cell => cell.role === 'TH' || cell.role === 'TD').map(cell => ({ text: text(cell).trim(), colSpan: 1, rowSpan: 1, header: cell.role === 'TH' })))
-      if (!table.length || table.some(row => !row.length)) return
-      parts.push({ kind: 'table', table }); return
+      const table = taggedPdfTable(node, take)
+      if (!table) valid = false
+      else { parts.push({ kind: 'table', table }); represented.push(table.map(row => row.map(cell => cell.text).join(' ')).join(' ')) }
+      return
     }
     if (['P', 'LI', 'Caption'].includes(node.role ?? '') || node.type === 'content') {
-      const value = text(node).trim()
-      if (value) parts.push({ kind: 'text', text: node.role === 'LI' ? `- ${value}` : value })
+      const value = take(node).trim()
+      if (value) { parts.push({ kind: 'text', text: node.role === 'LI' ? `- ${value}` : value }); represented.push(value) }
       return
     }
     for (const item of node.children ?? []) visit(item)
   }
   visit(root)
-  // An unsupported structural object must not quietly consume its text.
-  const represented = parts.map(part => part.kind === 'table' ? part.table.map(row => row.map(cell => cell.text).join(' ')).join(' ') : part.text.replace(/^- /, '')).join(' ')
-  return parts.length && normalize(represented) === normalize(raw) ? parts : null
+  // Identity coverage prevents identical text from hiding a dropped or doubled
+  // passage; text equality additionally checks that output retained its content.
+  return valid && parts.length && textIds.every(id => consumed.has(id)) && normalize(represented.join(' ')) === normalize(authored) ? parts : null
 }

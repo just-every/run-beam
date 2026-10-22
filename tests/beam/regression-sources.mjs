@@ -1,3 +1,5 @@
+import { htmlCompanionZip, htmlAmbiguousZip, htmlTraversalZip, htmlOversizeZip, htmlCorruptZip } from './source-html-fixtures.mjs'
+import { taggedReorderedPdf, taggedMergedPdf, taggedCoveredRowPdf, taggedCoveragePdf, taggedInvalidSpanPdf } from './source-pdf-fixtures.mjs'
 import assert from 'node:assert/strict'
 import { pdf, syntheticImage } from './fixtures.mjs'
 import { file } from './harness.mjs'
@@ -86,10 +88,15 @@ export async function sourceExtractionCheck(f) {
     ['synthetic-beam-12-legacy-merged.docx', sourceLegacyMergedDocx(), ['Prepare']],
     ['synthetic-beam-9-merged.pptx', sourceProcedurePptx(true), ['Prepare', 'Close']],
     ['synthetic-beam-2.html', sourceProcedureHtml, ['Prepare', 'Close']],
+    ['synthetic-beam-19.html.zip', htmlCompanionZip(), ['Prepare', 'Close']],
+    ['synthetic-beam-20-nested.html.zip', htmlCompanionZip({ nested: true }), ['Prepare', 'Close']],
     ['synthetic-beam-3.md', '# Prepare\nInspect tools.\n# Close\nStore tools.', ['Prepare', 'Close']],
     ['synthetic-beam-4.pdf', sourceProcedurePdf(), ['Page 1']],
     ['synthetic-beam-6-tagged.pdf', sourceTaggedPdf(), ['Prepare the station']],
     ['synthetic-beam-7-grid.pdf', sourceUntaggedTablePdf(), ['Page 1']],
+    ['synthetic-beam-15-reordered.pdf', taggedReorderedPdf(), ['Prepare']],
+    ['synthetic-beam-16-merged.pdf', taggedMergedPdf(), ['Prepare']],
+    ['synthetic-beam-17-covered.pdf', taggedCoveredRowPdf(), ['Prepare']],
   ]
   for (const [filename, data, titles] of formats) {
     const imported = await upload(filename, data)
@@ -100,6 +107,22 @@ export async function sourceExtractionCheck(f) {
     if (/html|pptx/.test(filename)) {
       assert.ok(extracted.lessons[0].blocks.some(block => block.kind === 'table'))
       assert.deepEqual(Buffer.from(await (await h.raw(extracted.assets[0].href, { cookie: cookies.author })).arrayBuffer()), syntheticImage)
+    }
+    if (filename.endsWith('.html.zip')) {
+      assert.equal(extracted.assets[0].filename, 'probe placement.png')
+      assert.equal(extracted.lessons[0].blocks.find(block => block.kind === 'image').text, 'Probe placement')
+      assert.ok(extracted.warnings.some(warning => warning.includes('not fetched')))
+      assert.ok(extracted.lessons[0].body.includes('[Image: Remote diagram]'))
+    }
+    if (filename.includes('reordered')) {
+      assert.equal(extracted.lessons[0].body, 'Inspect the clean probe.')
+      assert.deepEqual(extracted.lessons[0].blocks.find(block => block.kind === 'table').table.map(row => row.map(cell => cell.text)), [['Equipment', 'Condition', 'Action'], ['Probe', 'Clean', 'Inspect'], ['Gloves', 'Ready', 'Store']])
+      assert.deepEqual(extracted.passages.map(row => row.kind), ['heading', 'heading', 'text', 'table'])
+    }
+    if (filename.includes('covered')) {
+      const table = extracted.lessons[0].blocks.find(block => block.kind === 'table').table
+      assert.deepEqual(table.map(row => row.map(cell => cell.text)), [['Equipment', 'Condition', 'Action'], ['Probe', 'Clean', 'Inspect'], []])
+      assert.deepEqual(table[1].map(({ colSpan, rowSpan }) => [colSpan, rowSpan]), [[2, 2], [1, 2], [1, 2]])
     }
     if (filename.includes('merged')) {
       const table = extracted.lessons[0].blocks.find(block => block.kind === 'table').table
@@ -123,10 +146,18 @@ export async function sourceExtractionCheck(f) {
     const screen = await h.raw(`/app/sources/${imported.versionId}/prepare?course=${fresh.id}`, { cookie: cookies.author }).then(response => response.text())
     assert.ok(screen.includes('name="reviewed"') && screen.includes(extracted.original))
     if (extracted.assets.length) await api('author', 'source.convert', { ...fields, draftVersion: converted.draftVersion, lessons: [{ title: 'Forged asset', body: '', blocks: [{ kind: 'image', text: 'Foreign', asset: 'asset-999' }] }] }, 404)
-    if (filename.includes('merged')) {
+    if (filename.endsWith('.html.zip')) {
+      const revision = (await api('author', 'course.submit', { course: fresh.id, draftVersion: converted.draftVersion })).id
+      await f.publish(revision)
+      const assignment = await f.assign(fresh), learning = await f.view(assignment)
+      const rendered = await h.raw(`/app/learn/${assignment}/lessons/${learning.lessons[0].id}`, { cookie: cookies.learner }).then(response => response.text())
+      assert.ok(rendered.includes('alt="Probe placement"'))
+      assert.deepEqual(Buffer.from(await (await h.raw(extracted.assets[0].href, { cookie: cookies.learner })).arrayBuffer()), syntheticImage)
+    }
+    if (/merged|reordered|covered/.test(filename)) {
       const table = converted.draft.lessons[0].blocks.find(block => block.kind === 'table').table
       assert.deepEqual(table, extracted.lessons[0].blocks.find(block => block.kind === 'table').table)
-      assert.ok(screen.includes('colspan="2" rowspan="2"'))
+      if (!filename.includes('reordered')) assert.ok(screen.includes('colspan="2" rowspan="2"'))
       const revision = (await api('author', 'course.submit', { course: fresh.id, draftVersion: converted.draftVersion })).id
       const snapshot = await api('reviewer', `revisions/${revision}`)
       assert.deepEqual(snapshot.lessons[0].blocks.find(block => block.kind === 'table').table, table)
@@ -134,9 +165,24 @@ export async function sourceExtractionCheck(f) {
       const assignment = (await api('manager', 'assignment.create', { course: fresh.id, learners: [ids.learner], dueDate: '2030-10-01' })).created[0]
       const learning = await api('learner', `assignments/${assignment}`)
       const rendered = await h.raw(`/app/learn/${assignment}/lessons/${learning.lessons[0].id}`, { cookie: cookies.learner }).then(response => response.text())
-      assert.ok(rendered.includes('colspan="2" rowspan="2">Probe</td>') && rendered.includes('Sanitized'))
+      if (filename.includes('merged')) assert.ok(rendered.includes('colspan="2" rowspan="2">Probe</td>') && rendered.includes('Sanitized'))
+      else if (filename.includes('covered')) assert.ok(rendered.includes('colspan="2" rowspan="2">Probe</td>') && rendered.includes('colspan="1" rowspan="2">Clean</td>'))
+      else assert.ok(rendered.includes('Inspect the clean probe.') && rendered.includes('Gloves'))
       assert.deepEqual(snapshot.lessons[0].sources, [imported.versionId])
     }
+  }
+  for (const [suffix, bytes, extra] of [
+    ['missing', taggedCoveragePdf('missing'), 'Retain this unreferenced passage.'],
+    ['duplicate', taggedCoveragePdf('duplicate'), null],
+    ['unmarked', taggedCoveragePdf('unmarked'), 'Retain this unmarked passage.'],
+    ['span', taggedInvalidSpanPdf(), null],
+  ]) {
+    const incomplete = await upload(`synthetic-beam-18-${suffix}.pdf`, bytes)
+    const fallback = await api('author', `sources/${incomplete.versionId}/extraction`)
+    assert.deepEqual(fallback.lessons.map(lesson => lesson.title), ['Page 1'])
+    const retained = fallback.lessons.map(lesson => [lesson.body, ...(lesson.blocks ?? []).flatMap(block => block.kind === 'table' ? block.table.flat().map(cell => cell.text) : [])].join(' ')).join(' ')
+    for (const passage of ['Prepare', 'Inspect the clean probe.', 'Equipment', ...(extra ? [extra] : [])]) assert.equal(retained.split(passage).length - 1, 1, `${suffix}: retained once: ${passage}`)
+    assert.ok(fallback.uncertainties.length)
   }
   const legacyText = await upload('synthetic-beam-13.docx', sourceLegacyMergedDocx('Compare probe label.'))
   const legacyExtraction = await api('author', `sources/${legacyText.versionId}/extraction`)
@@ -180,6 +226,12 @@ export async function sourceExtractionCheck(f) {
   // Unsupported formats, corrupt packages, external entities and oversized
   // documents are actionable refusals, never made-up text or partial success.
   for (const [name, data, code] of [
+    ['synthetic-beam-21-ambiguous.zip', htmlAmbiguousZip(), 'document_html_entrypoint'],
+    ['synthetic-beam-22-traversal.zip', htmlTraversalZip(), 'document_html_image_path'],
+    ['synthetic-beam-23-traversal.zip', htmlTraversalZip('encoded'), 'document_html_image_path'],
+    ['synthetic-beam-24-traversal.zip', htmlTraversalZip('entry'), 'document_invalid_zip'],
+    ['synthetic-beam-25-oversize.zip', htmlOversizeZip(), 'document_xml_size'],
+    ['synthetic-beam-26-corrupt.zip', htmlCorruptZip(), 'document_invalid_zip'],
     ['broken.pdf', 'not a PDF document', 'document_invalid_pdf'],
     ['page.html', '<html><script>active()</script></html>', 'document_no_lessons'],
     ['unsupported.bin', 'Unknown data', 'source_extraction_unsupported'],
