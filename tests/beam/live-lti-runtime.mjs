@@ -4,7 +4,7 @@ import { emittedWorker } from '../runtime.mjs'
 export async function ltiFixture(origin) {
   const h = await emittedWorker({ bindings: { AUTH_ORIGIN: origin, BEAM_LTI_HOSTS: 'saltire.lti.app' } })
   const cookies = {}, ids = {}
-  const raw = (path, { cookie, body, form, method, headers, bytes } = {}) => h.fetch(origin + path, { method: method ?? (body !== undefined || form ? 'POST' : 'GET'), headers: headers ? Object.fromEntries(headers) : { origin, ...(cookie ? { cookie } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) }, body: bytes && !['GET', 'HEAD'].includes(method) ? new Uint8Array(bytes) : body !== undefined ? JSON.stringify(body) : form })
+  const raw = (path, { cookie, body, form, method, headers, bytes } = {}) => h.fetch(origin + path, { method: method ?? (body !== undefined || form ? 'POST' : 'GET'), headers: headers ? Object.fromEntries(headers) : { origin, host: new URL(origin).host, ...(cookie ? { cookie } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) }, body: bytes && !['GET', 'HEAD'].includes(method) ? new Uint8Array(bytes) : body !== undefined ? JSON.stringify(body) : form })
   const api = async (role, action, body, status = 200) => {
     const response = await raw('/api/beam/' + action, { cookie: cookies[role], body })
     assert.equal(response.status, status, `Beam ${action}: HTTP ${response.status}`)
@@ -20,7 +20,9 @@ export async function ltiFixture(origin) {
     ids[role] = (await api(role, 'me')).id
   }
   try {
-    assert.equal((await raw('/auth/bootstrap', { body: { token: h.vars.SETUP_TOKEN, displayName: 'synthetic-beam-1' } })).status, 303)
+    const bootstrap = await raw('/auth/bootstrap', { body: { token: h.vars.SETUP_TOKEN, displayName: 'synthetic-beam-1' } })
+    const code = bootstrap.status === 303 ? '' : (await bootstrap.clone().json()).error
+    assert.equal(bootstrap.status, 303, `Beam bootstrap: ${/^[a-z_]+$/.test(code) ? code : 'refused'}`)
     await signin('owner')
     await raw('/setup', { cookie: cookies.owner, form: new URLSearchParams({ confirm: 'yes' }) })
     await api('owner', 'business.configure', { name: 'synthetic-beam-1', timezone: 'UTC' })
