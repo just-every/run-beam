@@ -1,6 +1,7 @@
 import { insist } from './core'
 import { attribute as attr, child, children, descendants, elements, localName as local, officeArchive, relationships, type XmlNode, type OfficeArchive } from './source-archive'
 import { SourceContent, type SourceCell } from './source-content'
+import { wordTableCells } from './source-office-merges'
 
 function paragraphText(node: XmlNode, content: SourceContent): string {
   const name = local(node.name)
@@ -33,9 +34,9 @@ function table(node: XmlNode, content: SourceContent, pptx: boolean, location: s
   // manufacturing spans or silently dropping the unsupported cell contents.
   if (descendants(node, 'tbl').length || !pptx && rows.some(row => {
     const properties = child(row, 'trPr')
-    return ['gridBefore', 'gridAfter'].some(name => Number(attr(child(properties, name), 'val') || 0) !== 0) || children(row, 'tc').some(cell => child(child(cell, 'tcPr'), 'hMerge'))
+    return ['gridBefore', 'gridAfter'].some(name => Number(attr(child(properties, name), 'val') || 0) !== 0)
   })) {
-    const reason = 'An unsupported table layout (nested table, omitted grid cells or legacy horizontal merge) was retained as text. Reconstruct its cells against the original before conversion.'
+    const reason = 'An unsupported table layout (nested table or omitted grid cells) was retained as text. Reconstruct its cells against the original before conversion.'
     const text = descendants(node, 'p').map(p => paragraphText(p, content)).join('\n')
     content.warnings.add(reason); content.uncertain(location, text, reason); content.text(text, location)
     return
@@ -50,7 +51,15 @@ function table(node: XmlNode, content: SourceContent, pptx: boolean, location: s
     let column = 0
     const headerFlag = child(child(row, 'trPr'), 'tblHeader')
     const header = pptx ? firstRow && rowIndex === 0 : !!headerFlag && !['0', 'false', 'off'].includes(attr(headerFlag, 'val') ?? '')
-    for (const cell of children(row, 'tc')) {
+    const rowCells = pptx ? children(row, 'tc') : wordTableCells(row, cell => {
+      const text = children(cell, 'p').map(p => paragraphText(p, content)).join('\n')
+      if (text.trim()) {
+        const reason = 'A merged table continuation contains text. Compare and place this text in the merged cell before conversion.'
+        content.warnings.add(reason); content.uncertain(location, text, reason)
+      }
+      return !!text.trim()
+    })
+    for (const cell of rowCells) {
       const properties = child(cell, 'tcPr'), merge = child(properties, 'vMerge')
       const span = Number(pptx ? attr(cell, 'gridSpan') || 1 : attr(child(properties, 'gridSpan'), 'val') || 1)
       const rowSpan = pptx ? Number(attr(cell, 'rowSpan') || 1) : 1

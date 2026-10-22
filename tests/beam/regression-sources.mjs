@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { pdf, syntheticImage } from './fixtures.mjs'
 import { file } from './harness.mjs'
 
-import { sourceProcedureDocx, sourceMergedDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceUntaggedTablePdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
+import { sourceProcedureDocx, sourceMergedDocx, sourceLegacyMergedDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceUntaggedTablePdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
 const original = sourceProcedureDocx
 
 export async function sourceExtractionCheck(f) {
@@ -83,6 +83,7 @@ export async function sourceExtractionCheck(f) {
   const formats = [
     ['synthetic-beam-1.pptx', sourceProcedurePptx(), ['Prepare', 'Close']],
     ['synthetic-beam-8-merged.docx', sourceMergedDocx, ['Prepare']],
+    ['synthetic-beam-12-legacy-merged.docx', sourceLegacyMergedDocx(), ['Prepare']],
     ['synthetic-beam-9-merged.pptx', sourceProcedurePptx(true), ['Prepare', 'Close']],
     ['synthetic-beam-2.html', sourceProcedureHtml, ['Prepare', 'Close']],
     ['synthetic-beam-3.md', '# Prepare\nInspect tools.\n# Close\nStore tools.', ['Prepare', 'Close']],
@@ -137,12 +138,36 @@ export async function sourceExtractionCheck(f) {
       assert.deepEqual(snapshot.lessons[0].sources, [imported.versionId])
     }
   }
-  const legacy = await upload('synthetic-beam-10.docx', document(paragraph('Legacy merge needs reconstruction.') + '<w:tbl><w:tr><w:tc><w:tcPr><w:hMerge w:val="restart"/></w:tcPr>' + paragraph('Retained original table text') + '</w:tc></w:tr></w:tbl>'))
-  const unsupportedTable = await api('author', `sources/${legacy.versionId}/extraction`)
-  assert.ok(unsupportedTable.warnings.some(warning => warning.includes('unsupported table layout')))
-  assert.ok(unsupportedTable.uncertainties.some(item => item.text.includes('Retained original table text') && item.location.startsWith('Document block')))
-  assert.match(unsupportedTable.lessons[0].body, /Retained original table text/)
-  assert.equal((await api('author', 'source.convert', { course: course.id, draftVersion: (await api('author', `courses/${course.id}`)).draftVersion, sourceVersion: legacy.versionId, reviewed: true, lessons: unsupportedTable.lessons }, 409)).error, 'source_uncertainty_review_required')
+  const legacyText = await upload('synthetic-beam-13.docx', sourceLegacyMergedDocx('Compare probe label.'))
+  const legacyExtraction = await api('author', `sources/${legacyText.versionId}/extraction`)
+  const legacyCell = legacyExtraction.lessons[0].blocks.find(block => block.kind === 'table').table[1][0]
+  assert.equal(legacyCell.text, 'Probe\nCompare probe label.')
+  assert.ok(legacyExtraction.uncertainties.some(item => item.text.includes('Compare probe label.') && item.location.startsWith('Document block')))
+  const legacyDraft = await api('author', 'course.create', { title: 'Correct legacy procedure', reviewer: ids.reviewer })
+  const legacyFields = { course: legacyDraft.id, draftVersion: legacyDraft.draftVersion, sourceVersion: legacyText.versionId, reviewed: true, lessons: legacyExtraction.lessons }
+  assert.equal((await api('author', 'source.convert', legacyFields, 409)).error, 'source_uncertainty_review_required')
+  legacyCell.text = 'Probe — compare the sanitized label.'
+  const legacyCorrection = await api('author', 'source.convert', { ...legacyFields, resolvedUncertainties: legacyExtraction.uncertainties.map(item => item.id) })
+  assert.equal(legacyCorrection.draft.lessons[0].blocks.find(block => block.kind === 'table').table[1][0].text, legacyCell.text)
+  for (const body of [
+    '<w:tbl><w:tr><w:tc>' + paragraph('Retained original table text') + '<w:tbl><w:tr><w:tc>' + paragraph('Nested text') + '</w:tc></w:tr></w:tbl></w:tc></w:tr></w:tbl>',
+    '<w:tbl><w:tr><w:trPr><w:gridBefore w:val="1"/></w:trPr><w:tc>' + paragraph('Retained original table text') + '</w:tc></w:tr></w:tbl>',
+  ]) {
+    const unsupported = await upload('synthetic-beam-10.docx', document(paragraph('Compare table layout.') + body))
+    const unsupportedTable = await api('author', `sources/${unsupported.versionId}/extraction`)
+    assert.ok(unsupportedTable.warnings.some(warning => warning.includes('unsupported table layout')))
+    assert.ok(unsupportedTable.uncertainties.some(item => item.text.includes('Retained original table text') && item.location.startsWith('Document block')))
+    assert.match(unsupportedTable.lessons[0].body, /Retained original table text/)
+    assert.equal((await api('author', 'source.convert', { course: course.id, draftVersion: (await api('author', `courses/${course.id}`)).draftVersion, sourceVersion: unsupported.versionId, reviewed: true, lessons: unsupportedTable.lessons }, 409)).error, 'source_uncertainty_review_required')
+  }
+  for (const row of [
+    '<w:tr><w:tc><w:tcPr><w:hMerge/></w:tcPr><w:p/></w:tc></w:tr>',
+    '<w:tr><w:tc><w:tcPr><w:hMerge w:val="invalid"/></w:tcPr><w:p/></w:tc></w:tr>',
+    '<w:tr><w:tc><w:tcPr><w:hMerge w:val="restart"/><w:vMerge w:val="restart"/></w:tcPr><w:p/></w:tc><w:tc><w:tcPr><w:hMerge/></w:tcPr><w:p/></w:tc></w:tr>',
+  ]) {
+    const malformed = await upload('synthetic-beam-14.docx', document(paragraph('Reject malformed merge.') + '<w:tbl>' + row + '</w:tbl>'))
+    assert.equal((await api('author', `sources/${malformed.versionId}/extraction`, undefined, 422)).error, 'document_invalid_table_merge')
+  }
   const scanned = await upload('synthetic-beam-5.pdf', sourceProcedurePdf(true))
   const scan = await api('author', `sources/${scanned.versionId}/extraction`)
   assert.ok(scan.uncertainties.some(item => item.requiresOcr && item.location === 'Page 1'))
@@ -382,7 +407,10 @@ export async function multimediaBrowserCheck(f, media) {
       // The full mixed lesson uses the identical renderer in learner and review doors.
       await as('learner')
       await page.goto(f.h.origin + media.learnerPath)
-      await page.waitForFunction(() => document.querySelector('video').readyState >= 1, { timeout: 15000 })
+      await page.waitForFunction(() => document.querySelector('video').readyState >= 1, { timeout: 15000 }).catch(async error => {
+        console.error('Native video metadata', await page.locator('video').evaluate(video => ({ readyState: video.readyState, networkState: video.networkState, error: video.error && { code: video.error.code, message: video.error.message }, canPlay: video.canPlayType('video/mp4; codecs="avc1.64000b, mp4a.40.2"') })))
+        throw error
+      })
       await page.locator('video').evaluate(async video => { video.muted = true; await video.play() })
       await page.waitForFunction(() => document.querySelector('video').currentTime > 0).catch(async error => {
         console.error('Native video state', await page.locator('video').evaluate(video => ({ readyState: video.readyState, networkState: video.networkState, paused: video.paused, ended: video.ended, time: video.currentTime, error: video.error?.code, buffered: [...Array(video.buffered.length)].map((_, index) => [video.buffered.start(index), video.buffered.end(index)]) })))

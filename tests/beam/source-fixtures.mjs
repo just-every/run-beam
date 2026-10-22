@@ -23,6 +23,15 @@ export const sourceMergedDocx = document(heading('Prepare') + paragraph('Inspect
   '<w:tr>' + mergedWordCell('Probe', '<w:gridSpan w:val="2"/><w:vMerge w:val="restart"/>') + mergedWordCell('Clean') + mergedWordCell('Inspect') + '</w:tr>' +
   '<w:tr>' + mergedWordCell('', '<w:gridSpan w:val="2"/><w:vMerge/>') + mergedWordCell('Ready') + mergedWordCell('Store') + '</w:tr></w:tbl>')
 
+// Same grid as sourceMergedDocx, encoded as physical legacy hMerge cells.
+// Both explicit and implicit continuation values occur in actual Word XML.
+export function sourceLegacyMergedDocx(continuationText = '') {
+  return document(heading('Prepare') + paragraph('Inspect the probe.') + '<w:tbl><w:tblGrid>' + '<w:gridCol w:w="1000"/>'.repeat(4) + '</w:tblGrid>' +
+    '<w:tr><w:trPr><w:tblHeader/></w:trPr>' + mergedWordCell('Equipment', '<w:hMerge w:val="restart"/>') + mergedWordCell('', '<w:hMerge w:val="continue"/>') + mergedWordCell('Condition') + mergedWordCell('Action') + '</w:tr>' +
+    '<w:tr>' + mergedWordCell('Probe', '<w:hMerge w:val="restart"/><w:vMerge w:val="restart"/>') + mergedWordCell(continuationText, '<w:hMerge/><w:vMerge w:val="restart"/>') + mergedWordCell('Clean') + mergedWordCell('Inspect') + '</w:tr>' +
+    '<w:tr>' + mergedWordCell('', '<w:hMerge w:val="restart"/><w:vMerge/>') + mergedWordCell('', '<w:hMerge/><w:vMerge w:val="continue"/>') + mergedWordCell('Ready') + mergedWordCell('Store') + '</w:tr></w:tbl>')
+}
+
 export function sourceProcedurePptx(merged = false) {
   const cell = (text, attributes = '') => `<a:tc ${attributes}><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>${text}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>`
   const mergedTable = '<a:tbl><a:tblPr firstRow="true"/><a:tblGrid>' + '<a:gridCol w="1000"/>'.repeat(4) + '</a:tblGrid>' +

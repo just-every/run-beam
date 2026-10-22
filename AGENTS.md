@@ -272,7 +272,7 @@ journals import/native/file/provider steps; practice replies are deleted even
 when assessed evidence is held. Import custody includes uploads/chunks, plans,
 approvals, scope and apply failures while permanent settings and revoked keys
 remain. Personal audit payload/routes are redacted while decision ids and times
-survive. Unmapped references/shared machine snapshots refuse execution. Provider
+survive. Unmapped references/shared machine snapshots refuse execution. The owner may separately withdraw complete affected follow-on dry runs through the custody preview, with fresh digest consent; this pauses their rules and requires a new dry run before activation. Other shared snapshot classes remain refused. Provider
 API deletion remains visibly unresolved, never reported as success. Reconnects
 are fenced by installation-specific hashes; older restores require the later
 trusted privacy journal. Journal loss, downloaded/native caches, derived cited

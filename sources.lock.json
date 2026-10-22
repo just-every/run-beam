@@ -212,7 +212,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d604deba5bd579b0999efa7eb2b164580114755d99bcaab2a34e8128f7daf687",
+      "sha256": "0bf9ceda92d7336a65caebdfd0471e56b6bb4455404f4e3f4fe8ad3782d99fa3",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -220,7 +220,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "0774e6cbc53ce227e3ff71bf56799e7977fec74eb86ba643a9c0f762a924e998",
+      "sha256": "1ec409390730150c6c70ea085f186bcde39ad87d8d2c37046b394aff511e8680",
       "executable": false
     },
     "base-copies.json": {
@@ -232,7 +232,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "daa7457898aad1b52841e8bda3c6b13e26c49c57c6a58d3a1811713412ee1f36",
+      "sha256": "38e508d7029e0f927686e3f99653e6ae1826edda0632babae3e64f35798d3e51",
       "executable": false
     },
     "DEMO.md": {
@@ -1176,7 +1176,7 @@
       "executable": false
     },
     "src/beam/actions.ts": {
-      "sha256": "4a620660c06529bd679891ee16f6adf30e3490a6e4cb0f0a5cc8c5f2517b764f",
+      "sha256": "2a2c24913f0ad052e63918cb87e901d628faab685fea8a68249e7cc7adc7e8eb",
       "executable": false
     },
     "src/beam/actor.ts": {
@@ -1375,8 +1375,12 @@
       "sha256": "97ead83465ebfb3d28359f7e84320a2695dbf7e6a3127b103000a7283b5f06e7",
       "executable": false
     },
+    "src/beam/erasure-snapshots.ts": {
+      "sha256": "9974ab78c40ceb0a4145ce8f7b4dd27318133aa0d244321022a3d60944dc534c",
+      "executable": false
+    },
     "src/beam/erasure.ts": {
-      "sha256": "8fd5906420f8bc12db43baf142367714cd5df47a0f639ee757998bdca3f380a5",
+      "sha256": "7601bd8b9cd74bfb23fbe8a5fefed73806cefda075e2cd89a51884d2b4cbadad",
       "executable": false
     },
     "src/beam/escalations.ts": {
@@ -1748,7 +1752,7 @@
       "executable": false
     },
     "src/beam/source-office.ts": {
-      "sha256": "1ffbffaec28c60b7a1c3edebf3a91b58ae3f87fceb6664a4f5e00fdc245ac323",
+      "sha256": "55e5a181ca8470d11ab46bbd5e8960e885843be4d47c40c09fcf12a0c9f331ff",
       "executable": false
     },
     "src/beam/source-pdf-layout.ts": {
@@ -1888,7 +1892,7 @@
       "executable": false
     },
     "src/beam/ui/erasure.ts": {
-      "sha256": "03c8acef8426e8aac3b09efbe25f4c2d6c8de6a3c624a1ee1a07f6558d4beaa2",
+      "sha256": "4d140a111938e424283a86b1bd121c015bd1aa3878f58072c2680297cfbc4495",
       "executable": false
     },
     "src/beam/ui/errors.ts": {
@@ -3840,7 +3844,7 @@
       "executable": false
     },
     "tests/beam/erasure-browser.mjs": {
-      "sha256": "8cd94757b53c4e67c550359e6c674f002dcca705bce1485d323757b3cc2c1321",
+      "sha256": "6fc1800d016f1595597c34afe4086c62bcdb551f97ae647499af734e6db3c574",
       "executable": false
     },
     "tests/beam/fixtures.mjs": {
@@ -4020,7 +4024,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "2143f0ba7b6eba623dcbf6b06126c36a830ba050d0f1ee339b48a98c89638845",
+      "sha256": "a85191e1c0f6b5dd96411eb188c758fc1f8664977c5520c6b74d569a0ca36d20",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
@@ -4120,7 +4124,7 @@
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {
-      "sha256": "4cc08a42e6ef1f1934fbf378ff3be725a22aa0dc74fe7c78fe8161af1017a922",
+      "sha256": "ee9a695defe940f2aca630e5b0b18709bf6d234461a200de78dffe0654d5286b",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {
@@ -4164,11 +4168,11 @@
       "executable": false
     },
     "tests/beam/source-browser.mjs": {
-      "sha256": "2c4cd1f679858b791de84482682987291b334d8b71183512e513a7c02ba78943",
+      "sha256": "09cde428d29fd99510631af16993b1dd5800288a8ce1eba4e987ec47a3ca8288",
       "executable": false
     },
     "tests/beam/source-fixtures.mjs": {
-      "sha256": "b23ed06bf18aa5bdef32ee4c29abbff9a5aebbed69db738d047c164b0873663b",
+      "sha256": "e7b1ccdb3ea84a2f43408fcabe14ebf1e41c048b42a96f61efa33a8efc95f9ae",
       "executable": false
     },
     "tests/beam/source-ocr-fixtures.mjs": {

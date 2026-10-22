@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { sourceMergedDocx, sourceProcedureDocx, sourceProcedurePdf } from './source-fixtures.mjs'
+import { sourceLegacyMergedDocx, sourceProcedureDocx, sourceProcedurePdf } from './source-fixtures.mjs'
 import { file } from './harness.mjs'
 
 // Sources -> original comparison -> corrected draft -> named human review ->
@@ -90,7 +90,7 @@ export async function sourceBrowserCheck(f) {
         // the ordinary human publication and learner doors.
         const mergedCourse = await f.api('author', 'course.create', { title: `${shift} equipment inspection checklist`, reviewer: f.ids.reviewer })
         const mergedSource = await f.api('author', 'source.create', { title: `${shift} equipment inspection SOP`, reviewer: f.ids.reviewer,
-          licence: 'owned', licenceEvidence: 'Employer-authored inspection checklist', provenance: 'Original inspection procedure', file: file('synthetic-beam-merged.docx', sourceMergedDocx) })
+          licence: 'owned', licenceEvidence: 'Employer-authored inspection checklist', provenance: 'Original inspection procedure', file: file('synthetic-beam-merged.docx', sourceLegacyMergedDocx()) })
         await page.goto(`${f.h.origin}/app/sources/${mergedSource.versionId}/prepare?course=${mergedCourse.id}`)
         await page.getByLabel('Row 2, cell 2', { exact: true }).fill('Sanitized')
         await page.getByLabel('First row contains column headings', { exact: true }).check()
