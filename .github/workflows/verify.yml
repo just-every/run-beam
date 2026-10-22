@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 15
     env:
       CI: 'true'
-      BEAM_REGRESSION_EXCLUDE: 'OPS-007,AUTO-004,PACK-003-custody'
+      BEAM_REGRESSION_EXCLUDE: 'OPS-003,OPS-007,AUTO-004,PACK-003-custody'
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
           node-version: '22.20.0'
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
-      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=OPS-007,AUTO-004
+      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=OPS-003,OPS-007,AUTO-004
   package-custody:
     runs-on: ubuntu-latest
     timeout-minutes: 15

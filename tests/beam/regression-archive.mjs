@@ -15,7 +15,7 @@ const sha = value => createHash('sha256').update(value).digest('hex')
 const root = fileURLToPath(new URL('../../', import.meta.url)), directory = join(root, 'migrations/core')
 const { unstable_splitSqlQuery: splitSql } = createRequire(await realpath(join(root, 'node_modules/wrangler/package.json')))('wrangler')
 const plan = await Promise.all((await readdir(directory)).filter(name => name.endsWith('.sql')).sort().map(async name => ({ name, statements: splitSql(await readFile(join(directory, name), 'utf8')) })))
-const migrations = async () => migrationReplay(plan, policy)
+export const migrations = async () => migrationReplay(plan, policy)
 
 // OPS-007 (ct 20 Oct 16:55Z): the installation archive `rer export` writes with Beam's archive policy carries no
 // verifier hash for application credentials, certificate verification links or restricted report links, and keeps their

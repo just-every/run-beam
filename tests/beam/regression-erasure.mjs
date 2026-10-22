@@ -6,6 +6,7 @@ import { createPortability } from '@runeditrun/rer/modules/portability'
 import { exportArchive, importArchive } from '@runeditrun/rer/modules/portability/files'
 import policy from '../../scripts/installer/portability-policy.mjs'
 import { harness } from './harness.mjs'
+import { migrations } from './regression-archive.mjs'
 import { createHash } from 'node:crypto'
 import { fixture } from './regression-fixture.mjs'
 import { file } from './harness.mjs'
@@ -78,7 +79,7 @@ export async function erasureCheck() {
     await exportArchive(await portability(), later)
     const target = await harness()
     try {
-      await assert.rejects(importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy }), old, { journal: later }), /erasure_epoch/)
+      await assert.rejects(importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations }), old, { journal: later }), /erasure_epoch/)
     } finally { await target.close() }
     const exported = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
     assert.equal(exported.records.beam_sequence_answers.rows.filter(row => row.assignment_id === practice).length, 0)

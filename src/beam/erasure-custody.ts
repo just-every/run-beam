@@ -121,7 +121,8 @@ async function context(env: Bindings, memberId: string, aliases: string[] = []) 
   const values = [memberId, member.email, member.employee_id, member.username, ...aliases].filter(value => typeof value === 'string' && value.length)
   const lineage = await all<{ id: string }>(env, `SELECT id FROM beam_assignments WHERE learner_id=?1
     UNION SELECT id FROM beam_attempts WHERE assignment_id IN (${assignments})
-    UNION SELECT id FROM beam_completions WHERE learner_id=?1 UNION SELECT id FROM beam_certificates WHERE completion_id IN (${completions})`, memberId)
+    UNION SELECT id FROM beam_completions WHERE learner_id=?1 UNION SELECT id FROM beam_certificates WHERE completion_id IN (${completions})
+    UNION SELECT id FROM beam_imported_history WHERE json_extract(payload,'$.member')=?1 OR lower(json_extract(payload,'$.email')) IN (SELECT lower(value) FROM json_each(?2))`, memberId, JSON.stringify(values))
   values.push(...lineage.map(row => row.id))
   const columns = await all<{ table_name: string; column_name: string; member_ref: number }>(env, `SELECT m.name AS table_name, p.name AS column_name,
     EXISTS(SELECT 1 FROM pragma_foreign_key_list(m.name) f WHERE f."from"=p.name AND f."table"='beam_members') AS member_ref

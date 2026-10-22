@@ -3,7 +3,8 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { file } from './harness.mjs'
-import { pdf, syntheticAudio, syntheticImage, syntheticVideo } from './fixtures.mjs'
+import { syntheticAudio, syntheticImage, syntheticVideo } from './fixtures.mjs'
+import { sourceProcedurePdf } from './source-fixtures.mjs'
 import { scormPackage } from './scorm-fixtures.mjs'
 
 async function assignedCourse(f, width) {
@@ -16,7 +17,7 @@ async function assignedCourse(f, width) {
   }
   const first = await edit('course.lesson', { title: 'Inspect the station', body: 'Inspect clean tools and record the temperature.', sources: [] })
   lesson = first.draft.lessons[0].id
-  for (const [index, kind, extension, bytes] of [[1, 'image', 'png', syntheticImage], [2, 'audio', 'mp3', syntheticAudio], [3, 'video', 'mp4', syntheticVideo], [4, 'document', 'pdf', pdf]]) {
+  for (const [index, kind, extension, bytes] of [[1, 'image', 'png', syntheticImage], [2, 'audio', 'mp3', syntheticAudio], [3, 'video', 'mp4', syntheticVideo], [4, 'document', 'pdf', sourceProcedurePdf()]]) {
     const asset = await f.api('author', 'source.create', { title: `synthetic-beam-${index}`, licence: 'owned', licenceEvidence: 'Original synthetic Beam media', reviewer: f.ids.reviewer, provenance: 'Synthetic Beam fixture', file: file(`synthetic-beam-${index}.${extension}`, bytes) })
     await edit('course.block', { lesson, content: { kind, source: asset.versionId, text: `Station ${kind}` } })
   }
