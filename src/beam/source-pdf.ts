@@ -35,7 +35,7 @@ export async function extractPdf(bytes: Uint8Array, content: SourceContent) {
         insist(value.length <= 50_000, 'document_lesson_limit', 422)
       }
       const tagged = taggedPdfContent(await page.getStructTree(), text.items)
-      const structured = tagged ?? geometricPdfContent(text.items)
+      const structured = tagged ?? geometricPdfContent(text.items.filter(item => 'str' in item))
       if (structured) for (const part of structured) {
         if (part.kind === 'heading') content.heading(part.text, location)
         else if (part.kind === 'table') content.table(part.table, location, `${location} table`)

@@ -56,7 +56,7 @@ export async function mobileLearningBrowserCheck(f) {
         page.on('dialog', dialog => dialog.accept())
         const shot = async name => {
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: overflow at ${width}`)
-          await page.screenshot({ path: join(evidence, `${width}-mobile-learning-${name}.png`), fullPage: true })
+          await page.screenshot({ path: join(evidence, `${width}-mobile-learning-${name}.png`), fullPage: name !== 'caption-playback' })
         }
         const activate = async control => {
           const href = await control.evaluate(element => element instanceof HTMLAnchorElement ? element.href : null)
@@ -102,6 +102,8 @@ export async function mobileLearningBrowserCheck(f) {
         await page.locator('video track').evaluate(track => { track.track.mode = 'showing' })
         await page.locator('video').evaluate(video => { video.currentTime = 0.25 })
         await page.waitForFunction(() => document.querySelector('video').textTracks[0]?.activeCues?.[0]?.text === 'Inspect the clean probe.')
+        await page.locator('video').evaluate(video => video.scrollIntoView({block:'center'}))
+        await page.evaluate(() => new Promise(requestAnimationFrame))
         await shot('caption-playback')
         const pdfLink = page.getByRole('link', { name: 'Download Station document (PDF)', exact: true })
         assert.equal((await context.request.get(f.h.origin + await pdfLink.getAttribute('href'))).status(), 200)

@@ -1751,12 +1751,16 @@
       "sha256": "896101d40e0beb0cc9b7d4cf131f441c77f1c93c77a5b8bcb8a25454aa453817",
       "executable": false
     },
+    "src/beam/source-pdf-layout.ts": {
+      "sha256": "3ca7a3ca8bcd1b97a143b7ec898edbb0cc6a50b2cf5174b6bb3c76fb26bc3559",
+      "executable": false
+    },
     "src/beam/source-pdf-structure.ts": {
       "sha256": "279c48f82d0ffaaced68c3fb654cc99ffda98e1bdf0cf948768bc80c17cb3fcf",
       "executable": false
     },
     "src/beam/source-pdf.ts": {
-      "sha256": "df1e0737721e86d87e0b51a21628d49c242f6693432cd7859334303f32438ed5",
+      "sha256": "456045f2891eb0022ebd97350bf2db5effe1af6f6d976d1fefc4c692da1f9012",
       "executable": false
     },
     "src/beam/source-png.ts": {
@@ -3924,7 +3928,7 @@
       "executable": false
     },
     "tests/beam/mobile-learning-browser.mjs": {
-      "sha256": "3c7c6ee7f6fed3d0fa0c030471bf4ebd047ed3c8cb6473e104698f6475ef2d9f",
+      "sha256": "16c749e646e2740702c85ad01b9a0d368bcfbebebc80ef467ba619099f48d319",
       "executable": false
     },
     "tests/beam/package-browser.mjs": {
