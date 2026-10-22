@@ -11,7 +11,9 @@ export async function packagePlayer(env: Bindings, actor: Actor, id: string, url
   if (saved.ended_at || assignment && assignment.status !== 'open') return Response.redirect(`${env.AUTH_ORIGIN}${saved.preview ? `/app/courses/${(await one(env, 'SELECT course_id FROM beam_packages WHERE id=?', saved.package_id))!.course_id}` : `/app/learn/${saved.assignment_id}`}`, 303)
   const { session, pkg, sco, run } = await playbackSession(env, id, actor)
   const back = run ? `/app/learn/${run.assignment_id}` : `/app/courses/${pkg.course_id}`
-  const asset = `/beam-package/${id}/${sco.launch.split('/').map(encodeURIComponent).join('/').replaceAll('%3F', '?').replaceAll('%23', '#')}`
+  const suffixAt = sco.launch.search(/[?#]/)
+  const path = suffixAt < 0 ? sco.launch : sco.launch.slice(0, suffixAt), suffix = suffixAt < 0 ? '' : sco.launch.slice(suffixAt)
+  const asset = `/beam-package/${id}/${path.split('/').map(encodeURIComponent).join('/')}${suffix}`
   const response = page(sco.title, actor, h`${backLink(back, session.preview ? 'Back to course editor' : 'Back to course')}<h1>${sco.title}</h1><p>${pkg.title} · SCORM ${pkg.standard}${session.preview ? ' · Preview: training is not recorded' : ''}</p><section class="card" data-package-player data-session="${id}" data-version="${session.version}" data-preview="${session.preview}" data-back="${back}"><p role="status" data-package-status>${session.preview ? 'Preview ready.' : 'Ready. Use the package’s Save or Exit control before leaving.'}</p><iframe title="${sco.title}" src="${asset}" sandbox="allow-scripts" referrerpolicy="no-referrer" class="package-frame"></iframe><p><a class="button secondary" href="${back}">Return to course</a></p></section>`, { current: session.preview ? '/app/courses' : '/app/learning', url, script: '/beam-package-player.js' })
   response.headers.set('content-security-policy', response.headers.get('content-security-policy') + "; frame-src 'self'; connect-src 'self'")
   response.headers.set('referrer-policy', 'no-referrer')

@@ -8,6 +8,7 @@ export async function accessBrowserCheck(f, browser, width, evidence) {
     const page = await context.newPage()
     const shot = async (name, mask = []) => {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} overflow ${width}`)
+      await page.evaluate(() => window.scrollTo(0, 0))
       await page.screenshot({ path: join(evidence, `${width}-access-${name}.png`), fullPage: true, mask })
     }
     const name = `Power BI training feed ${width}`

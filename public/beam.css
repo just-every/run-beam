@@ -462,3 +462,5 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
 
 /* Package content stays within the course frame at both learner widths. */
 .package-frame { display: block; width: 100%; height: min(70vh, 720px); min-height: 420px; border: 1px solid var(--line, #ddd); background: white; }
+
+.package-frame[hidden] { display: none; }

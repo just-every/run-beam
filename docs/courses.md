@@ -61,3 +61,34 @@ Several people can edit one course. If you save a lesson after someone else chan
 Under each lesson and question, **Comment or request a change** starts a thread. Others reply, and **Resolve thread** closes it; a change request shows as requested until someone resolves it.
 
 Learners can tell you about a lesson from the lesson page, as feedback or as something broken. Open reports appear under **Content feedback** on **Courses** for the course's owner (or its reviewer when it has no owner), its unit's learning administrator and the business owner, with the learner's name; other authors see them without the name. **Close** with a note on what was done; the learner sees it on the course.
+
+## SCORM packages
+
+The owner or the course unit’s learning administrator uses **SCORM packages** on
+the course page. Upload the original ZIP with `imsmanifest.xml` at its root,
+choose the recorded rights, name the license evidence, and select any procedures
+the package cites. A package may accompany native lessons or be the course’s
+only content. Preview each activity, then use the ordinary review and publication
+steps before assigning the exact immutable revision.
+
+Beam accepts SCORM 1.2 and SCORM 2004 2nd, 3rd and 4th Editions. Packages are
+limited to 25 MB compressed, 100 MB expanded and 3,000 entries. SCORM 2004 supports
+flat activities, choice/flow/forward-only controls and prior-objective prerequisites;
+nested aggregation, rollup, randomization and installation-global objectives are
+named as unsupported before the package can be assigned. Manifest paths must
+resolve to local ZIP assets. Playback is isolated: external network calls, embedded
+frames, forms and access to Beam’s page or storage are denied.
+
+Learners open the activity from their assigned course and use its Save or Exit
+control. Wait for Beam’s **Saved** message before leaving. The bookmark, suspend
+state, score and accumulated time resume from another device. Failed or incomplete
+required work cannot complete the course; a SCORM 2004 completed result with no
+passed result remains labelled separately. **Inspect runtime evidence** shows the
+saved CMI values and original events. Package completion does not replace a
+native quiz, practical assessment or attendance requirement.
+
+Replacing a ZIP creates another package identity in the draft; published packages
+and earlier completions remain unchanged. Procedure changes list affected package
+metadata for a person to update in the source package. Explicit license export
+restrictions enumerate the original ZIP and assets in Data export’s exclusions
+with an authenticated owner retrieval path; they never silently disappear.

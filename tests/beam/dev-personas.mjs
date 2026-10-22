@@ -72,6 +72,24 @@ try {
     const roleLine = (await home.text()).match(/<div class="who">[^]*?<strong>[^<]*<\/strong><span>([^<]*)<\/span>/)?.[1]
     assert.ok(roleLine && !roleLine.includes('Assessor'), 'the signed-in header drops the removed role')
   }
+  if (process.argv.includes('--browser')) {
+    const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+    const directory = process.env.BEAM_EVIDENCE_DIR || join(root, 'test-results')
+    await mkdir(directory, { recursive: true })
+    const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+    try {
+      for (const width of [1440, 390]) for (const role of ['owner', 'manager']) {
+        const context = await browser.newContext({ viewport: { width, height: 900 }, extraHTTPHeaders: { 'x-rer-dev-key': key } })
+        try {
+          await context.addCookies(cookies[role].split('; ').map(cookie => { const at = cookie.indexOf('='); return { name: cookie.slice(0, at), value: cookie.slice(at + 1), url: origin } }))
+          const page = await context.newPage()
+          await page.goto(origin + (role === 'owner' ? '/app/people' : '/app/learning'))
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+          await page.screenshot({ path: join(directory, `${width}-dev-roles-${role}.png`), fullPage: true })
+        } finally { await context.close() }
+      }
+    } finally { await browser.close() }
+  }
   assert.equal((await api('manager', 'practical.decide', { attempt: attempt.id, decision: 'accepted', note: 'Role removed.' }, 403)).error, 'forbidden')
   assert.equal((await api('learner', `attempts/${attempt.id}`)).state, 'awaiting_review', 'a refused decision leaves evidence pending')
   // Re-entering a real persona must preserve explicit removals too, including

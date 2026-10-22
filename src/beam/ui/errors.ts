@@ -1,5 +1,13 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  package_invalid_manifest: 'the package manifest is invalid. Correct the named problem in the source package and upload it again.',
+  package_unsupported_feature: 'this package uses a feature Beam cannot play. The unsupported feature is named below; use a supported export before assigning it.',
+  package_invalid_zip: 'the ZIP is damaged or exceeds the supported package limits. Re-export the original package and try again.',
+  sco_prerequisite_incomplete: 'complete and pass the earlier required package activity first.',
+  sco_sequence_incomplete: 'finish the earlier activities in this package before continuing.',
+  sco_forward_only: 'this package permits forward navigation only.',
+  package_session_ended: 'this playback session has ended. Return to the course to start or resume a new session.',
+  invalid_runtime_data: 'the package sent invalid progress data. The last confirmed save is still kept.',
   stale_draft: 'someone else saved this draft first. Reload and apply your change again.',
   exemption_not_allowed: 'the owner’s exception policy lets managers defer this, not exempt it. Ask a learning administrator or the owner.',
   exception_too_long: 'that end date is longer than the exception policy allows.',

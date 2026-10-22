@@ -25,6 +25,7 @@ try {
     }
     async function shot(page, name) {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: horizontal overflow at ${width}`)
+      await page.evaluate(() => window.scrollTo(0, 0))
       await page.screenshot({ path: join(evidence, `${width}-package-${name}.png`), fullPage: true })
     }
     const owner = await as('owner')
@@ -87,6 +88,7 @@ try {
     await phone.waitForURL(/\/app\/packages\/play\//)
     await phone.frameLocator('iframe.package-frame').getByRole('button', { name: 'Pass check', exact: true }).click()
     await phone.getByText('Course completed. Your exact revision and package evidence are saved.', { exact: true }).waitFor()
+    assert.equal(await phone.locator('iframe.package-frame').isHidden(), true)
     await shot(phone, 'passed')
     await phone.getByRole('link', { name: 'Return to course', exact: true }).click()
     assert.equal((await f.view(assignment)).completion.revision, revision)

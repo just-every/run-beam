@@ -72,7 +72,7 @@ export async function playbackSession(env: Bindings, id: string, actor?: Actor) 
   insist(session && session.expires_at > now() && !session.ended_at, 'package_session_ended', 403)
   insist(!actor || actor.id === session.actor_id && actor.sessionId === session.auth_session_id && !actor.agent && !actor.viewAs, 'package_session_forbidden', 403)
   // Asset capabilities remain narrow and expire with the human's parent session and current access.
-  const alive = await one(env, 'SELECT 1 FROM oa_sessions s JOIN oa_operators o ON o.id=s.operator_id JOIN beam_members m ON m.operator_id=o.id WHERE s.id=? AND m.id=? AND s.expires_at>? AND s.revoked_at IS NULL AND o.status=\'active\'', session.auth_session_id, session.actor_id, now())
+  const alive = await one(env, 'SELECT 1 FROM oa_sessions s JOIN oa_operators o ON o.id=s.operator_id JOIN beam_members m ON m.operator_id=o.id WHERE s.id=? AND m.id=? AND s.expires_at>? AND s.revoked_at IS NULL AND o.status=\'active\' AND s.operator_version=o.version AND (s.kind!=\'oidc\' OR EXISTS(SELECT 1 FROM oa_provider_sessions p JOIN oa_auth_settings a ON a.singleton=1 WHERE p.session_id=s.id AND a.idp_sign_in=1 AND a.generation=p.generation))', session.auth_session_id, session.actor_id, now())
   insist(alive, 'package_session_ended', 403)
   const current = actor ?? await dashboardAuthority(env, session.actor_id)
   insist(current, 'package_session_ended', 403)

@@ -20,6 +20,14 @@ const save = (f, session, values, event = 'terminate', version = 0) => f.api('le
 export async function package12Check(f) {
   const { api, h, cookies, ids } = f
   const source = await api('owner', 'source.create', { title: 'Cold chain procedure', licence: 'owned', licenceEvidence: 'Employer-authored procedure', reviewer: ids.reviewer, provenance: 'Operations manual', file: file('cold-chain.txt', 'Keep vaccines between 2 and 8 degrees.\nRecord the reading.') })
+  const invalidCourse = await api('owner', 'course.create', { title: 'Unsafe package admission', reviewer: ids.reviewer })
+  for (const invalid of ['remote', 'unsupported', 'duplicate', 'traversal']) {
+    const response = await api('owner', 'package.import', { course: invalidCourse.id, draftVersion: 1, licence: 'owned', licenceEvidence: 'CC0 1.0', file: file('unsafe.zip', scormPackage('1.2', { invalid })) }, 422)
+    assert.ok(response.detail)
+    if (invalid === 'unsupported') assert.equal(response.error, 'package_unsupported_feature')
+  }
+  assert.deepEqual((await api('owner', `courses/${invalidCourse.id}`)).draft.packages || [], [])
+  await api('learner', 'package.import', { course: invalidCourse.id, draftVersion: 1 }, 403)
   const c = await publishPackage(f, await preparePackage(f, '1.2', { sources: [source.versionId] }))
   const revision = await api('reviewer', `revisions/${c.revision}`)
   assert.equal(revision.packages[0].id, c.package)
@@ -77,7 +85,12 @@ export async function package12Check(f) {
   assert.deepEqual(restored.draft.packages, [c.package])
   assert.equal((await f.view(c.assignment)).completion.revision, c.revision)
   const restricted = await preparePackage(f, '1.2', { restriction: 'Training license forbids redistribution' })
+  const native = await f.course('Native vaccine induction')
+  const nativeAssignment = await f.assign(native)
+  await f.lessons(nativeAssignment)
   const exported = await h.raw('/app/data-export.json', { cookie: cookies.owner }).then(r => { assert.equal(r.status, 200); return r.json() })
+  assert.ok(exported.records.beam_lesson_revisions.rows.some(r => r.course_revision_id === native.revision))
+  assert.ok(exported.records.beam_completions.rows.some(r => r.assignment_id === nativeAssignment))
   assert.ok(exported.records.beam_package_runs.rows.some(r => r.assignment_id === c.assignment))
   assert.ok(exported.records.beam_package_events.rows.some(e => JSON.parse(e.payload_json)['cmi.core.lesson_status'] === 'failed'))
   const zip = exported.files.find(item => item.id === c.package)
