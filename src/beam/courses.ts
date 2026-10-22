@@ -80,7 +80,7 @@ export async function normaliseDraft(env: Bindings, value: unknown, course: stri
     insist(lesson && typeof lesson.title === 'string' && lesson.title.trim() && lesson.title.length <= 160 && typeof lesson.body === 'string' && lesson.body.length <= 50_000 && Array.isArray(lesson.sources), 'invalid_lesson')
     for (const version of lesson.sources) insist(typeof version === 'string' && await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', version), 'source_version_not_found', 404)
     const blocks = await normaliseBlocks(env, lesson.blocks, { admit, course })
-    lessons.push({ ...(blocks.length ? { blocks } : {}), id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set([...lesson.sources, ...blocks.flatMap(block => block.source ? [block.source] : [])])] })
+    lessons.push({ ...(blocks.length ? { blocks } : {}), id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set([...lesson.sources, ...blocks.flatMap(block => [block.source, block.captions?.source].filter((source): source is string => !!source))])] })
   }
   const packages = draft.packages ?? []
   insist(Array.isArray(packages) && packages.length <= 20 && packages.every(id => typeof id === 'string'), 'invalid_packages')

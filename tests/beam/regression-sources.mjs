@@ -155,12 +155,20 @@ export async function multimediaCheck(f) {
     ['video', 'synthetic-beam-3.mp4', syntheticVideo],
     ['document', 'synthetic-beam-4.pdf', pdf],
   ]) assets[kind] = (await api('author', 'source.create', { title: `Synthetic ${kind}`, licence: 'owned', licenceEvidence: 'Generated for this integration journey', reviewer: ids.reviewer, provenance: 'Synthetic Beam media fixture', file: file(filename, bytes) })).versionId
+  const captionOriginal = await api('author','source.create',{title:'Inspection captions',licence:'owned',licenceEvidence:'Employer-authored captions',reviewer:ids.reviewer,provenance:'Original captions',file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean pool.\n')})
+  assets.caption = (await api('author','source.version',{source:captionOriginal.id,provenance:'Corrected probe terminology against the video',file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean probe.\n')})).id
+  const badCaption = await api('author','source.create',{title:'Invalid caption refusal',licence:'owned',licenceEvidence:'Original malformed refusal fixture',reviewer:ids.reviewer,provenance:'Malformed timing',file:file('invalid.vtt','WEBVTT\n\n00:01.000 --> 00:00.500\nRefuse reversed cue timing.\n')})
+  const captionBytes = await h.raw(`/app/files/caption/${assets.caption}`,{cookie:cookies.author})
+  assert.match(captionBytes.headers.get('content-type'),/^text\/vtt/)
+  assert.match(await captionBytes.text(),/Inspect the clean probe/)
+  assert.equal((await h.raw(`/app/files/caption/${assets.caption}`,{cookie:cookies.other})).status,404)
+  assert.match(await (await h.raw(`/api/beam/source-files/${captionOriginal.versionId}`,{cookie:cookies.author})).text(),/clean pool/,'correcting captions never rewrites the original version')
   const c = await api('author', 'course.create', { title: 'Mixed media training', reviewer: ids.reviewer })
   let current = await api('author', 'course.lesson', { course: c.id, draftVersion: 1, title: 'Inspect the station', body: 'Inspect the station before starting.', sources: [] })
   const lesson = current.draft.lessons[0].id
   const add = async content => { current = await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content }); return current.draft.lessons[0].blocks.at(-1) }
   await add({ kind: 'text', text: '# Inspect\n\nUse **clean tools** and _check_ the `record`.\n\n- Inspect\n- Record' })
-  for (const kind of ['image', 'audio', 'video', 'document']) await add({ kind, text: `Station ${kind}`, source: assets[kind] })
+  for (const kind of ['image', 'audio', 'video', 'document']) await add({ kind, text: `Station ${kind}`, source: assets[kind], ...(kind === 'video' ? {captions:{source:assets.caption,language:'en',label:'English'}} : {}) })
   await add({ kind: 'link', text: 'Read the procedure', url: 'https://example.test/procedure' })
   await add({ kind: 'check', text: 'Which tool is safe?', choices: ['Clean tool', 'Dirty tool'], answer: 0, feedback: 'Clean tools protect the work.' })
   const embeds = [
@@ -182,6 +190,7 @@ export async function multimediaCheck(f) {
     [{ kind: 'link', text: 'Unsafe link', url: 'javascript:active()' }, 'invalid_media_url'],
     [{ kind: 'embed', text: 'Credentials', url: 'https://synthetic-beam-1:synthetic-beam-2@www.youtube.com/embed/test' }, 'invalid_media_url'],
     [{ kind: 'image', text: 'Active upload', source: assets.document }, 'media_type_mismatch'],
+    [{ kind:'video',text:'Invalid captions',source:assets.video,captions:{source:badCaption.versionId,language:'en',label:'English'} },'invalid_caption_order'],
   ]) assert.equal((await api('author', 'course.block', { course: c.id, draftVersion: current.draftVersion, lesson, content }, 400)).error, error)
   assert.deepEqual(await api('author', `courses/${c.id}`), unchanged)
   const proposed = structuredClone(unchanged.draft)
@@ -341,6 +350,9 @@ export async function multimediaBrowserCheck(f, media) {
       await page.locator('video').evaluate(async video => { video.muted = true; await video.play() })
       await page.waitForFunction(() => document.querySelector('video').currentTime > 0)
       await page.locator('video').evaluate(video => video.pause())
+      await page.locator('video track').evaluate(track=>{track.track.mode='showing'})
+      await page.locator('video').evaluate(video=>{video.currentTime=0.25})
+      await page.waitForFunction(()=>document.querySelector('video').textTracks[0]?.activeCues?.[0]?.text==='Inspect the clean probe.')
       await page.locator('audio').evaluate(async audio => { audio.muted = true; await audio.play() })
       await page.waitForFunction(() => document.querySelector('audio').currentTime > 0)
       await page.locator('audio').evaluate(audio => audio.pause())
@@ -360,6 +372,19 @@ export async function multimediaBrowserCheck(f, media) {
       assert.equal(await page.getByLabel('Allowed embed hosts, one per line').inputValue(), media.hosts.join('\n'))
       await shot('owner-allowlist')
       await as('author')
+      await page.goto(`${f.h.origin}/app/courses/${media.course}/compare?from=${media.revision}&to=${media.nextRevision}`)
+      // Correcting caption metadata is a normal authored draft save, separate from publication.
+      await as('author')
+      await page.goto(`${f.h.origin}/app/courses/${media.course}`)
+      await page.locator('summary').filter({hasText:/^1\. Inspect the station$/}).click()
+      await page.locator('summary').filter({hasText:/^4\. Video/}).click()
+      const captionForm=page.locator('form[action="/app/do/course.block"]').filter({has:page.locator('input[name="block"][value="'+(await f.api('author',`courses/${media.course}`)).draft.lessons[0].blocks.find(row=>row.kind==='video').id+'"]')})
+      await captionForm.getByLabel('Caption source version (WebVTT)',{exact:true}).selectOption(media.assets.caption)
+      await captionForm.getByLabel('Caption language (BCP47, for example en-AU)',{exact:true}).fill('en')
+      await captionForm.getByLabel('Caption label',{exact:true}).fill('English — reviewed')
+      await shot('caption-editor')
+      await captionForm.getByRole('button',{name:'Save block',exact:true}).click()
+      assert.equal((await f.api('author',`courses/${media.course}`)).draft.lessons[0].blocks.find(row=>row.kind==='video').captions.label,'English — reviewed')
       await page.goto(`${f.h.origin}/app/courses/${media.course}/compare?from=${media.revision}&to=${media.nextRevision}`)
       await page.getByRole('heading', { name: 'Media blocks', exact: true }).waitFor()
       await shot('comparison')

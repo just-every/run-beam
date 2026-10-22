@@ -16,11 +16,13 @@ async function assignedCourse(f, width) {
     draftVersion = result.draftVersion
     return result
   }
+  const captionOriginal = await f.api('author', 'source.create', { title:'Inspection captions', licence:'owned', licenceEvidence:'Employer-authored captions', reviewer:f.ids.reviewer, provenance:'Original inspection captions', file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean pool.\n') })
+  const captions = await f.api('author','source.version',{source:captionOriginal.id,provenance:'Corrected probe terminology against the original video',file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean probe.\n')})
   const first = await edit('course.lesson', { title: 'Inspect the station', body: 'Inspect clean tools and record the temperature.', sources: [] })
   lesson = first.draft.lessons[0].id
   for (const [index, kind, extension, bytes] of [[1, 'image', 'png', syntheticImage], [2, 'audio', 'mp3', syntheticAudio], [3, 'video', 'mp4', syntheticVideo], [4, 'document', 'pdf', sourceProcedurePdf()]]) {
     const asset = await f.api('author', 'source.create', { title: `Inspection ${kind} original`, licence: 'owned', licenceEvidence: 'Original synthetic Beam media', reviewer: f.ids.reviewer, provenance: 'Synthetic Beam fixture', file: file(`inspection-${kind}.${extension}`, bytes) })
-    await edit('course.block', { lesson, content: { kind, source: asset.versionId, text: `Station ${kind}` } })
+    await edit('course.block', { lesson, content: { kind, source: asset.versionId, text: `Station ${kind}`, ...(kind === 'video' ? {captions:{source:captions.id,language:'en',label:'English'}} : {}) } })
   }
   await edit('course.block', { lesson, content: { kind: 'check', text: 'Which tool is safe?', choices: ['Clean tool', 'Dirty tool'], answer: 0, feedback: 'Use clean tools.' } })
   await edit('course.lesson', { title: 'Record the inspection', body: 'Record the reading before using the station.', sources: [] })
@@ -97,6 +99,10 @@ export async function mobileLearningBrowserCheck(f) {
         await page.keyboard.press('Space')
         await activate(page.getByText('Check your answer', { exact: true }))
         assert.equal(await page.getByLabel('Clean tool', { exact: true }).isChecked(), true)
+        await page.locator('video track').evaluate(track => { track.track.mode = 'showing' })
+        await page.locator('video').evaluate(video => { video.currentTime = 0.25 })
+        await page.waitForFunction(() => document.querySelector('video').textTracks[0]?.activeCues?.[0]?.text === 'Inspect the clean probe.')
+        await shot('caption-playback')
         const pdfLink = page.getByRole('link', { name: 'Download Station document (PDF)', exact: true })
         assert.equal((await context.request.get(f.h.origin + await pdfLink.getAttribute('href'))).status(), 200)
         const done = page.getByRole('button', { name: 'Mark done and continue', exact: true })

@@ -21,6 +21,7 @@ export async function saveBlock(env: Bindings, actor: Actor, input: Input) {
   }
   const value = input.has('content') ? input.json('content') : {
     table, asset: input.text('asset', { optional: true }) || undefined, kind: input.text('kind'), text: input.text('text', { max: 10_000 }), source: input.text('source', { optional: true }), url: input.text('url', { max: 2000, optional: true }),
+    captions: input.has('captionSource') ? { source: input.text('captionSource'), language: input.text('captionLanguage', { max: 100 }), label: input.text('captionLabel', { max: 100 }) } : undefined,
     choices: input.text('choices', { max: 4000, optional: true }).split('\n').filter(Boolean), answer: (input.integer('answer', { min: 1, max: 8, optional: true }) ?? 1) - 1, feedback: input.text('feedback', { max: 2000, optional: true }),
   }
   insist((value as { kind?: unknown } | null)?.kind !== 'lti', ATTACH_ONLY, 403)

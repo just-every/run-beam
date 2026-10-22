@@ -1,3 +1,4 @@
+import { captionFile } from './caption-file'
 import { sourceOcrPage, sourceOcrConsentPage } from './ui/source-ocr'
 import { erasurePage } from './ui/erasure'
 import { sourcePreparationPage } from './ui/source-preparation'
@@ -129,6 +130,8 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     if (url.pathname === '/app/xapi/launch' && request.method === 'POST') { const result = await launchXapi(env, actor, await Input.from(request)); return new Response(null, { status: 303, headers: { location: result.href, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } }) }
     if (url.pathname === '/api/beam/lti/authorize') return await authorizeLti(env, actor, request)
     if (url.pathname === '/app/lti/launch' && request.method === 'POST') { const result = await launchLti(env, actor, await Input.from(request)); return Response.redirect(result.loginUrl, 303) }
+    const captionMatch = url.pathname.match(/^\/app\/files\/caption\/([^/]+)$/)
+    if (captionMatch && request.method === 'GET') return await captionFile(env, actor, captionMatch[1])
     const sourceAssetMatch = url.pathname.match(/^\/(?:api\/beam\/source-assets|app\/files\/source-asset)\/([^/]+)\/([^/]+)$/)
     if (sourceAssetMatch && request.method === 'GET') return await sourceAsset(env, actor, sourceAssetMatch[1], sourceAssetMatch[2])
     if (api) return await apiResponse(env, actor, request, url)

@@ -1,6 +1,7 @@
 // Structured lesson content. Uploaded HTML is never a renderer or an embed.
 import { normaliseTable } from './lesson-tables'
 import { sourceAssetIds } from './source-extraction'
+import { loadCaptionSource, normaliseCaptionReference, type Captions } from './captions'
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
 import { auditVia, insist, newId, now, one, stmt } from './core'
@@ -10,6 +11,7 @@ export interface Block {
   id: string; kind: typeof BLOCK_KINDS[number]; text: string; source?: string; url?: string
   asset?: string; table?: { text: string; colSpan: number; rowSpan: number; header: boolean }[][];
   resource?: string; passPercent?: number;
+  captions?: Captions;
   choices?: string[]; answer?: number; feedback?: string
   copiedFrom?: { course: string; lesson: string; block: string; courseTitle?: string; lessonTitle?: string }
 }
@@ -65,6 +67,7 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
   insist(Array.isArray(value) && value.length <= 60, 'invalid_blocks')
   const blocks: Block[] = []
   const assets = new Map<string, Set<string>>()
+  const captions = new Set<string>()
   for (const item of value) {
     insist(item && BLOCK_KINDS.includes(item.kind) && typeof item.text === 'string' && item.text.trim() && item.text.length <= 10_000, 'invalid_block')
     insist(!/<\/?[a-z!][^>]*>/i.test(item.text), 'active_lesson_html')
@@ -82,6 +85,14 @@ export async function normaliseBlocks(env: Bindings, value: unknown, { admit = f
         block.asset = item.asset
       } else insist(source.media_type.startsWith(prefix), 'media_type_mismatch')
       block.source = item.source
+    }
+    if (item.captions !== undefined) {
+      insist(block.kind === 'video', 'captions_require_video')
+      block.captions = normaliseCaptionReference(item.captions)
+      if (!captions.has(block.captions.source)) {
+        await loadCaptionSource(env, block.captions.source)
+        captions.add(block.captions.source)
+      }
     }
     if (block.kind === 'embed' || block.kind === 'link') {
       insist(typeof item.url === 'string' && item.url.length <= 2000, 'invalid_media_url')
