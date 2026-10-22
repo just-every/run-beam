@@ -3566,7 +3566,7 @@
       "executable": false
     },
     "tests/beam/live-lti-tool.mjs": {
-      "sha256": "2e63ab0a4b050ce5147eeb91ed1b7d227bc5a5e94c11060a575f6b5236dcd74f",
+      "sha256": "8c39583120cb709936544ec7efc1875d29318f0e0bc05ae9fa251fe414f594a7",
       "executable": false
     },
     "tests/beam/live-lti.mjs": {

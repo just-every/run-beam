@@ -82,7 +82,7 @@ export async function saltire() {
     async deepLink(beamRequest) {
       // Only static UI metadata is reported: no control values, session URLs, keys or JWTs.
       const actions = [...current.html.matchAll(/<(?:button|input)\b[^>]*>/gi)].flatMap(match => {
-        const attributes = attrs(match[0]), call = attributes.onclick?.match(/doSubmitContent\(['"]([a-zA-Z_]+)['"]\)/)
+        const attributes = attrs(match[0]), call = attributes.onclick?.match(/doSubmitContent\(['"]([a-zA-Z_]*)['"]\)/)
         if (!call) return []
         const end = match.index + match[0].length
         const text = /^<button/i.test(match[0]) ? current.html.slice(end, current.html.indexOf('</button>', end)).replace(/<[^>]+>/g, '').trim() : attributes.type === 'button' ? attributes.value ?? '' : ''
@@ -94,12 +94,13 @@ export async function saltire() {
       const names = [...new Set(contentForm.fields.keys())].filter(name => /^[a-zA-Z_]+$/.test(name))
       const selections = [...current.html.matchAll(/<input\b[^>]*class=["'][^"']*documenttarget[^"']*["'][^>]*>/gi)].map(match => attrs(match[0]).id).filter(id => /^[a-zA-Z_]+$/.test(id ?? ''))
       console.log('LTI_TOOL deep-link UI ' + JSON.stringify({ actions, types, formFields: names, selections }))
-      const items = { bespoke: { checked: true, target: ['window'], type: 'ltiResourceLink', title: 'synthetic-beam-1', text: 'Synthetic external exercise', url: toolOrigin + '/tool', mediatype: '', custom: '' }, target: ['window'], message: { msg: '', log: '', errormsg: '', errorlog: '' } }
+      const items = { bespoke: { checked: true, target: ['window'], type: 'ltiResourceLink', title: 'synthetic-beam-1', text: 'Synthetic external exercise', url: toolOrigin + '/tool', mediatype: 'application/vnd.ims.lti.v1.ltilink', custom: '' }, target: ['window'], message: { msg: '', log: '', errormsg: '', errorlog: '' } }
       await save({ t_contentitems: JSON.stringify(items) })
       const f = form(current.html, 'id_contentitems')
       for (const [name, value] of Object.entries({ platformid: settings.get('t_platformid'), clientid: settings.get('t_clientid'), deploymentid: settings.get('t_deploymentid'), signaturemethod: 'RS256', kid: generated.kid, privatekey: generated.privateKey, jku: '', tckey: settings.get('t_tckey') ?? '' })) f.fields.set(name, value)
-      const action = current.html.match(/doSubmitContent\(['"]([^'"]+)['"]\)/)?.[1]
-      assert.ok(action, 'saLTIre exposes a signed deep-link return action')
+      const submit = actions.find(item => item.action !== 'cancel')
+      assert.ok(submit, 'saLTIre exposes a signed deep-link selection action')
+      const action = submit.action
       const actionTag = current.html.match(/<input\b[^>]*id=["']id_contentaction["'][^>]*>/)?.[0]
       f.fields.set(actionTag ? attrs(actionTag).name : 'action', action)
       const signed = await request(f.action, f.fields)
