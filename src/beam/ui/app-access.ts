@@ -7,6 +7,7 @@ import { all } from '../core'
 import { MCP_TOOLS } from '../mcp'
 import type { Input } from '../input'
 import { card, checks, field, form, h, hidden, page, select, when } from './html'
+import { clearFormResult, readFormResult, redirectWithResult } from './form-result'
 
 const AUDIENCE_LABELS: Record<string, string> = { 'roster.read': 'Read the roster (GET /api/beam/v1/people)', 'catalog.read': 'Read the catalog (GET /api/beam/v1/courses)', 'enrollments.write': 'Enroll people (POST /api/beam/v1/enrollments)', 'reports.read': 'Read the training report (GET /api/beam/v1/report)', 'results.write': 'Submit external results for review (POST /api/beam/v1/results)', 'mcp': 'MCP learning tools for an agent (POST /api/beam/mcp), only the tools ticked below' }
 const TOOL_LABELS: Record<string, string> = { search_material: 'search_material: search published courses and the sources they cite', read_report: 'read_report: training report rows inside the chosen teams', propose_course_change: 'propose_course_change: propose a course draft a person accepts or declines (never publishes)' }
@@ -22,10 +23,17 @@ export async function accessPage(env: Bindings, actor: Actor, url: URL) {
 
 const rotateForm = (id: string) => h`<form method="post" action="/app/access/rotate">${hidden('credential', id)}<button type="submit" class="secondary">Rotate</button></form>`
 
-export async function issuedPage(env: Bindings, actor: Actor, input: Input, url: URL, rotate: boolean) {
+export async function issueAndRedirect(env: Bindings, actor: Actor, input: Input, rotate: boolean) {
   const issued = rotate ? await rotateCredential(env, actor, input) : await issueCredential(env, actor, input)
+  return redirectWithResult(env, actor, '/app/access/issued', { ...issued, rotate })
+}
+
+export async function issuedPage(env: Bindings, actor: Actor, request: Request, url: URL) {
+  const issued = await readFormResult<Awaited<ReturnType<typeof issueCredential>> & { rotate: boolean }>(env, actor, request)
+  if (!issued) return clearFormResult(env, url.pathname, new Response(null, { status: 303, headers: { location: '/app/access' } }))
+  const { rotate } = issued
   const response = page('Application credential', actor, h`<h1>${rotate ? 'Rotated credential' : 'New credential'}</h1><p>Copy this token now. It is shown once${rotate ? ' and the previous token no longer works' : ''}. Send it as <code>Authorization: Bearer …</code>.</p><p class="dashboard-link"><code data-token>${issued.token}</code></p><p>Audience ${issued.audience}; expires ${when(issued.expiresAt, 'UTC')}.</p><p><a href="/app/access">Back to Access</a></p>`, { current: '/app/access', url })
   response.headers.set('cache-control', 'no-store')
   response.headers.set('referrer-policy', 'no-referrer')
-  return response
+  return clearFormResult(env, url.pathname, response)
 }

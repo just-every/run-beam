@@ -1,3 +1,5 @@
+import { importPackage, removePackage } from './packages/catalog'
+import { launchPackage, saveRuntime } from './packages/runtime'
 import { configureGustoLanguage, revokeGustoLanguage, pullGustoLanguage } from './connect/gusto-language'
 import { saveLocaleGlossary, approveLocaleGlossary, prepareCourseLocale, editCourseLocale, submitCourseLocale, approveCourseLocale } from './course-locales'
 import { registerLti, rotateLtiKeys, revokeLti, rotateLtiPlatform, deepLinkLti, attachLti, launchLti, reconcileLti } from './lti'
@@ -88,6 +90,7 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'package.import': importPackage, 'package.remove': removePackage, 'package.launch': launchPackage, 'package.runtime': saveRuntime,
   'lti.register': registerLti, 'lti.keys': rotateLtiKeys, 'lti.revoke': revokeLti,
   'lti.platform.rotate': rotateLtiPlatform, 'lti.deep-link': deepLinkLti, 'lti.attach': attachLti, 'lti.launch': launchLti, 'lti.reconcile': reconcileLti,
   'language.change': setMyLanguage,

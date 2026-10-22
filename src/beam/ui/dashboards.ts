@@ -10,6 +10,7 @@ import { reportFilters, STATUSES } from '../report'
 import { permits, teamScope } from '../scope'
 import { formatInstant } from '../time'
 import { cellLabel, checks, field, form, h, hidden, page, select } from './html'
+import { clearFormResult, readFormResult, redirectWithResult } from './form-result'
 
 const protect = (response: Response, restricted = true) => {
   response.headers.set('cache-control', 'no-store')
@@ -68,10 +69,16 @@ ${form('dashboard.revoke', '/app/dashboards', hidden('dashboard', id), 'Revoke e
 }
 
 /** Special form response: the opaque URL is displayed once and never persisted in plaintext. */
-export async function dashboardLinkPage(env: Bindings, actor: Actor, input: Input, url: URL) {
+export async function dashboardLinkAndRedirect(env: Bindings, actor: Actor, input: Input) {
   const created = await linkDashboard(env, actor, input)
+  return redirectWithResult(env, actor, '/app/dashboards/link', created)
+}
+
+export async function dashboardLinkPage(env: Bindings, actor: Actor, request: Request, url: URL) {
+  const created = await readFormResult<Awaited<ReturnType<typeof linkDashboard>>>(env, actor, request)
+  if (!created) return clearFormResult(env, url.pathname, new Response(null, { status: 303, headers: { location: '/app/dashboards' } }))
   const link = new URL(created.url, env.AUTH_ORIGIN).href
-  return protect(page('Restricted dashboard link', actor, h`<h1>Restricted dashboard link</h1><p>Copy this link now. It is shown once. The named viewer must sign in and retain report access.</p><p class="dashboard-link"><a href="${link}">${link}</a></p><p>Expires ${formatInstant(created.expiresAt, 'UTC')}.</p><p><a href="/app/dashboards/${created.dashboard}">Back to dashboard</a></p>`, { current, url }))
+  return clearFormResult(env, url.pathname, protect(page('Restricted dashboard link', actor, h`<h1>Restricted dashboard link</h1><p>Copy this link now. It is shown once. The named viewer must sign in and retain report access.</p><p class="dashboard-link"><a href="${link}">${link}</a></p><p>Expires ${formatInstant(created.expiresAt, 'UTC')}.</p><p><a href="/app/dashboards/${created.dashboard}">Back to dashboard</a></p>`, { current, url })))
 }
 
 export async function dashboardCsvResponse(env: Bindings, actor: Actor, id: string, url: URL) {

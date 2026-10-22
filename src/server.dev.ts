@@ -12,9 +12,12 @@ const devWorker = withDevIdentity<Bindings, typeof worker>(worker, { bindings: r
 async function personaMembers(env: Bindings) {
   await env.DB.batch(Object.entries(PERSONA_ROLES).flatMap(([as, persona]) => {
     const email = `${as}@dev.localhost`
+    const id = crypto.randomUUID()
     return [
-      env.DB.prepare("INSERT OR IGNORE INTO beam_members (id, email, name, created_at, operator_id) SELECT lower(hex(randomblob(16))), email, ?, ?, id FROM oa_operators WHERE email = ?").bind(persona.name, Date.now(), email),
-      ...persona.roles.map(role => env.DB.prepare('INSERT OR IGNORE INTO beam_member_roles (member_id, role) SELECT id, ? FROM beam_members WHERE email = ?').bind(role, email)),
+      env.DB.prepare('INSERT OR IGNORE INTO beam_members (id, email, name, created_at, operator_id) SELECT ?, email, ?, ?, id FROM oa_operators WHERE email = ?').bind(id, persona.name, Date.now(), email),
+      // Only the member this batch created receives defaults. Later requests
+      // preserve the owner's role edits, including removing every role.
+      ...persona.roles.map(role => env.DB.prepare('INSERT OR IGNORE INTO beam_member_roles (member_id, role) SELECT id, ? FROM beam_members WHERE id = ?').bind(role, id)),
     ]
   }))
 }

@@ -1,3 +1,4 @@
+import { packageRecord, revisionPackages } from './packages/catalog'
 import { markLocaleSourceChange } from './course-locales'
 // Flow 3: editable courses with one version-checked draft; submission freezes
 // an immutable revision that only the course's named reviewer can publish.
@@ -16,6 +17,7 @@ export interface Lesson { id: string; title: string; body: string; sources: stri
 import { normaliseQuestion, questionFromInput, type Question } from './question-types'
 export type { Question } from './question-types'
 export interface Draft {
+  packages?: string[]
   title: string
   summary: string
   lessons: Lesson[]
@@ -76,6 +78,9 @@ export async function normaliseDraft(env: Bindings, value: unknown, course: stri
     const blocks = await normaliseBlocks(env, lesson.blocks, { admit, course })
     lessons.push({ ...(blocks.length ? { blocks } : {}), id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set([...lesson.sources, ...blocks.flatMap(block => block.source ? [block.source] : [])])] })
   }
+  const packages = draft.packages ?? []
+  insist(Array.isArray(packages) && packages.length <= 20 && packages.every(id => typeof id === 'string'), 'invalid_packages')
+  for (const id of packages) insist((await packageRecord(env, id)).course_id === course, 'package_course_mismatch', 403)
   const questions: Question[] = []
   for (const question of draft.questions) questions.push(normaliseQuestion(question))
   const passPercent = draft.passPercent === null || draft.passPercent === undefined ? null : draft.passPercent
@@ -103,7 +108,7 @@ export async function normaliseDraft(env: Bindings, value: unknown, course: stri
     insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', draft.practical.assessor), 'assessor_not_found', 404)
     practical = { instructions: draft.practical.instructions.trim(), assessor: draft.practical.assessor }
   }
-  return { title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent, drawCount, shuffle: draft.shuffle === true, feedback, assessor: practical ? null : assessor, survey }
+  return { ...(packages.length ? { packages: [...new Set(packages)] } : {}), title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent, drawCount, shuffle: draft.shuffle === true, feedback, assessor: practical ? null : assessor, survey }
 }
 
 const toolResources = (draft: Draft) => new Set(draft.lessons.flatMap(lesson => (lesson.blocks ?? []).flatMap(block => block.kind === 'lti' ? [block.resource] : [])))
@@ -239,7 +244,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   const course = await loadCourse(env, input.text('course'))
   insist(input.integer('draftVersion', { min: 1, max: 1_000_000 }) === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
   const draft = await normaliseDraft(env, course.draft, course.id)
-  insist(draft.lessons.length > 0, 'lessons_required')
+  insist(draft.lessons.length > 0 || draft.packages?.length, 'lessons_required')
   insist(draft.questions.length === 0 || (draft.passPercent !== null && draft.maxAttempts !== null), 'quiz_rules_required')
   insist(!draft.drawCount || draft.drawCount <= draft.questions.length, 'draw_exceeds_bank')
   insist(!draft.drawCount || draft.drawCount >= draft.questions.filter(question => question.always).length, 'draw_below_always_asked')
@@ -252,6 +257,7 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   const assessed = draft.questions.length > 0 || draft.practical
   await commit(env, [
     stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at, attendance_percent, survey_json) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?, ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now(), draft.attendancePercent ?? null, draft.survey?.length ? JSON.stringify(draft.survey) : null),
+    ...(draft.packages ?? []).map((packageId, position) => stmt(env, 'INSERT INTO beam_revision_packages(course_revision_id,package_id,position) VALUES(?,?,?)', id, packageId, position)),
     ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids, blocks_json) VALUES (?, ?, ?, ?, ?, ?, ?)', newId(), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources), JSON.stringify(lesson.blocks ?? []))),
     ...(assessed ? [stmt(env, 'INSERT INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id, draw_count, shuffle, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', newId(), id, JSON.stringify(draft.questions), draft.passPercent, draft.maxAttempts, draft.questions.length ? draft.timeLimitMinutes ?? null : null, draft.practical?.instructions ?? null, assessor, draft.questions.length ? draft.drawCount ?? null : null, draft.shuffle ? 1 : 0, draft.feedback ?? 'attempt')] : []),
   ], { actor, action: 'revision.submit', subject: id, detail: { course: course.id, number, draftVersion: course.draft_version } })
@@ -310,7 +316,7 @@ export async function revisionDetail(env: Bindings, id: string) {
   if (!revision) throw new BeamError('revision_not_found', 404)
   const lessons = (await all(env, 'SELECT id, position, title, body, source_version_ids, blocks_json FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', id)).map(lesson => ({ id: lesson.id, position: lesson.position, title: lesson.title, body: lesson.body, sources: JSON.parse(lesson.source_version_ids) as string[], blocks: JSON.parse(lesson.blocks_json) as Block[] }))
   const assessment = await one(env, 'SELECT * FROM beam_assessment_revisions WHERE course_revision_id = ?', id)
-  return { revision, lessons, survey: revision.survey_json ? JSON.parse(revision.survey_json) as SurveyQuestion[] : [], assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
+  return { revision, lessons, packages: await revisionPackages(env, id), survey: revision.survey_json ? JSON.parse(revision.survey_json) as SurveyQuestion[] : [], assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
 }
 
 export async function courseDetail(env: Bindings, actor: Actor, id: string) {

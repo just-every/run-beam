@@ -1,3 +1,6 @@
+import { packageContentResponse } from './packages/content'
+import { packagePlayer, packageEvidencePage } from './packages/player'
+import { runtimeEvidence } from './packages/runtime'
 import { t } from './messages'
 import { ltiPublicResponse, authorizeLti, launchLti } from './lti'
 import { languagePreference } from './language'
@@ -6,7 +9,7 @@ import { diagnosesPage } from './ui/diagnoses'
 // Beam's public doors: /app pages, /app/do/ACTION form posts, /api/beam JSON,
 // and access-checked file downloads. Every request resolves the signed-in
 // member first; private data is never served to a signed-out request.
-import { dashboardsPage, dashboardPage, dashboardCsvResponse, dashboardLinkPage } from './ui/dashboards'
+import { dashboardsPage, dashboardPage, dashboardCsvResponse, dashboardLinkPage, dashboardLinkAndRedirect } from './ui/dashboards'
 import { runtimeBindings, type Bindings } from '../auth.server'
 import { AuthError, safeReturnTo } from '../modules/operator-auth/index.mjs'
 import { acknowledgmentDocument, acknowledgmentEvidence } from './acknowledgments'
@@ -14,7 +17,7 @@ import { issueAgentCredential, requireAgentScope } from './agent-credentials'
 import { exemptFromOriginCheck, requireAppScope } from './app-credentials'
 import { applicationCall } from './app-api'
 import { mcpCall } from './mcp'
-import { accessPage, issuedPage } from './ui/app-access'
+import { accessPage, issuedPage, issueAndRedirect } from './ui/app-access'
 import { actions } from './actions'
 import { currentActor, isManager, type Actor } from './actor'
 import { BeamError, insist, one } from './core'
@@ -87,6 +90,8 @@ export async function beamResponse(request: Request, original: Bindings): Promis
 async function beamDoorResponse(request: Request, original: Bindings): Promise<Response | null> {
   const env = runtimeBindings(original)
   const url = new URL(request.url)
+  const content = await packageContentResponse(env, request).catch(error => { const { code, status } = failure(error); return json({ error: code }, status) })
+  if (content) return content
   const api = url.pathname.startsWith('/api/beam/')
   const protocol = await ltiPublicResponse(env, request).catch(error => { const { code, status } = failure(error); return json({ error: code }, status) })
   if (protocol) return protocol
@@ -170,6 +175,8 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   }
   const source = path.match(/^source-files\/([\w-]+)$/)
   if (source) return sourceFile(env, actor, source[1], true)
+  const runtime = path.match(/^package-evidence\/([\w-]+)$/)
+  if (runtime) return json(await runtimeEvidence(env, actor, runtime[1]))
   const { view, id } = route(path)
   const response = json(await view(env, actor, request, id))
   if (path.startsWith('dashboards')) response.headers.set('referrer-policy', 'no-referrer')
@@ -183,8 +190,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if (request.method !== 'POST' && exportFile) return dataExportFile(env, actor, exportFile[1])
   if (path === '/app/import/client.js' && request.method === 'GET') return importBrowserResponse()
   if (request.method === 'POST') {
-    if (path === '/app/dashboards/link') return dashboardLinkPage(env, actor, await Input.from(request), url)
-    if (path === '/app/access/issue' || path === '/app/access/rotate') return await issuedPage(env, actor, await Input.from(request), url, path.endsWith('rotate'))
+    if (path === '/app/dashboards/link') return dashboardLinkAndRedirect(env, actor, await Input.from(request))
+    if (path === '/app/access/issue' || path === '/app/access/rotate') return await issueAndRedirect(env, actor, await Input.from(request), path.endsWith('rotate'))
     if (path === '/app/import/preview') return await previewPage(env, actor, await Input.from(request), url, request)
     const importAction = path.match(/^\/app\/import\/(apply|reconcile|undo)$/)?.[1]
     if (importAction) return await importProgressPage(env, actor, await Input.from(request), url, request, importAction)
@@ -205,6 +212,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
     } catch (error) {
       const { code, status } = failure(error)
       if (status >= 500) throw error
+      if (name === 'package.import' && error instanceof BeamError) return page('Package validation', actor, h`<h1>Package could not be imported</h1><p>${describeError(code)}</p><p>${typeof error.detail === 'object' && error.detail && 'feature' in error.detail ? String(error.detail.feature) : ''}</p><p><a href="${returnTo}">Back to course</a></p>`, { status })
       return redirect(env, returnTo.replace('/{id}', ''), 'error', code)
     }
   }
@@ -214,7 +222,11 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
     return page('Not ready', actor, h`<h1>Beam is not set up yet</h1><p>The owner needs to name the business first.</p>`)
   }
   actor.shell = await shellFacts(env, actor)
+  if (path === '/app/access/issued') return issuedPage(env, actor, request, url)
+  if (path === '/app/dashboards/link') return dashboardLinkPage(env, actor, request, url)
   let match: RegExpMatchArray | null
+  if ((match = path.match(/^\/app\/packages\/play\/([\w-]+)$/))) return packagePlayer(env, actor, match[1], url)
+  if ((match = path.match(/^\/app\/packages\/evidence\/([\w-]+)$/))) return packageEvidencePage(env, actor, match[1], url)
   // Sign-in lands on /app: people who manage training open on Manage, everyone else on My learning.
   if (path === '/app') return isManager(actor) ? Response.redirect(`${env.AUTH_ORIGIN}/app/manage${url.search}`, 303) : dashboard(env, actor, url)
   if (path === '/app/dashboards') return dashboardsPage(env, actor, url)

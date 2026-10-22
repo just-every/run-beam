@@ -1,7 +1,7 @@
 // AGENT-004: what one procedure change invalidates in one course. Beam compares the two immutable source versions of
 // a source-change notice line by line and matches every changed passage against the course draft's lessons that cite
-// the source, its quiz questions (prompt versus answer), its practical instructions and the practice scenarios of its
-// published revision; everything else is listed as untouched. Affected job roles come from LEARN-007 role mappings
+// the source, its quiz questions (prompt versus answer), its practical instructions, cited package metadata and the
+// practice scenarios of its published revision; everything else is listed as untouched. Affected job roles come from LEARN-007 role mappings
 // and from the roles of people holding a completion of an earlier revision, with counts and renewal dates, never names.
 // The impact proposal is deterministic, never simulated model output: it rewrites only lesson lines that quote a
 // changed source line exactly, re-cites the new version on those lessons, and lists everything else for a person.
@@ -17,6 +17,7 @@ import { sourceText } from './history'
 import type { Input } from './input'
 import { createProposal } from './maintenance'
 import { requireBusiness } from './people'
+import type { PackageManifest } from './packages/types'
 import { kindOf, type Question } from './question-types'
 import { localDate } from './time'
 import { requireCourseRole } from './units'
@@ -92,6 +93,27 @@ async function analyse(env: Bindings, notice: Row) {
     const lines = cites ? lesson.body.split('\n').map(line => ({ line, changes: hits(line, changed) })).filter(row => row.changes.length) : []
     return { id: lesson.id, title: lesson.title, cites, affected: cites && (passages === null || lines.length > 0), passages: lines.map(row => ({ text: row.line.trim(), changes: row.changes })) }
   })
+  // Only a package's own citations qualify its metadata. Package bytes and immutable manifests are never rewritten.
+  const packages = (await all(env, `SELECT p.* FROM beam_packages p WHERE p.course_id = ? AND
+    (p.id IN (SELECT value FROM json_each(?)) OR p.id IN
+      (SELECT package_id FROM beam_revision_packages WHERE course_revision_id = ?)) ORDER BY p.created_at, p.id`,
+  course.id, JSON.stringify(course.draft.packages ?? []), course.published_revision_id)).map(row => {
+    const manifest = JSON.parse(row.manifest_json) as PackageManifest
+    const cites = (JSON.parse(row.source_version_ids) as string[]).some(version => versions.has(version))
+    const metadata = [
+      { field: 'title', text: row.title as string },
+      { field: 'manifest title', text: manifest.title },
+      ...manifest.objectives.map(text => ({ field: 'objective', text })),
+      ...manifest.scos.flatMap(sco => [
+        { field: `SCO ${sco.id} title`, text: sco.title },
+        { field: `SCO ${sco.id} launch`, text: sco.launch },
+        ...sco.objectives.map(text => ({ field: `SCO ${sco.id} objective`, text })),
+        ...(sco.dataFromLMS ? [{ field: `SCO ${sco.id} dataFromLMS`, text: sco.dataFromLMS }] : []),
+      ]),
+    ]
+    const found = cites ? metadata.flatMap(item => item.text.split('\n').map(text => ({ field: item.field, text, changes: hits(text, changed) }))).filter(item => item.changes.length) : []
+    return { id: row.id as string, title: row.title as string, cites, affected: cites && (passages === null || found.length > 0), passages: found }
+  })
   const cited = lessons.some(lesson => lesson.cites)
   const questions = course.draft.questions.map(question => {
     const parts = questionParts(question), answer = parts.answer.flatMap(text => hits(text, changed)), prompt = hits(parts.prompt, changed)
@@ -105,7 +127,7 @@ async function analyse(env: Bindings, notice: Row) {
     const found = hits(text, changed)
     return { id: scenario.id, title: scenario.title, affected: cited && (passages === null || found.length > 0), changes: found }
   })
-  return { notice, course, from: from!, to: to!, versions, passages, lessons, questions, practical, scenarios, roles: await affectedRoles(env, course.id) }
+  return { notice, course, from: from!, to: to!, versions, passages, lessons, packages, questions, practical, scenarios, roles: await affectedRoles(env, course.id) }
 }
 
 /** Job roles the course teaches for (LEARN-007 mappings) or whose holders completed an earlier revision: counts and renewal dates only. */
@@ -127,7 +149,7 @@ async function affectedRoles(env: Bindings, course: string) {
 
 /** The impact of one source-change notice on its course, with what is untouched. */
 export async function noticeImpact(env: Bindings, actor: Actor, id: string) {
-  const { notice, course, from, to, passages, lessons, questions, practical, scenarios, roles } = await analyse(env, await loadNotice(env, actor, id))
+  const { notice, course, from, to, passages, lessons, packages, questions, practical, scenarios, roles } = await analyse(env, await loadNotice(env, actor, id))
   return {
     notice: notice.id, course: course.id, state: notice.state, source: notice.source_id, sourceTitle: notice.source_title,
     from: { id: from.id, number: from.number }, to: { id: to.id, number: to.number }, draftVersion: course.draft_version,
@@ -137,8 +159,7 @@ export async function noticeImpact(env: Bindings, actor: Actor, id: string) {
     lessons: { affected: lessons.filter(lesson => lesson.affected), untouched: lessons.filter(lesson => !lesson.affected).map(({ id, title, cites }) => ({ id, title, cites })) },
     questions: { affected: questions.filter(question => question.affected), untouched: questions.filter(question => !question.affected).map(({ id, prompt }) => ({ id, prompt })) },
     practical, scenarios,
-    // PACK-001 to PACK-005 inherit package metadata impact; Beam holds no packages today.
-    packages: [],
+    packages,
     roles,
     retraining: notice.retraining ? { decision: notice.retraining, roles: JSON.parse(notice.retrain_roles ?? '[]') as string[], dueOn: notice.retrain_due_on ?? null, assignedWith: notice.retrain_revision_id ?? null } : null,
   }
@@ -151,13 +172,14 @@ export async function proposeImpact(env: Bindings, actor: Actor, input: Input) {
   insist(notice.state === 'open', 'notice_decided', 409)
   const latest = await one<{ id: string }>(env, 'SELECT id FROM beam_source_versions WHERE source_id = ? ORDER BY number DESC LIMIT 1', notice.source_id)
   insist(latest?.id === notice.new_version_id, 'source_superseded', 409)
-  const { course, to, versions, passages, lessons, questions, practical, scenarios } = await analyse(env, notice)
+  const { course, to, versions, passages, lessons, packages, questions, practical, scenarios } = await analyse(env, notice)
   const draftVersion = input.integer('draftVersion', { min: 1, max: 1_000_000 })!
   insist(draftVersion === course.draft_version, 'stale_draft', 409, { draftVersion: course.draft_version })
   const draft: Draft = structuredClone(course.draft)
   const quoted = new Map<string, string>()
   for (const change of passages ?? []) if (change.removed.length === change.added.length) change.removed.forEach((line, index) => quoted.set(line, change.added[index]))
   const used: { sourceVersion: string; quote: string; lesson: string }[] = [], missing: string[] = []
+  for (const item of packages.filter(item => item.affected)) missing.push(`Package “${item.title}”: a person updates metadata in the original and uploads a replacement; this immutable package is unchanged. Check ${passages === null ? 'the cited source; text comparison unavailable' : [...new Set(item.passages.map(passage => passage.field))].join(', ')}.`)
   for (const found of lessons.filter(lesson => lesson.affected)) {
     const lesson = draft.lessons.find(item => item.id === found.id)!
     const manual = found.passages.filter(passage => !quoted.has(passage.text))

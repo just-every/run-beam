@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
 import { pdf } from './fixtures.mjs'
+import { formResult } from './form-result.mjs'
 
 export async function agentFlows({ h, check, people, ids, publish }) {
   const agentOf = async cookie => {
@@ -441,10 +442,11 @@ export async function agentFlows({ h, check, people, ids, publish }) {
   const access = async (fields, path = '/app/access/issue') => {
     const form = new URLSearchParams()
     for (const [name, value] of Object.entries(fields)) for (const item of [value].flat()) form.append(name, item)
-    const response = await h.raw(path, { cookie: people.owner, form })
-    assert.equal(response.status, 200, path)
-    assert.equal(response.headers.get('cache-control'), 'no-store')
-    return (await response.text()).match(/<code data-token>([^<]+)<\/code>/)[1]
+    const before = await h.api('app-credentials', people.owner)
+    const text = await formResult(h, path, people.owner, form)
+    const after = await h.api('app-credentials', people.owner)
+    assert.equal(after.length, before.length + (path.endsWith('/issue') ? 1 : 0), 'opening and reloading the result creates only one credential')
+    return text.match(/<code data-token>([^<]+)<\/code>/)[1]
   }
   // Servers calling with a credential send no Origin.
   const call = async (token, path, body, status = 200) => {
@@ -666,9 +668,7 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     const grant = async fields => {
       const form = new URLSearchParams()
       for (const [name, value] of Object.entries(fields)) for (const item of [value].flat()) form.append(name, item)
-      const response = await h.raw('/app/access/issue', { cookie: people.owner, form })
-      assert.equal(response.status, 200)
-      return (await response.text()).match(/<code data-token>([^<]+)<\/code>/)[1]
+      return (await formResult(h, '/app/access/issue', people.owner, form)).match(/<code data-token>([^<]+)<\/code>/)[1]
     }
     // An MCP client speaks JSON-RPC to one endpoint with its bearer grant; no session and no Origin.
     let sequence = 0

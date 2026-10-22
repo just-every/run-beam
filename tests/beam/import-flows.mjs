@@ -13,6 +13,15 @@ export function importTrust() {
 
 export async function importFlows({h, people, ids, trust}) {
   const nativeSnapshot = async () => (await h.api('history', people.owner)).sort((a, b) => a.id.localeCompare(b.id))
+  const progressForm = async (action, fields) => {
+    const response = await h.raw(`/app/import/${action}`, {cookie: people.owner, form: new URLSearchParams(fields)})
+    assert.equal(response.status, 303, `${action} redirects to retained import history`)
+    const target = response.headers.get('location')
+    const history = await nativeSnapshot(), jobs = await h.api('imports', people.owner)
+    for (let read = 0; read < 2; read++) assert.equal((await h.raw(target, {cookie: people.owner})).status, 200, 'opening and reloading import progress is a read')
+    assert.deepEqual(await nativeSnapshot(), history, 'refresh does not replay the import write')
+    assert.deepEqual(await h.api('imports', people.owner), jobs, 'refresh does not advance apply or undo')
+  }
   const ownerRequest = (action, body, _review, cookie = people.owner, extra = {}) => h.fetch(`/api/operator/import/${action}`, {
     method: 'POST', headers: {'content-type': 'application/json', origin: h.origin, 'X-Import-Source': 'talentlms', ...(cookie ? {cookie} : {}), ...extra}, body: JSON.stringify(body),
   })
@@ -187,6 +196,7 @@ export async function importFlows({h, people, ids, trust}) {
   // Public native review is a protected edit. Reconcile reports it; undo keeps it.
   const lastUpload = await upload(ownerRequest, bytes)
   const last = await json(ownerRequest, 'plan', {uploadId: lastUpload})
+  await progressForm('apply', {planId: last.planId, reviewedFingerprint: last.fingerprint})
   await until(ownerRequest, 'apply', {planId: last.planId, reviewedFingerprint: last.fingerprint}, undefined, 'completed')
   const jo = (await nativeSnapshot()).find(row => row.email === 'jo.former@example.test')
   await h.api('history.accept', people.manager, {history: jo.id, note: 'Matches our 2025 paper records.'})
@@ -194,6 +204,7 @@ export async function importFlows({h, people, ids, trust}) {
   const nativeCheck = await h.raw('/app/import/reconcile', {cookie: people.owner, form: new URLSearchParams({planId: last.planId})})
   assert.equal(nativeCheck.status, 200)
   assert.ok((await nativeCheck.text()).includes(jo.id))
+  await progressForm('undo', {planId: last.planId})
   await until(ownerRequest, 'undo', {planId: last.planId}, undefined, 'undone')
   const left = await nativeSnapshot()
   assert.deepEqual(left.map(row => row.id), [jo.id])

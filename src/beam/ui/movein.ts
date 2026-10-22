@@ -15,6 +15,7 @@ const JOB_STATES: Record<string, string> = {rolling_back: 'Undoing unfinished im
 const DATE_FORMATS = [{value: 'DMY', label: 'Day/month/year (31/12/2025)'}, {value: 'MDY', label: 'Month/day/year (12/31/2025)'}, {value: 'YMD', label: 'Year-month-day (2025-12-31)'}]
 const US_FIRST = [DATE_FORMATS[1], DATE_FORMATS[0], DATE_FORMATS[2]]
 const doorForm = (action: string, fields: ReturnType<typeof hidden>[], label: string) => h`<form method="post" action="/app/import/${action}">${fields}<button type="submit" class="secondary">${label}</button></form>`
+const progressRedirect = () => new Response(null, {status: 303, headers: {location: '/app/import', 'cache-control': 'no-store'}})
 const planFields = (job: {planId: string; fingerprint: string}) => [hidden('planId', job.planId), hidden('reviewedFingerprint', job.fingerprint)]
 const labels: Record<string, string> = {sourceRecords: 'Source records', created: 'Planned additions', updated: 'Planned replacements', unchanged: 'Unchanged records', gone: 'Missing source records', present: 'Present', explained: 'Explained', nativeTargets: 'Native records', conflicts: 'Conflicts or rejected records'}
 const label = (key: string) => labels[key] ?? key.replace(/[A-Z]/g, letter => ' ' + letter.toLowerCase())
@@ -56,13 +57,14 @@ export async function importProgressPage(env: Bindings, actor: Actor, input: Inp
   if (input.has('legacyJobId')) {
     insist(action === 'undo' && !input.has('planId') && !input.has('reviewedFingerprint'), 'legacy_import_undo_only', 400)
     const legacyJobId = input.text('legacyJobId', {max: 100})
-    const result = await legacyUndo(env, actor, legacyJobId)
-    const state = result.job.state
-    return page('Legacy import undo', actor, h`${backLink('/app/import', 'Move in')}<h1>Legacy import undo</h1><p>${JOB_STATES[state] ?? state}</p>${['undoing', 'rolling_back'].includes(state) ? doorForm('undo', [hidden('legacyJobId', legacyJobId)], 'Continue undo') : ''}`, {current: '/app/import', url})
+    await legacyUndo(env, actor, legacyJobId)
+    return progressRedirect()
   }
   const planId = input.text('planId', {max: 100})
   const reviewedFingerprint = action === 'apply' ? input.text('reviewedFingerprint', {max: 64}) : undefined
   const result = await operatorCall(env, request, action, {planId, ...(reviewedFingerprint ? {reviewedFingerprint} : {})})
-  const state = result.job?.state
-  return page('Import progress', actor, h`${backLink('/app/import', 'Move in')}<h1>${action === 'reconcile' ? 'Native record check' : 'Import progress'}</h1><p>${action === 'reconcile' ? (result.ok ? 'All source records are present or explained.' : 'Some native records differ from the import.') : JOB_STATES[state] ?? state}</p>${['queued', 'applying'].includes(state) ? doorForm('apply', [hidden('planId', planId), hidden('reviewedFingerprint', reviewedFingerprint!)], 'Continue reviewed import') : ''}${state === 'undoing' ? doorForm('undo', [hidden('planId', planId)], 'Continue undo') : ''}${state === 'completed' ? doorForm('reconcile', [hidden('planId', planId)], 'Check native records') : ''}${action === 'reconcile' ? reconcileDetails(result) : ''}`, {current: '/app/import', url})
+  // The imports list reads the retained job state and offers Continue for a
+  // bounded job. Reloading it must never replay apply or undo.
+  if (action !== 'reconcile') return progressRedirect()
+  return page('Native record check', actor, h`${backLink('/app/import', 'Move in')}<h1>Native record check</h1><p>${result.ok ? 'All source records are present or explained.' : 'Some native records differ from the import.'}</p>${reconcileDetails(result)}`, {current: '/app/import', url})
 }

@@ -41,11 +41,17 @@ export async function addSourceVersion(env: Bindings, actor: Actor, input: Input
   const stored = await store(env, (await input.file('file', { maxBytes: SOURCE_BYTES }))!)
   const latest = await one<{ number: number }>(env, 'SELECT MAX(number) AS number FROM beam_source_versions WHERE source_id = ?', sourceId)
   const id = newId(), number = (latest?.number ?? 0) + 1, at = now()
-  // Courses whose published revision cites an earlier version of this source.
+  // Courses whose published lessons or packages cite an earlier version of this source.
   const cited = await all<{ course_id: string; version_id: string }>(env, `SELECT DISTINCT c.id AS course_id, v.id AS version_id
     FROM beam_courses c JOIN beam_lesson_revisions l ON l.course_revision_id = c.published_revision_id
     JOIN json_each(l.source_version_ids) j JOIN beam_source_versions v ON v.id = j.value
-    WHERE v.source_id = ?`, sourceId)
+    WHERE v.source_id = ?
+    UNION
+    SELECT DISTINCT c.id AS course_id, v.id AS version_id
+    FROM beam_courses c JOIN beam_revision_packages r ON r.course_revision_id = c.published_revision_id
+    JOIN beam_packages p ON p.id = r.package_id
+    JOIN json_each(p.source_version_ids) j JOIN beam_source_versions v ON v.id = j.value
+    WHERE v.source_id = ?`, sourceId, sourceId)
   await commit(env, [
     stmt(env, 'INSERT INTO beam_source_versions (id, source_id, number, filename, media_type, size, sha256, provenance, uploaded_by, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', id, sourceId, number, stored.filename, stored.mediaType, stored.size, stored.sha256, provenance, actor.id, at),
     ...askAgainStatements(env, actor, sourceId, id, at),

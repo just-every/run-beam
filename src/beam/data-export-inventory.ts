@@ -22,6 +22,12 @@ export const LEARNING_INVENTORY = {
   beam_courses: 'id, title, reviewer_id, created_by, created_at, draft_json, draft_version, published_revision_id, unit_id, self_review, retired_at, retired_by, retire_reason, cloned_from, folder, tags, objectives, language, duration_minutes, owner_id, is_template, archived_at, enrollment_mode, catalog_teams, certificate_template_id, fallback_owner_id, next_review_on',
   beam_course_revisions: 'id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at, reviewed_by, reviewed_at, review_note, reassignment, self_reviewed, attendance_percent, survey_json',
   beam_lesson_revisions: 'id, course_revision_id, position, title, body, source_version_ids',
+  beam_packages: 'id, course_id, standard, title, manifest_json, source_version_ids, licence, licence_evidence, export_restriction, original_filename, original_sha256, original_size, created_by, created_at',
+  beam_package_assets: 'package_id, path, sha256, size, media_type',
+  beam_revision_packages: 'course_revision_id, package_id, position',
+  beam_package_runs: 'id, assignment_id, package_id, sco_id, state_json, total_time, version, updated_at',
+  // Playback sessions grant asset access. Raw runtime events retain their run lineage without that capability.
+  beam_package_events: 'id, run_id, event, payload_json, at',
   beam_assessment_revisions: 'id, course_revision_id, questions_json, pass_percent, max_attempts, practical_instructions, assessor_id, time_limit_minutes, draw_count, shuffle, feedback',
   beam_paths: 'id, name, team_id, current_revision_id, created_at',
   beam_path_revisions: 'id, path_id, number, created_by, created_at',

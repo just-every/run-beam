@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { fixture } from './regression-fixture.mjs'
+import { formResult } from './form-result.mjs'
 
 // REPORT-002: every shared rendering uses live creator and viewer access; a token never grants authority.
 export async function dashboardCheck() {
@@ -92,6 +93,11 @@ async function dashboards({ h, cookies, ids, course, lessons }) {
   assert.equal(emptyCsv.status, 200)
   assert.ok(Number.isFinite(Date.parse(emptyCsv.text.split('\r\n')[1].split(',')[2])), 'empty export retains its as-of definition')
   const expiresAt = new Date(Date.now() + 86_400_000).toISOString()
+  const beforeLinks = (await api('owner', 'audit?q=dashboard.link')).events.length
+  const result = await formResult(h, '/app/dashboards/link', cookies.owner, new URLSearchParams({ dashboard: narrow.id, viewerEmail: 'dashboardadmin@example.test', expiresAt }))
+  const resultLink = result.match(/<p class="dashboard-link"><a href="([^"]+)"/)[1].replaceAll('&amp;', '&')
+  assert.equal((await html(resultLink, 'dashboardAdmin')).status, 200, 'the redirected result contains a working restricted link')
+  assert.equal((await api('owner', 'audit?q=dashboard.link')).events.length, beforeLinks + 1, 'result reload creates no second restricted link')
   await api('owner', 'dashboard.link', { dashboard: narrow.id, viewer: ids.dashboardAdmin, expiresAt: new Date(Date.now() + 91 * 86_400_000).toISOString() }, 400)
   await api('owner', 'dashboard.link', { dashboard: narrow.id, viewer: ids.dashboardAdmin, expiresAt: new Date(Date.now() - 1000).toISOString() }, 400)
   const link = await api('owner', 'dashboard.link', { dashboard: narrow.id, viewer: ids.dashboardAdmin, expiresAt })

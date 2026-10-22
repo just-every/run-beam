@@ -6,6 +6,28 @@ on:
 permissions:
   contents: read
 jobs:
+  dev-personas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+      BEAM_TEST_CHECKOUT: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Reclaim unused hosted-runner SDKs
+        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
+        run: |
+          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - run: node tests/beam/dev-personas.mjs
   verify:
     runs-on: ubuntu-latest
     # The complete public-door wall includes real archive/migration replay.
