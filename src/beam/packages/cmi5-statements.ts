@@ -22,7 +22,7 @@ export async function retainCmi5(env: Bindings, value: Cmi5Session, original: Xa
     await sendStatements(connection.endpoint, connection.authorization, [original])
     const receipt = await getStatement(connection.endpoint, connection.authorization, original.id)
     insist(contains(receipt.statement, original), 'cmi5_lrs_readback_mismatch', 502)
-    await commit(env, [stmt(env, "UPDATE beam_cmi5_statements SET status='accepted',accepted_at=?,lrs_stored=?,failure=NULL WHERE id=? AND digest=?", now(), receipt.statement.stored ?? null, original.id, digest)], { actor: value.actor, action: 'cmi5.statement', subject: original.id, detail: { session: value.session.id, verb } })
+    await commit(env, [stmt(env, "UPDATE beam_cmi5_statements SET status='accepted',accepted_at=?,lrs_stored=?,failure=NULL WHERE id=? AND digest=?", now(), receipt.statement.stored ?? null, original.id, digest)], { actor: value.actor, action: 'cmi5.statement', subject: original.id, detail: { session: value.session.session_uuid, verb } })
   } catch (error) {
     await env.DB.prepare('UPDATE beam_cmi5_statements SET failure=? WHERE id=?').bind(error instanceof BeamError ? error.code : 'cmi5_lrs_unavailable', original.id).run()
     throw error

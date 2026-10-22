@@ -57,13 +57,14 @@ export async function launchCmi5(env: Bindings, actor: Actor, input: Input) {
     // End all interrupted AUs in this course registration, retaining their distinct sessions and original statements.
     const interrupted = await all(env, 'SELECT s.id,c.busy FROM beam_package_sessions s JOIN beam_cmi5_sessions c ON c.session_id=s.id WHERE c.registration=? AND s.ended_at IS NULL', registration)
     for (const prior of interrupted) {
-      insist(!prior.busy, 'cmi5_session_busy', 409)
+      insist(!prior.busy || prior.busy < now(), 'cmi5_session_busy', 409)
       const value = await cmi5Session(env, prior.id, { ended: true, replacingActor: actor })
       await recordCmi5(env, value, 'abandoned')
-      await commit(env, [stmt(env, 'UPDATE beam_package_sessions SET ended_at=? WHERE id=?', at, prior.id), stmt(env, "UPDATE beam_cmi5_sessions SET lifecycle='abandoned',auth_hash=NULL,active_registration=NULL WHERE session_id=?", prior.id)], { actor, action: 'cmi5.abandon', subject: prior.id })
+      await commit(env, [stmt(env, 'UPDATE beam_package_sessions SET ended_at=? WHERE id=?', at, prior.id), stmt(env, "UPDATE beam_cmi5_sessions SET lifecycle='abandoned',auth_hash=NULL,active_registration=NULL WHERE session_id=?", prior.id)], { actor, action: 'cmi5.abandon', subject: value.session.session_uuid })
     }
   }
-  await commit(env, [stmt(env, 'INSERT INTO beam_package_sessions(id,run_id,package_id,sco_id,actor_id,auth_session_id,preview,expires_at,initial_json) VALUES(?,?,?,?,?,?,?,?,?)', id, run?.id ?? null, pkg.id, sco.id, actor.id, actor.sessionId, preview ? 1 : 0, at + 4 * 60 * 60 * 1000, '{}'), stmt(env, 'INSERT INTO beam_cmi5_sessions(session_id,registration,session_uuid,fetch_hash,resumed,active_registration) VALUES(?,?,?,?,?,?)', id, registration, newId(), await cmi5Hash(fetchToken), run?.version ? 1 : 0, registration)], { actor, action: 'cmi5.launch', subject: id, detail: { package: pkg.id, sco: sco.id, registration, preview, resumed: !!run?.version } })
+  const sessionUuid = newId()
+  await commit(env, [stmt(env, 'INSERT INTO beam_package_sessions(id,run_id,package_id,sco_id,actor_id,auth_session_id,preview,expires_at,initial_json) VALUES(?,?,?,?,?,?,?,?,?)', id, run?.id ?? null, pkg.id, sco.id, actor.id, actor.sessionId, preview ? 1 : 0, at + 4 * 60 * 60 * 1000, '{}'), stmt(env, 'INSERT INTO beam_cmi5_sessions(session_id,registration,session_uuid,fetch_hash,resumed,active_registration) VALUES(?,?,?,?,?,?)', id, registration, sessionUuid, await cmi5Hash(fetchToken), run?.version ? 1 : 0, registration)], { actor, action: 'cmi5.launch', subject: sessionUuid, detail: { package: pkg.id, sco: sco.id, registration, preview, resumed: !!run?.version } })
   const value = await cmi5Session(env, id)
   await recordCmi5(env, value, 'launched')
   await env.DB.prepare("UPDATE beam_cmi5_sessions SET lifecycle='launched' WHERE session_id=?").bind(id).run()

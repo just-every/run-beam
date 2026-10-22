@@ -294,3 +294,37 @@ listed frame origins in CSP. Removing a host suppresses even previously
 published frames immediately; it never changes their stored revision. A new
 publication must pass current admission. Live provider playback is still owed;
 synthetic URLs in HTTP/browser checks prove admission and isolation only.
+
+
+## cmi5 package profile (PACK-004, partial pending ct)
+
+The existing package editor also imports a ZIP with root `cmi5.xml`. The human
+owner supplies `connection` (an explicitly consented xAPI LRS) and `consent: true`
+with the existing license, immutable source citations and optional export
+restriction. Only flat package-local HTML AnyWindow AUs are admitted; unsupported
+blocks, remote launches, OwnWindow and unknown XML features receive a specific
+validation diagnostic. Existing ZIP expansion/path/asset limits apply.
+
+`package.launch` opens each assigned AU in the existing opaque sandbox; preview
+uses Browse and refuses completion-related results. Launch parameters are the
+standard `endpoint`, one-time POST `fetch`, `actor`, `registration` and
+`activityId`. The fetch response's base64 `auth-token` is used as Basic auth;
+it grants only that AU/session, expires with the current human session/access,
+and cannot read/write another registration or expose the LRS credential.
+`LMS.LaunchData` is read-only and provides the original moveOn/mastery rules and
+context template. Resume JSON documents use GET and conditional PUT (64 KB per
+document): a new document requires `If-None-Match: *`, an existing one its ETag
+in `If-Match`. Reserved `LMS.*` writes are refused.
+
+The bridge accepts individual attachment-free xAPI 1.0.3 statements through
+`statements`. The AU initializes first, records Completed/Passed/Failed with the
+cmi5 category, session, grouping, result and duration, and terminates last.
+Verbs cannot be duplicated with new ids; exact UUID retries deduplicate and
+reconcile derived progress. Completed and Passed are distinct and can accumulate
+across sessions in one assignment's course registration. Terminated ends the
+session immediately; a replacement AU/session records Abandoned for interrupted
+work. Native assessment gates still apply. The public learner record is
+`GET /api/beam/cmi5-evidence/:assignment` and the existing package evidence page.
+Learning export excludes capabilities; installation archives withhold them and
+both modern/legacy restore disable access. This boundary remains subject to ct
+approval; no claim of general cmi5 conformance or browser-derived competence.

@@ -1,3 +1,4 @@
+import { saveSequence, sequenceAnswer, sequencePause } from './microlearning'
 import { connectLrs, createXapiActivity, revokeXapi, removeXapiActivity } from './packages/xapi-catalog'
 import { launchXapi } from './packages/xapi-launch'
 import { importPackage, removePackage } from './packages/catalog'
@@ -92,6 +93,7 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'course.sequence': saveSequence, 'sequence.answer': sequenceAnswer, 'sequence.pause': sequencePause,
   'xapi.connect': connectLrs, 'xapi.activity': createXapiActivity, 'xapi.revoke': revokeXapi, 'xapi.remove': removeXapiActivity, 'xapi.launch': launchXapi,
   'package.import': importPackage, 'package.remove': removePackage, 'package.launch': launchPackage, 'package.runtime': saveRuntime,
   'lti.register': registerLti, 'lti.keys': rotateLtiKeys, 'lti.revoke': revokeLti,

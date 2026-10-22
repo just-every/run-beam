@@ -101,7 +101,7 @@ export async function integrationArchiveCheck(f, expected) {
     assert.ok(records.filter(item => item.table === 'beam_lti_platform_keys').every(item => item.row.private_cipher === WITHHELD))
     assert.ok(!records.some(item => item.table === 'beam_lti_tokens'))
     const exported = await readFile(path, 'utf8')
-    for (const secret of [expected.token, expected.key, f.h.vars.SESSION_SECRET, f.h.vars.MAIL_API_KEY]) assert.ok(!exported.includes(secret))
+    for (const secret of [expected.token, expected.key, f.h.vars.SESSION_SECRET, f.h.vars.MAIL_API_KEY, expected.cmi5Credential, expected.cmi5Fetch]) assert.ok(!exported.includes(secret))
     await importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations }), path)
     assert.equal((await target.raw('/auth/bootstrap', { body: { token: target.vars.SETUP_TOKEN, displayName: 'Owner' } })).status, 303)
     const owner = await target.signIn('owner@example.test')
@@ -170,8 +170,8 @@ export async function packageArchiveCheck(f, expected) {
   // Archive import may allocate different SQLite rowids; compare complete records by stable content.
   const stable = rows => [...rows].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
   const retained = ['beam_packages', 'beam_package_assets', 'beam_revision_packages', 'beam_package_runs',
-    'beam_revision_xapi', 'beam_xapi_actors', 'beam_xapi_statements', 'beam_xapi_attachments', 'beam_completions']
-  const authority = ['beam_package_sessions', 'beam_package_events', 'beam_xapi_connections', 'beam_xapi_activities', 'beam_xapi_launches']
+    'beam_cmi5_packages', 'beam_cmi5_registrations', 'beam_cmi5_state', 'beam_revision_xapi', 'beam_xapi_actors', 'beam_xapi_statements', 'beam_xapi_attachments', 'beam_completions']
+  const authority = ['beam_cmi5_sessions', 'beam_cmi5_statements', 'beam_package_sessions', 'beam_package_events', 'beam_xapi_connections', 'beam_xapi_activities', 'beam_xapi_launches']
   const source = Object.fromEntries(await Promise.all([...retained, ...authority].map(async table => [table, (await f.h.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results])))
   assert.ok(source.beam_package_sessions.length, 'archive qualification needs a real package launch')
   if (expected.packageSession) assert.ok(source.beam_package_sessions.some(row => row.id === expected.packageSession))
@@ -179,7 +179,7 @@ export async function packageArchiveCheck(f, expected) {
   if (expected.completion) assert.ok(source.beam_completions.some(row => row.id === expected.completion))
   const packageEvidence = expected.packageAssignment ? await f.api('owner', `package-evidence/${expected.packageAssignment}`) : null
   const xapiEvidence = expected.xapiAssignment ? await f.api('owner', `xapi-evidence/${expected.xapiAssignment}`) : null
-  const assignments = [...new Set([expected.packageAssignment, expected.xapiAssignment].filter(Boolean))]
+  const assignments = [...new Set([expected.packageAssignment, expected.xapiAssignment, expected.cmi5Assignment].filter(Boolean))]
   const completions = new Map(await Promise.all(assignments.map(async id => [id, (await f.api('owner', `assignments/${id}`)).completion])))
   const scratch = await mkdtemp(join(tmpdir(), 'beam-package-archive-'))
   try {
@@ -192,9 +192,10 @@ export async function packageArchiveCheck(f, expected) {
     const secrets = [...source.beam_package_sessions.flatMap(row => [row.id, row.auth_session_id]),
       ...source.beam_xapi_launches.map(row => row.auth_session_id),
       ...source.beam_xapi_connections.map(row => row.authorization_sealed),
-      ...source.beam_xapi_activities.map(row => row.producer_sealed), f.h.vars.SESSION_SECRET, f.h.vars.MAIL_API_KEY]
+      ...source.beam_xapi_activities.map(row => row.producer_sealed), f.h.vars.SESSION_SECRET, f.h.vars.MAIL_API_KEY, expected.cmi5Credential, expected.cmi5Fetch]
     assert.ok(secrets.filter(value => value && value !== WITHHELD).every(value => !text.includes(value)), 'archive contains no playback capability, parent session id, sealed producer/LRS credential or installation secret')
     const remapped = new Map(source.beam_package_events.map(event => [event.session_id, archived('beam_package_events').find(row => row.id === event.id)?.session_id]))
+    for (const cmi5 of source.beam_cmi5_sessions) remapped.set(cmi5.session_id, archived('beam_cmi5_sessions').find(row => row.session_uuid === cmi5.session_uuid)?.session_id)
     for (const session of source.beam_package_sessions) {
       const id = remapped.get(session.id)
       assert.ok(id?.startsWith('withheld:') && id !== session.id, 'playback capability becomes an irreversible evidence identity')
@@ -217,9 +218,10 @@ export async function packageArchiveCheck(f, expected) {
         for (const session of sessions) {
           const original = source.beam_package_sessions.find(row => (modern ? remapped.get(row.id) : row.id) === session.id)
           assert.ok(original)
-          const { id, auth_session_id, expires_at, ended_at, ...lineage } = session
-          const { id: oldId, auth_session_id: oldAuth, expires_at: oldExpiry, ended_at: oldEnd, ...originalLineage } = original
+          const { id, auth_session_id, expires_at, ended_at, initial_json, ...lineage } = session
+          const { id: oldId, auth_session_id: oldAuth, expires_at: oldExpiry, ended_at: oldEnd, initial_json: oldInitial, ...originalLineage } = original
           assert.deepEqual(lineage, originalLineage)
+          assert.equal(initial_json, source.beam_cmi5_sessions.some(c => c.session_id === oldId) ? '{}' : oldInitial)
           assert.ok(auth_session_id === WITHHELD && ended_at !== null && expires_at <= Date.now(), 'restored playback sessions are terminal')
           assert.equal(id, modern ? remapped.get(oldId) : oldId, 'restored session retains the archive evidence identity')
           const asset = (await target.raw(`/beam-package/${encodeURIComponent(id)}/index.html`)).status
@@ -241,6 +243,16 @@ export async function packageArchiveCheck(f, expected) {
           const bytes = await target.raw(original.href, { cookie: owner })
           assert.equal(bytes.status, 200)
           assert.equal(sha(Buffer.from(await bytes.arrayBuffer())), pkg.original_sha256, 'restored original package bytes are intact')
+        }
+        if (expected.cmi5Assignment) {
+          const original = await f.api('owner', `cmi5-evidence/${expected.cmi5Assignment}`)
+          const restored = await target.api(`cmi5-evidence/${expected.cmi5Assignment}`, owner)
+          assert.deepEqual(restored.statements.map(s => s.statement), original.statements.map(s => s.statement), 'original cmi5 statements survive modern and legacy restore')
+          assert.deepEqual(restored.sessions.map(s => s.session_uuid), original.sessions.map(s => s.session_uuid))
+          assert.ok(restored.sessions.every(s => s.lifecycle === 'restored'))
+          assert.equal((await target.raw(expected.cmi5Fetch, { method: 'POST' })).status, 403, 'restored one-time fetch is terminal')
+          const rows = (await target.db.prepare('SELECT * FROM beam_cmi5_sessions').all()).results
+          assert.ok(rows.every(s => s.fetch_hash === 'withheld' && s.auth_hash === null && s.active_registration === null))
         }
         if (!expected.xapiActivity) continue
         const configuration = await target.api('xapi', owner)

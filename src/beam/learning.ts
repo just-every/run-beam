@@ -1,3 +1,4 @@
+import { revisionSequence } from './microlearning'
 import { packageRequirements } from './packages/runtime'
 import { xapiRequirements } from './packages/xapi-launch'
 import { ltiRequirements } from './lti-requirements'
@@ -120,6 +121,7 @@ export async function assignmentView(env: Bindings, actor: Actor, id: string) {
     lessons: state.content.lessons.map(lesson => launchable ? { ...lesson, completed: state.done.has(lesson.id) } : { id: lesson.id, position: lesson.position, title: lesson.title, completed: state.done.has(lesson.id) }),
     resumeLesson: state.resumeLesson?.id ?? null,
     lessonsComplete: state.lessonsComplete,
+    microlearning: !!await revisionSequence(env, assignment.course_revision_id),
     packages: await packageRequirements(env, assignment),
     xapiActivities: await xapiRequirements(env, assignment),
     externalTools: await ltiRequirements(env, assignment),

@@ -1,3 +1,4 @@
+import { cmi5Package } from './scorm-fixtures.mjs'
 import { packageArchiveCheck } from './regression-archive.mjs'
 import { preparePackage, publishPackage } from './regression-packages.mjs'
 import assert from 'node:assert/strict'
@@ -134,6 +135,19 @@ export async function isolatedXapiArchiveCheck() {
     const packageCompletion = (await f.view(pkg.assignment)).completion.id
     const preview = await f.api('owner', 'package.launch', { package: pkg.package, preview: true })
     assert.equal((await f.h.raw(`/beam-package/${preview.id}/index.html`)).status, 200)
-    await packageArchiveCheck(f, { packageAssignment: pkg.assignment, packageSession: preview.id, xapiAssignment: c.assignment, xapiConnection: c.connection, xapiActivity: c.activity, xapiStatement: statement.id, completion, packageCompletion })
+    const cmi5 = await f.api('owner', 'course.create', { title: 'cmi5 archive custody', reviewer: f.ids.reviewer })
+    const admitted = await f.api('owner', 'package.import', { course: cmi5.id, draftVersion: 1, connection: c.connection, consent: true, licence: 'owned', licenceEvidence: 'Original CC0 AU', file: file('cmi5.zip', cmi5Package()) })
+    const cmi5Revision = (await f.api('owner', 'course.submit', { course: cmi5.id, draftVersion: admitted.draftVersion })).id
+    await f.publish(cmi5Revision)
+    const cmi5Assignment = await f.assign(cmi5), cmi5Session = await f.api('learner', 'package.launch', { package: admitted.id, assignment: cmi5Assignment })
+    const player = await f.h.raw(cmi5Session.href, { cookie: f.cookies.learner }).then(r => r.text())
+    const asset = new URL(player.match(/<iframe[^>]+src="([^"]+)"/)[1].replaceAll('&amp;', '&'), f.h.origin)
+    const cmi5Fetch = new URL(asset.searchParams.get('fetch')).pathname
+    const credential = await f.h.fetch(cmi5Fetch, { method: 'POST' }).then(r => r.json())
+    assert.ok(credential['auth-token'])
+    const stateUrl = new URL(asset.searchParams.get('endpoint') + 'activities/state')
+    for (const [key, value] of Object.entries({ stateId: 'bookmark', activityId: asset.searchParams.get('activityId'), agent: asset.searchParams.get('actor'), registration: cmi5Session.registration })) stateUrl.searchParams.set(key, value)
+    assert.equal((await f.h.fetch(stateUrl.pathname + stateUrl.search, { method: 'PUT', headers: { authorization: `Basic ${credential['auth-token']}`, 'x-experience-api-version': '1.0.3', 'content-type': 'application/json', 'if-none-match': '*' }, body: '{"place":"temperature-check"}' })).status, 204)
+    await packageArchiveCheck(f, { cmi5Assignment, cmi5Fetch, cmi5Credential: credential['auth-token'], packageAssignment: pkg.assignment, packageSession: preview.id, xapiAssignment: c.assignment, xapiConnection: c.connection, xapiActivity: c.activity, xapiStatement: statement.id, completion, packageCompletion })
   } finally { await f.h.close() }
 }

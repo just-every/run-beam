@@ -1,3 +1,4 @@
+import { normaliseSequence, revisionSequence, type Sequence } from './microlearning'
 import { packageRecord, revisionPackages } from './packages/catalog'
 import { revisionXapi } from './packages/xapi-catalog'
 import { markLocaleSourceChange } from './course-locales'
@@ -18,6 +19,7 @@ export interface Lesson { id: string; title: string; body: string; sources: stri
 import { normaliseQuestion, questionFromInput, type Question } from './question-types'
 export type { Question } from './question-types'
 export interface Draft {
+  sequence?: Sequence
   packages?: string[]
   xapiActivities?: string[]
   title: string
@@ -113,7 +115,8 @@ export async function normaliseDraft(env: Bindings, value: unknown, course: stri
     insist(await one(env, 'SELECT 1 FROM beam_members WHERE id = ?', draft.practical.assessor), 'assessor_not_found', 404)
     practical = { instructions: draft.practical.instructions.trim(), assessor: draft.practical.assessor }
   }
-  return { ...(xapiActivities.length ? { xapiActivities: [...new Set(xapiActivities)] } : {}), ...(packages.length ? { packages: [...new Set(packages)] } : {}), title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent, drawCount, shuffle: draft.shuffle === true, feedback, assessor: practical ? null : assessor, survey }
+  const sequence = normaliseSequence(draft.sequence, lessons)
+  return { ...(sequence ? { sequence } : {}), ...(xapiActivities.length ? { xapiActivities: [...new Set(xapiActivities)] } : {}), ...(packages.length ? { packages: [...new Set(packages)] } : {}), title: draft.title.trim(), summary: draft.summary.trim(), lessons, questions, passPercent, maxAttempts, timeLimitMinutes, practical, attendancePercent, drawCount, shuffle: draft.shuffle === true, feedback, assessor: practical ? null : assessor, survey }
 }
 
 const toolResources = (draft: Draft) => new Set(draft.lessons.flatMap(lesson => (lesson.blocks ?? []).flatMap(block => block.kind === 'lti' ? [block.resource] : [])))
@@ -263,11 +266,13 @@ export async function submitForReview(env: Bindings, actor: Actor, input: Input)
   const latest = await one<{ number: number }>(env, 'SELECT MAX(number) AS number FROM beam_course_revisions WHERE course_id = ?', course.id)
   const id = newId(), number = (latest?.number ?? 0) + 1
   const assessed = draft.questions.length > 0 || draft.practical
+  const lessonIds = new Map(draft.lessons.map(lesson => [lesson.id, newId()]))
   await commit(env, [
     stmt(env, "INSERT INTO beam_course_revisions (id, course_id, number, title, summary, draft_version, state, submitted_by, submitted_at, attendance_percent, survey_json) VALUES (?, ?, ?, ?, ?, ?, 'in_review', ?, ?, ?, ?)", id, course.id, number, draft.title, draft.summary, course.draft_version, actor.id, now(), draft.attendancePercent ?? null, draft.survey?.length ? JSON.stringify(draft.survey) : null),
+    ...(draft.sequence ? [stmt(env, 'INSERT INTO beam_revision_sequences VALUES(?,?)', id, JSON.stringify({ ...draft.sequence, days: draft.sequence.days.map(day => ({ ...day, lesson: lessonIds.get(day.lesson) })) }))] : []),
     ...(draft.xapiActivities ?? []).map((activityId, position) => stmt(env, 'INSERT INTO beam_revision_xapi(course_revision_id,activity_id,position) VALUES(?,?,?)', id, activityId, position)),
     ...(draft.packages ?? []).map((packageId, position) => stmt(env, 'INSERT INTO beam_revision_packages(course_revision_id,package_id,position) VALUES(?,?,?)', id, packageId, position)),
-    ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids, blocks_json) VALUES (?, ?, ?, ?, ?, ?, ?)', newId(), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources), JSON.stringify(lesson.blocks ?? []))),
+    ...draft.lessons.map((lesson, position) => stmt(env, 'INSERT INTO beam_lesson_revisions (id, course_revision_id, position, title, body, source_version_ids, blocks_json) VALUES (?, ?, ?, ?, ?, ?, ?)', lessonIds.get(lesson.id), id, position, lesson.title, lesson.body, JSON.stringify(lesson.sources), JSON.stringify(lesson.blocks ?? []))),
     ...(assessed ? [stmt(env, 'INSERT INTO beam_assessment_revisions (id, course_revision_id, questions_json, pass_percent, max_attempts, time_limit_minutes, practical_instructions, assessor_id, draw_count, shuffle, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', newId(), id, JSON.stringify(draft.questions), draft.passPercent, draft.maxAttempts, draft.questions.length ? draft.timeLimitMinutes ?? null : null, draft.practical?.instructions ?? null, assessor, draft.questions.length ? draft.drawCount ?? null : null, draft.shuffle ? 1 : 0, draft.feedback ?? 'attempt')] : []),
   ], { actor, action: 'revision.submit', subject: id, detail: { course: course.id, number, draftVersion: course.draft_version } })
   return { id, number }
@@ -325,7 +330,7 @@ export async function revisionDetail(env: Bindings, id: string) {
   if (!revision) throw new BeamError('revision_not_found', 404)
   const lessons = (await all(env, 'SELECT id, position, title, body, source_version_ids, blocks_json FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', id)).map(lesson => ({ id: lesson.id, position: lesson.position, title: lesson.title, body: lesson.body, sources: JSON.parse(lesson.source_version_ids) as string[], blocks: JSON.parse(lesson.blocks_json) as Block[] }))
   const assessment = await one(env, 'SELECT * FROM beam_assessment_revisions WHERE course_revision_id = ?', id)
-  return { revision, lessons, xapiActivities: await revisionXapi(env, id), packages: await revisionPackages(env, id), survey: revision.survey_json ? JSON.parse(revision.survey_json) as SurveyQuestion[] : [], assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
+  return { revision, lessons, sequence: await revisionSequence(env, id), xapiActivities: await revisionXapi(env, id), packages: await revisionPackages(env, id), survey: revision.survey_json ? JSON.parse(revision.survey_json) as SurveyQuestion[] : [], assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
 }
 
 export async function courseDetail(env: Bindings, actor: Actor, id: string) {

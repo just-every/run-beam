@@ -269,6 +269,7 @@ export async function cmi5Check() {
     assert.ok(exported.records.beam_cmi5_statements.rows.some(s => s.id === completed.id))
     assert.ok(!JSON.stringify(exported).includes(passing.headers.authorization))
     assert.ok(!JSON.stringify(exported).includes('fetch_hash'))
+    for (const session of [first, resumed, passing]) assert.ok(!JSON.stringify(exported).includes(session.id), 'playback bearer capability is not learning interchange')
     const changed = await f.api('owner', 'source.version', { source: source.id, provenance: 'Updated reviewed range', file: file('sop.txt', 'Keep vaccines between 2 and 6 degrees.') })
     const notice = (await f.api('owner', `courses/${c.id}`)).notices.find(n => n.new_version_id === changed.id)
     assert.ok((await f.api('owner', `impact/${notice.id}`)).packages.some(p => p.id === imported.id && p.type === 'cmi5' && p.affected))

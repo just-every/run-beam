@@ -1,3 +1,5 @@
+import { sequencePage, sequencePreviewPage } from './ui/microlearning'
+import { sequenceView, sequencePreview } from './microlearning'
 import { cmi5PublicResponse } from './packages/cmi5-ingest'
 import { cmi5Evidence } from './packages/cmi5-runtime'
 import { xapiPublicResponse, xapiAttachment } from './packages/xapi-ingest'
@@ -175,6 +177,10 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   }
   insist(!path.startsWith('v1/'), 'application_credential_required', 403)
   requireAgentScope(actor, path, request.method)
+  const sequenceMatch = url.pathname.match(/^\/api\/beam\/sequences\/([^/]+)$/)
+  if (sequenceMatch && request.method === 'GET') return json(await sequenceView(env, actor, sequenceMatch[1]))
+  const sequencePreviewMatch = url.pathname.match(/^\/api\/beam\/sequence-preview\/([^/]+)$/)
+  if (sequencePreviewMatch && request.method === 'GET') return json(await sequencePreview(env, actor, sequencePreviewMatch[1], url.searchParams.get('revision') ?? undefined))
   const cmi5EvidenceMatch = url.pathname.match(/^\/api\/beam\/cmi5-evidence\/([^/]+)$/)
   if (cmi5EvidenceMatch && request.method === 'GET') return json(await cmi5Evidence(env, actor, cmi5EvidenceMatch[1]))
   const xapiEvidenceMatch = url.pathname.match(/^\/api\/beam\/xapi-evidence\/([^/]+)$/)
@@ -198,6 +204,10 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
 }
 
 async function pageResponse(env: Bindings, actor: Actor, request: Request, url: URL): Promise<Response> {
+  const sequenceMatch = url.pathname.match(/^\/app\/learn\/([^/]+)\/sequence$/)
+  if (sequenceMatch && request.method === 'GET') return sequencePage(env, actor, sequenceMatch[1], url)
+  const sequencePreviewMatch = url.pathname.match(/^\/app\/courses\/([^/]+)\/sequence$/)
+  if (sequencePreviewMatch && request.method === 'GET') return sequencePreviewPage(env, actor, sequencePreviewMatch[1], url)
   if (url.pathname === '/app/integrations' && request.method === 'GET') return integrationsPage(env, actor, url)
   const xapiEvidenceMatch = url.pathname.match(/^\/app\/xapi\/evidence\/([^/]+)$/)
   if (xapiEvidenceMatch && request.method === 'GET') return xapiEvidencePage(env, actor, xapiEvidenceMatch[1], url)

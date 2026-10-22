@@ -1,3 +1,4 @@
+import { xapiConnection } from './xapi-catalog'
 import { launchCmi5, cmi5Satisfied } from './cmi5-runtime'
 import { Input as RuntimeInput } from '../input'
 import { navigationTarget } from './navigation'
@@ -15,10 +16,15 @@ import type { PackageManifest } from './types'
 export async function packageRequirements(env: Bindings, assignment: Row) {
   const packages = await revisionPackages(env, assignment.course_revision_id)
   const runs = await all(env, 'SELECT * FROM beam_package_runs WHERE assignment_id=?', assignment.id)
+  const trusted = new Map<string, boolean>()
+  for (const pkg of packages.filter(p => p.standard === 'cmi5')) {
+    const connection = await one(env, 'SELECT connection_id FROM beam_cmi5_packages WHERE package_id=?', pkg.id)
+    trusted.set(pkg.id, !!connection && !!await xapiConnection(env, connection.connection_id).catch(() => null))
+  }
   return packages.map(pkg => ({ id: pkg.id, title: pkg.title, standard: pkg.standard, scos: pkg.manifest.scos.map(sco => {
     const run = runs.find(run => run.package_id === pkg.id && run.sco_id === sco.id)
     const state = run ? JSON.parse(run.state_json) : {}
-    const result = pkg.standard === 'cmi5' ? { completed: cmi5Satisfied(sco.moveOn!, state), passed: !!state.passed, failed: !!state.failed && !cmi5Satisfied(sco.moveOn!, state) } : outcome(pkg.manifest.standard, sco, state)
+    const result = pkg.standard === 'cmi5' ? { completed: !!trusted.get(pkg.id) && cmi5Satisfied(sco.moveOn!, state), passed: !!state.passed, failed: !!state.failed && !cmi5Satisfied(sco.moveOn!, state) } : outcome(pkg.manifest.standard, sco, state)
     return { id: sco.id, title: sco.title, moveOn: sco.moveOn, required: sco.required !== false, ...result, run: run?.id ?? null }
   }) }))
 }
@@ -80,7 +86,9 @@ export async function playbackSession(env: Bindings, id: string, actor?: Actor) 
   insist(alive, 'package_session_ended', 403)
   const current = actor ?? await dashboardAuthority(env, session.actor_id)
   insist(current, 'package_session_ended', 403)
-  const pkg = await packageRecord(env, session.package_id), sco = pkg.manifest.scos.find(sco => sco.id === session.sco_id)!
+  const pkg = await packageRecord(env, session.package_id)
+  if (pkg.standard === 'cmi5') { const connection = await one(env, 'SELECT connection_id FROM beam_cmi5_packages WHERE package_id=?', pkg.id); insist(connection, 'cmi5_connection_missing', 403); await xapiConnection(env, connection.connection_id) }
+  const sco = pkg.manifest.scos.find(sco => sco.id === session.sco_id)!
   const run = session.run_id ? await one(env, 'SELECT * FROM beam_package_runs WHERE id=?', session.run_id) : null
   if (session.preview) await requireCourseRole(env, current, pkg.course_id, 'author', 'reviewer')
   else {

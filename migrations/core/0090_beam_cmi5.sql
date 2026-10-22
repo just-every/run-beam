@@ -23,5 +23,6 @@ CREATE TABLE beam_cmi5_state (
 );
 CREATE TRIGGER beam_restore_disables_cmi5 AFTER UPDATE OF import_job ON rer_portability_state
 WHEN OLD.import_job IS NOT NULL AND NEW.import_job IS NULL AND OLD.applying=1 BEGIN
+ UPDATE beam_package_sessions SET initial_json='{}' WHERE id IN (SELECT session_id FROM beam_cmi5_sessions);
  UPDATE beam_cmi5_sessions SET fetch_hash='withheld',auth_hash=NULL,lifecycle='restored',busy=0,active_registration=NULL;
 END;

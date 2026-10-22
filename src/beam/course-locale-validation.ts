@@ -7,6 +7,7 @@ import { kindOf } from './question-types'
 export async function localeBaseDraft(env: Bindings, revision: string): Promise<Draft> {
   const source = await revisionDetail(env, revision), a = source.assessment
   return {
+    sequence: source.sequence ?? undefined,
     title: source.revision.title, summary: source.revision.summary,
     lessons: source.lessons.map(l => ({ id: l.id, title: l.title, body: l.body, sources: l.sources, blocks: l.blocks })),
     questions: a?.questions ?? [], passPercent: a?.pass_percent ?? null, maxAttempts: a?.max_attempts ?? null,
@@ -17,6 +18,7 @@ export async function localeBaseDraft(env: Bindings, revision: string): Promise<
 }
 function structure(draft: Draft) {
   return {
+    sequence: draft.sequence ? { workStart: draft.sequence.workStart, workEnd: draft.sequence.workEnd, workDays: draft.sequence.workDays, days: draft.sequence.days.map(day => ({ lesson: day.lesson, branches: day.choices.map(choice => choice.next) })) } : null,
     passPercent: draft.passPercent, maxAttempts: draft.maxAttempts, timeLimitMinutes: draft.timeLimitMinutes,
     attendancePercent: draft.attendancePercent, drawCount: draft.drawCount, shuffle: draft.shuffle,
     feedback: draft.feedback, assessor: draft.assessor, practical: draft.practical?.assessor ?? null,

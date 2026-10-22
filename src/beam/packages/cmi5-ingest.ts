@@ -14,7 +14,7 @@ async function accept(env: Bindings, request: Request, value: Cmi5Session) {
   insist(cmi5Contains(statement.context, cmi5Context(value)), 'cmi5_context_mismatch', 403)
   const digest = await statementDigest(statement), prior = await one(env, 'SELECT * FROM beam_cmi5_statements WHERE id=?', statement.id)
   insist(!prior || prior.digest === digest && prior.session_id === value.session.id, 'cmi5_statement_conflict', 409)
-  if (prior?.status === 'accepted') return json([statement.id])
+  if (prior?.status === 'accepted') { await reconcileCmi5(env, value); return request.method === 'PUT' ? new Response(null, { status: 204, headers }) : json([statement.id]) }
   insist(!value.session.ended_at && !['abandoned', 'terminated', 'restored', 'launching'].includes(value.session.lifecycle), 'cmi5_session_ended', 403)
   const verb = Object.keys(verbs).find(name => verbs[name] === statement.verb.id) ?? 'allowed'
   insist(!['launched', 'abandoned', 'satisfied'].includes(verb), 'cmi5_lms_verb_forbidden', 403)
@@ -37,20 +37,26 @@ async function accept(env: Bindings, request: Request, value: Cmi5Session) {
   await retainCmi5(env, value, original, verb)
   // Current access is checked again after the external write and verified readback.
   await cmi5Session(env, value.session.id)
+  await reconcileCmi5(env, value)
+  return request.method === 'PUT' ? new Response(null, { status: 204, headers }) : json([statement.id])
+}
+/** Rebuild derived progress from verified originals, including an exact retry after an interrupted response. */
+async function reconcileCmi5(env: Bindings, value: Cmi5Session) {
+  const session = await all(env, "SELECT verb FROM beam_cmi5_statements WHERE session_id=? AND status='accepted'", value.session.id)
+  const terminated = session.some(s => s.verb === 'terminated')
   if (value.run && !value.session.preview) {
     const accepted = await all(env, "SELECT t.verb FROM beam_cmi5_statements t JOIN beam_package_sessions s ON s.id=t.session_id WHERE s.run_id=? AND t.status='accepted'", value.run.id)
-    const next = { completed: accepted.some(s => s.verb === 'completed'), passed: accepted.some(s => s.verb === 'passed'), failed: verb === 'failed' || state.failed === true && !accepted.some(s => s.verb === 'passed') }
-    await commit(env, [stmt(env, 'UPDATE beam_package_runs SET state_json=?,version=version+1,updated_at=? WHERE id=?', JSON.stringify(next), now(), value.run.id)], { actor: value.actor, action: 'cmi5.progress', subject: value.run.id, detail: { session: value.session.session_uuid, registration: value.session.registration, verb } })
+    const next = { completed: accepted.some(s => s.verb === 'completed'), passed: accepted.some(s => s.verb === 'passed'), failed: accepted.some(s => s.verb === 'failed') && !accepted.some(s => s.verb === 'passed') }
+    await commit(env, [stmt(env, 'UPDATE beam_package_runs SET state_json=?,version=version+1,updated_at=? WHERE id=?', JSON.stringify(next), now(), value.run.id)], { actor: value.actor, action: 'cmi5.progress', subject: value.run.id, detail: { session: value.session.session_uuid, registration: value.session.registration } })
   }
-  if (verb === 'terminated') await commit(env, [stmt(env, 'UPDATE beam_package_sessions SET ended_at=? WHERE id=?', now(), value.session.id), stmt(env, "UPDATE beam_cmi5_sessions SET lifecycle='terminated',active_registration=NULL WHERE session_id=?", value.session.id)], { actor: value.actor, action: 'cmi5.terminate', subject: value.session.id })
-  else if (verb === 'initialized') await env.DB.prepare("UPDATE beam_cmi5_sessions SET lifecycle='initialized' WHERE session_id=?").bind(value.session.id).run()
-  // Wait for termination before closing the assignment, so the AU can finish its protocol.
-  if (verb === 'terminated' && value.run) {
+  if (terminated) await commit(env, [stmt(env, 'UPDATE beam_package_sessions SET ended_at=COALESCE(ended_at,?) WHERE id=?', now(), value.session.id), stmt(env, "UPDATE beam_cmi5_sessions SET lifecycle='terminated',active_registration=NULL WHERE session_id=? AND lifecycle NOT IN ('abandoned','restored')", value.session.id)], { actor: value.actor, action: 'cmi5.terminate', subject: value.session.session_uuid })
+  else if (session.some(s => s.verb === 'initialized')) await env.DB.prepare("UPDATE beam_cmi5_sessions SET lifecycle='initialized' WHERE session_id=? AND lifecycle='launched'").bind(value.session.id).run()
+  // Termination must remain possible after satisfying moveOn, before native completion closes the assignment.
+  if (terminated && value.run) {
     const runs = await all(env, 'SELECT sco_id,state_json FROM beam_package_runs WHERE assignment_id=? AND package_id=?', value.run.assignment_id, value.pkg.id)
     if (value.pkg.manifest.scos.every(sco => cmi5Satisfied(sco.moveOn!, JSON.parse(runs.find(r => r.sco_id === sco.id)?.state_json ?? '{}')))) await recordCmi5(env, value, 'satisfied')
     await tryComplete(env, value.actor, value.run.assignment_id)
   }
-  return request.method === 'PUT' ? new Response(null, { status: 204, headers }) : json([statement.id])
 }
 async function stateResponse(env: Bindings, request: Request, value: Cmi5Session) {
   insist(!value.session.ended_at, 'cmi5_session_ended', 403)
@@ -93,7 +99,7 @@ export async function cmi5PublicResponse(env: Bindings, request: Request): Promi
     insist(request.headers.get('x-experience-api-version') === '1.0.3', 'xapi_version_required', 400)
     if (match[2] === 'activities/state') return await stateResponse(env, request, value)
     insist(['POST', 'PUT'].includes(request.method), 'method_not_allowed', 405)
-    const lock = await env.DB.prepare('UPDATE beam_cmi5_sessions SET busy=1 WHERE session_id=? AND busy=0').bind(value.session.id).run()
+    const lock = await env.DB.prepare('UPDATE beam_cmi5_sessions SET busy=? WHERE session_id=? AND (busy=0 OR busy<?)').bind(now() + 60_000, value.session.id, now()).run()
     insist(lock.meta.changes === 1, 'cmi5_session_busy', 409)
     try { return await accept(env, request, await cmi5Session(env, value.session.id, { ended: true })) }
     finally { await env.DB.prepare('UPDATE beam_cmi5_sessions SET busy=0 WHERE session_id=?').bind(value.session.id).run() }

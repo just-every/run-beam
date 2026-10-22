@@ -120,11 +120,12 @@ export const restoreRevision = (env: Bindings, actor: Actor, input: Input) => ed
   const detail = await revisionDetail(env, input.text('revision'))
   insist(detail.revision.course_id === input.text('course'), 'revision_not_found', 404)
   const restored: Draft = {
+    sequence: detail.sequence ?? undefined,
     packages: detail.packages.map(pkg => pkg.id),
     xapiActivities: detail.xapiActivities.map(activity => activity.id),
     title: detail.revision.title,
     summary: detail.revision.summary,
-    lessons: detail.lessons.map(lesson => ({ id: '', title: lesson.title, body: lesson.body, sources: lesson.sources, blocks: lesson.blocks })),
+    lessons: detail.lessons.map(lesson => ({ id: detail.sequence ? lesson.id : '', title: lesson.title, body: lesson.body, sources: lesson.sources, blocks: lesson.blocks })),
     questions: detail.assessment?.questions ?? [],
     passPercent: detail.assessment?.pass_percent ?? null,
     maxAttempts: detail.assessment?.max_attempts ?? null,
