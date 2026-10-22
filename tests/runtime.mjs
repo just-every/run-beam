@@ -35,13 +35,20 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret(), ...bindings }
   // `edge.refuse` makes the provider refuse every message, as Resend does a message it will not accept.
   const mails = [], edge = { refuse: false, attempts: [], webhooks: [], webhookStatus: 204 }
+  const modules = [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) }))
+  if (publicOrigin) modules.unshift({ type: 'ESModule', path: join(server, 'hosted-transport.mjs'), contents: `
+    import worker from './${config.main}';
+    export default { ...worker, fetch(request, env, context) {
+      const url = new URL(request.url), origin = new URL(${JSON.stringify(publicOrigin)});
+      url.protocol = origin.protocol; url.host = origin.host;
+      const forwarded = new Request(url, request); forwarded.headers.set('Host', origin.host);
+      return worker.fetch(forwarded, env, context);
+    }};
+  ` })
   const options = convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
-    modules: [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) })),
+    modules,
     compatibilityDate: config.compatibility_date, compatibilityFlags: config.compatibility_flags,
-    // Hosted interoperability uses its real issuer URL and Host through Miniflare's
-    // upstream URL rewrite, while every request still reaches the built Worker.
-    ...(publicOrigin ? { upstream: publicOrigin, routes: [`${new URL(publicOrigin).host}/*`] } : {}),
     assets: { directory: join(workerRoot, 'dist/client'), routerConfig: { has_user_worker: true } },
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },
     bindings: vars,
