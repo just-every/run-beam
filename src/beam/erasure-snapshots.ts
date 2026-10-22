@@ -4,6 +4,7 @@ import type { Actor } from './actor'
 import type { Input } from './input'
 import { all, commit, insist, one, sha256Hex, stmt } from './core'
 import { erasureOwner } from './erasure-policy'
+import { preparedCheckpoint } from './erasure-fence'
 import { erasurePreview } from './erasure'
 
 export async function ruleSnapshots(env: Bindings, member: string) {
@@ -36,7 +37,7 @@ export async function withdrawRuleSnapshots(env: Bindings, actor: Actor, input: 
     statements.push(stmt(env, "UPDATE beam_automation_rules SET state='paused',preview_json=NULL,previewed_at=NULL WHERE id=? AND preview_json=? AND state=?", snapshot.id, row.preview_json, row.state),
       stmt(env, 'INSERT INTO beam_erasure_guard SELECT CASE WHEN changes()=1 THEN 1 ELSE 0 END'))
   }
-  statements.push(stmt(env, 'DELETE FROM beam_erasure_guard'))
+  statements.push(...await preparedCheckpoint(env), stmt(env, 'DELETE FROM beam_erasure_guard'))
   await commit(env, statements, { actor, action: 'erasure.snapshots.withdraw', subject: preview.subject,
     detail: { rules: snapshots.map(({ id, digest }) => ({ id, digest })) } })
   return { kind: 'person', subject: preview.subject, withdrawn: snapshots.length }

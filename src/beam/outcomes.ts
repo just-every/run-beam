@@ -28,7 +28,7 @@ export const CAUSATION = 'This comparison does not show that the intervention ca
 export const NO_RANKING = 'Results are shown for groups only; Beam never ranks or lists individual employees.'
 
 async function intervention(env: Bindings, id: string) {
-  const row = await one(env, "SELECT id, state, payload_json, result_json FROM beam_agent_proposals WHERE id = ? AND kind = 'intervention'", id)
+  const row = await one(env, "SELECT id, state, payload_json, result_json FROM beam_agent_proposals WHERE id = ? AND kind = 'intervention' AND withdrawn_at IS NULL", id)
   insist(row, 'intervention_not_found', 404)
   return { id: row.id as string, state: row.state as string, payload: JSON.parse(row.payload_json), result: row.result_json ? JSON.parse(row.result_json) : null }
 }

@@ -91,6 +91,7 @@ export async function decide(env: Bindings, actor: Actor, input: Input) {
   insist(!actor.agent, 'human_decision_required', 403)
   const row = await one(env, 'SELECT * FROM beam_agent_proposals WHERE id = ?', input.text('proposal'))
   insist(row, 'proposal_not_found', 404)
+  insist(!row.withdrawn_at, 'proposal_withdrawn', 409)
   const kind = KINDS[row.kind]
   const payload = JSON.parse(row.payload_json)
   await kind.mayDecide(env, actor, payload)
@@ -101,17 +102,17 @@ export async function decide(env: Bindings, actor: Actor, input: Input) {
   const note = input.text('note', { max: 1000, optional: true }) || null
   const state = decision === 'approve' ? 'approved' : 'declined'
   // Claim the decision first so two people cannot both apply it.
-  const [claim] = await env.DB.batch([stmt(env, "UPDATE beam_agent_proposals SET state = ?, decided_by = ?, decided_at = ?, decision_note = ? WHERE id = ? AND state = 'waiting'", state, actor.id, now(), note, row.id)])
+  const [claim] = await env.DB.batch([stmt(env, "UPDATE beam_agent_proposals SET state = ?, decided_by = ?, decided_at = ?, decision_note = ? WHERE id = ? AND state = 'waiting' AND withdrawn_at IS NULL", state, actor.id, now(), note, row.id)])
   insist(claim.meta.changes === 1, 'proposal_decided', 409)
   let result: unknown = null
   if (state === 'approved') {
     try { result = await kind.apply(env, actor, { id: row.id, payload }, input) }
     catch (error) {
-      await env.DB.prepare("UPDATE beam_agent_proposals SET state = 'waiting', decided_by = NULL, decided_at = NULL, decision_note = NULL WHERE id = ?").bind(row.id).run()
+      await env.DB.prepare("UPDATE beam_agent_proposals SET state = 'waiting', decided_by = NULL, decided_at = NULL, decision_note = NULL WHERE id = ? AND withdrawn_at IS NULL").bind(row.id).run()
       throw error
     }
   }
-  await commit(env, [stmt(env, 'UPDATE beam_agent_proposals SET result_json = ? WHERE id = ?', JSON.stringify(result), row.id)], { actor, action: `agent.${state === 'approved' ? 'approve' : 'decline'}`, subject: row.id, detail: { kind: row.kind, sha256: row.payload_sha256, note, result } })
+  await commit(env, [stmt(env, 'UPDATE beam_agent_proposals SET result_json = ? WHERE id = ? AND withdrawn_at IS NULL', JSON.stringify(result), row.id)], { actor, action: `agent.${state === 'approved' ? 'approve' : 'decline'}`, subject: row.id, detail: { kind: row.kind, sha256: row.payload_sha256, note, result } })
   return { id: row.id, state, result }
 }
 
@@ -127,7 +128,7 @@ export async function listProposals(env: Bindings, actor: Actor, state = 'waitin
   requireRole(actor, 'author', 'reviewer', 'manager')
   insist(['waiting', 'approved', 'declined'].includes(state), 'invalid_state')
   const names = await memberNames(env)
-  const rows = await all(env, 'SELECT * FROM beam_agent_proposals WHERE state = ? ORDER BY created_at DESC LIMIT 200', state)
+  const rows = await all(env, 'SELECT * FROM beam_agent_proposals WHERE withdrawn_at IS NULL AND state = ? ORDER BY created_at DESC LIMIT 200', state)
   const visible = []
   for (const row of rows) {
     const canDecide = !actor.agent && await KINDS[row.kind].mayDecide(env, actor, JSON.parse(row.payload_json)).then(() => true, () => false)
@@ -138,7 +139,7 @@ export async function listProposals(env: Bindings, actor: Actor, state = 'waitin
 
 export async function proposalDetail(env: Bindings, actor: Actor, id: string) {
   const row = await one(env, 'SELECT * FROM beam_agent_proposals WHERE id = ?', id)
-  if (!row) throw new BeamError('not_found', 404)
+  if (!row || row.withdrawn_at) throw new BeamError('not_found', 404)
   const mine = row.prepared_by === actor.id
   if (!mine) await KINDS[row.kind].mayDecide(env, actor, JSON.parse(row.payload_json)).catch(() => { throw new BeamError('not_found', 404) })
   return shape(row, await memberNames(env))

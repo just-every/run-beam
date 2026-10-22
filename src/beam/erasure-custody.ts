@@ -85,7 +85,7 @@ add('assessment', { history_credit_people: `member_id=?1 OR history_id IN (SELEC
 const authored: Record<string, string> = {
   source_ocr_config: 'updated_by', source_ocr_runs: 'approved_by',
   access_extensions: 'extended_by', access_rules: 'set_by', accommodations: 'granted_by', acknowledgments: 'requested_by',
-  admin_grants: 'granted_by revoked_by', agent_proposals: 'prepared_by decided_by', announcements: 'sender_id', app_credentials: 'issued_by revoked_by',
+  admin_grants: 'granted_by revoked_by', agent_proposals: 'prepared_by decided_by withdrawn_by', announcements: 'sender_id', app_credentials: 'issued_by revoked_by',
   assessment_revisions: 'assessor_id', assignment_moves: 'moved_by', assignment_resets: 'reset_by', assignments: 'assigned_by', attachments: 'uploaded_by',
   attendance: 'recorded_by', audience_exclusions: 'excluded_by lifted_by', audiences: 'created_by enabled_by', auditor_grants: 'granted_by revoked_by',
   automation_executions: 'approved_by', automation_policy: 'updated_by', automation_rules: 'created_by enabled_by', badges: 'created_by', blockers: 'decided_by',

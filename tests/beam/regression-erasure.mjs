@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createPortability } from '@runeditrun/rer/modules/portability'
-import { exportArchive, importArchive } from '@runeditrun/rer/modules/portability/files'
+import { createPortability, readArchive } from '@runeditrun/rer/modules/portability'
+import { exportArchive, importArchive, fileRecords } from '@runeditrun/rer/modules/portability/files'
 import policy from '../../scripts/installer/portability-policy.mjs'
 import { harness } from './harness.mjs'
 import { migrations } from './regression-archive.mjs'
@@ -111,6 +111,38 @@ export async function erasureCheck() {
     assert.equal(pausedRule.state, 'paused')
     assert.equal(pausedRule.preview, null)
     assert.equal((await api('owner', 'automation.state', { rule: dryRule.id, state: 'active' }, 409)).error, 'dry_run_required')
+    const proposalCanary = 'synthetic-beam-27-private-preparation'
+    const proposalFields = { kind: 'assignment_plan', title: proposalCanary, inputs: [{ type: 'assignment', id: practice }], reasons: [proposalCanary],
+      payload: { items: [{ learner: ids.learner, course: followOn.id, courseRevision: followOn.revision, dueDate: '2030-10-01', dueTime: '17:00', timezone: 'UTC' }] } }
+    const pendingProposal = await api('manager', 'agent.propose', proposalFields)
+    const declinedProposal = await api('manager', 'agent.propose', { ...proposalFields, title: `${proposalCanary}-declined` })
+    await api('owner', 'agent.decide', { proposal: declinedProposal.id, sha256: declinedProposal.sha256, decision: 'decline' })
+    const inspectProposals = async path => {
+      const rows = []
+      for await (const record of fileRecords(path, readArchive)) if (record.kind === 'part') for (const item of record.items) if (item.kind === 'row' && item.table === 'beam_agent_proposals') rows.push(item.row)
+      return rows
+    }
+    const preparationArchive = join(scratch, 'preparations-before.rer')
+    await exportArchive(await portability(), preparationArchive)
+    assert.ok((await inspectProposals(preparationArchive)).some(row => row.id === pendingProposal.id && JSON.stringify(row).includes(proposalCanary)))
+    const proposalPreview = await api('owner', 'erasure.preview', { kind: 'person', subject: ids.learner })
+    assert.deepEqual(proposalPreview.inventory.proposalSnapshots.map(row => row.state).sort(), ['declined', 'waiting'])
+    const proposalWithdrawal = { kind: 'person', subject: ids.learner, digest: proposalPreview.digest, justification: 'Remove complete saved preparations for the approved erasure request.', consent: true }
+    await api('manager', 'erasure.proposals.withdraw', proposalWithdrawal, 403)
+    await api('owner', 'erasure.proposals.withdraw', { ...proposalWithdrawal, consent: false }, 409)
+    await api('owner', 'erasure.proposals.withdraw', proposalWithdrawal)
+    assert.equal((await api('owner', 'agent.decide', { proposal: pendingProposal.id, sha256: pendingProposal.sha256, decision: 'approve' }, 409)).error, 'proposal_withdrawn')
+    await api('owner', `proposals/${pendingProposal.id}`, undefined, 404)
+    assert.ok(!(await api('owner', 'proposals')).some(row => row.id === pendingProposal.id))
+    const withdrawnArchive = join(scratch, 'preparations-after.rer')
+    await exportArchive(await portability(), withdrawnArchive)
+    const withdrawnRows = await inspectProposals(withdrawnArchive)
+    for (const [proposal, state] of [[pendingProposal, 'waiting'], [declinedProposal, 'declined']]) {
+      const row = withdrawnRows.find(row => row.id === proposal.id)
+      assert.ok(row.withdrawn_at && row.withdrawn_by === ids.owner)
+      assert.equal(row.state, state, 'privacy withdrawal does not rewrite a human decision')
+      assert.ok(!JSON.stringify(row).includes(proposalCanary), 'the installation archive physically withholds erased preparation text')
+    }
     const auditBefore = (await api('owner','audit?q=learner%40example.test')).events.map(({id,at,action})=>({id,at,action}))
     assert.ok(auditBefore.length)
     await exportArchive(await portability(), old)

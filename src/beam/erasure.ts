@@ -1,3 +1,4 @@
+import { proposalSnapshots } from './erasure-proposals'
 // Preview is read-only; execution is an explicit human action with durable phases.
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
@@ -36,7 +37,8 @@ export async function erasurePreview(env: Bindings, actor: Actor, input: Input) 
   const sourceReferences = source ? await one<{count:number}>(env, `SELECT (SELECT count(*) FROM beam_acknowledgments WHERE source_id=?) + (SELECT count(*) FROM beam_source_notices WHERE source_id=?) + (SELECT count(*) FROM beam_courses c, json_each(c.draft_json,'$.lessons') l, json_each(l.value,'$.sources') citation JOIN beam_source_versions v ON v.id=citation.value WHERE v.source_id=?) AS count`, subject, subject, subject) : null
   const unsupported = [...(native?.unsupported ?? []), ...((cited?.count || sourceReferences?.count) && !holds.length ? ['cited source content requires retention and derived-content erasure before this source can be erased'] : [])]
   const dryRuns = person ? await ruleSnapshots(env, subject) : []
-  const inventory = { ruleSnapshots: dryRuns, rows: native?.rows ?? [{ table: 'beam_source_versions', count: versions.length, category: 'personal' }], fileHashes: native?.fileHashes ?? versions.map(row => row.sha256), imports, providers, unsupported, authoredMaterial: native?.authoredMaterial ?? 'Published citations are not rewritten by erasure.', importEffect: 'Affected import originals are withdrawn, including shared originals; unfinished private uploads, retained previews and approvals are retired. Permanent settings and revoked signing keys remain.', devices: 'Web pages and downloads cannot be remotely erased. Sessions are revoked; no native or offline cache door exists today.' }
+  const preparations = person ? await proposalSnapshots(env, subject) : []
+  const inventory = { proposalSnapshots: preparations, ruleSnapshots: dryRuns, rows: native?.rows ?? [{ table: 'beam_source_versions', count: versions.length, category: 'personal' }], fileHashes: native?.fileHashes ?? versions.map(row => row.sha256), imports, providers, unsupported, authoredMaterial: native?.authoredMaterial ?? 'Published citations are not rewritten by erasure.', importEffect: 'Affected import originals are withdrawn, including shared originals; unfinished private uploads, retained previews and approvals are retired. Permanent settings and revoked signing keys remain.', devices: 'Web pages and downloads cannot be remotely erased. Sessions are revoked; no native or offline cache door exists today.' }
   const digest = await sha256Hex(new TextEncoder().encode(JSON.stringify({ kind, subject, inventory, retention })))
   return { kind, subject, name: person?.name ?? source?.title, digest, retention, inventory }
 }
