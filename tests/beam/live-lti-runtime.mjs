@@ -1,10 +1,11 @@
 // Isolated synthetic people through Beam's real public doors, using the relay origin as installation issuer.
 import assert from 'node:assert/strict'
 import { emittedWorker } from '../runtime.mjs'
+import { hostedRequest } from './live-lti-http.mjs'
 export async function ltiFixture(origin) {
-  const h = await emittedWorker({ bindings: { AUTH_ORIGIN: origin, BEAM_LTI_HOSTS: 'saltire.lti.app' }, publicOrigin: origin })
+  const h = await emittedWorker({ bindings: { AUTH_ORIGIN: origin, BEAM_LTI_HOSTS: 'saltire.lti.app' } })
   const cookies = {}, ids = {}
-  const raw = (path, { cookie, body, form, method, headers, bytes } = {}) => h.fetch(origin + path, { method: method ?? (body !== undefined || form ? 'POST' : 'GET'), headers: headers ? Object.fromEntries(headers) : { origin, host: new URL(origin).host, ...(cookie ? { cookie } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) }, body: bytes && !['GET', 'HEAD'].includes(method) ? new Uint8Array(bytes) : body !== undefined ? JSON.stringify(body) : form })
+  const raw = (path, options) => hostedRequest(h.origin, origin, path, options)
   const api = async (role, action, body, status = 200) => {
     const response = await raw('/api/beam/' + action, { cookie: cookies[role], body })
     assert.equal(response.status, status, `Beam ${action}: HTTP ${response.status}`)

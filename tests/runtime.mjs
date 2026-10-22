@@ -23,7 +23,7 @@ async function freePort() {
   return port
 }
 
-export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService, publicOrigin } = {}) {
+export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService } = {}) {
   // OPS-007: run the identical public-door qualification against an unchanged historical producer or the candidate.
   const workerRoot = checkout || root
   const directory = await mkdtemp(join(tmpdir(), 'beam-worker-'))
@@ -35,19 +35,9 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret(), ...bindings }
   // `edge.refuse` makes the provider refuse every message, as Resend does a message it will not accept.
   const mails = [], edge = { refuse: false, attempts: [], webhooks: [], webhookStatus: 204 }
-  const modules = [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) }))
-  if (publicOrigin) modules.unshift({ type: 'ESModule', path: join(server, 'hosted-transport.mjs'), contents: `
-    import worker from './${config.main}';
-    export default { ...worker, fetch(request, env, context) {
-      const url = new URL(request.url), origin = new URL(${JSON.stringify(publicOrigin)});
-      url.protocol = origin.protocol; url.host = origin.host;
-      const forwarded = new Request(url, request); forwarded.headers.set('Host', origin.host);
-      return worker.fetch(forwarded, env, context);
-    }};
-  ` })
   const options = convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
-    modules,
+    modules: [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) })),
     compatibilityDate: config.compatibility_date, compatibilityFlags: config.compatibility_flags,
     assets: { directory: join(workerRoot, 'dist/client'), routerConfig: { has_user_worker: true } },
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },
@@ -69,16 +59,12 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const mf = new Miniflare({ ...options, resourcePersistencePath: join(directory, 'state') })
   const close = async () => { await mf.dispose(); await rm(directory, { recursive: true, force: true }) }
   try {
-    if (publicOrigin) console.log('LTI_RUNTIME waiting for built Worker')
     await mf.ready
-    if (publicOrigin) console.log('LTI_RUNTIME built Worker ready')
     const db = await mf.getD1Database('DB')
-    if (publicOrigin) console.log('LTI_RUNTIME database connected')
     const migrations = join(workerRoot, 'migrations/core')
     for (const name of (await readdir(migrations)).filter(name => name.endsWith('.sql')).sort()) {
       for (const statement of splitSql(await readFile(join(migrations, name), 'utf8'))) await db.prepare(statement).run()
     }
-    if (publicOrigin) console.log('LTI_RUNTIME migrations applied')
   } catch (error) { await close(); throw error }
   /** Requests reach the Worker directly; a relative path resolves against the origin. */
   const fetch = async (input, init = {}) => {

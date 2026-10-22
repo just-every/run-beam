@@ -3553,12 +3553,16 @@
       "sha256": "7578ab648daa5f91c0889a17367bc9f850074880bc997c0f5d45b5fea1740f3d",
       "executable": false
     },
+    "tests/beam/live-lti-http.mjs": {
+      "sha256": "c323c036a879ffb1ee2dec1d3fff4a11b13c3010b0789b3fe0c62d5e5ce9fa0e",
+      "executable": false
+    },
     "tests/beam/live-lti-relay.mjs": {
       "sha256": "34b414f6c249117665500bc110cf2d9cea9d2bbb05b8594e5daa679f81b98510",
       "executable": false
     },
     "tests/beam/live-lti-runtime.mjs": {
-      "sha256": "b1d2142e9dc48cdf992b12a29338b1f8c03d215ed96d84f1cd4d90a261669cca",
+      "sha256": "c8a6d4b31240cefa7ff80c8442ce2b5b0f7bbcadc6a6ed4053d02a7b5805b6f3",
       "executable": false
     },
     "tests/beam/live-lti-tool.mjs": {
@@ -3766,7 +3770,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "aebfac0629f05a044cc797c955cc84e855c277e96e497a4c3fe1ca64f60a5916",
+      "sha256": "1ad7a2abdb63a61b4796a54915c54af55ea4ce25d88a2ccca29e01a720fcae89",
       "executable": false
     },
     "tests/site/site.test.mjs": {
