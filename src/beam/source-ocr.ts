@@ -61,7 +61,7 @@ async function source(env: Bindings, id: string) {
 }
 async function pageCount(bytes: Uint8Array) {
   const { getDocument } = await getResolvedPDFJS()
-  const task = getDocument({ data: new Uint8Array(bytes), isEvalSupported: false, useSystemFonts: false, useWorkerFetch: false, disableFontFace: true,
+  const task = getDocument({ data: new Uint8Array(bytes), useSystemFonts: false, useWorkerFetch: false, disableFontFace: true,
     stopAtErrors: true, maxImageSize: 4_000_000, cMapUrl: undefined, standardFontDataUrl: undefined, wasmUrl: undefined })
   const timer = setTimeout(() => { void task.destroy().catch(() => {}) }, 15_000)
   try { const pdf = await task.promise; insist(pdf.numPages > 0 && pdf.numPages <= 60, 'document_page_limit', 422); return pdf.numPages }

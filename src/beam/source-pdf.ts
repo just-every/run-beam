@@ -14,7 +14,7 @@ export async function extractPdf(bytes: Uint8Array, content: SourceContent) {
     const { getDocument } = await getResolvedPDFJS()
     const task = getDocument({
       data: new Uint8Array(bytes),
-      isEvalSupported: false, useSystemFonts: false, useWorkerFetch: false,
+      useSystemFonts: false, useWorkerFetch: false,
       disableFontFace: true, stopAtErrors: true, maxImageSize: 4_000_000,
       cMapUrl: undefined, standardFontDataUrl: undefined, wasmUrl: undefined,
     })
