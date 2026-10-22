@@ -1040,7 +1040,7 @@
       "executable": false
     },
     "scripts/installer/portability-policy.mjs": {
-      "sha256": "da77da9868b6565762c84fdfdd1875e03202f0213de9ffc2d1e877ed69ca8619",
+      "sha256": "26252db00e9ed2053872a6ea5632c26b8641ff34743569aa4e0c2e595384ca7e",
       "executable": false
     },
     "scripts/installer/seed.mjs": {
