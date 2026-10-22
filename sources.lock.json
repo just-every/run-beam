@@ -1411,7 +1411,7 @@
       "executable": false
     },
     "src/beam/messages.ts": {
-      "sha256": "aedeca5c2843475a1c65ee32bb3e64250480620a5a0899bcdfb1b56d7cf2e13b",
+      "sha256": "5acb9c19c5fee6eb3b9cfd5437ec9cd5eaa15b01db69f0e131fae74231d7b3f2",
       "executable": false
     },
     "src/beam/movein/browser.ts": {
@@ -1675,7 +1675,7 @@
       "executable": false
     },
     "src/beam/ui/directory.ts": {
-      "sha256": "29cdddc662aace37b3288089c6837790b1d56bff66f1e5c27bd77e2e853e14fd",
+      "sha256": "9de4aea61827a1568da971feb167bbd212109cabfc34d33d3a93a1709017d10e",
       "executable": false
     },
     "src/beam/ui/discussions.ts": {
@@ -3775,7 +3775,7 @@
       "executable": false
     },
     "tests/beam/regression-language-browser.mjs": {
-      "sha256": "960a0734001b1c3bfd13c8e483b77ac4af0d326b2ce5bb58335f9e4169457062",
+      "sha256": "4dd47bbdbbf06f33563b3349ada2d81b484908f6664a2c2b58e878d76baa4851",
       "executable": false
     },
     "tests/beam/regression-language-errors.mjs": {

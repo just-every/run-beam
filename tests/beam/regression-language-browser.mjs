@@ -51,6 +51,7 @@ export async function languageBrowserCheck(f, item) {
       for (const [name, path, spanish] of item.peripheral.pages) {
         await page.goto(f.h.origin + path)
         await page.getByText(spanish, { exact: false }).first().waitFor()
+        if (name === 'record') for (const summary of await page.locator('details > summary').all()) await summary.click()
         await screenshot(name)
       }
       await page.goto(`${f.h.origin}/app/learn/${item.peripheral.timed}/quiz`)

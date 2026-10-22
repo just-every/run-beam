@@ -1,4 +1,5 @@
 import { t } from '../messages'
+import { formatDay } from '../time'
 // ORG-001: the directory on People (roster import, custom fields, held conflicts) and on a person's page (their fields
 // as the reader may see them, the edit form for the owner or their unit's learning administrator, and the history).
 import type { Bindings } from '../../auth.server'
@@ -35,23 +36,28 @@ export async function directoryCard(env: Bindings, actor: Actor, memberId: strin
   const shown = items.filter(([label]) => label === 'Manager' ? 'manager' in person : label in LABEL_KEYS ? LABEL_KEYS[label] in person : true)
   const signIn = 'signIn' in view && view.signIn && !view.signIn.matches ? h`<p class="muted">${t(actor, 'Signs in as {email}. Only they can change their sign-in email, after verifying the new address in their account settings.', { email: view.signIn.email })}</p>` : ''
   const editor = view.editable ? await editForm(env, memberId, person) : ''
-  const history = 'history' in view && view.history?.length ? h`<details><summary>Directory history</summary>${rows(view.history.map(event => ({ title: describe(event), meta: `${when(event.at, zone)} · ${event.actorName ?? 'Beam'}` })))}</details>` : ''
-  return card(t(actor, 'Directory'), h`<dl class="facts">${shown.map(([label, value]) => h`<dt>${label in LABEL_KEYS || label === 'Manager' ? t(actor, label) : label}</dt><dd>${label === 'Employment' ? t(actor, show(value)) : show(value)}</dd>`)}</dl>${signIn}${editor}${history}`)
+  const history = 'history' in view && view.history?.length ? h`<details><summary>${t(actor, 'Directory history')}</summary>${rows(view.history.map(event => ({ title: describe(actor, event), meta: `${when(event.at, zone, zone, actor.locale)} · ${event.actorName ?? 'Beam'}` })))}</details>` : ''
+  return card(t(actor, 'Directory'), h`<dl class="facts">${shown.map(([label, value]) => h`<dt>${label in LABEL_KEYS || label === 'Manager' ? t(actor, label) : label}</dt><dd>${label === 'Employment' ? t(actor, show(value)) : (label === 'Hire date' || label === 'Transfer date') && value ? formatDay(String(value), actor.locale) : show(value)}</dd>`)}</dl>${signIn}${editor}${history}`)
 }
 
 const LABEL_KEYS: Record<string, string> = { 'Employee ID': 'employeeId', 'Preferred name': 'preferredName', 'Work email': 'email', Mobile: 'mobile', 'Preferred language': 'language', Employment: 'employment', Role: 'jobRole', Department: 'department', Location: 'location', 'Hire date': 'hireDate', 'Transfer date': 'transferDate', Username: 'username', 'Time zone': 'timeZone' }
 
-function describe(event: { action: string; detail: Record<string, any> }) {
+const HISTORY_FIELDS: Record<string, string> = { 'employee id': 'Employee ID', name: 'Name', 'preferred name': 'Preferred name', 'work email': 'Work email', 'mobile number': 'Mobile', 'preferred language': 'Preferred language', 'employment state': 'Employment', manager: 'Manager', role: 'Role', department: 'Department', location: 'Location', 'hire date': 'Hire date', 'transfer date': 'Transfer date', 'time zone': 'Time zone', 'custom fields': 'custom fields' }
+
+function describe(actor: Actor, event: { action: string; detail: Record<string, any> }) {
   const detail = event.detail
-  if (event.action === 'person.rehire') return `Rehired${detail.employeeId ? ` (employee ID ${detail.employeeId})` : ''}`
-  if (event.action === 'person.leave') return 'Left the business'
-  if (event.action === 'person.add') return `Added from a roster${detail.employeeId ? ` with employee ID ${detail.employeeId}` : ''}`
-  if (event.action === 'person.conflict') return `A roster row for employee ID ${detail.employeeId} was held as a conflict`
-  if (event.action === 'person.conflict.resolve') return `Roster conflict for employee ID ${detail.employeeId} ${detail.decision === 'apply' ? 'applied' : 'dismissed'}`
-  if (event.action === 'person.reinvite') return `Invitation sent to ${detail.email ?? 'the work email'}`
-  if (event.action === 'person.directory' && detail.email) return `Work email changed from ${detail.email.from ?? 'none'} to ${detail.email.to ?? 'none'}${detail.fields.length > 1 ? `; also ${detail.fields.filter((name: string) => name !== 'work email').join(', ')}` : ''}`
-  if (event.action === 'person.directory') return `Changed ${[...detail.fields, ...(detail.customFields?.length ? ['custom fields'] : [])].join(', ')}`
-  return event.action.replace('person.', '').replace(/\./g, ' ')
+  const fields = (names: string[]) => names.map(name => t(actor, HISTORY_FIELDS[name] ?? name)).join(', ')
+  if (event.action === 'person.rehire') return t(actor, detail.employeeId ? 'Rehired (employee ID {id})' : 'Rehired', { id: detail.employeeId })
+  if (event.action === 'person.leave') return t(actor, 'Left the business')
+  if (event.action === 'person.add') return t(actor, detail.employeeId ? 'Added from a roster with employee ID {id}' : 'Added from a roster', { id: detail.employeeId })
+  if (event.action === 'person.conflict') return t(actor, 'A roster row for employee ID {id} was held as a conflict', { id: detail.employeeId })
+  if (event.action === 'person.conflict.resolve') return t(actor, detail.decision === 'apply' ? 'Roster conflict for employee ID {id} applied' : 'Roster conflict for employee ID {id} dismissed', { id: detail.employeeId })
+  if (event.action === 'person.reinvite') return t(actor, 'Invitation sent to {email}', { email: detail.email ?? t(actor, 'the work email') })
+  if (event.action === 'person.directory' && detail.email) return t(actor, 'Work email changed from {from} to {to}', { from: detail.email.from ?? t(actor, 'none'), to: detail.email.to ?? t(actor, 'none') }) + (detail.fields.length > 1 ? t(actor, '; also {fields}', { fields: fields(detail.fields.filter((name: string) => name !== 'work email')) }) : '')
+  if (event.action === 'person.directory') return t(actor, 'Changed {fields}', { fields: fields([...detail.fields, ...(detail.customFields?.length ? ['custom fields'] : [])]) })
+  if (event.action === 'person.invite') return t(actor, 'Invitation sent')
+  if (event.action === 'person.roles') return t(actor, 'Access roles changed')
+  return t(actor, event.action.replace('person.', '').replace(/\./g, ' '))
 }
 
 async function editForm(env: Bindings, memberId: string, person: Record<string, any>) {

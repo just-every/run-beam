@@ -3,6 +3,25 @@
 import type { Language } from './language'
 import type { Actor } from './actor'
 const spanish: Record<string, string> = {
+ "Directory history": "Historial del directorio",
+ "Rehired": "Recontratación",
+ "Rehired (employee ID {id})": "Recontratación (ID de empleado {id})",
+ "Left the business": "Baja en la empresa",
+ "Added from a roster": "Alta desde una lista de personal",
+ "Added from a roster with employee ID {id}": "Alta desde una lista de personal con ID de empleado {id}",
+ "A roster row for employee ID {id} was held as a conflict": "Se retuvo una fila de personal con ID de empleado {id} por un conflicto",
+ "Roster conflict for employee ID {id} applied": "Se aplicó el conflicto de personal con ID de empleado {id}",
+ "Roster conflict for employee ID {id} dismissed": "Se descartó el conflicto de personal con ID de empleado {id}",
+ "Invitation sent to {email}": "Invitación enviada a {email}",
+ "the work email": "el correo de trabajo",
+ "Work email changed from {from} to {to}": "Correo de trabajo cambiado de {from} a {to}",
+ "none": "ninguno",
+ "; also {fields}": "; también {fields}",
+ "Changed {fields}": "Cambios: {fields}",
+ "custom fields": "campos personalizados",
+ "Invitation sent": "Invitación enviada",
+ "Access roles changed": "Roles de acceso modificados",
+
  'path': 'itinerario', 'renewal': 'renovación', 'scheduled renewal': 'renovación programada',
  'self': 'autoinscripción', 'request': 'inscripción aprobada',
  'automation rule {id}': 'regla de automatización {id}', 'audience {id}': 'grupo objetivo {id}',
