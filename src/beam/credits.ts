@@ -11,7 +11,8 @@ import type { Actor } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
 import { requireBusiness } from './people'
-import { addDays, zonedInstant } from './time'
+import { DAY, addDays, zonedInstant } from './time'
+import { manages, permits } from './scope'
 
 /** Only a human owner, or a learning administrator of the course's unit, decides credit. */
 async function approver(env: Bindings, actor: Actor, course: string) {
@@ -91,4 +92,17 @@ export async function creditsView(env: Bindings, actor: Actor) {
     FROM beam_history_credits k JOIN beam_courses c ON c.id = k.course_id JOIN beam_members a ON a.id = k.approved_by
     WHERE ? = 1 OR c.unit_id IN (SELECT value FROM json_each(?)) ORDER BY k.approved_at DESC`, actor.owner ? 1 : 0, JSON.stringify(actor.adminUnits))
   return { decisions }
+}
+
+/** Report readers can drill into the same person's credit decision as coverage. It does not widen learner reads. */
+export async function recordCredits(env: Bindings, actor: Actor, member: string, native: Row[], days: number) {
+  if (!permits(actor, 'reports') || !manages(actor, member, 'reports')) return []
+  const at = now(), seen = new Set<string>(), output: Row[] = []
+  for (const credit of (await liveCredits(env)).filter(row => row.member === member)) {
+    if (seen.has(credit.course)) continue
+    seen.add(credit.course)
+    const course = await one(env, 'SELECT title FROM beam_courses WHERE id=?', credit.course)
+    output.push({ ...credit, courseTitle: course?.title, nativeCurrent: native.some(row => row.course === credit.course && (!row.expiresAt || row.expiresAt > at)), state: credit.expiresAt <= at ? 'missing' : credit.expiresAt <= at + days * DAY ? 'expiring' : 'current' })
+  }
+  return output
 }

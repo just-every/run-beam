@@ -1,3 +1,4 @@
+import { t } from '../messages'
 // NOTICE-006 on the pages: a sender writes an announcement to a team or a course's learners and reads the private
 // replies; a learner sees the announcements sent to them on My learning and replies privately.
 import type { Bindings } from '../../auth.server'
@@ -26,6 +27,6 @@ ${list.sent.map(row => card(row.title, h`<p class="muted">To ${row.audienceName}
  * announcements but not the person's replies, which stay between them and the sender. */
 export function receivedCard(received: Awaited<ReturnType<typeof announcements>>['received'], actor: Actor, zone: string) {
   if (!received.length) return ''
-  return card('Announcements', received.map(row => h`<section class="announcement"><h3>${row.title}</h3><p class="muted">From ${row.senderName} · ${when(row.sentAt, zone)}</p><p>${row.body}</p>
-${actor.viewAs ? '' : h`${row.replies.map((reply: any) => h`<p class="muted">Your reply ${when(reply.sentAt, zone)}: ${reply.body}</p>`)}${row.repliesOpen ? h`<details><summary>Reply privately to ${row.senderName}</summary>${form('announcement.reply', '/app/learning', [hidden('announcement', row.id), area('Your reply', 'body')], 'Send reply', { secondary: true })}</details>` : h`<p class="muted">Replies are closed because the sender no longer has access to this scheduled session.</p>`}`}</section>`), { id: 'announcements' })
+  return card(t(actor, 'Announcements'), received.map(row => h`<section class="announcement"><h3>${row.title}</h3><p class="muted">${t(actor, 'From {name}', { name: row.senderName })} · ${when(row.sentAt, zone, zone, actor.locale)}</p><p>${row.body}</p>
+${actor.viewAs ? '' : h`${row.replies.map((reply: any) => h`<p class="muted">${t(actor, 'Your reply {date}: {body}', { date: when(reply.sentAt, zone, zone, actor.locale), body: reply.body })}</p>`)}${row.repliesOpen ? h`<details><summary>${t(actor, 'Reply privately to {name}', { name: row.senderName })}</summary>${form('announcement.reply', '/app/learning', [hidden('announcement', row.id), area(t(actor, 'Your reply'), 'body')], t(actor, 'Send reply'), { secondary: true })}</details>` : h`<p class="muted">${t(actor, 'Replies are closed because the sender no longer has access to this scheduled session.')}</p>`}`}</section>`), { id: 'announcements' })
 }

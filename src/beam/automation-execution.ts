@@ -8,7 +8,7 @@ import { localDate } from './time'
 
 interface Execution {
   kind: 'follow_on' | 'audience' | 'notification' | 'upkeep' | 'escalation' | 'renewal' | 'webhook'; rule: string; event: string; learner: string;
-  authority: string; unit: string | null; input: unknown; manual: boolean
+  authority: string; unit: string | null; input: unknown; manual: boolean; authorized?: () => Promise<boolean>
 }
 
 export async function controlledExecution(env: Bindings, work: Execution, perform: (artifact: string) => Promise<string>) {
@@ -33,7 +33,7 @@ export async function controlledExecution(env: Bindings, work: Execution, perfor
     return outcome
   }
   // Enabling authority is rechecked on every attempt, including manual replay.
-  const authority = await one(env, `SELECT 1 FROM beam_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.id=?1 AND o.status='active' AND (o.role='owner' OR (?2 IS NOT NULL AND EXISTS(SELECT 1 FROM beam_admin_grants g WHERE g.member_id=m.id AND g.unit_id=?2 AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>?3))))`, work.authority, work.unit, at)
+  const authority = work.authorized ? await work.authorized() : await one(env, `SELECT 1 FROM beam_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.id=?1 AND o.status='active' AND (o.role='owner' OR (?2 IS NOT NULL AND EXISTS(SELECT 1 FROM beam_admin_grants g WHERE g.member_id=m.id AND g.unit_id=?2 AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>?3))))`, work.authority, work.unit, at)
   if (!authority) return await record('scope_revoked', 'The enabling administrator no longer has access. An authorized administrator must enable the rule again.')
   if (policy.paused) return await record('paused', 'The owner paused all automation. Resume the policy, then replay explicitly.')
   const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: business.timezone, hour: '2-digit', hourCycle: 'h23' }).format(at))

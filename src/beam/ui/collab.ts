@@ -1,3 +1,5 @@
+import { message } from '../messages'
+import type { Language } from '../language'
 // AUTHOR-003 on the pages: a course's open lesson conflicts with both texts and the ways to resolve them, comment threads
 // under each draft lesson and question, the content queue of learner feedback, and the learner's feedback form.
 import type { Row } from '../core'
@@ -33,11 +35,13 @@ export function queueCard(items: Row[], zone: string, returnTo: string, heading 
 }
 
 /** The learner's form on a lesson, and their earlier feedback on the course with each outcome. */
-export function feedbackForm(assignment: string, lesson: string | null, returnTo: string) {
-  return card('Tell us about this lesson', form('feedback.send', returnTo, [hidden('assignment', assignment), lesson ? hidden('lesson', lesson) : '', select('Kind', 'kind', Object.entries(KIND).map(([value, label]) => ({ value, label })), 'feedback'), area('What should the course team know?', 'body')], 'Send', { secondary: true }), { id: 'feedback' })
+export function feedbackForm(assignment: string, lesson: string | null, returnTo: string, locale: Language = 'en-US') {
+  const tr = (key: string) => message(locale, key)
+  return card(tr('Tell us about this lesson'), form('feedback.send', returnTo, [hidden('assignment', assignment), lesson ? hidden('lesson', lesson) : '', select(tr('Kind'), 'kind', Object.entries(KIND).map(([value, label]) => ({ value, label: tr(label) })), 'feedback'), area(tr('What should the course team know?'), 'body')], tr('Send'), { secondary: true }), { id: 'feedback' })
 }
 
-export function myFeedbackCard(items: Row[], zone: string) {
+export function myFeedbackCard(items: Row[], zone: string, locale: Language = 'en-US') {
   if (!items.length) return ''
-  return card('Your feedback', rows(items.map(item => ({ title: `${KIND[item.kind]}${item.lessonTitle ? `: ${item.lessonTitle}` : ''}`, meta: `${item.body} · ${when(item.createdAt, zone)}${item.state === 'closed' ? ` · closed: ${item.closeNote}` : ' · open'}` }))), { id: 'my-feedback' })
+  const tr = (key: string, values = {}) => message(locale, key, values)
+  return card(tr('Your feedback'), rows(items.map(item => ({ title: `${tr(KIND[item.kind])}${item.lessonTitle ? `: ${item.lessonTitle}` : ''}`, meta: `${item.body} · ${when(item.createdAt, zone, zone, locale)}${item.state === 'closed' ? ` · ${tr('closed: {note}', { note: item.closeNote })}` : ` · ${tr('open')}`}` }))), { id: 'my-feedback' })
 }

@@ -1,3 +1,5 @@
+import { message } from '../messages'
+import type { Language } from '../language'
 // AUTO-009 on the pages: what a learner sees of an access window, the owner's
 // window forms for a course, a path or one assignment, and a manager's extension.
 import type { AccessRule, accessView } from '../access'
@@ -7,18 +9,17 @@ import { area, card, field, form, h, hidden, select, when } from './html'
 type Access = Awaited<ReturnType<typeof accessView>>
 
 // A window closes at the start of the day after its last day; people read the last day.
-const lastDay = (closesAt: number, zone: string) => formatDate(closesAt - 1, zone)
+const lastDay = (closesAt: number, zone: string, locale: Language = 'en-US') => formatDate(closesAt - 1, zone, locale)
 
 /** The short line on My learning and the course page subtitle. */
-export function accessNote(access: Pick<Access, 'state' | 'opensAt' | 'closesAt'>, zone: string) {
-  if (access.state === 'not_open') return `opens ${formatDate(access.opensAt!, zone)}`
-  if (access.state === 'ended') return `access ended ${lastDay(access.closesAt!, zone)}`
-  return access.closesAt ? `access through ${lastDay(access.closesAt, zone)}` : ''
+export function accessNote(access: Pick<Access, 'state' | 'opensAt' | 'closesAt'>, zone: string, locale: Language = 'en-US') {
+  const date = access.state === 'not_open' ? formatDate(access.opensAt!, zone, locale) : access.closesAt ? lastDay(access.closesAt, zone, locale) : ''
+  return date ? message(locale, access.state === 'not_open' ? 'opens {date}' : access.state === 'ended' ? 'access ended {date}' : 'access through {date}', { date }) : ''
 }
 
-export function accessBanner(access: Access, zone: string) {
-  if (access.state === 'not_open') return h`<p class="flash" role="status">This course opens on ${formatDate(access.opensAt!, zone)}. You can see it now and start it from that day.</p>`
-  if (access.state === 'ended') return h`<p class="flash" role="status">Access ended on ${lastDay(access.closesAt!, zone)}. Lessons and assessments are closed; your progress, results and certificates stay here. Your manager can extend access.</p>`
+export function accessBanner(access: Access, zone: string, locale: Language = 'en-US') {
+  if (access.state === 'not_open') return h`<p class="flash" role="status">${message(locale, 'This course opens on {date}. You can see it now and start it from that day.', { date: formatDate(access.opensAt!, zone, locale) })}</p>`
+  if (access.state === 'ended') return h`<p class="flash" role="status">${message(locale, 'Access ended on {date}. Lessons and assessments are closed; your progress, results and certificates stay here. Your manager can extend access.', { date: lastDay(access.closesAt!, zone, locale) })}</p>`
   return ''
 }
 

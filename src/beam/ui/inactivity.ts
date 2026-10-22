@@ -1,3 +1,4 @@
+import { t } from '../messages'
 // AUTO-007 on the pages: the owner's inactivity policy on People, with what a run would do now and every notice; and a
 // person's own notice on My learning. Notices are shown in Beam only; no email is sent.
 import type { Bindings } from '../../auth.server'
@@ -30,5 +31,5 @@ ${settings}${preview}${controls}${scheduled}${notices.length ? rows(notices.slic
 export async function noticeCard(env: Bindings, actor: Actor, zone: string) {
   if (actor.viewAs) return ''
   const notice = await myNotice(env, actor)
-  return notice ? h`<p class="flash" role="status">You have not signed in to Beam since ${when(notice.lastSignInAt, zone)}. Your access ends ${when(notice.deactivateAt, zone)} unless you sign in again before then; your training records stay either way.</p>` : ''
+  return notice ? h`<p class="flash" role="status">${t(actor, 'You have not signed in to Beam since {last}. Your access ends {end} unless you sign in again before then; your training records stay either way.', { last: when(notice.lastSignInAt, zone, zone, actor.locale), end: when(notice.deactivateAt, zone, zone, actor.locale) })}</p>` : ''
 }

@@ -1,3 +1,4 @@
+import { t } from '../messages'
 // ORG-001: the directory on People (roster import, custom fields, held conflicts) and on a person's page (their fields
 // as the reader may see them, the edit form for the owner or their unit's learning administrator, and the history).
 import type { Bindings } from '../../auth.server'
@@ -32,10 +33,10 @@ export async function directoryCard(env: Bindings, actor: Actor, memberId: strin
   const items: [string, unknown][] = [['Employee ID', person.employeeId], ['Preferred name', person.preferredName], ['Work email', person.email], ['Mobile', person.mobile], ['Preferred language', person.language], ['Employment', person.employment && EMPLOYMENT_LABELS[person.employment]], ['Manager', person.manager?.name], ['Role', person.jobRole], ['Department', person.department], ['Location', person.location], ['Hire date', person.hireDate], ['Transfer date', person.transferDate], ['Username', person.username], ['Time zone', person.timeZone],
     ...(person.custom as { label: string; value: string | null }[]).map(item => [item.label, item.value] as [string, unknown])]
   const shown = items.filter(([label]) => label === 'Manager' ? 'manager' in person : label in LABEL_KEYS ? LABEL_KEYS[label] in person : true)
-  const signIn = 'signIn' in view && view.signIn && !view.signIn.matches ? h`<p class="muted">Signs in as ${view.signIn.email}. Only they can change their sign-in email, after verifying the new address in their account settings.</p>` : ''
+  const signIn = 'signIn' in view && view.signIn && !view.signIn.matches ? h`<p class="muted">${t(actor, 'Signs in as {email}. Only they can change their sign-in email, after verifying the new address in their account settings.', { email: view.signIn.email })}</p>` : ''
   const editor = view.editable ? await editForm(env, memberId, person) : ''
   const history = 'history' in view && view.history?.length ? h`<details><summary>Directory history</summary>${rows(view.history.map(event => ({ title: describe(event), meta: `${when(event.at, zone)} · ${event.actorName ?? 'Beam'}` })))}</details>` : ''
-  return card('Directory', h`<dl class="facts">${shown.map(([label, value]) => h`<dt>${label}</dt><dd>${show(value)}</dd>`)}</dl>${signIn}${editor}${history}`)
+  return card(t(actor, 'Directory'), h`<dl class="facts">${shown.map(([label, value]) => h`<dt>${label in LABEL_KEYS || label === 'Manager' ? t(actor, label) : label}</dt><dd>${label === 'Employment' ? t(actor, show(value)) : show(value)}</dd>`)}</dl>${signIn}${editor}${history}`)
 }
 
 const LABEL_KEYS: Record<string, string> = { 'Employee ID': 'employeeId', 'Preferred name': 'preferredName', 'Work email': 'email', Mobile: 'mobile', 'Preferred language': 'language', Employment: 'employment', Role: 'jobRole', Department: 'department', Location: 'location', 'Hire date': 'hireDate', 'Transfer date': 'transferDate', Username: 'username', 'Time zone': 'timeZone' }

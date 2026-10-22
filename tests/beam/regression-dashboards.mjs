@@ -229,6 +229,12 @@ async function coverage(f) {
   const credited = view.rows.find(row => row.learner === people.cara)
   assert.deepEqual([credited.evidence.label, credited.evidence.decision.reason], ['credited from TalentLMS history', 'Matches our TalentLMS records'])
   assert.ok(credited.evidence.expiresAt > Date.now() + 400 * 86_400_000)
+  const creditRecord = await api('manager', `records/${people.cara}`)
+  assert.deepEqual([creditRecord.credits[0].source, creditRecord.credits[0].reason, creditRecord.credits[0].state], ['TalentLMS', 'Matches our TalentLMS records', 'current'])
+  assert.equal(creditRecord.credits[0].expiresAt, credited.evidence.expiresAt)
+  cookies.cara = await h.signIn('cara@example.test', { requested: true })
+  assert.deepEqual((await api('cara', 'records/me')).credits, [], 'report-only decision notes do not widen learner reads')
+  if (process.env.BEAM_COVERAGE_BROWSER === '1') await coverageBrowserCheck(f, { learner: ids.learner, credited: people.cara })
   assert.equal(view.rows.find(row => row.learner === people.old).importedHistory, 1, 'imported history stays labelled, not current learning')
   const policy = view.groups.requirement.find(entry => entry.id === `path:${path}`)
   assert.ok(policy.effectiveAt && policy.revision === 1 && policy.required === 6)
@@ -271,7 +277,6 @@ async function coverage(f) {
   assert.deepEqual([standing(view, people.driver), standing(view, people.cara), view.summary.required], [undefined, 'missing', 5])
   assert.equal((await api('owner', 'history')).filter(row => row.kind === 'completion').length, 3, 'credit decisions never change imported rows')
   assert.equal((await h.raw('/app/coverage?role=Picker', { cookie: cookies.manager })).status, 200)
-  if (process.env.BEAM_COVERAGE_BROWSER === '1') await coverageBrowserCheck(f, { learner: ids.learner })
 }
 
 async function coverageBrowserCheck(f, item) {
@@ -279,18 +284,25 @@ async function coverageBrowserCheck(f, item) {
   const { mkdir } = await import('node:fs/promises'), { join } = await import('node:path')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence, { recursive: true })
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
   try {
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
       const page = await context.newPage()
       await context.addCookies(f.cookies.manager.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))
-      for (const [name, path] of [['coverage', '/app/coverage'], ['coverage-reno', `/app/coverage?location=${encodeURIComponent('Reno, NV')}`], ['record', `/app/records/${item.learner}`]]) {
+      for (const [name, path] of [['coverage', '/app/coverage'], ['coverage-reno', `/app/coverage?location=${encodeURIComponent('Reno, NV')}`], ['record', `/app/records/${item.learner}`], ['credited-record', `/app/records/${item.credited}`]]) {
         await page.goto(`${f.h.origin}${path}`)
         await page.getByRole('heading', { level: 1 }).waitFor()
+        if (name === 'credited-record') { await page.getByText('credited from TalentLMS history', { exact: true }).waitFor(); await page.getByText(/Decision by Owner.*Matches our TalentLMS records/).waitFor(); await page.getByText(/Credited until/).waitFor() }
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} overflow ${width}`)
         await page.screenshot({ path: join(evidence, `${width}-report-001-${name}.png`), fullPage: true })
       }
+      await context.clearCookies()
+      await context.addCookies(f.cookies.owner.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))
+      await page.goto(`${f.h.origin}/app/coverage`)
+      await page.getByRole('button', { name: 'Save window', exact: true }).waitFor()
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `owner window overflow ${width}`)
+      await page.screenshot({ path: join(evidence, `${width}-report-001-owner-window.png`), fullPage: true })
       await context.close()
       console.log(`PASS REPORT-001 coverage/drill-down ${width}`)
     }

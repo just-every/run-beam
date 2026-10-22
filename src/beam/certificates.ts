@@ -122,9 +122,9 @@ export async function certificatePdfResponse(env: Bindings, actor: Actor, id: st
     { text: `${record.course} (${tr('revision')} ${record.revision})`, size: 20, bold: true, tag: 'P', gapBefore: 6 },
     { text: `${tr('Completed')} ${formatDate(record.completedAt, zone, actor.locale)}${record.expiresAt ? ` · ${tr('valid until')} ${formatDate(record.expiresAt, zone, actor.locale)}` : ''}`, size: 12, tag: 'P', gapBefore: 12 },
     ...(t.signatoryName ? [{ text: `${t.signatoryName}, ${t.signatoryTitle}`, size: 13, tag: 'P' as const, gapBefore: 30 }] : []),
-    { text: `${tr('Certificate')} ${record.current.number}${record.current.correctedAt ? ` · corrected ${formatDate(record.current.correctedAt, zone)}, supersedes ${record.number}` : ''}`, size: 10, tag: 'P', gapBefore: t.signatoryName ? 18 : 40 },
+    { text: `${tr('Certificate')} ${record.current.number}${record.current.correctedAt ? ` · ${message(actor.locale, 'corrected {date}, supersedes {number}', { date: formatDate(record.current.correctedAt, zone, actor.locale), number: record.number })}` : ''}`, size: 10, tag: 'P', gapBefore: t.signatoryName ? 18 : 40 },
     { text: tr('This certificate records completion of the issuer’s own training. It is not an accreditation or a statement of competence.'), size: 9, tag: 'P', gapBefore: 4 },
   ]
-  const bytes = certificatePdf(`${t.heading}: ${record.current.learner}, ${record.course}`, lines, branding.primaryColor, actor.locale)
+  const bytes = certificatePdf(`${t.id ? t.heading : tr(t.heading)}: ${record.current.learner}, ${record.course}`, lines, branding.primaryColor, actor.locale)
   return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="certificate-${record.current.number}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } })
 }

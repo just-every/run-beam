@@ -324,7 +324,8 @@ export async function languageCheck() {
     assert.deepEqual(await language(), { language: 'es-US', source: 'person' })
     const c = await api('author', 'course.create', { title: 'English safety course', reviewer: ids.reviewer })
     const lesson = await api('author', 'course.lesson', { course: c.id, draftVersion: c.draftVersion, title: 'English procedure', body: 'USER CONTENT: My learning. Use clean tools.', sources: [] })
-    const question = await api('author', 'course.question', { course: c.id, draftVersion: lesson.draftVersion, prompt: 'USER QUESTION: Choose clean', choices: 'Clean\nDirty', correct: '1' })
+    const block = await api('author', 'course.block', { course: c.id, draftVersion: lesson.draftVersion, lesson: lesson.draft.lessons[0].id, content: { kind: 'check', text: 'USER PRACTICE CHECK', choices: ['USER CHECK CHOICE', 'USER OTHER CHECK'], answer: 0, feedback: 'USER CHECK FEEDBACK' } })
+    const question = await api('author', 'course.question', { course: c.id, draftVersion: block.draftVersion, prompt: 'USER QUESTION: Choose clean', choices: 'Clean\nDirty', correct: '1' })
     const rules = await api('author', 'course.assessment', { course: c.id, draftVersion: question.draftVersion, passPercent: 80, maxAttempts: 3 })
     await f.publish((await api('author', 'course.submit', { course: c.id, draftVersion: rules.draftVersion })).id)
     const assignment = await assign(c)
@@ -337,9 +338,19 @@ export async function languageCheck() {
     const view = await api('learner', `assignments/${assignment}`), lessonId = view.lessons[0].id
     const lessonHtml = await page(`/app/learn/${assignment}/lessons/${lessonId}`)
     assert.ok(lessonHtml.includes('Lectura de la lección') && lessonHtml.includes('Marcar como completada'))
+    assert.ok(lessonHtml.includes('Comprobar tu respuesta') && lessonHtml.includes('USER PRACTICE CHECK'))
     assert.ok(lessonHtml.includes('USER CONTENT: My learning. Use clean tools.'), 'authored English is never translated by string coincidence')
-    if (process.env.BEAM_LANGUAGE_BROWSER === '1') await languageBrowserCheck(f, { assignment, lesson: lessonId, course: c.id })
+    const peripheral = await languagePeripheralFixture(f, { assignment, lesson: lessonId, course: c.id })
+    if (process.env.BEAM_LANGUAGE_BROWSER === '1') await languageBrowserCheck(f, { assignment, lesson: lessonId, course: c.id, peripheral })
     else {
+      await api('learner', 'quiz.start', { assignment: peripheral.timed })
+      const timedHtml = await page(`/app/learn/${peripheral.timed}/quiz`)
+      assert.ok(timedHtml.includes('Guardar respuestas') && timedHtml.includes('respuesta escrita') && timedHtml.includes('completa el espacio') && timedHtml.includes('ordena los elementos') && timedHtml.includes('relaciona cada elemento'))
+      assert.ok(timedHtml.includes('data-warning-five="Quedan cinco minutos.') && timedHtml.includes('USER WRITTEN QUESTION'))
+      const timedView = await api('learner', `assignments/${peripheral.timed}`)
+      const written = timedView.quiz.questions.find(question => question.kind === 'text')
+      await api('learner', 'quiz.save', { assignment: peripheral.timed, [`q_${written.id}`]: 'USER WRITTEN ANSWER' })
+      assert.ok((await page(`/app/learn/${peripheral.timed}/quiz`)).includes('USER WRITTEN ANSWER'))
       await api('learner', 'lesson.complete', { assignment, lesson: lessonId })
       const quiz = await page(`/app/learn/${assignment}/quiz`)
       assert.ok(quiz.includes('Calificación mínima') && quiz.includes('Enviar respuestas') && quiz.includes('USER QUESTION: Choose clean'))
@@ -347,6 +358,21 @@ export async function languageCheck() {
     }
     const record = await api('learner', 'records/me'), certificate = record.completions.find(row => row.course === c.id).certificate
     assert.match(await page(`/app/certificates/${certificate}`), /Certificado de finalización/)
+    const completedView = await api('learner', `assignments/${assignment}`)
+    assert.match(await page(`/app/attempts/${completedView.attempts[0].id}`), /Puntuación/)
+    for (const [name, path, spanish] of peripheral.pages) {
+      const html = await page(path)
+      assert.ok(html.includes(spanish), `${name} uses Spanish interface controls`)
+      assert.match(html, /<html lang="es-US">/)
+    }
+    const link = await api('learner', 'certificate.link', { certificate })
+    const linksPage = await page(`/app/certificates/${certificate}?link=${link.id}`)
+    assert.ok(linksPage.includes('Enlace de verificación') && linksPage.includes('Revocar'))
+    const verification = await h.raw(`/verify/${link.id}?lang=es-US`)
+    assert.equal(verification.status, 200)
+    const verified = await verification.text()
+    assert.ok(verified.includes('<html lang="es-US">') && verified.includes('Certificado verificado') && verified.includes('English safety course'))
+    assert.ok((await (await h.raw(`/verify/${link.id}?lang=en-US`)).text()).includes('Certificate verified'))
     const pdf = await h.raw(`/app/certificates/${certificate}.pdf`, { cookie: cookies.learner }), pdfText = Buffer.from(await pdf.arrayBuffer()).toString('latin1')
     assert.ok(pdfText.includes('/Lang (es-US)') && pdfText.includes('Certificado de finalizaci') && pdfText.includes('ha completado'))
     // Actually invoke Beam's existing mail door; the provider edge only captures its request/receipt.
@@ -380,21 +406,85 @@ export async function languageCheck() {
   } finally { await h.close() }
 }
 
+async function languagePeripheralFixture(f, item) {
+  const { api, ids, h, cookies } = f
+  await api('owner', 'course.enrollment', { course: item.course, mode: 'open' })
+  const notification = await api('owner', 'notification.save', { name: 'synthetic-beam-1', recipient: 'learner', course: item.course, subject: 'USER ENGLISH NOTICE', body: 'USER DEFAULT {course_name}', variantLanguage: 'es', variantSubject: 'AVISO EN ESPAÑOL', variantBody: 'USER SPANISH VARIANT {course_name}' })
+  await api('owner', 'notification.test', { rule: notification.id })
+  await api('owner', 'notification.state', { rule: notification.id, enabled: true })
+  await api('learner', 'catalog.favorite', { course: item.course, favorite: 'true' })
+  await api('manager', 'announcement.send', { audience: `team:${ids.team}`, title: 'USER ANNOUNCEMENT', body: 'USER MESSAGE: My learning remains authored English.' })
+  await api('learner', 'feedback.send', { assignment: item.assignment, lesson: item.lesson, kind: 'feedback', body: 'USER FEEDBACK: Keep these words.' })
+  const asked = await api('learner', 'discussion.ask', { course: item.course, lesson: item.lesson, kind: 'question', title: 'USER DISCUSSION', body: 'USER QUESTION: What should I check?' })
+  const answer = await api('reviewer', 'discussion.reply', { thread: asked.id, body: 'USER ANSWER: Check the tools.' })
+  await api('reviewer', 'discussion.resolve', { thread: asked.id, answer: answer.post })
+  await api('owner', 'recognition.points', { lessonPoints: 5, coursePoints: 20 })
+  await api('owner', 'recognition.group', { group: ids.team, levels: 'on', levelPoints: 20, leaderboard: 'on' })
+  await api('learner', 'recognition.visibility', { visible: 'yes' })
+  const skill = (await api('owner', 'skill.create', { name: 'USER SKILL', description: 'USER SKILL DESCRIPTION' })).id
+  await api('reviewer', 'skill.review', { skill })
+  await api('owner', 'skill.course', { course: item.course, skills: [skill] })
+  await api('learner', 'skill.goals', { skills: [skill] })
+  const external = await api('owner', 'external.requirement', { name: 'USER CERTIFICATE REQUIREMENT', teams: [ids.team], reviewer: 'manager', reminderDays: 30, expires: 'yes' })
+  await api('learner', 'external.upload', { requirement: external.id, issuer: 'USER ISSUER', number: 'synthetic-beam-1', issuedOn: '2026-01-01', expiresOn: '2030-01-01', file: file('synthetic-beam-1.pdf', '%PDF-1.4\nUSER CERTIFICATE') })
+  const source = await api('author', 'source.create', { title: 'USER POLICY', licence: 'owned', licenceEvidence: 'Employer owns procedure', provenance: 'Employer procedure', reviewer: ids.reviewer, file: file('synthetic-beam-1.txt', 'USER POLICY TEXT') })
+  const acknowledgment = (await api('owner', 'acknowledgment.request', { source: source.id, kind: 'signature', learners: [ids.learner] })).created[0]
+  await h.raw(`/app/acknowledgments/${acknowledgment}/document`, { cookie: cookies.learner })
+  const session = (await api('owner', 'session.schedule', { course: item.course, title: 'USER SESSION', format: 'classroom', location: 'USER ROOM', date: '2030-12-10', time: '08:00', minutes: 60, timezone: 'America/Chicago' })).id
+  await api('learner', 'session.register', { session })
+  const practiceProposal = await api('author', 'agent.propose', { kind: 'scenario', title: 'USER PRACTICE', reasons: ['Practice reviewed procedure'], payload: { course: item.course, courseRevision: (await api('learner', `assignments/${item.assignment}`)).assignment.revision, title: 'USER PRACTICE', rubric: 'Keep tools clean.', steps: [{ id: 'tools', situation: 'USER SCENARIO', choices: [{ label: 'USER CHOICE', feedback: 'USER FEEDBACK', next: null, sources: [] }, { label: 'USER OTHER CHOICE', feedback: 'USER OTHER FEEDBACK', next: null, sources: [] }] }] } })
+  const practice = (await api('reviewer', 'agent.decide', { proposal: practiceProposal.id, decision: 'approve', sha256: practiceProposal.sha256 })).result.scenario
+  const questionsProposal = await api('owner', 'agent.propose', { kind: 'question_plan', title: 'USER QUESTIONS', reasons: ['Understand the work'], payload: { title: 'USER QUESTIONS', purpose: 'USER PURPOSE', questions: ['USER OPTIONAL QUESTION'], participants: [ids.learner, ids.assessor, ids.manager], closesOn: '2031-01-01' } })
+  const questions = (await api('owner', 'agent.decide', { proposal: questionsProposal.id, decision: 'approve', sha256: questionsProposal.sha256 })).result.plan
+  const practical = await f.course('USER PRACTICAL COURSE', true), practicalAssignment = await f.assign(practical)
+  await f.lessons(practicalAssignment)
+  await api('learner', 'blocker.report', { assignment: practicalAssignment, kind: 'access', note: 'USER BLOCKER' })
+  const future = await f.course('USER FUTURE COURSE'), futureAssignment = await f.assign(future)
+  await api('owner', 'assignment.window', { assignment: futureAssignment, kind: 'dates', openDate: '2030-01-01', closeDate: '2031-12-31' })
+  const timed = await api('author', 'course.create', { title: 'USER TIMED COURSE', reviewer: ids.reviewer })
+  let version = (await api('author', 'course.lesson', { course: timed.id, draftVersion: timed.draftVersion, title: 'USER TIMED LESSON', body: 'USER TIMED TEXT', sources: [] })).draftVersion
+  for (const question of [
+    { kind: 'text', prompt: 'USER WRITTEN QUESTION', guidance: 'USER GUIDANCE', points: 2 },
+    { kind: 'blank', prompt: 'USER BLANK QUESTION', answers: 'clean' },
+    { kind: 'order', prompt: 'USER ORDER QUESTION', items: 'Wash\nDry' },
+    { kind: 'match', prompt: 'USER MATCH QUESTION', pairs: 'Clean = Tools\nDry = Hands' },
+  ]) version = (await api('author', 'course.question', { course: timed.id, draftVersion: version, ...question })).draftVersion
+  version = (await api('author', 'course.assessment', { course: timed.id, draftVersion: version, passPercent: 80, maxAttempts: 3, timeLimitMinutes: 30, assessor: ids.assessor })).draftVersion
+  version = (await api('author', 'course.survey', { course: timed.id, draftVersion: version, survey: 'rating: USER SURVEY QUESTION' })).draftVersion
+  await f.publish((await api('author', 'course.submit', { course: timed.id, draftVersion: version })).id)
+  const timedAssignment = await f.assign(timed)
+  await f.lessons(timedAssignment)
+  const start = await (await h.raw(`/app/learn/${timedAssignment}/quiz`, { cookie: cookies.learner })).text()
+  assert.ok(start.includes('Comenzar el cuestionario con límite de tiempo') && start.includes('Guarda tus respuestas'))
+  const pages = [
+    ['catalog', '/app/catalog', 'Catálogo de cursos'], ['sessions', '/app/sessions', 'Mi agenda'],
+    ['skills', '/app/skills', 'Mis habilidades y sugerencias'], ['my-skills', `/app/skills/${ids.learner}`, 'Mis objetivos'],
+    ['recognition', '/app/recognition', 'Mi reconocimiento'], ['external', '/app/external', 'Subir un certificado'],
+    ['record', `/app/records/${ids.learner}`, 'Asignaciones'], ['transcript', `/app/records/${ids.learner}/transcript`, 'Descargar CSV'],
+    ['acknowledgment', `/app/acknowledgments/${acknowledgment}`, 'Escribe tu nombre completo'],
+    ['discussions', `/app/discussions/${item.course}`, 'Haz una pregunta'], ['practice', `/app/practice/${practice}`, 'Solo es práctica'],
+    ['questions', `/app/questions/${questions}`, 'Prefiero no responder'], ['practical', `/app/learn/${practicalAssignment}/practical`, 'Enviar para evaluación'],
+    ['access-window', `/app/learn/${futureAssignment}`, 'Este curso abre el'], ['blocker', `/app/learn/${practicalAssignment}`, 'Impedimento:'], ['survey', `/app/learn/${timedAssignment}`, 'Enviar encuesta'],
+  ]
+  return { pages, timed: timedAssignment }
+}
+
 async function languageBrowserCheck(f, item) {
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
   const { mkdir } = await import('node:fs/promises'), { join } = await import('node:path')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence, { recursive: true })
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const overflow = []
   try {
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
       await context.addCookies(f.cookies.learner.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))
       const page = await context.newPage()
-      const screenshot = async name => {
+      const screenshot = async (name, evidenceWidth = width) => {
         assert.equal(await page.locator('html').getAttribute('lang'), 'es-US')
-        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} overflow at ${width}`)
-        await page.screenshot({ path: join(evidence, `${width}-language-${name}.png`), fullPage: true })
+        if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) overflow.push(`${name} at ${width}`)
+        await page.screenshot({ path: join(evidence, `${evidenceWidth}-language-${name}.png`), fullPage: true, mask: [page.locator('a[href^="/verify/"]')] })
       }
       await page.goto(f.h.origin + '/app/learning'); await page.getByRole('heading', { name: 'Mi aprendizaje', exact: true }).waitFor(); await screenshot('learning')
       await page.goto(`${f.h.origin}/app/learn/${item.assignment}`); await page.getByText(/No hay una versión revisada en español/).waitFor(); await screenshot('course')
@@ -407,9 +497,31 @@ async function languageBrowserCheck(f, item) {
         await page.getByRole('button', { name: 'Enviar respuestas', exact: true }).click()
       }
       const record = await f.api('learner', 'records/me'), certificate = record.completions.find(row => row.course === item.course).certificate
-      await page.goto(`${f.h.origin}/app/certificates/${certificate}`); await page.getByText(/Certificado de finalización/).waitFor(); await screenshot('certificate')
+      const verification = await f.api('learner', 'certificate.link', { certificate })
+      await page.goto(`${f.h.origin}/app/certificates/${certificate}?link=${verification.id}`); await page.getByText(/Certificado de finalización/).waitFor(); await screenshot('certificate')
+      await page.locator(`a[href="/verify/${verification.id}"]`).click()
+      await page.getByRole('link', { name: 'Español (EE. UU.)', exact: true }).click()
+      await page.getByRole('heading', { name: 'Certificado verificado', exact: true }).waitFor(); await screenshot('verification')
+      const completed = await f.api('learner', `assignments/${item.assignment}`)
+      await page.goto(`${f.h.origin}/app/attempts/${completed.attempts[0].id}`); await screenshot('attempt')
+      for (const [name, path, spanish] of item.peripheral.pages) {
+        await page.goto(f.h.origin + path)
+        await page.getByText(spanish, { exact: false }).first().waitFor()
+        await screenshot(name)
+      }
+      await page.goto(`${f.h.origin}/app/learn/${item.peripheral.timed}/quiz`)
+      if (width === 1440) {
+        await page.getByRole('button', { name: 'Comenzar el cuestionario con límite de tiempo', exact: true }).waitFor(); await screenshot('timed-start')
+        await page.setViewportSize({ width: 390, height: 900 }); await screenshot('timed-start', 390)
+        await page.setViewportSize({ width, height: 900 })
+        await page.getByRole('button', { name: 'Comenzar el cuestionario con límite de tiempo', exact: true }).click()
+      }
+      await page.getByRole('button', { name: 'Guardar respuestas', exact: true }).waitFor()
+      await screenshot('timed-running')
+      await page.goto(f.h.origin + '/app/learning'); await screenshot('learning-peripheral-cards')
       await context.close()
-      console.log(`PASS language learner/course/fallback/lesson/quiz/certificate ${width}`)
+      console.log(`PASS language learner/core/timed/peripheral ${width}`)
     }
+    assert.deepEqual(overflow, [], 'learner screens fit each viewport')
   } finally { await browser.close() }
 }

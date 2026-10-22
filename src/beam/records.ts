@@ -1,3 +1,4 @@
+import { recordCredits } from './credits'
 import { escalationQueue } from './escalations'
 // Flows 10-12: instructor-attested offline training, completion certificates,
 // in-app reminders and the manager, reviewer and assessor queues.
@@ -87,7 +88,7 @@ export async function learnerRecord(env: Bindings, actor: Actor, memberId: strin
   const completions = await all(env, `SELECT c.id, c.course_id AS course, r.title AS courseTitle, r.number AS revisionNumber, c.course_revision_id AS revision, c.assessment_revision_id AS assessmentRevision, c.method, c.evidence_json AS evidence, c.completed_at AS completedAt, c.expires_at AS expiresAt, k.id AS certificate
     FROM beam_completions c JOIN beam_course_revisions r ON r.id = c.course_revision_id LEFT JOIN beam_certificates k ON k.completion_id = c.id WHERE c.learner_id = ? ORDER BY c.completed_at DESC`, memberId)
   const history = (await all(env, "SELECT id, payload FROM beam_imported_history WHERE kind = 'completion'")).map(row => ({ id: row.id, ...JSON.parse(row.payload) })).filter(row => row.member === memberId)
-  return { member, assignments: shaped, completions: completions.map(row => ({ ...row, evidence: JSON.parse(row.evidence) }) as Row), history }
+  return { member, assignments: shaped, credits: await recordCredits(env, actor, memberId, completions, window.days), completions: completions.map(row => ({ ...row, evidence: JSON.parse(row.evidence) }) as Row), history }
 }
 
 export async function reminders(env: Bindings, actor: Actor) {

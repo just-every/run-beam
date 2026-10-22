@@ -1,4 +1,4 @@
-import { registerLti, rotateLtiKeys, revokeLti, rotateLtiPlatform, deepLinkLti, attachLti, launchLti } from './lti'
+import { registerLti, rotateLtiKeys, revokeLti, rotateLtiPlatform, deepLinkLti, attachLti, launchLti, reconcileLti } from './lti'
 import { setMyLanguage, setLanguageDefault } from './language'
 import { requireOwner } from './actor'
 import { subscribeWebhook, rotateWebhook, setWebhookState, replayWebhook, runWebhooks } from './webhooks'
@@ -85,14 +85,14 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 
 export const actions: Record<string, Handler> = {
   'lti.register': registerLti, 'lti.keys': rotateLtiKeys, 'lti.revoke': revokeLti,
-  'lti.platform.rotate': rotateLtiPlatform, 'lti.deep-link': deepLinkLti, 'lti.attach': attachLti, 'lti.launch': launchLti,
+  'lti.platform.rotate': rotateLtiPlatform, 'lti.deep-link': deepLinkLti, 'lti.attach': attachLti, 'lti.launch': launchLti, 'lti.reconcile': reconcileLti,
   'language.change': setMyLanguage,
   'language.default': setLanguageDefault,
   'webhook.subscribe': subscribeWebhook,
   'webhook.rotate': rotateWebhook,
   'webhook.state': setWebhookState,
   'webhook.replay': replayWebhook,
-  'webhook.run': async (env, actor) => { requireOwner(actor); return { results: await runWebhooks(env) } },
+  'webhook.run': async (env, actor) => ({ results: await runWebhooks(env, actor) }),
   'course.block': saveBlock,
   'course.block.change': changeBlock,
   'course.block.reuse': reuseBlock,

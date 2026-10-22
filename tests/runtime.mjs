@@ -23,7 +23,7 @@ async function freePort() {
   return port
 }
 
-export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT } = {}) {
+export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService } = {}) {
   // OPS-007: run the identical public-door qualification against an unchanged historical producer or the candidate.
   const workerRoot = checkout || root
   const directory = await mkdtemp(join(tmpdir(), 'beam-worker-'))
@@ -43,6 +43,7 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },
     bindings: vars,
     outboundService: async request => {
+      if (outboundService) { const response = await outboundService(request.clone(), { mails, edge }); if (response) return response }
       if (request.url === 'https://synthetic-beam-1.example.test/hooks') {
         edge.webhooks.push({ url: request.url, headers: Object.fromEntries(request.headers), body: await request.text() })
         return new Response(null, { status: edge.webhookStatus, headers: edge.webhookStatus === 302 ? { location: 'http://127.0.0.1/private' } : {} })

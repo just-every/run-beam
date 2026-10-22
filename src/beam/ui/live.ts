@@ -1,3 +1,4 @@
+import { t, localeNumber } from '../messages'
 // LIVE-001 on the page: the learner's agenda (with every reschedule, change and cancellation since they registered and
 // the calendar file), the session options of their assigned courses behind the prerequisite gate, the sessions a person
 // leads, and scheduling, rescheduling, changing and cancelling sessions for whoever schedules them.
@@ -17,7 +18,7 @@ const ORDER: Record<string, string> = { joined: 'In the order people joined', du
 const EVENT: Record<string, string> = { registered: 'Registered', waitlisted: 'Joined the waitlist', offered: 'Offered a seat', accepted: 'Accepted the seat', assigned: 'Moved from the waitlist into the session', declined: 'Declined the seat', offer_expired: 'Seat offer expired', withdrawn: 'Left the waitlist', left: 'Left the session', switched: 'Switched to another session', closed: 'Waitlist place closed' }
 
 /** LIVE-002: seats taken (registered plus open offers), the waitlist and the registration deadline. */
-const seatLine = (session: Row, home: string) => [session.capacity === null ? `${session.registered} registered` : `${session.registered + session.offered} of ${session.capacity} seats taken`, session.waiting ? `${session.waiting} waiting` : '', session.closesAt ? `registration closes ${formatInstant(session.closesAt, session.timezone, home)}` : ''].filter(Boolean).join(' · ')
+const seatLine = (session: Row, home: string, actor: Actor) => [session.capacity === null ? t(actor, '{n} registered', { n: localeNumber(actor, session.registered) }) : t(actor, '{taken} of {total} seats taken', { taken: localeNumber(actor, session.registered + session.offered), total: localeNumber(actor, session.capacity) }), session.waiting ? t(actor, '{n} waiting', { n: localeNumber(actor, session.waiting) }) : '', session.closesAt ? t(actor, 'registration closes {date}', { date: formatInstant(session.closesAt, session.timezone, home, actor.locale) }) : ''].filter(Boolean).join(' · ')
 
 function seatFields(session: Row | null) {
   return [field('Seats (blank: unlimited)', 'capacity', { type: 'number', value: session?.capacity ?? '', required: false }), field('Registration closes on (optional)', 'closesDate', { type: 'date', value: '', required: false }), field('at (time, session zone)', 'closesTime', { type: 'time', value: '', required: false }),
@@ -26,21 +27,21 @@ function seatFields(session: Row | null) {
 }
 
 /** Each meeting at its wall-clock time in the session's zone, the zone named when it is not the business's. */
-const times = (session: Row, home: string) => session.meetings.map((meeting: Row) => `${formatInstant(meeting.startsAt, session.timezone, home)}–${formatClock(meeting.endsAt, session.timezone)}`).join('; ')
-const place = (session: Row) => session.format === 'virtual' ? h`Virtual${session.location ? ` · ${session.location}` : ''}${session.joinUrl ? h` · <a href="${session.joinUrl}" rel="noopener noreferrer">Join link</a>` : ''}` : h`${session.location}`
+const times = (session: Row, home: string, actor: Actor) => session.meetings.map((meeting: Row) => `${formatInstant(meeting.startsAt, session.timezone, home, actor.locale)}–${formatClock(meeting.endsAt, session.timezone, actor.locale)}`).join('; ')
+const place = (session: Row, actor: Actor) => session.format === 'virtual' ? h`${t(actor, 'Virtual')}${session.location ? ` · ${session.location}` : ''}${session.joinUrl ? h` · <a href="${session.joinUrl}" rel="noopener noreferrer">${t(actor, 'Join link')}</a>` : ''}` : h`${session.location}`
 
-function describeChange(item: Row, home: string) {
-  if (item.kind === 'cancelled') return `Cancelled: ${item.detail.reason}`
-  if (item.kind === 'updated') return `Changed (${item.detail.changed.join(', ')}) on ${formatInstant(item.at, home)}`
+function describeChange(item: Row, home: string, actor: Actor) {
+  if (item.kind === 'cancelled') return t(actor, 'Cancelled: {reason}', { reason: item.detail.reason })
+  if (item.kind === 'updated') return t(actor, 'Changed ({fields}) on {date}', { fields: item.detail.changed.map((key: string) => t(actor, ({ joinUrl: 'Join link', instructor: 'Instructor', location: 'Location', materials: 'Materials and preparation', title: 'Title', format: 'Format' } as Record<string, string>)[key] ?? key)).join(', '), date: formatInstant(item.at, home, home, actor.locale) })
   const { from, to } = item.detail
-  return `Rescheduled on ${formatInstant(item.at, home)}: was ${formatDay(from.date)} ${from.time} ${zoneName(from.timezone)}, now ${formatDay(to.date)} ${to.time} ${zoneName(to.timezone)}`
+  return t(actor, 'Rescheduled on {date}: was {from}, now {to}', { date: formatInstant(item.at, home, home, actor.locale), from: `${formatDay(from.date, actor.locale)} ${from.time} ${zoneName(from.timezone)}`, to: `${formatDay(to.date, actor.locale)} ${to.time} ${zoneName(to.timezone)}` })
 }
 
-function summary(session: Row, home: string, extra: unknown = '') {
-  return h`${session.format === 'virtual' ? 'Virtual' : 'Classroom'} · ${times(session, home)}<br>${place(session)}${session.instructorName ? ` · Instructor: ${session.instructorName}` : ''}${session.materials ? h`<br>Materials: ${session.materials}` : ''}${extra}`
+function summary(session: Row, home: string, actor: Actor, extra: unknown = '') {
+  return h`${t(actor, session.format === 'virtual' ? 'Virtual' : 'Classroom')} · ${times(session, home, actor)}<br>${place(session, actor)}${session.instructorName ? ` · ${t(actor, 'Instructor: {name}', { name: session.instructorName })}` : ''}${session.materials ? h`<br>${t(actor, 'Materials: {text}', { text: session.materials })}` : ''}${extra}`
 }
 
-const calendarLink = (session: Row, cancelled = false) => h`<a href="/app/sessions/${session.id}/calendar.ics">${cancelled ? 'Calendar cancellation (.ics)' : 'Add to calendar (.ics)'}</a>`
+const calendarLink = (session: Row, actor: Actor, cancelled = false) => h`<a href="/app/sessions/${session.id}/calendar.ics">${t(actor, cancelled ? 'Calendar cancellation (.ics)' : 'Add to calendar (.ics)')}</a>`
 
 function whenFields(session: Row | null, zone: string) {
   return [field('First date', 'date', { type: 'date', value: session?.startDate ?? '' }), field('Start time', 'time', { type: 'time', value: session?.startTime ?? '09:00' }), field('Minutes', 'minutes', { type: 'number', value: session?.minutes ?? 60 }),
@@ -56,24 +57,24 @@ function detailFields(session: Row | null, members: Row[]) {
 export async function sessionsPage(env: Bindings, actor: Actor, url: URL) {
   const view = await sessionsView(env, actor)
   const home = actor.shell!.zone
-  const agenda = card('My agenda', view.agenda.length ? rows(view.agenda.map(session => ({
-    title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? h` · <strong>Cancelled</strong>` : ''}`,
-    meta: summary(session, home, h`${session.changes.map((item: Row) => h`<br><strong>${describeChange(item, home)}</strong>`)}${session.changes.length && session.state !== 'cancelled' ? h`<br>Download the calendar file again to update your calendar.` : ''}<br>${calendarLink(session, session.state === 'cancelled')}`),
-    aside: session.state === 'scheduled' ? form('session.leave', '/app/sessions', [hidden('session', session.id)], 'Leave session', { secondary: true }) : '',
-  }))) : h`<p class="muted">You are not registered for any session.</p>`, { id: 'agenda' })
+  const agenda = card(t(actor, 'My agenda'), view.agenda.length ? rows(view.agenda.map(session => ({
+    title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? h` · <strong>${t(actor, 'Cancelled')}</strong>` : ''}`,
+    meta: summary(session, home, actor, h`${session.changes.map((item: Row) => h`<br><strong>${describeChange(item, home, actor)}</strong>`)}${session.changes.length && session.state !== 'cancelled' ? h`<br>${t(actor, 'Download the calendar file again to update your calendar.')}` : ''}<br>${calendarLink(session, actor, session.state === 'cancelled')}`),
+    aside: session.state === 'scheduled' ? form('session.leave', '/app/sessions', [hidden('session', session.id)], t(actor, 'Leave session'), { secondary: true }) : '',
+  }))) : h`<p class="muted">${t(actor, 'You are not registered for any session.')}</p>`, { id: 'agenda' })
   const zoneOf = (row: Row) => row.timezone
-  const waits = view.waits.length ? card('Waitlist and seat offers', rows(view.waits.map((wait: Row) => wait.state === 'offered' ? {
-    title: h`${wait.title} — ${wait.courseTitle}`, meta: h`<strong>A seat is offered to you until ${formatInstant(wait.offerExpiresAt, zoneOf(wait), home)}.</strong> If you do not accept it by then, it passes to the next person.`,
-    aside: h`${form('session.accept', '/app/sessions', [hidden('session', wait.session)], 'Accept the seat')}${form('session.leave', '/app/sessions', [hidden('session', wait.session)], 'Decline', { secondary: true })}`,
-  } : { title: h`${wait.title} — ${wait.courseTitle}`, meta: `On the waitlist, place ${wait.position}`, aside: form('session.leave', '/app/sessions', [hidden('session', wait.session)], 'Leave the waitlist', { secondary: true }) })), { id: 'waits' }) : ''
-  const history = view.history.length ? card('Your session history', rows(view.history.map((item: Row) => ({ title: item.title, meta: `${EVENT[item.kind] ?? item.kind} · ${formatInstant(item.at, home)}` }))), { id: 'history' }) : ''
-  const options = view.options.map(option => card(`Choose a session: ${option.courseTitle}`, h`${option.blocked ? h`<p class="flash" role="status">Complete ${option.blocked.prerequisiteTitle} first; then you can choose a session.</p>` : ''}${rows(option.sessions.map((session: Row) => {
+  const waits = view.waits.length ? card(t(actor, 'Waitlist and seat offers'), rows(view.waits.map((wait: Row) => wait.state === 'offered' ? {
+    title: h`${wait.title} — ${wait.courseTitle}`, meta: t(actor, 'A seat is offered to you until {date}. If you do not accept it by then, it passes to the next person.', { date: formatInstant(wait.offerExpiresAt, zoneOf(wait), home, actor.locale) }),
+    aside: h`${form('session.accept', '/app/sessions', [hidden('session', wait.session)], t(actor, 'Accept the seat'))}${form('session.leave', '/app/sessions', [hidden('session', wait.session)], t(actor, 'Decline'), { secondary: true })}`,
+  } : { title: h`${wait.title} — ${wait.courseTitle}`, meta: t(actor, 'On the waitlist, place {n}', { n: localeNumber(actor, wait.position) }), aside: form('session.leave', '/app/sessions', [hidden('session', wait.session)], t(actor, 'Leave the waitlist'), { secondary: true }) })), { id: 'waits' }) : ''
+  const history = view.history.length ? card(t(actor, 'Your session history'), rows(view.history.map((item: Row) => ({ title: item.title, meta: `${t(actor, EVENT[item.kind] ?? item.kind)} · ${formatInstant(item.at, home, home, actor.locale)}` }))), { id: 'history' }) : ''
+  const options = view.options.map(option => card(t(actor, 'Choose a session: {course}', { course: option.courseTitle }), h`${option.blocked ? h`<p class="flash" role="status">${t(actor, 'Complete {course} first; then you can choose a session.', { course: option.blocked.prerequisiteTitle })}</p>` : ''}${rows(option.sessions.map((session: Row) => {
     const mine = view.agenda.some(item => item.id === session.id)
     const waiting = view.waits.some((item: Row) => item.session === session.id), closed = session.closesAt !== null && session.closesAt <= actor.shell!.now
-    const choose = session.full ? 'Join the waitlist' : view.agenda.some(item => item.course === option.course) ? 'Switch to this session' : 'Choose this session'
-    return { title: session.title, meta: summary(session, home, h`<br>${seatLine(session, home)}`), aside: mine ? h`<span class="muted">Registered</span>` : waiting ? h`<span class="muted">On the waitlist</span>` : closed ? h`<span class="muted">Registration closed</span>` : option.blocked ? '' : form('session.register', '/app/sessions', [hidden('session', session.id)], choose, { secondary: true }) }
+    const choose = session.full ? t(actor, 'Join the waitlist') : view.agenda.some(item => item.course === option.course) ? t(actor, 'Switch to this session') : t(actor, 'Choose this session')
+    return { title: session.title, meta: summary(session, home, actor, h`<br>${seatLine(session, home, actor)}`), aside: mine ? h`<span class="muted">${t(actor, 'Registered')}</span>` : waiting ? h`<span class="muted">${t(actor, 'On the waitlist')}</span>` : closed ? h`<span class="muted">${t(actor, 'Registration closed')}</span>` : option.blocked ? '' : form('session.register', '/app/sessions', [hidden('session', session.id)], choose, { secondary: true }) }
   }))}`, { id: `options-${option.course}` }))
-  const leading = view.leading.length ? card('Sessions you lead', rows(view.leading.map(session => ({ title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? ' · Cancelled' : ''}`, meta: summary(session, home, h` · ${session.registered} registered<br>${calendarLink(session, session.state === 'cancelled')} · <a href="/app/sessions/${session.id}/roster">Roster and attendance</a>`) }))), { id: 'leading' }) : ''
+  const leading = view.leading.length ? card('Sessions you lead', rows(view.leading.map(session => ({ title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? ' · Cancelled' : ''}`, meta: summary(session, home, actor, h` · ${session.registered} registered<br>${calendarLink(session, actor, session.state === 'cancelled')} · <a href="/app/sessions/${session.id}/roster">Roster and attendance</a>`) }))), { id: 'leading' }) : ''
   let manage: unknown = ''
   if (view.courses.length || view.managed.length) {
     const members = await all(env, 'SELECT id, name FROM beam_members ORDER BY name')
@@ -81,8 +82,8 @@ export async function sessionsPage(env: Bindings, actor: Actor, url: URL) {
       select('Repeats', 'repeat', Object.entries(REPEAT).map(([value, label]) => ({ value, label })), 'none'), field(`Meetings in the series (1–${MAX_MEETINGS})`, 'count', { type: 'number', value: 1, required: false }), ...seatFields(null)], 'Schedule session'), { id: 'schedule' })
     const managed = view.managed.length ? card('Scheduled sessions', rows(view.managed.map(session => ({
       title: h`${session.title} — ${session.courseTitle}${session.state === 'cancelled' ? h` · <strong>Cancelled: ${session.cancelReason}</strong>` : ''}`,
-      meta: h`${summary(session, home, h` · ${REPEAT[session.repeat]}, ${session.meetingCount} ${session.meetingCount === 1 ? 'meeting' : 'meetings'} · ${seatLine(session, home)} · ${calendarLink(session, session.state === 'cancelled')} · <a href="/app/sessions/${session.id}/roster">Roster and attendance</a>`)}${session.history.length ? h`
-<details><summary>Roster history</summary>${rows(session.history.map((item: Row) => ({ title: item.learnerName, meta: `${EVENT[item.kind] ?? item.kind} · ${formatInstant(item.at, home)}` })))}</details>` : ''}${session.state === 'scheduled' ? h`
+      meta: h`${summary(session, home, actor, h` · ${REPEAT[session.repeat]}, ${session.meetingCount} ${session.meetingCount === 1 ? 'meeting' : 'meetings'} · ${seatLine(session, home, actor)} · ${calendarLink(session, actor, session.state === 'cancelled')} · <a href="/app/sessions/${session.id}/roster">Roster and attendance</a>`)}${session.history.length ? h`
+<details><summary>Roster history</summary>${rows(session.history.map((item: Row) => ({ title: item.learnerName, meta: `${t(actor, EVENT[item.kind] ?? item.kind)} · ${formatInstant(item.at, home, home, actor.locale)}` })))}</details>` : ''}${session.state === 'scheduled' ? h`
 <details><summary>Reschedule</summary>${form('session.reschedule', '/app/sessions', [hidden('session', session.id), ...whenFields(session, home)], 'Reschedule')}</details>
 <details><summary>Change details</summary>${form('session.update', '/app/sessions', [hidden('session', session.id), ...detailFields(session, members)], 'Save changes')}</details>
 <details><summary>Seats and waitlist</summary>${form('session.seats', '/app/sessions', [hidden('session', session.id), ...seatFields(session)], 'Save seats')}</details>
@@ -90,7 +91,7 @@ export async function sessionsPage(env: Bindings, actor: Actor, url: URL) {
     }))), { id: 'managed' }) : ''
     manage = h`${view.courses.length ? schedule : ''}${managed}`
   }
-  const body = h`<h1>Sessions</h1><p class="lede">Classroom and virtual sessions of your courses. Choose one session per course (when one is full, join its waitlist); your agenda shows each meeting in the session’s own time zone, and every change to a session you chose. Calendar files are downloads for your calendar; Beam does not email invitations yet.</p>
+  const body = h`<h1>${t(actor, 'Sessions')}</h1><p class="lede">${t(actor, 'Classroom and virtual sessions of your courses. Choose one session per course (when one is full, join its waitlist); your agenda shows each meeting in the session’s own time zone, and every change to a session you chose. Calendar files are downloads for your calendar; Beam does not email invitations yet.')}</p>
 ${waits}${agenda}${options}${history}${leading}${manage}`
-  return page('Sessions', actor, body, { current: '/app/sessions', url })
+  return page(t(actor, 'Sessions'), actor, body, { current: '/app/sessions', url })
 }

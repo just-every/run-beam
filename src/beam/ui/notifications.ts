@@ -1,3 +1,4 @@
+import { t } from '../messages'
 // NOTICE-005 uses Beam's existing forms, cards and private My learning surface.
 import type { Bindings } from '../../auth.server'
 import type { Actor } from '../actor'
@@ -37,5 +38,5 @@ ${view.messages.length ? card('Recorded notices', rows(view.messages.map(message
 export async function notificationCard(env: Bindings, actor: Actor, zone: string) {
   const messages = await notificationInbox(env, actor)
   if (!messages.length) return ''
-  return card('Notifications', messages.map(message => h`<section class="announcement"><h3>${message.subject}</h3><p class="muted">${message.test ? 'Test in your inbox · ' : ''}Recorded in Beam · ${when(message.at, zone)}</p><p>${message.body}</p><p><a href="${message.test ? '/app/learning' : message.assignmentId ? `/app/learn/${message.assignmentId}` : `/app/records/${message.learner_id}`}">Open learning record</a></p></section>`), { id: 'notifications' })
+  return card(t(actor, 'Notifications'), messages.map(message => h`<section class="announcement"><h3>${message.subject}</h3><p class="muted">${message.test ? t(actor, 'Test in your inbox · ') : ''}${t(actor, 'Recorded in Beam')} · ${when(message.at, zone, zone, actor.locale)}</p><p>${message.body}</p><p><a href="${message.test ? '/app/learning' : message.assignmentId ? `/app/learn/${message.assignmentId}` : `/app/records/${message.learner_id}`}">${t(actor, 'Open learning record')}</a></p></section>`), { id: 'notifications' })
 }

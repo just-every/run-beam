@@ -1,3 +1,5 @@
+import { message } from '../messages'
+import type { Language } from '../language'
 // AUTO-006 on the assignment page: the learner's blocker report, the deferral or exemption that holds the assignment,
 // and the decision forms for whoever may enroll the learner. Every report and exception stays listed after it ends.
 import type { assignmentView } from '../learning'
@@ -13,22 +15,23 @@ const exceptionLabel = (kind: string) => kind === 'exemption' ? 'Exempt' : 'Defe
 const STATE: Record<string, string> = { open: 'waiting for a decision', granted: 'answered with an exception', declined: 'declined' }
 
 /** The exception holding the assignment now, said plainly with the due date it keeps. */
-export function exceptionNotice(view: View, a: View['assignment'], zone: string) {
+export function exceptionNotice(view: View, a: View['assignment'], zone: string, locale: Language = 'en-US') {
   const current = view.exceptions.find(row => row.active)
   if (!current || a.status !== 'open') return ''
-  return h`<p class="flash" role="status">${exceptionLabel(current.kind)} through ${formatDay(current.endsOn)}, granted by ${current.grantedByName} (reason: “${current.reason}”). The due date stays ${when(a.dueAt, a.timezone, zone)}; ${current.kind === 'exemption' ? 'this requirement is waived until then' : 'it is not counted overdue until then'}.</p>`
+  return h`<p class="flash" role="status">${message(locale, '{kind} through {end}, granted by {name} (reason: “{reason}”). The due date stays {due}; {effect}.', { kind: message(locale, exceptionLabel(current.kind)), end: formatDay(current.endsOn, locale), name: current.grantedByName, reason: current.reason, due: when(a.dueAt, a.timezone, zone, locale), effect: message(locale, current.kind === 'exemption' ? 'this requirement is waived until then' : 'it is not counted overdue until then') })}</p>`
 }
 
-const history = (view: View, zone: string) => rows([
-  ...view.blockers.map(row => ({ title: `Blocker: ${kindLabel(row.kind)}`, meta: h`${row.note} · reported ${when(row.reportedAt, zone)} · ${STATE[row.state]}${row.decisionReason ? h` by ${row.decidedByName}: ${row.decisionReason}` : ''}` })),
-  ...view.exceptions.map(row => ({ title: `${exceptionLabel(row.kind)} through ${formatDay(row.endsOn)}${row.active ? '' : ' (ended)'}`, meta: `${row.grantedByName}, ${when(row.grantedAt, zone)}: ${row.reason}` })),
+const history = (view: View, zone: string, locale: Language = 'en-US') => rows([
+  ...view.blockers.map(row => ({ title: message(locale, 'Blocker: {kind}', { kind: message(locale, kindLabel(row.kind)) }), meta: h`${row.note} · ${message(locale, 'reported {date}', { date: when(row.reportedAt, zone, zone, locale) })} · ${message(locale, STATE[row.state])}${row.decisionReason ? message(locale, 'by {name}: {reason}', { name: row.decidedByName, reason: row.decisionReason }) : ''}` })),
+  ...view.exceptions.map(row => ({ title: `${message(locale, '{kind} through {date}', { kind: message(locale, exceptionLabel(row.kind)), date: formatDay(row.endsOn, locale) })}${row.active ? '' : message(locale, ' (ended)')}`, meta: `${row.grantedByName}, ${when(row.grantedAt, zone)}: ${row.reason}` })),
 ])
 
-export function blockerCard(view: View, id: string, zone: string) {
+export function blockerCard(view: View, id: string, zone: string, locale: Language = 'en-US') {
+  const tr = (key: string) => message(locale, key)
   const waiting = view.blockers.some(row => row.state === 'open')
   const open = view.assignment.status === 'open'
   if (!open && !view.blockers.length) return ''
-  return card('Something in the way?', h`${view.blockers.length || view.exceptions.length ? history(view, zone) : ''}${open && !waiting ? h`<p class="muted">Tell your manager what is keeping you from this course. They can move the deadline, defer or exempt it; the due date and your work stay on record.</p>${form('blocker.report', `/app/learn/${id}`, [hidden('assignment', id), select('What is in the way', 'kind', KINDS), area('Details', 'note')], 'Report a blocker', { secondary: true })}` : ''}`)
+  return card(tr('Something in the way?'), h`${view.blockers.length || view.exceptions.length ? history(view, zone, locale) : ''}${open && !waiting ? h`<p class="muted">${tr('Tell your manager what is keeping you from this course. They can move the deadline, defer or exempt it; the due date and your work stay on record.')}</p>${form('blocker.report', `/app/learn/${id}`, [hidden('assignment', id), select(tr('What is in the way'), 'kind', KINDS.map(item => ({ ...item, label: tr(item.label) }))), area(tr('Details'), 'note')], tr('Report a blocker'), { secondary: true })}` : ''}`)
 }
 
 export function exceptionCard(view: View, id: string, zone: string) {

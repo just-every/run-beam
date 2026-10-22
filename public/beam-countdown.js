@@ -8,13 +8,13 @@ if (clock) {
   const shown = clock.querySelector('[data-left]')
   const status = document.getElementById('time-status')
   const warned = new Set()
-  const warnings = [[300, 'Five minutes left. Save your answers.'], [60, 'One minute left. Save your answers now.']]
+  const warnings = [[300, clock.dataset.warningFive], [60, clock.dataset.warningOne]]
   const tick = () => {
     const left = Math.max(0, Math.round((deadline - (Date.now() + skew)) / 1000))
     shown.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
     for (const [at, message] of warnings) if (left <= at && left > 0 && !warned.has(at)) { warned.add(at); status.textContent = message }
     if (left === 0) {
-      status.textContent = 'Time is up. Only the answers you saved are scored.'
+      status.textContent = clock.dataset.expired
       clearInterval(timer)
       setTimeout(() => location.reload(), 1500)
     }

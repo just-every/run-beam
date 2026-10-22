@@ -10,6 +10,7 @@ import { dashboardAuthority } from './actor'
 import { openSecret, randomSecret, sealSecret } from './integration-secrets'
 import { jwtSign, jwtVerify, publicKeys } from './lti-jwt'
 import { h, hidden, page } from './ui/html'
+import { integrationHuman, integrationUnit, integrationCourse, requireIntegrationCourse } from './integration-authority'
 export const LTI = 'https://purl.imsglobal.org/spec/lti/claim/'
 export const DL = 'https://purl.imsglobal.org/spec/lti-dl/claim/'
 export const AGS = 'https://purl.imsglobal.org/spec/lti-ags/'
@@ -23,34 +24,43 @@ function trustedUrl(env: Bindings, value: string) {
   insist(url.protocol === 'https:' && !url.username && !url.password && !url.port && !url.hash && !url.search && /^(?:[a-z0-9-]+\.)+[a-z][a-z0-9-]+$/.test(url.hostname) && !/(?:^|\.)(localhost|local|internal|lan|home)$/.test(url.hostname) && hosts.includes(url.hostname) && url.origin !== env.AUTH_ORIGIN, 'lti_host_not_admitted', 403)
   return url.href
 }
-async function liveTool(env: Bindings, id: string) {
+async function liveTool(env: Bindings, id: string, course?: string) {
   const tool = await one(env, 'SELECT * FROM beam_lti_tools WHERE id=? AND revoked_at IS NULL', id)
-  insist(tool && (await dashboardAuthority(env, tool.created_by))?.owner, 'lti_deployment_unavailable', 403)
+  const authority = tool && await dashboardAuthority(env, tool.created_by)
+  insist(tool && authority && integrationUnit(authority, tool.unit_id, true), 'lti_deployment_unavailable', 403)
+  if (course) insist(await integrationCourse(env, authority, course, true) && (!tool.unit_id || (await one(env, 'SELECT unit_id FROM beam_courses WHERE id=?', course))?.unit_id === tool.unit_id), 'lti_deployment_unavailable', 403)
   trustedUrl(env, tool.login_url); trustedUrl(env, tool.redirect_uri)
   return tool
 }
 export async function registerLti(env: Bindings, actor: Actor, input: Input) {
-  owner(actor); insist(input.flag('consent'), 'lti_consent_required')
+  integrationHuman(actor); insist(input.flag('consent'), 'lti_consent_required')
+  const unit = input.text('unit', { optional: true }) || null
+  insist(integrationUnit(actor, unit, true), 'integration_outside_your_scope', 403)
+  if (unit) insist(await one(env, 'SELECT 1 FROM beam_units WHERE id=?', unit), 'unit_not_found', 404)
   const issuer = input.text('issuer', { max: 2048 }), client = input.text('clientId', { max: 100 }), deployment = input.text('deployment', { max: 100 })
   insist(issuer === env.AUTH_ORIGIN, 'lti_issuer_mismatch')
   const id = newId(), login = trustedUrl(env, input.text('loginUrl', { max: 2048 })), redirect = trustedUrl(env, input.text('redirectUri', { max: 2048 })), keys = publicKeys(input.json('jwks'))
   insist(new URL(login).origin === new URL(redirect).origin, 'lti_origin_mismatch')
   insist(!await one(env, 'SELECT 1 FROM beam_lti_tools WHERE client_id=?', client), 'lti_client_registered', 409)
-  await commit(env, [stmt(env, 'INSERT INTO beam_lti_tools(id,name,issuer,client_id,deployment,login_url,redirect_uri,keys_json,created_by,consent_at) VALUES(?,?,?,?,?,?,?,?,?,?)', id, input.text('name', { max: 80 }), issuer, client, deployment, login, redirect, JSON.stringify(keys), actor.id, now())], { actor, action: 'lti.register', subject: id, detail: { issuer, client, deployment, login, redirect, consent: true } })
-  if (!await one(env, 'SELECT 1 FROM beam_lti_platform_keys WHERE retired_at IS NULL')) await rotateLtiPlatform(env, actor)
+  await commit(env, [stmt(env, 'INSERT INTO beam_lti_tools(id,name,issuer,client_id,deployment,login_url,redirect_uri,keys_json,created_by,consent_at,unit_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)', id, input.text('name', { max: 80 }), issuer, client, deployment, login, redirect, JSON.stringify(keys), actor.id, now(), unit)], { actor, action: 'lti.register', subject: id, detail: { issuer, client, deployment, login, redirect, consent: true } })
+  if (actor.owner && !await one(env, 'SELECT 1 FROM beam_lti_platform_keys WHERE retired_at IS NULL')) await rotateLtiPlatform(env, actor)
   return { id, issuer, clientId: client, deployment, authorizationEndpoint: `${issuer}/api/beam/lti/authorize`, tokenEndpoint: `${issuer}/api/beam/lti/token`, jwks: `${issuer}/api/beam/lti/jwks` }
 }
 export async function rotateLtiKeys(env: Bindings, actor: Actor, input: Input) {
-  owner(actor)
-  const tool = await liveTool(env, input.text('tool')), keys = publicKeys(input.json('jwks'))
+  integrationHuman(actor)
+  const tool = await one(env, 'SELECT * FROM beam_lti_tools WHERE id=? AND revoked_at IS NULL', input.text('tool')), keys = publicKeys(input.json('jwks'))
+  insist(tool, 'lti_deployment_unavailable', 403)
+  insist(integrationUnit(actor, tool.unit_id, true), 'integration_outside_your_scope', 403)
   const version = input.integer('version')!
   insist(version === tool.key_version, 'lti_keys_changed', 409)
   await commit(env, [stmt(env, 'UPDATE beam_lti_tools SET keys_json=?,key_version=key_version+1 WHERE id=? AND key_version=?', JSON.stringify(keys), tool.id, version), stmt(env, 'DELETE FROM beam_lti_tokens WHERE tool_id=?', tool.id)], { actor, action: 'lti.keys', subject: tool.id, detail: { version: version + 1, kids: keys.keys.map(k => k.kid) } })
   return { id: tool.id, version: version + 1 }
 }
 export async function revokeLti(env: Bindings, actor: Actor, input: Input) {
-  owner(actor)
-  const tool = await liveTool(env, input.text('tool'))
+  integrationHuman(actor)
+  const tool = await one(env, 'SELECT * FROM beam_lti_tools WHERE id=? AND revoked_at IS NULL', input.text('tool'))
+  insist(tool, 'lti_deployment_unavailable', 403)
+  insist(integrationUnit(actor, tool.unit_id, true), 'integration_outside_your_scope', 403)
   await commit(env, [stmt(env, 'UPDATE beam_lti_tools SET revoked_at=? WHERE id=?', now(), tool.id), stmt(env, 'DELETE FROM beam_lti_tokens WHERE tool_id=?', tool.id)], { actor, action: 'lti.revoke', subject: tool.id })
   return { id: tool.id, revoked: true }
 }
@@ -62,20 +72,28 @@ export async function rotateLtiPlatform(env: Bindings, actor: Actor) {
   return { kid: id }
 }
 export async function ltiView(env: Bindings, actor: Actor) {
-  owner(actor)
-  return { tools: await all(env, 'SELECT id,name,issuer,client_id AS clientId,deployment,login_url AS loginUrl,redirect_uri AS redirectUri,keys_json AS jwks,key_version AS keyVersion,consent_at AS consentAt,revoked_at AS revokedAt FROM beam_lti_tools'), resources: await all(env, 'SELECT * FROM beam_lti_resources'), results: await all(env, 'SELECT r.*,l.assignment_id,l.revision_id,l.resource_id FROM beam_lti_results r JOIN beam_lti_lineitems l ON l.id=r.lineitem_id ORDER BY r.rowid DESC LIMIT 100') }
+  integrationHuman(actor)
+  const tools = (await all(env, 'SELECT id,name,issuer,client_id AS clientId,deployment,login_url AS loginUrl,redirect_uri AS redirectUri,keys_json AS jwks,key_version AS keyVersion,consent_at AS consentAt,revoked_at AS revokedAt,unit_id FROM beam_lti_tools')).filter(tool => integrationUnit(actor, tool.unit_id, true))
+  const resources: Row[] = []
+  for (const resource of await all(env, 'SELECT * FROM beam_lti_resources')) if (tools.some(tool => tool.id === resource.tool_id) && await integrationCourse(env, actor, resource.course_id, true)) resources.push(resource)
+  const results = (await all(env, 'SELECT r.*,l.assignment_id,l.revision_id,l.resource_id FROM beam_lti_results r JOIN beam_lti_lineitems l ON l.id=r.lineitem_id ORDER BY r.rowid DESC LIMIT 100')).filter(row => resources.some(resource => resource.id === row.resource_id))
+  return { tools, resources, results }
 }
 async function launch(env: Bindings, actor: Actor, input: Input, deep: boolean) {
   insist(!actor.agent && !actor.viewAs, 'human_session_required', 403)
   let tool: Row, course: string, assignment: string | null = null, resource: Row | null = null
-  if (deep) { owner(actor); tool = await liveTool(env, input.text('tool')); course = input.text('course'); insist(await one(env, 'SELECT 1 FROM beam_courses WHERE id=?', course), 'course_not_found', 404) }
+  if (deep) {
+    tool = await liveTool(env, input.text('tool')); course = input.text('course')
+    await requireIntegrationCourse(env, actor, course, true)
+    insist(integrationUnit(actor, tool.unit_id, true) && (!tool.unit_id || (await one(env, 'SELECT unit_id FROM beam_courses WHERE id=?', course))?.unit_id === tool.unit_id), 'integration_outside_your_scope', 403)
+  }
   else {
     assignment = input.text('assignment')
     const view = await assignmentView(env, actor, assignment)
     insist(view.assignment.learner === actor.id && view.assignment.status === 'open' && !view.blocked && view.access.state === 'open', 'lti_assignment_unavailable', 403)
     resource = await one(env, 'SELECT * FROM beam_lti_resources WHERE id=? AND course_id=?', input.text('resource'), view.assignment.course)
     insist(resource && view.lessons.some(lesson => (lesson as any).blocks?.some((block: any) => block.kind === 'lti' && block.resource === resource!.id)), 'lti_resource_not_assigned', 403)
-    tool = await liveTool(env, resource.tool_id); course = view.assignment.course
+    tool = await liveTool(env, resource.tool_id, view.assignment.course); course = view.assignment.course
   }
   const id = newId(), data = newId()
   await commit(env, [stmt(env, 'INSERT INTO beam_lti_launches(id,tool_id,member_id,course_id,assignment_id,resource_id,kind,data,expires_at) VALUES(?,?,?,?,?,?,?,?,?)', id, tool.id, actor.id, course, assignment, resource?.id ?? null, deep ? 'deep_link' : 'resource', data, now() + 300_000)], { actor, action: 'lti.launch.prepare', subject: id, detail: { tool: tool.id, course, assignment, resource: resource?.id ?? null, minimalData: true } })
@@ -86,9 +104,11 @@ async function launch(env: Bindings, actor: Actor, input: Input, deep: boolean) 
 export const deepLinkLti = (env: Bindings, actor: Actor, input: Input) => launch(env, actor, input, true)
 export const launchLti = (env: Bindings, actor: Actor, input: Input) => launch(env, actor, input, false)
 export async function attachLti(env: Bindings, actor: Actor, input: Input) {
-  owner(actor)
+  await requireIntegrationCourse(env, actor, input.text('course'), true)
   const resource = await one(env, 'SELECT * FROM beam_lti_resources WHERE id=? AND course_id=?', input.text('resource'), input.text('course'))
-  insist(resource, 'lti_resource_not_found', 404); await liveTool(env, resource.tool_id)
+  insist(resource, 'lti_resource_not_found', 404)
+  const tool = await liveTool(env, resource.tool_id, resource.course_id)
+  insist(integrationUnit(actor, tool.unit_id, true) && (!tool.unit_id || (await one(env, 'SELECT unit_id FROM beam_courses WHERE id=?', resource.course_id))?.unit_id === tool.unit_id), 'integration_outside_your_scope', 403)
   const threshold = input.integer('passPercent', { min: 1, max: 100 })!
   insist(resource.pass_percent === null || resource.pass_percent === threshold, 'lti_approved_threshold_immutable', 409)
   await commit(env, [stmt(env, 'UPDATE beam_lti_resources SET pass_percent=?,approved_by=? WHERE id=? AND (pass_percent IS NULL OR pass_percent=?)', threshold, actor.id, resource.id, threshold)], { actor, action: 'lti.resource.approve', subject: resource.id, detail: { passPercent: threshold, course: resource.course_id } })
@@ -102,9 +122,12 @@ export async function authorizeLti(env: Bindings, actor: Actor, request: Request
   insist(request.method === 'GET' && !actor.agent && !actor.viewAs, 'lti_authorization_refused', 403)
   const q = new URL(request.url).searchParams, row = await one(env, 'SELECT * FROM beam_lti_launches WHERE id=? AND member_id=? AND authorized_at IS NULL AND expires_at>?', q.get('login_hint'), actor.id, now())
   insist(row, 'lti_launch_expired', 403)
-  const tool = await liveTool(env, row.tool_id), nonce = q.get('nonce'), state = q.get('state')
+  const tool = await liveTool(env, row.tool_id, row.course_id), nonce = q.get('nonce'), state = q.get('state')
   insist(q.get('client_id') === tool.client_id && q.get('redirect_uri') === tool.redirect_uri && q.get('response_type') === 'id_token' && q.get('response_mode') === 'form_post' && q.get('scope') === 'openid' && q.get('prompt') === 'none' && nonce && nonce.length <= 256 && state && state.length <= 1024 && q.get('lti_message_hint') === row.id, 'lti_authorization_refused', 403)
-  if (row.kind === 'deep_link') owner(actor)
+  if (row.kind === 'deep_link') {
+    await requireIntegrationCourse(env, actor, row.course_id, true)
+    insist(integrationUnit(actor, tool.unit_id, true), 'integration_outside_your_scope', 403)
+  }
   else {
     const view = await assignmentView(env, actor, row.assignment_id)
     insist(view.assignment.learner === actor.id && view.assignment.status === 'open' && !view.blocked && view.access.state === 'open' && view.lessons.some(lesson => (lesson as any).blocks?.some((b: any) => b.resource === row.resource_id)), 'lti_assignment_unavailable', 403)
@@ -145,15 +168,17 @@ async function deepLinkResponse(env: Bindings, request: Request) {
   const tool = await liveTool(env, row.id), claims = await jwtVerify(token, JSON.parse(tool.keys_json), tool.client_id, env.AUTH_ORIGIN)
   insist(claims[LTI + 'deployment_id'] === tool.deployment && claims[LTI + 'version'] === '1.3.0' && claims[LTI + 'message_type'] === 'LtiDeepLinkingResponse', 'invalid_lti_deployment', 403)
   const pending = await one(env, "SELECT * FROM beam_lti_launches WHERE tool_id=? AND kind='deep_link' AND data=? AND authorized_at IS NOT NULL AND consumed_at IS NULL AND expires_at>?", tool.id, claims[DL + 'data'] ?? '', now())
-  insist(pending && (await dashboardAuthority(env, pending.member_id))?.owner, 'lti_deep_link_expired', 409)
+  const authority = pending && await dashboardAuthority(env, pending.member_id)
+  insist(pending && authority && integrationUnit(authority, tool.unit_id, true) && await integrationCourse(env, authority, pending.course_id, true), 'lti_deep_link_expired', 409)
   const items = claims[DL + 'content_items']
   insist(Array.isArray(items) && items.length === 1 && items[0].type === 'ltiResourceLink' && typeof items[0].url === 'string' && typeof items[0].title === 'string' && items[0].title.trim().length > 0 && items[0].title.length <= 160, 'invalid_lti_deep_link')
   const target = trustedUrl(env, items[0].url)
   insist(new URL(target).origin === new URL(tool.redirect_uri).origin, 'lti_origin_mismatch')
   const id = newId()
-  const consumed = await env.DB.prepare('UPDATE beam_lti_launches SET consumed_at=? WHERE id=? AND consumed_at IS NULL RETURNING id').bind(now(), pending.id).all()
-  insist(consumed.results.length === 1, 'lti_deep_link_expired', 409)
-  await commit(env, [stmt(env, 'INSERT INTO beam_lti_resources(id,tool_id,course_id,url,title,selected_by,selected_at) VALUES(?,?,?,?,?,?,?)', id, tool.id, pending.course_id, target, items[0].title.trim(), pending.member_id, now())], { actor: pending.member_id, action: 'lti.deep_link', subject: id, detail: { tool: tool.id, course: pending.course_id, deployment: tool.deployment } })
+  await commit(env, [
+    stmt(env, 'INSERT INTO beam_lti_resources(id,tool_id,course_id,url,title,selected_by,selected_at,launch_id) SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM beam_lti_launches WHERE id=? AND consumed_at IS NULL) ON CONFLICT DO NOTHING', id, tool.id, pending.course_id, target, items[0].title.trim(), pending.member_id, now(), pending.id, pending.id),
+    stmt(env, 'UPDATE beam_lti_launches SET consumed_at=? WHERE id=? AND EXISTS(SELECT 1 FROM beam_lti_resources WHERE id=? AND launch_id=?)', now(), pending.id, id, pending.id)], { actor: pending.member_id, action: 'lti.deep_link', subject: id, detail: { tool: tool.id, course: pending.course_id, deployment: tool.deployment } })
+  insist(await one(env, 'SELECT 1 FROM beam_lti_resources WHERE id=?', id), 'lti_deep_link_expired', 409)
   return json({ id, state: 'selected_not_published', course: pending.course_id })
 }
 async function accessToken(env: Bindings, request: Request) {
@@ -163,10 +188,12 @@ async function accessToken(env: Bindings, request: Request) {
   insist(row, 'invalid_lti_token', 401)
   const tool = await liveTool(env, row.id), claims = await jwtVerify(input.text('client_assertion', { max: 32_000 }), JSON.parse(tool.keys_json), tool.client_id, `${env.AUTH_ORIGIN}/api/beam/lti/token`)
   insist(claims.sub === tool.client_id && typeof claims.jti === 'string' && claims.jti.length > 0 && claims.jti.length <= 200, 'invalid_lti_token', 401)
-  const taken = await env.DB.prepare('INSERT INTO beam_lti_assertions VALUES(?,?,?) ON CONFLICT DO NOTHING RETURNING jti').bind(tool.id, claims.jti, claims.exp * 1000).all()
-  insist(taken.results.length === 1, 'lti_assertion_replayed', 401)
-  const token = randomSecret()
-  await env.DB.prepare('INSERT INTO beam_lti_tokens VALUES(?,?,?)').bind(await digest(token), tool.id, now() + 300_000).run()
+  const token = randomSecret(), hash = await digest(token)
+  await env.DB.batch([
+    stmt(env, 'INSERT INTO beam_lti_tokens SELECT ?,?,? WHERE NOT EXISTS(SELECT 1 FROM beam_lti_assertions WHERE tool_id=? AND jti=?) AND EXISTS(SELECT 1 FROM beam_lti_tools WHERE id=? AND key_version=? AND revoked_at IS NULL)', hash, tool.id, now() + 300_000, tool.id, claims.jti, tool.id, tool.key_version),
+    stmt(env, 'INSERT INTO beam_lti_assertions SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM beam_lti_tokens WHERE hash=?) ON CONFLICT DO NOTHING', tool.id, claims.jti, claims.exp * 1000, hash),
+  ])
+  insist(await one(env, 'SELECT 1 FROM beam_lti_tokens WHERE hash=?', hash), 'lti_assertion_replayed', 401)
   return json({ access_token: token, token_type: 'Bearer', expires_in: 300, scope: AGS + 'scope/score' })
 }
 async function score(env: Bindings, request: Request, id: string) {
@@ -175,6 +202,9 @@ async function score(env: Bindings, request: Request, id: string) {
   insist(grant, 'invalid_lti_token', 401)
   const tool = await liveTool(env, grant.tool_id), line = await one(env, 'SELECT * FROM beam_lti_lineitems WHERE id=? AND tool_id=?', id, tool.id)
   insist(line, 'lti_lineitem_not_found', 404)
+  const resource = await one(env, 'SELECT course_id FROM beam_lti_resources WHERE id=?', line.resource_id)
+  insist(resource, 'lti_resource_not_found', 404)
+  await liveTool(env, tool.id, resource.course_id)
   const assignment = await one(env, 'SELECT * FROM beam_assignments WHERE id=? AND course_revision_id=? AND learner_id=?', line.assignment_id, line.revision_id, line.learner_id)
   insist(assignment && assignment.status === 'open', 'lti_assignment_closed', 409); requireAccess(assignment)
   const reset = await one(env, 'SELECT MAX(reset_at) AS at FROM beam_assignment_resets WHERE assignment_id=?', assignment.id)
@@ -190,9 +220,32 @@ async function score(env: Bindings, request: Request, id: string) {
   insist(typeof body.scoreGiven === 'number' && Number.isFinite(body.scoreGiven) && typeof body.scoreMaximum === 'number' && Number.isFinite(body.scoreMaximum) && body.scoreMaximum > 0 && body.scoreGiven >= 0 && body.scoreGiven <= body.scoreMaximum && ['Initialized','Started','InProgress','Submitted','Completed'].includes(body.activityProgress) && ['NotReady','Failed','Pending','PendingManual','FullyGraded'].includes(body.gradingProgress), 'invalid_lti_result')
   const latest = await one(env, 'SELECT timestamp FROM beam_lti_results WHERE lineitem_id=? ORDER BY rowid DESC LIMIT 1', line.id)
   insist(!latest || Date.parse(body.timestamp) > Date.parse(latest.timestamp), 'lti_result_replayed', 409)
-  await commit(env, [stmt(env, 'INSERT INTO beam_lti_results VALUES(?,?,?,?,?,?,?,?)', newId(), line.id, body.scoreGiven, body.scoreMaximum, body.activityProgress, body.gradingProgress, body.timestamp, now())], { actor: tool.created_by, action: 'lti.result', subject: assignment.id, detail: { tool: tool.id, deployment: tool.deployment, lineitem: line.id, revision: line.revision_id, resource: line.resource_id } })
-  const completion = await tryComplete(env, actor, assignment.id)
+  const resultId = newId()
+  await commit(env, [stmt(env, 'INSERT INTO beam_lti_results SELECT ?,?,?,?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM beam_lti_results WHERE lineitem_id=? AND julianday(timestamp)>=julianday(?)) AND EXISTS(SELECT 1 FROM beam_lti_tokens WHERE hash=? AND expires_at>?) AND EXISTS(SELECT 1 FROM beam_lti_tools WHERE id=? AND key_version=? AND revoked_at IS NULL) AND EXISTS(SELECT 1 FROM beam_assignments WHERE id=? AND status=\'open\') ON CONFLICT DO NOTHING', resultId, line.id, body.scoreGiven, body.scoreMaximum, body.activityProgress, body.gradingProgress, body.timestamp, now(), line.id, body.timestamp, await digest(token!), now(), tool.id, tool.key_version, assignment.id)], { actor: tool.created_by, action: 'lti.result.receive', subject: assignment.id, detail: { tool: tool.id, deployment: tool.deployment, lineitem: line.id, revision: line.revision_id, resource: line.resource_id } })
+  insist(await one(env, 'SELECT 1 FROM beam_lti_results WHERE id=?', resultId), 'lti_result_replayed', 409)
+  let completion
+  try { completion = await tryComplete(env, actor, assignment.id) }
+  catch (error) {
+    completion = await one(env, 'SELECT id FROM beam_completions WHERE assignment_id=? AND course_revision_id=?', assignment.id, line.revision_id)
+    if (!completion) throw error
+  }
   return json({ accepted: true, completion: completion?.id ?? null })
+}
+/** A lost callback response never requires inventing or replacing a grade. */
+export async function reconcileLti(env: Bindings, actor: Actor, input: Input) {
+  insist(!actor.agent && !actor.viewAs, 'human_session_required', 403)
+  const assignment = input.text('assignment'), view = await assignmentView(env, actor, assignment)
+  insist(view.assignment.learner === actor.id && !view.blocked && view.access.state === 'open', 'lti_assignment_unavailable', 403)
+  if (view.completion) return { completion: view.completion.id }
+  let completion
+  try { completion = await tryComplete(env, actor, assignment) }
+  catch (error) {
+    // Another callback may have closed this exact assignment while this request was waiting on D1.
+    const closed = await one(env, 'SELECT id FROM beam_completions WHERE assignment_id=? AND course_revision_id=?', assignment, view.assignment.revision)
+    if (!closed) throw error
+    return { completion: closed.id }
+  }
+  return { completion: completion?.id ?? null }
 }
 /** These protocol doors authenticate signed JWTs/short-lived deployment tokens, never co-present human cookies. */
 export async function ltiPublicResponse(env: Bindings, request: Request): Promise<Response | null> {

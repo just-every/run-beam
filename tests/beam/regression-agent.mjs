@@ -184,7 +184,7 @@ export async function webhookCheck() {
     assert.deepEqual(attempts.map(row => row.status), [401, 401, 401])
     assert.ok((await api('owner', 'automation-controls')).executions.some(x => x.input.delivery === d.id && x.outcome === 'failed' && x.failure.includes('webhook_provider_denied')))
     h.edge.webhookStatus = 204
-    await due(d.id); await replay(d.id, { confirm: true })
+    await replay(d.id, { confirm: true })
     assert.equal((await view()).deliveries.find(row => row.id === d.id).state, 'delivered')
     const idsSent = h.edge.webhooks.filter(m => JSON.parse(m.body).type === 'renewal').map(m => m.headers['x-beam-event-id'])
     assert.equal(new Set(idsSent).size, 1, 'redelivery preserves the stable event id')
@@ -214,6 +214,10 @@ export async function webhookCheck() {
     const audit = JSON.stringify(await api('owner', 'audit?q=webhook'))
     assert.ok(audit.includes('webhook.subscribe') && audit.includes('webhook.delivery') && audit.includes('webhook.revoke'))
     assert.ok(!audit.includes(s.key) && !audit.includes(rotated.key))
+    const { webhookRecoveryCheck } = await import('./regression-webhook-recovery.mjs')
+    await webhookRecoveryCheck(f)
+    const { webhookScopeCheck } = await import('./regression-integration-scope.mjs')
+    await webhookScopeCheck(f)
   } finally { await h.close() }
 }
 
@@ -283,7 +287,9 @@ export async function ltiCheck() {
     await protocol('deep-link', { body: new URLSearchParams({ JWT: jwt(toolKeys, { ...responseClaims, [LTI + 'deployment_id']: 'foreign' }) }), status: 403 })
     const responseBody = new URLSearchParams({ JWT: jwt(toolKeys, responseClaims) })
     await protocol('deep-link', { body: responseBody, cookie: cookies.owner, status: 403 })
-    const resource = await protocol('deep-link', { body: responseBody })
+    const selected = await Promise.all([h.raw('/api/beam/lti/deep-link', { form: responseBody }), h.raw('/api/beam/lti/deep-link', { form: responseBody })])
+    assert.deepEqual(selected.map(r => r.status).sort(), [200, 409])
+    const resource = await selected.find(r => r.status === 200).json()
     assert.equal(resource.state, 'selected_not_published')
     await protocol('deep-link', { body: responseBody, status: 409 })
     await api('author', 'lti.attach', { resource: resource.id, course: c.id, draftVersion: draft.draftVersion, lesson: draft.draft.lessons[0].id, passPercent: 80 }, 403)
@@ -327,7 +333,7 @@ export async function ltiCheck() {
     const foreign = await api('owner', 'lti.register', { ...configure, clientId: 'synthetic-beam-2', deployment: 'synthetic-beam-2' })
     const foreignToken = await grant(toolKeys, {}, 200, 'synthetic-beam-2')
     let stamp = Date.now()
-    const score = (extra = {}) => ({ userId: payload.sub, scoreGiven: 100, scoreMaximum: 100, activityProgress: 'Completed', gradingProgress: 'FullyGraded', timestamp: new Date(stamp++).toISOString(), ...extra })
+    const score = (extra = {}) => ({ userId: payload.sub, scoreGiven: 100, scoreMaximum: 100, activityProgress: 'Completed', gradingProgress: 'FullyGraded', timestamp: new Date(stamp = Math.max(Date.now(), stamp + 1)).toISOString(), ...extra })
     await protocol(endpoint, { body: score(), token: foreignToken.access_token, status: 404 })
     await protocol(endpoint, { body: score({ userId: 'foreign' }), token: token.access_token, status: 400 })
     await protocol(endpoint, { body: score({ scoreMaximum: 0 }), token: token.access_token, status: 400 })
@@ -335,6 +341,10 @@ export async function ltiCheck() {
     assert.equal((await api('learner', `assignments/${assignment}`)).externalTools[0].passed, false)
     await protocol(endpoint, { body: score({ activityProgress: 'InProgress' }), token: token.access_token })
     assert.equal((await api('learner', `assignments/${assignment}`)).externalTools[0].passed, false)
+    const concurrent = score({ scoreGiven: 30 })
+    const sendConcurrent = () => h.fetch('/api/beam/lti/' + endpoint, { method: 'POST', headers: { authorization: 'Bearer ' + token.access_token, 'content-type': 'application/json' }, body: JSON.stringify(concurrent) })
+    const deliveries = await Promise.all([sendConcurrent(), sendConcurrent()])
+    assert.deepEqual(deliveries.map(r => r.status).sort(), [200, 409], 'concurrent duplicate results store one grade')
     const passed = score(), received = await protocol(endpoint, { body: passed, token: token.access_token })
     assert.equal(received.completion, null, 'an external grade never substitutes native lesson evidence')
     await protocol(endpoint, { body: passed, token: token.access_token, status: 409 })
@@ -369,17 +379,33 @@ export async function ltiCheck() {
     const { integrationArchiveCheck } = await import('./regression-archive.mjs')
     await integrationArchiveCheck(f, { tool: tool.id, subscription: subscription.id, completion: completed.id, token: token.access_token, key: subscription.key })
     if (process.env.BEAM_LTI_BROWSER === '1') await ltiBrowserCheck(f, { course: c.id, revision, assignment, resource: resource.id, configure })
+    const recoveryAssignment = await assign(c)
+    await f.lessons(recoveryAssignment)
+    const recoveryLaunch = await authorize('learner', await api('learner', 'lti.launch', { assignment: recoveryAssignment, resource: resource.id }))
+    const recoveryEndpoint = recoveryLaunch.claims[AGS + 'claim/endpoint'].lineitem.replace(h.origin + '/api/beam/lti/', '') + '/scores'
+    // Fault at the completion checkpoint: the verified result transaction has already committed.
+    await h.db.prepare("CREATE TRIGGER synthetic_beam_interrupt BEFORE INSERT ON beam_completions BEGIN SELECT RAISE(ABORT,'synthetic-beam-1'); END").run()
+    await protocol(recoveryEndpoint, { body: score({ userId: recoveryLaunch.claims.sub }), token: token.access_token, status: 500 })
+    await h.db.prepare('DROP TRIGGER synthetic_beam_interrupt').run()
+    const recovery = await Promise.all([api('learner', 'lti.reconcile', { assignment: recoveryAssignment }), api('learner', 'lti.reconcile', { assignment: recoveryAssignment })])
+    assert.ok(recovery[0].completion && recovery[0].completion === recovery[1].completion)
+    assert.equal((await api('learner', `assignments/${recoveryAssignment}`)).assignment.status, 'completed')
     const pendingAssignment = await assign(c)
     const pending = await authorize('learner', await api('learner', 'lti.launch', { assignment: pendingAssignment, resource: resource.id }))
     const pendingEndpoint = pending.claims[AGS + 'claim/endpoint'].lineitem.replace(h.origin + '/api/beam/lti/', '') + '/scores'
+    await protocol(pendingEndpoint, { body: score({ userId: pending.claims.sub }), token: token.access_token })
     await api('owner', 'lti.revoke', { tool: tool.id })
+    await f.lessons(pendingAssignment)
+    assert.equal((await api('learner', 'lti.reconcile', { assignment: pendingAssignment })).completion, null, 'a revoked deployment cannot finish an open assignment with an earlier grade')
     await protocol(pendingEndpoint, { body: score(), token: token.access_token, status: 401 })
     await grant(rotatedKeys, {}, 403)
     await api('learner', 'lti.launch', { assignment: pendingAssignment, resource: resource.id }, 403)
     await api('learner', 'lti', undefined, 403)
-    assert.ok((await api('owner', 'lti')).results.every(result => result.revision_id === revision))
+    assert.ok((await api('owner', 'lti')).results.every(result => result.revision_id === revision || result.assignment_id === pendingAssignment || result.assignment_id === recoveryAssignment))
     const old = await h.db.prepare('SELECT evidence_json FROM beam_completions WHERE id=?').bind(completed.id).first()
     assert.deepEqual(JSON.parse(old.evidence_json), evidence, 'revocation/rotation never rewrite completion lineage')
+    const { ltiScopeCheck } = await import('./regression-integration-scope.mjs')
+    await ltiScopeCheck(f, { configure, toolKeys, jwt, authorize, protocol, LTI, DL })
   } finally { await h.close() }
 }
 
@@ -388,7 +414,7 @@ async function ltiBrowserCheck(f, item) {
   const { mkdir } = await import('node:fs/promises'), { join } = await import('node:path')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence, { recursive: true })
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
   try {
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
@@ -397,6 +423,7 @@ async function ltiBrowserCheck(f, item) {
       async function shot(name) { assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} overflow ${width}`); await page.screenshot({ path: join(evidence, `${width}-lti-${name}.png`), fullPage: true }) }
       await as('learner'); await page.goto(`${f.h.origin}/app/learn/${item.assignment}`); await page.getByRole('heading', { name: 'External learning tools', exact: true }).waitFor(); await shot('course')
       const pending = await f.assign({ id: item.course })
+      await page.goto(`${f.h.origin}/app/learn/${pending}`); await page.getByRole('button', { name: 'Check external results', exact: true }).waitFor(); await shot('course-open')
       const prepared = await f.api('learner', 'lti.launch', { assignment: pending, resource: item.resource }), q = new URL(prepared.loginUrl).searchParams
       const query = new URLSearchParams({ client_id: q.get('client_id'), login_hint: q.get('login_hint'), lti_message_hint: q.get('lti_message_hint'), redirect_uri: item.configure.redirectUri, nonce: 'synthetic-beam-1', state: 'synthetic-beam-1', scope: 'openid', prompt: 'none', response_type: 'id_token', response_mode: 'form_post' })
       await page.goto(`${f.h.origin}/api/beam/lti/authorize?${query}`); await page.getByRole('button', { name: 'Continue to external tool', exact: true }).waitFor(); await shot('handoff')

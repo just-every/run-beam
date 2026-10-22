@@ -1,13 +1,16 @@
 import { message } from '../messages'
 import type { Language } from '../language'
+import { formatInstant } from '../time'
 // LEARN-018 on the pages: starting and taking a timed quiz with its countdown,
 // the time facts on an attempt, and a manager's extra-time accommodations.
 import type { Accommodation } from '../timing'
 import type { Answer, PresentedQuestion } from '../question-types'
 import { area, card, field, form, h, hidden, rows, select, when, type Html } from './html'
 
-export const accommodationLabel = (row: Pick<Accommodation, 'kind' | 'amount' | 'course'>, courseTitle?: string) =>
-  `${row.kind === 'percent' ? `${row.amount}% extra time` : `${row.amount} extra ${row.amount === 1 ? 'minute' : 'minutes'}`} ${row.course ? `on ${courseTitle ?? 'this course'}` : 'on every timed assessment'}`
+export const accommodationLabel = (row: Pick<Accommodation, 'kind' | 'amount' | 'course'>, courseTitle?: string, locale: Language = 'en-US') => {
+  const amount = new Intl.NumberFormat(locale).format(row.amount)
+  return message(locale, '{amount} {scope}', { amount: message(locale, row.kind === 'percent' ? '{n}% extra time' : '{n} extra minutes', { n: amount }), scope: row.course ? message(locale, 'on {course}', { course: courseTitle ?? message(locale, 'this course') }) : message(locale, 'on every timed assessment') })
+}
 
 interface Quiz { passPercent: number; attemptsLeft: number; timeLimitMinutes?: number | null; extraMinutes?: number; accommodation?: Accommodation | null; session?: { deadline: number; extraMinutes: number; answers: Record<string, Answer> } | null; questions: PresentedQuestion[] }
 
@@ -16,8 +19,8 @@ interface Quiz { passPercent: number; attemptsLeft: number; timeLimitMinutes?: n
 export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {}, locale: Language = 'en-US') => quiz.questions.map((question, n) => {
   const given = answers[question.id] ?? []
   // LEARN-001: a written answer goes to the named assessor.
-  if (question.kind === 'text') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(written answer, ${question.points} ${question.points === 1 ? 'point' : 'points'}, graded by the assessor)</span></legend>${area(message(locale, 'Your answer'), `q_${question.id}`, typeof given[0] === 'string' ? given[0] : '', false)}</fieldset>`
-  if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(fill in ${question.blanks === 1 ? 'the blank' : question.blanks === 2 ? 'both blanks' : `all ${question.blanks} blanks`})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(message(locale, 'Blank {n}', { n: part + 1 }), `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
+  if (question.kind === 'text') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(${message(locale, 'written answer, {points} points, graded by the assessor', { points: new Intl.NumberFormat(locale).format(question.points) })})</span></legend>${area(message(locale, 'Your answer'), `q_${question.id}`, typeof given[0] === 'string' ? given[0] : '', false)}</fieldset>`
+  if (question.kind === 'blank') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(${message(locale, question.blanks === 1 ? 'fill in the blank' : 'fill in {n} blanks', { n: new Intl.NumberFormat(locale).format(question.blanks) })})</span></legend>${Array.from({ length: question.blanks }, (_, part) => field(message(locale, 'Blank {n}', { n: part + 1 }), `q_${question.id}_${part}`, { value: given[part] ?? '', required: false }))}</fieldset>`
   const options = question.kind === 'order' || question.kind === 'match' ? question.options.map(option => ({ value: String(option.index), label: option.label })) : []
   const chosen = (part: number) => typeof given[part] === 'number' && given[part] !== -1 ? String(given[part]) : ''
   if (question.kind === 'order') return h`<fieldset><legend>${n + 1}. ${question.prompt} <span class="muted">(${message(locale, 'put the items in order')})</span></legend>${Array.from({ length: question.positions }, (_, part) => select(message(locale, 'Position {n}', { n: part + 1 }), `q_${question.id}_${part}`, options, chosen(part), { required: false, blank: '—' }))}</fieldset>`
@@ -27,24 +30,30 @@ export const questionFields = (quiz: Quiz, answers: Record<string, Answer> = {},
 })
 
 /** Before the attempt starts: the limit, any extra time and what happens when time runs out. */
-export function timedStart(id: string, quiz: Quiz) {
-  const extra = quiz.extraMinutes ? ` plus ${quiz.extraMinutes} minutes extra time (${accommodationLabel(quiz.accommodation!)}, granted by ${quiz.accommodation!.grantedByName})` : ''
-  return h`<div class="card narrow"><p>You have ${quiz.timeLimitMinutes} minutes${extra}. The time starts when you press Start and keeps running if you leave this page or lose your connection.</p><p>Save your answers as you go: when the time runs out, only saved answers are scored and later answers are refused.</p>${form('quiz.start', `/app/learn/${id}/quiz`, [hidden('assignment', id)], 'Start the timed quiz')}</div>`
+export function timedStart(id: string, quiz: Quiz, locale: Language = 'en-US') {
+  const tr = (key: string, values = {}) => message(locale, key, values)
+  const n = (value: number) => new Intl.NumberFormat(locale).format(value)
+  const extra = quiz.extraMinutes ? tr(' plus {minutes} minutes extra time ({accommodation}, granted by {name})', { minutes: n(quiz.extraMinutes), accommodation: accommodationLabel(quiz.accommodation!, undefined, locale), name: quiz.accommodation!.grantedByName }) : ''
+  return h`<div class="card narrow"><p>${tr('You have {minutes} minutes{extra}. The time starts when you press Start and keeps running if you leave this page or lose your connection.', { minutes: n(quiz.timeLimitMinutes!), extra })}</p><p>${tr('Save your answers as you go: when the time runs out, only saved answers are scored and later answers are refused.')}</p>${form('quiz.start', `/app/learn/${id}/quiz`, [hidden('assignment', id)], tr('Start the timed quiz'))}</div>`
 }
 
 /** The running attempt: the server's deadline as a countdown, saved answers checked, and Save or Submit. */
-export function timedQuiz(id: string, quiz: Quiz, zone: string, at: number) {
-  const session = quiz.session!
+export function timedQuiz(id: string, quiz: Quiz, zone: string, at: number, locale: Language = 'en-US') {
+  const session = quiz.session!, tr = (key: string, values = {}) => message(locale, key, values)
+  const n = (value: number) => new Intl.NumberFormat(locale).format(value)
   const minutes = Math.max(0, Math.ceil((session.deadline - at) / 60_000))
-  return h`<p class="flash countdown" data-deadline="${session.deadline}" data-now="${at}"><strong>Time left: <span data-left aria-hidden="true">${minutes} min</span></strong> · ends ${when(session.deadline, zone)}${session.extraMinutes ? ` · includes ${session.extraMinutes} minutes extra time` : ''}</p><p id="time-status" role="status" aria-live="assertive"></p>
-<div class="card narrow"><form method="post" action="/app/do/quiz.submit">${hidden('assignment', id)}${questionFields(quiz, session.answers)}<button type="submit" name="returnTo" value="/app/learn/${id}">Submit answers</button> <button type="submit" class="secondary" formaction="/app/do/quiz.save" name="returnTo" value="/app/learn/${id}/quiz">Save answers</button></form></div>`
+  return h`<p class="flash countdown" data-deadline="${session.deadline}" data-now="${at}" data-warning-five="${tr('Five minutes left. Save your answers.')}" data-warning-one="${tr('One minute left. Save your answers now.')}" data-expired="${tr('Time is up. Only the answers you saved are scored.')}" data-locale="${locale}"><strong>${tr('Time left:')} <span data-left aria-hidden="true">${n(minutes)} ${tr('min')}</span></strong> · ${tr('ends {date}', { date: formatInstant(session.deadline, zone, zone, locale) })}${session.extraMinutes ? tr(' · includes {n} minutes extra time', { n: n(session.extraMinutes) }) : ''}</p><p id="time-status" role="status" aria-live="assertive"></p>
+<div class="card narrow"><form method="post" action="/app/do/quiz.submit">${hidden('assignment', id)}${questionFields(quiz, session.answers, locale)}<button type="submit" name="returnTo" value="/app/learn/${id}">${tr('Submit answers')}</button> <button type="submit" class="secondary" formaction="/app/do/quiz.save" name="returnTo" value="/app/learn/${id}/quiz">${tr('Save answers')}</button></form></div>`
 }
 
 /** On an attempt: its limit, extra time with who granted it, and when it actually started and closed. */
-export function timingCard(timing: { timeLimitMinutes: number; extraMinutes: number; accommodation: Accommodation | null; startedAt: number; closedAt: number; closeReason: string } | null, zone: string): Html | '' {
+export function timingCard(timing: { timeLimitMinutes: number; extraMinutes: number; accommodation: Accommodation | null; startedAt: number; closedAt: number; closeReason: string } | null, zone: string, locale: Language = 'en-US'): Html | '' {
   if (!timing) return ''
-  const extra = timing.extraMinutes ? h`<p>Extra time: ${timing.extraMinutes} minutes${timing.accommodation ? ` (${accommodationLabel(timing.accommodation)}, granted by ${timing.accommodation.grantedByName} ${when(timing.accommodation.grantedAt, zone)})` : ''}.</p>` : ''
-  return card('Time', h`<p>Time limit: ${timing.timeLimitMinutes} minutes.</p>${extra}<p>Started ${when(timing.startedAt, zone)}; closed ${when(timing.closedAt, zone)} ${timing.closeReason === 'expired' ? 'when the time ran out, with the answers saved before it' : 'on submission'}.</p>`)
+  const tr = (key: string, values = {}) => message(locale, key, values)
+  const n = (value: number) => new Intl.NumberFormat(locale).format(value)
+  const at = (value: number) => formatInstant(value, zone, zone, locale)
+  const extra = timing.extraMinutes ? h`<p>${tr('Extra time: {n} minutes', { n: n(timing.extraMinutes) })}${timing.accommodation ? tr(' ({accommodation}, granted by {name} {date})', { accommodation: accommodationLabel(timing.accommodation, undefined, locale), name: timing.accommodation.grantedByName, date: at(timing.accommodation.grantedAt) }) : ''}.</p>` : ''
+  return card(tr('Time'), h`<p>${tr('Time limit: {n} minutes.', { n: n(timing.timeLimitMinutes) })}</p>${extra}<p>${tr('Started {start}; closed {end} {reason}.', { start: at(timing.startedAt), end: at(timing.closedAt), reason: tr(timing.closeReason === 'expired' ? 'when the time ran out, with the answers saved before it' : 'on submission') })}</p>`)
 }
 
 /** On a person's record, for managers: their extra-time accommodations and the form to grant one. */

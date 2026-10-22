@@ -1,3 +1,4 @@
+import { t } from './messages'
 import { ltiPublicResponse, authorizeLti, launchLti } from './lti'
 import { languagePreference } from './language'
 import { dataExport, dataExportFile } from './data-export'
@@ -91,7 +92,7 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
   if (protocol) return protocol
   // LEARN-002: a certificate's verification link is public and shows only what its template approves.
   const verify = url.pathname.match(/^\/verify\/([^/]+)$/)
-  if (verify && ['GET', 'HEAD'].includes(request.method)) return await verifyPage(env, verify[1]).catch(() => new Response('Not found', { status: 404 }))
+  if (verify && ['GET', 'HEAD'].includes(request.method)) return await verifyPage(env, verify[1], url).catch(() => new Response('Not found', { status: 404 }))
   if (!api && url.pathname !== '/app' && !url.pathname.startsWith('/app/')) return null
   if (request.method === 'POST' && request.headers.get('origin') !== env.AUTH_ORIGIN && !exemptFromOriginCheck(request)) return api ? json({ error: 'invalid_origin' }, 403) : new Response('Forbidden', { status: 403 })
   if (!['GET', 'HEAD', 'POST'].includes(request.method)) return new Response(null, { status: 405, headers: { allow: 'GET, HEAD, POST' } })
@@ -112,7 +113,7 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     const { code, status, detail } = failure(error)
     if (api) return json({ error: code, ...(detail === undefined ? {} : { detail }) }, status)
     if (status === 404) return notFound(actor)
-    return page('Something went wrong', actor, h`<h1>That did not work</h1><p>${describeError(code).replace(/^./, letter => letter.toUpperCase())}</p><p><a href="/app/learning">Back to My learning</a></p>`, { status })
+    return page(t(actor, 'Something went wrong'), actor, h`<h1>${t(actor, 'That did not work')}</h1><p>${t(actor, describeError(code)).replace(/^./, letter => letter.toUpperCase())}</p><p><a href="/app/learning">${t(actor, 'Back to My learning')}</a></p>`, { status })
   }
 }
 
@@ -189,7 +190,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
     if (importAction) return await importProgressPage(env, actor, await Input.from(request), url, request, importAction)
     const bank = path.match(/^\/app\/courses\/([\w-]+)\/bank\/preview$/)?.[1]
     if (bank) { const input = await Input.from(request); insist(input.text('course') === bank, 'invalid_course'); return await bankPreviewPage(env, actor, bank, input, url) }
-    const name = path.match(/^\/app\/do\/([\w.]+)$/)?.[1]
+    const name = path.match(/^\/app\/do\/([\w.-]+)$/)?.[1]
     const action = name ? actions[name] : undefined
     if (!action) throw new BeamError('not_found', 404)
     const input = await Input.from(request)

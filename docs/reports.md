@@ -53,7 +53,7 @@ A **restricted link** is for one named signed-in viewer, expires within 90 elaps
 
 ## A learner's record
 
-From **Manage**, open **Learner records** and choose a person: their assignments, completions with certificates, and history imported from a previous system, which is labeled as such and never counts as a Beam completion.
+From **Manage**, open **Learner records** and choose a person: their assignments, completions with certificates, and history imported from a previous system, which is labeled as such and never counts as a Beam completion. Authorized report readers also see the active credit decision for that person: its source, historical completion, current or expiring status, expiry, approving person, date and written reason. This card creates no Beam completion or certificate; a current native completion takes precedence.
 
 ## Transcripts
 
