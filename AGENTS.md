@@ -244,24 +244,40 @@ both through Base's portability export and restore.
 
 ## Reviewed source extraction (AUTHOR-002, partial)
 
-An author reads `GET /api/beam/sources/:versionId/extraction` for DOCX or
-UTF-8 `.txt`, `.md` and `.markdown` originals. The response includes the exact
-version/provenance, an authenticated original-file URL, proposed lesson text
-and extraction warnings. Reading it writes nothing. DOCX images contribute
-only their existing descriptions; image bytes, full table formatting,
-PDF/PPTX/HTML and OCR are still owed. The existing 25 MB source admission
-remains; text extraction admits at most 1 MB, DOCX document XML 2 MB,
-50 MB total declared ZIP content and 2,000 entries. No remote document
-resources are fetched. Oversize or unsupported material is refused without
-truncation.
+Authors use Sources → Prepare lessons, or `GET /api/beam/sources/:versionId/extraction`,
+for bounded DOCX/PPTX ZIPs, inert HTML, UTF-8 text/Markdown and PDFs. Extraction
+retains immutable provenance, located original passages, editable tables and
+accessible raster image assets; no remote document resources are fetched. Tagged
+PDF tables and unambiguous repeated rectangular rows are preserved; complex
+layouts and unsupported objects remain explicit warnings/gaps. The authenticated
+original stays available beside the extraction. `source.convert` requires checked
+comparison, resolved uncertainty ids, current draft version and source-bound
+assets; it only creates draft lessons. Named human review still publishes.
 
-After checking the original and correcting the text, post `source.convert`
-with `course`, `draftVersion`, `sourceVersion`, `reviewed: true` and
-`lessons: [{title, body}]`. The form door uses JSON for the `lessons` field.
-It appends editable lessons citing that immutable source version, subject
-to normal author/course authority, draft concurrency and lesson limits.
-It never publishes: submit and named-reviewer publication stay unchanged.
-These preparation doors have no dedicated UI yet.
+Scanned PDFs require actual OCR. Only the human owner configures the sealed
+OpenAI key at `/app/sources/ocr` and approves each source at
+`/app/sources/:version/ocr`, after provider/model, immutable digest, USD estimate
+and custody disclosure. Approvals expire, are consumed once, and do not survive
+configuration changes. There is no automatic retry; failed/unknown billing keeps
+its reservation. Archives withhold keys and restore disables OCR. The paid edge
+is faked only in `regression-source-ocr.mjs`; `live-source-ocr.mjs` is the separate
+held-key qualification. The adopted privacy/spending default needs ct approval.
+
+## Retention and erasure (OPS-003, partial)
+
+Settings → Retention and erasure is human-owner only. Save a justified employer
+policy, place or release explicit holds, preview custody and consent to a fresh
+inventory before starting. GETs never advance deletion. Each explicit resume
+journals import/native/file/provider steps; practice replies are deleted even
+when assessed evidence is held. Import custody includes uploads/chunks, plans,
+approvals, scope and apply failures while permanent settings and revoked keys
+remain. Personal audit payload/routes are redacted while decision ids and times
+survive. Unmapped references/shared machine snapshots refuse execution. Provider
+API deletion remains visibly unresolved, never reported as success. Reconnects
+are fenced by installation-specific hashes; older restores require the later
+trusted privacy journal. Journal loss, downloaded/native caches, derived cited
+source content and provider propagation remain gaps, as does ct approval of the
+adopted retention/custody policy. Do not describe this slice as complete erasure.
 
 ## Native lesson media (AUTHOR-001, partial)
 
