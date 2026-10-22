@@ -151,5 +151,24 @@ export async function microlearningCheck(f) {
   const future = await f.api('learner', `sequences/${assigned}`)
   assert.equal(future.available, false)
   await f.api('learner', 'sequence.answer', { assignment: assigned, day: 1, choice: 0, version: future.version }, 409)
+  // A reviewed language revision keeps the same five-day structure and its own exact lesson identities.
+  const template = (await f.api('author', `course-locales/${c.id}`)).template
+  const glossary = await f.api('author', 'glossary.save', { course: c.id, locale: 'es-US', terms: [{ source: 'vaccines', target: 'vacunas' }] })
+  await f.api('owner', 'glossary.approve', { glossary: glossary.id, confirm: true })
+  template.title = 'Seguridad de vacunas en cinco días'
+  for (const lesson of template.lessons) { lesson.title = 'Procedimiento de vacunas'; lesson.body = 'Mantén las vacunas entre 2 y 8 grados. Revisa el termómetro antes de usarlo.' }
+  for (const step of template.sequence.days) { step.prompt = '¿Qué temperatura es segura?'; step.choices[0].label = '5 grados'; step.choices[0].feedback = 'Correcto. Continúa en la siguiente fecha programada.'; step.choices[1].label = '20 grados'; step.choices[1].feedback = 'Revisa el procedimiento e inténtalo de nuevo.' }
+  template.questions[0].prompt = '¿Qué temperatura es segura?'; template.questions[0].choices = ['5 grados', '20 grados']
+  const prepared = await f.api('author', 'locale.prepare', { course: c.id, baseRevision: revision, locale: 'es-US', glossary: glossary.id, draft: template })
+  await f.api('author', 'locale.submit', { translation: prepared.id, version: 1 })
+  const translated = await f.api('owner', 'locale.approve', { translation: prepared.id, version: 1, glossaryReviewed: true, correctnessReviewed: true })
+  await f.api('owner', 'person.directory', { member: f.ids.learner, language: 'es-US' })
+  const localizedAssignment = await f.assign(c), localized = await f.api('learner', `sequences/${localizedAssignment}`)
+  assert.equal(localized.revision, translated.revision)
+  assert.equal(localized.program.days[0].prompt, '¿Qué temperatura es segura?')
+  assert.ok(localized.program.days.every(step => localized.lessons.some(lesson => lesson.id === step.lesson)))
+  assert.deepEqual(localized.program.workDays, reviewed.program.workDays)
+  assert.equal((await view()).revision, revision, 'an older English program never changes identity')
+  await f.api('owner', 'person.directory', { member: f.ids.learner, language: 'en-US' })
   return { ...c, assignment, revision }
 }
