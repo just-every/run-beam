@@ -49,11 +49,11 @@ export function workbook(sheets) {
 }
 
 /** A course report for course 101: one learner known to Beam, one unknown, one not completed, one row repeated in the timeline, one earlier completion only in the timeline. */
-export function courseReport({ learnerEmail }) {
+export function courseReport({ learnerEmail, score = 90 }) {
   return workbook([
     ['Users', [
       ['User', 'Email', 'Progress', 'Completion date', 'Score'],
-      ['Sam Lee', learnerEmail, '100%', '14/03/2025', 90],
+      ['Sam Lee', learnerEmail, '100%', '14/03/2025', score],
       ['Jo Former', 'jo.former@example.test', '100%', 45740, 75],
       ['Kim New', 'kim.new@example.test', '40%', '', ''],
       ['Max Unclear', 'max@example.test', '100%', '31/31/2025', ''],

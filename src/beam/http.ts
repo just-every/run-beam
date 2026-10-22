@@ -130,7 +130,7 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     if (url.pathname === '/api/beam/lti/authorize') return await authorizeLti(env, actor, request)
     if (url.pathname === '/app/lti/launch' && request.method === 'POST') { const result = await launchLti(env, actor, await Input.from(request)); return Response.redirect(result.loginUrl, 303) }
     const sourceAssetMatch = url.pathname.match(/^\/(?:api\/beam\/source-assets|app\/files\/source-asset)\/([^/]+)\/([^/]+)$/)
-    if (sourceAssetMatch && request.method === 'GET') return sourceAsset(env, actor, sourceAssetMatch[1], sourceAssetMatch[2])
+    if (sourceAssetMatch && request.method === 'GET') return await sourceAsset(env, actor, sourceAssetMatch[1], sourceAssetMatch[2])
     if (api) return await apiResponse(env, actor, request, url)
     return await pageResponse(env, actor, request, url)
   } catch (error) {

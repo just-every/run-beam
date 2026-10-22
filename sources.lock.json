@@ -1404,7 +1404,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "fbe4f3b0f16c96d61572a23528497eec978d266ddd0164c6c52973c68648ddfd",
+      "sha256": "27f1545e27dcf9451d73550c0a89282ccd873dab030f3d3529b2cea0946c0d45",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -3832,7 +3832,7 @@
       "executable": false
     },
     "tests/beam/fixtures.mjs": {
-      "sha256": "6ebe7367d18a7027b6adbd67f37a8471ab87b821519c8a485850428ed6af0685",
+      "sha256": "5eeb20c63e444c7a4d47776bb50f879199d34116a06a0eff3e2b7f7bc9720bbb",
       "executable": false
     },
     "tests/beam/fixtures/synthetic-beam-scan.pdf": {
@@ -4008,7 +4008,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "33bfd22eda83d6cc64e3a7887aaac4ef4df0504c6a36fc9254fb1ec72ee74d20",
+      "sha256": "eeebbfffdbf1c347493b8dfc2cca430d9af60bf8eeaa15013a3fa0353983bba9",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
