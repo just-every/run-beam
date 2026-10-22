@@ -135,6 +135,7 @@ export async function erasureCheck() {
     assert.equal(exported.records.beam_sequence_answers.rows.filter(row => row.assignment_id === practice).length, 0)
     assert.ok(exported.records.beam_completions.rows.some(row => row.id === completion.id), 'held assessment remains')
     assert.ok(exported.records.beam_attempts.rows.some(row => row.id === evidence.id))
+    assert.ok(exported.records.beam_imported_history.rows.some(row => JSON.stringify(row.payload).includes('learner@example.test')), 'the hold retains imported assessment evidence too')
     const person = exported.records.beam_members.rows.find(row => row.id === ids.learner)
     assert.deepEqual([person.email, person.name], [null, 'Erased person'])
     assert.equal((await api('owner', `directory/${ids.learner}`)).signIn, null)
@@ -153,6 +154,7 @@ export async function erasureCheck() {
     const final = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
     assert.ok(!final.records.beam_completions.rows.some(row => row.id === completion.id))
     assert.ok(!final.records.beam_attempts.rows.some(row => row.id === evidence.id))
+    assert.ok(!final.records.beam_imported_history.rows.some(row => JSON.stringify(row.payload).includes('learner@example.test')), 'releasing retention permits erasure of the held imported evidence')
     assert.equal(await h.files.head(`sha256/${hash(Buffer.from('Observed equipment evidence'))}`), null)
   } finally { await h.close(); await rm(scratch, { recursive: true, force: true }) }
 }
