@@ -18,7 +18,9 @@ const f = await fixture({ businessName:'Sierra Lakes Produce', names:{author:'Jo
   const codes = new Set(['model_not_found','insufficient_quota','invalid_api_key','unsupported_parameter','invalid_value','rate_limit_exceeded','invalid_json_schema'])
   console.log('OCR provider refusal', JSON.stringify({status:response.status,param:params.has(error.param)?error.param:'other',code:codes.has(error.code)?error.code:'other'}))
  }
- return response
+ // Cross the Node/Miniflare response boundary with the provider's actual bytes,
+ // status and headers, as the live LRS adapter does; never substitute a result.
+ return new Response(await response.arrayBuffer(),{status:response.status,headers:response.headers})
 }})
 let browser
 try {
