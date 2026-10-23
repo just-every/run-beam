@@ -122,6 +122,54 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  await api('manager', 'questions.close', { plan: fewPlan })
  const fewImport = await api('manager', 'outcome.import', { ...parameters, questionPlan: fewPlan, csv })
  assert.deepEqual((await read(fewImport.id)).questions.totals, [])
+ // Explicit operational grants cover CSV and API records; private record bodies never become evidence.
+ const grant = { course: c.id, jobRole: 'Packing', teams: [ids.team], consent: true }
+ await api('learner', 'error-feed.authorize', grant, 403)
+ await api('manager', 'error-feed.authorize', { ...grant, consent: false }, 400)
+ const outsideTeam = (await api('owner', 'team.create', { name: 'Outside operational scope' })).id
+ await api('manager', 'error-feed.authorize', { ...grant, teams: [outsideTeam] }, 403)
+ const feed = (await api('manager', 'error-feed.authorize', grant)).id
+ const records = members.map((_, i) => ({ id: `synthetic-beam-${i+1}`, employeeId: `DX${i+1}`, date: '2030-02-05', value: i < 3 ? 1 : 8, customer: 'CUSTOMER SECRET', employeeDetail: 'PRIVATE DETAIL' }))
+ records.push({ ...records[0], value: 9 }, { ...records[0], id: 'synthetic-beam-7', employeeId: 'DX-OUT' })
+ const operational = await api('manager', 'outcome.import', { ...parameters, feed, records })
+ assert.deepEqual([operational.kept, operational.refused.map(r => r.reason)], [6, ['conflicting_record_id', 'outside_managed_cohort']])
+ const scopedView = await read(operational.id)
+ assert.deepEqual(scopedView.records.map(r => r.id), members.map((_,i) => `synthetic-beam-${i+1}`))
+ assert.equal(scopedView.attemptEvidence.signal, 'missing')
+ assert.ok(scopedView.procedure.some(l => l.sources.includes(source.versionId)))
+ for (const text of ['CUSTOMER SECRET', 'PRIVATE DETAIL', 'DX1']) assert.ok(!JSON.stringify(scopedView).includes(text))
+ await api('manager', 'outcome.import', { ...parameters, feed, jobRole: 'Another role', records }, 403)
+ await h.api('outcome.import', unrelatedCookie, { ...parameters, feed, records }, 404)
+ await agent('error-feed.authorize', grant, 403)
+ const operationalDiagnosis = await agent('diagnosis.prepare', { import: operational.id })
+ await api('reviewer', 'diagnosis.review', { diagnosis: operationalDiagnosis.id })
+ const safeProposal = intervention(operationalDiagnosis.id); safeProposal.payload.recommended = 'process'
+ const waiting = await agent('agent.propose', safeProposal)
+ const csvReceipt = await api('manager', 'outcome.import', { ...parameters, feed, csv: 'Employee ID,Date,Value,Record ID,Customer\nDX1,2030-02-05,1,synthetic-beam-8,CUSTOMER SECRET' })
+ assert.equal((await read(csvReceipt.id)).records[0].id, 'synthetic-beam-8')
+ await api('reviewer', 'error-feed.revoke', { feed }, 404)
+ await api('manager', 'error-feed.revoke', { feed })
+ for (const id of [operational.id, csvReceipt.id]) {
+  const revoked = await read(id); assert.equal(revoked.withdrawn, true); assert.equal(revoked.records, undefined)
+ }
+ assert.ok(!(await api('manager', 'diagnoses')).some(d => d.importId === operational.id))
+ assert.equal((await agent('diagnosis.prepare', { import: operational.id }, 409)).error, 'import_withdrawn')
+ assert.equal((await api('manager', 'agent.decide', { proposal: waiting.id, sha256: waiting.sha256, decision: 'approve' }, 409)).error, 'diagnosis_basis_withdrawn')
+ await api('manager', 'outcome.import', { ...parameters, feed, records }, 409)
+ // A live team change invalidates saved comparisons and permanently scrubs their observations.
+ const scopeFeed = (await api('manager', 'error-feed.authorize', grant)).id
+ const scopeImport = await api('manager', 'outcome.import', { ...parameters, feed: scopeFeed, records })
+ await api('owner', 'team.members', { team: ids.team, members: members.slice(0,5) })
+ assert.equal((await read(scopeImport.id)).withdrawn, true)
+ await api('owner', 'team.members', { team: ids.team, members })
+ assert.equal((await read(scopeImport.id)).withdrawn, true)
+ const authorityImport = await api('manager', 'outcome.import', { ...parameters, feed: scopeFeed, records })
+ await api('owner', 'team.managers', { team: ids.team, members: [] })
+ assert.equal((await api('reviewer', `diagnosis-imports/${authorityImport.id}`)).withdrawn, true)
+ await api('owner', 'team.managers', { team: ids.team, members: [ids.manager] })
+ assert.equal((await read(authorityImport.id)).withdrawn, true)
+ const audit = JSON.stringify(await api('owner', 'audit?q=error-feed'))
+ assert.ok(!audit.includes('CUSTOMER SECRET') && !audit.includes('PRIVATE DETAIL'))
  // Browser proof covers both populated findings, the receipt, withdrawal, and empty state using the real Worker.
  if (process.env.BEAM_DIAGNOSIS_BROWSER === '1') await browserProof(h, cookies.manager, [imported.id, processImport.id])
  await api('reviewer', 'diagnosis.withdraw', { import: processImport.id }, 403)

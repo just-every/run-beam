@@ -23,6 +23,7 @@ import { saveRenewal, previewRenewal, setRenewalState, replayRenewal } from './r
 import { setRenewalNoticeConsent } from './renewal-notice-outbox'
 import { replayRenewalNotice } from './renewal-notices'
 import { saveEscalationPolicy, resolveEscalation, runEscalationsNow } from './escalations'
+import { authorizeErrorFeed, revokeErrorFeed } from './error-feeds'
 import { withdrawErrors } from './diagnosis-evidence'
 import { prepareDiagnosis } from './diagnosis-comparison'
 // Every state change in Beam, by name. The same handler serves the HTML form
@@ -266,6 +267,8 @@ export const actions: Record<string, Handler> = {
   'skill.personalization': (env, actor, input) => setPersonalization(env, actor, input),
   'skill.diagnostic': (env, actor, input) => recordDiagnostic(env, actor, input),
   'skill.path.approve': (env, actor, input) => approvePath(env, actor, input),
+  'error-feed.authorize': authorizeErrorFeed,
+  'error-feed.revoke': revokeErrorFeed,
   'diagnosis.withdraw': (env, actor, input) => withdrawErrors(env, actor, input),
   'diagnosis.prepare': (env, actor, input) => prepareDiagnosis(env, actor, input),
   'diagnosis.record': (env, actor, input) => recordDiagnosis(env, actor, input),

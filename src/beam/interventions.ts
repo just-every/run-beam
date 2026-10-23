@@ -42,7 +42,10 @@ export async function reviewDiagnosis(env: Bindings, actor: Actor, input: Input)
 
 export async function listDiagnoses(env: Bindings, actor: Actor) {
   insist(isManager(actor) || actor.roles.has('reviewer'), 'forbidden', 403)
-  return await all(env, `SELECT d.id, d.title, d.finding, d.job_role AS jobRole, d.evidence, d.recorded_by AS recordedBy, d.recorded_at AS recordedAt, d.reviewed_by AS reviewedBy, d.reviewed_at AS reviewedAt, i.id AS importId, i.withdrawn_at AS withdrawnAt FROM beam_diagnoses d LEFT JOIN beam_diagnosis_basis b ON b.diagnosis = d.id LEFT JOIN beam_diagnosis_imports i ON i.id = b.import_id WHERE b.diagnosis IS NULL OR (i.withdrawn_at IS NULL AND (? = 1 OR i.actor = ? OR i.reviewer = ?)) ORDER BY d.recorded_at DESC LIMIT 200`, actor.owner ? 1 : 0, actor.id, actor.id)
+  const rows = await all(env, `SELECT d.id, d.title, d.finding, d.job_role AS jobRole, d.evidence, d.recorded_by AS recordedBy, d.recorded_at AS recordedAt, d.reviewed_by AS reviewedBy, d.reviewed_at AS reviewedAt, i.id AS importId, i.withdrawn_at AS withdrawnAt FROM beam_diagnoses d LEFT JOIN beam_diagnosis_basis b ON b.diagnosis = d.id LEFT JOIN beam_diagnosis_imports i ON i.id = b.import_id WHERE b.diagnosis IS NULL OR (i.withdrawn_at IS NULL AND (? = 1 OR i.actor = ? OR i.reviewer = ?)) ORDER BY d.recorded_at DESC LIMIT 200`, actor.owner ? 1 : 0, actor.id, actor.id)
+  const visible = []
+  for (const row of rows) { if (row.importId && (await diagnosisImport(env, actor, row.importId)).withdrawn_at) continue; visible.push(row) }
+  return visible
 }
 
 const object = (value: unknown): Record<string, any> => { insist(value && typeof value === 'object' && !Array.isArray(value), 'invalid_payload'); return value as Record<string, any> }

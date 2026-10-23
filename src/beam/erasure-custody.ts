@@ -93,7 +93,7 @@ const authored: Record<string, string> = {
   completions: 'recorded_by', content_feedback: 'closed_by', content_reviews: 'decided_by', course_authors: 'granted_by', course_comments: 'author_id resolved_by',
   course_locales: 'prepared_by submitted_by approved_by', course_revisions: 'submitted_by reviewed_by', courses: 'reviewer_id created_by retired_by owner_id fallback_owner_id',
   custom_role_grants: 'granted_by revoked_by', custom_roles: 'created_by updated_by', dashboard_shares: 'granted_by revoked_by', dashboards: 'revoked_by',
-  diagnoses: 'recorded_by reviewed_by', diagnosis_imports: 'actor reviewer', directory_conflicts: 'created_by resolved_by', discussion_files: 'decided_by',
+  diagnoses: 'recorded_by reviewed_by', diagnosis_imports: 'actor reviewer', error_feeds: 'actor', directory_conflicts: 'created_by resolved_by', discussion_files: 'decided_by',
   discussion_posts: 'author_id hidden_by', discussion_threads: 'created_by resolved_by', draft_conflicts: 'author_id resolved_by', due_exceptions: 'approved_by',
   enrollment_requests: 'decided_by', escalation_policy: 'updated_by', escalation_resolutions: 'resolved_by', exception_policy: 'updated_by', exceptions: 'granted_by',
   external_certificates: 'uploaded_by decided_by', external_requirements: 'reviewer_id created_by', group_recognition: 'updated_by', gusto_language_mappings: 'consented_by',
