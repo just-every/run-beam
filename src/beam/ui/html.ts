@@ -78,7 +78,7 @@ const roleLine = (actor: Actor) => actor.owner ? 'Owner' : [...(administrator(ac
 function rail(actor: Actor, current: string, shell?: Shell): Html {
   // Until the owner names the business every /app page leads to it, so the rail shows only the brand and the person.
   const items = !actor.business ? [] : manager(actor) ? NAV.filter(item => item.show(actor)) : [LEARNING, ...NAV.filter(item => item !== LEARNING && item.show(actor))]
-  return h`<nav class="nav" aria-label="${t(actor, 'Main')}"><ul>${items.map(item => {
+  return h`<nav id="main-navigation" class="nav" aria-label="${t(actor, 'Main')}"><ul>${items.map(item => {
     const count = shell && item.count ? item.count(shell) : 0
     return h`<li><a href="${item.href}"${item.href === current ? raw(' aria-current="page"') : ''}>${raw(icon(item.icon, { size: 22 }))}<span>${t(actor, item.label)}</span>${count ? h`<span class="count">${count.toLocaleString(actor.locale)}</span>` : ''}</a></li>`
   })}</ul></nav>
@@ -94,9 +94,10 @@ export function page(title: string, actor: Actor | null, body: Html, { current =
   const brand = h`<a class="brand" href="/app"><img src="/brand/mark.svg" alt="" width="30" height="35"><span data-rer-name>${branding.name}</span></a>`
   const clock = shell ? h`<p class="clock"><span>${formatWeekday(shell.now, shell.zone, actor?.locale)}</span><span>${formatClock(shell.now, shell.zone, actor?.locale)}</span></p>` : ''
   const document = h`<!doctype html><html lang="${locale ?? actor?.locale ?? 'en-US'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/site/fonts.css"><link rel="stylesheet" href="/site/theme.css"><link rel="stylesheet" href="/beam.css">${scripts.map(src => h`<script src="${src}" defer></script>`)}</head><body>
-<div class="app${actor ? '' : ' bare'}">${actor ? h`<input type="checkbox" id="menu-toggle" class="menu-toggle" aria-hidden="true" tabindex="-1"><aside class="rail">${brand}<label for="menu-toggle" class="menu-button">${raw(icon('menu', { size: 22 }))}<span>${t(actor, 'Menu')}</span></label>${rail(actor, current, shell)}</aside>` : h`<aside class="rail">${brand}</aside>`}
+<a class="skip-link" href="#main-content">${t(actor, 'Skip to content')}</a>
+<div class="app${actor ? '' : ' bare'}">${actor ? h`<input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="${t(actor, 'Menu')}" aria-controls="main-navigation"><aside class="rail">${brand}<label for="menu-toggle" class="menu-button">${raw(icon('menu', { size: 22 }))}<span>${t(actor, 'Menu')}</span></label>${rail(actor, current, shell)}</aside>` : h`<aside class="rail">${brand}</aside>`}
 <header class="topbar">${clock}${tools ?? ''}</header>
-<main class="work${wide ? ' wide' : ''}">${actor?.viewAs ? viewBanner(actor) : ''}${notice ? h`<p class="flash" role="status">${t(actor, notice)}</p>` : ''}${error ? h`<p class="flash error" role="alert">${t(actor, 'That did not work:')} ${t(actor, describeError(error))}</p>` : ''}${body}</main></div></body></html>`
+<main id="main-content" tabindex="-1" class="work${wide ? ' wide' : ''}">${actor?.viewAs ? viewBanner(actor) : ''}${notice ? h`<p class="flash" role="status">${t(actor, notice)}</p>` : ''}${error ? h`<p class="flash error" role="alert">${t(actor, 'That did not work:')} ${t(actor, describeError(error))}</p>` : ''}${body}</main></div></body></html>`
   // A page that needs its own script (the timed quiz's countdown, matching drag-and-drop) may load it from this origin only.
   return new Response(document.html, { status, headers: scripts.length ? { ...headers, 'content-security-policy': headers['content-security-policy'].replace("default-src 'none';", "default-src 'none'; script-src 'self';") } : headers })
 }

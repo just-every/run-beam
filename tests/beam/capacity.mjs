@@ -29,6 +29,7 @@ try {
   await timed('roster-apply',async()=>{for(let n=0;n<20;n++){await h.db.prepare('UPDATE oa_limits SET window=window-1').run();const applied=await api('owner','people.batch.apply',{batch:batch.id});if(applied.done)return;assert.ok(n<19)}})
   const members=(await api('owner','people')).members
   assert.equal(members.length,200)
+  await timed('activate-200-accounts',async()=>{for(const person of members.filter(person=>!baseline.some(row=>row.id===person.id)))await h.signIn(person.email,{requested:true})})
   const team=await f.team('All 200 employees',members.map(row=>row.id))
   const c=await api('owner','course.create',{title:'Mixed-media workstation qualification',reviewer:ids.reviewer})
   let version=c.draftVersion

@@ -476,3 +476,11 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
 .erasure{min-width:0;overflow-wrap:anywhere}.erasure form{max-width:100%}
 
 .source-comparison figure{margin:0;min-width:0}.source-comparison img{display:block;max-width:100%;height:auto}
+
+/* Keyboard bypass and the existing mobile menu: no hidden, unfocusable toggle. */
+.skip-link { position: fixed; left: 16px; top: 8px; z-index: 100; transform: translateY(-200%); padding: 12px 18px; background: var(--white); color: var(--navy-deep); border-radius: 6px; }
+.skip-link:focus { transform: none; }
+@media (max-width: 860px) {
+  .menu-toggle { display: block; position: absolute; top: 16px; right: 16px; width: 94px; height: 44px; margin: 0; opacity: 0; z-index: 2; cursor: pointer; }
+  .menu-toggle:focus-visible + .rail .menu-button { outline: 2px solid var(--blue); outline-offset: 3px; }
+}

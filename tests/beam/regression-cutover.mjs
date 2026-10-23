@@ -32,6 +32,7 @@ export async function cutoverCheck({browser=false}={}){
   await api('owner','cutover.approve',{plan:wrong.planId,digest:unresolved.digest,reason:'Reviewed',consent:true},409)
   // Resolve the unmatched person through People, then catch up the immutable original bundle with reviewed columns.
   const joined=await api('owner','person.invite',{email:'unmatched@cutover.test',name:'Resolved employee',roles:['learner']})
+  await h.signIn('unmatched@cutover.test',{requested:true})
   const corrected=await imported('Email,Course ID,Active,Due date\nlearner@example.test,101,true,01/10/2030\nunmatched@cutover.test,101,true,01/10/2030\n',true)
   await until('apply',{planId:corrected.planId,reviewedFingerprint:corrected.fingerprint},'completed')
   const snapshot=await api('owner','history')
@@ -46,7 +47,7 @@ export async function cutoverCheck({browser=false}={}){
   await api('owner','cutover.credit.decline',{plan:corrected.planId,course:c.id,digest:'altered',reason:'Do not use history'},409)
   assert.equal((await h.submit('cutover.credit.decline',cookies.owner,{plan:corrected.planId,course:c.id,digest:waiting.digest,reason:'Employer declines using imported history for this requirement'},`/app/import/cutover/${corrected.planId}`)).searchParams.get('error'),null)
   const ready=await api('owner',`cutover/${corrected.planId}`)
-  assert.equal(ready.canApprove,true);assert.equal(ready.counts.differences,0);assert.equal(ready.counts.active,2)
+  assert.equal(ready.canApprove,true,JSON.stringify({gaps:ready.gaps,rows:ready.rows.map(row=>({issues:row.issues,creditDecision:row.creditDecision}))}));assert.equal(ready.counts.differences,0);assert.equal(ready.counts.active,2)
   assert.deepEqual(await api('owner','history'),snapshot,'shadow and credit decline never rewrite imported history')
   const before=(await api('owner','operations')).learning
   await api('owner','cutover.approve',{plan:corrected.planId,digest:ready.digest,reason:'Compare current requirements',consent:false},409)
