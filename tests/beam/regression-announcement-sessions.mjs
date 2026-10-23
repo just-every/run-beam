@@ -20,6 +20,8 @@ export async function sessionAnnouncementCheck(f) {
   await api('other', 'session.register', { session: elsewhere })
   await send(`team:${ids.team}`, 403)
   await send(`course:${ladder.id}`, 403)
+  await send('location:Austin', 403)
+  await send('cohort:synthetic-beam-1', 403)
   await send(`session:${elsewhere}`, 403)
   await api('manager', 'announcement.send', { audience: `session:${session}`, title: 'No grant', body: 'No' }, 403)
 
