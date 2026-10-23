@@ -57,7 +57,7 @@ export async function providerControlBrowserCheck() {
         await shot('sandbox-zero-budget')
         const source=await f.api('author','source.create',{title:`Budget-controlled scan ${width}`,reviewer:f.ids.reviewer,licence:'owned',licenceEvidence:'Employer original',provenance:'Synthetic scan',file:file('scan.pdf',sourceProcedurePdf(true))})
         await page.goto(`${f.h.origin}/app/sources/${source.versionId}/ocr`)
-        await page.getByRole('checkbox').check()
+        await page.locator('main').getByRole('checkbox').check()
         const previous=calls
         await activate(page.getByRole('button',{name:'Approve and send this PDF for OCR',exact:true}))
         await page.waitForURL(url=>url.searchParams.get('error')==='source_ocr_budget_exhausted')
@@ -71,7 +71,7 @@ export async function providerControlBrowserCheck() {
         await shot('rotated-disabled')
         await configure('enable',config.reservedEstimateCents+config.estimateCents)
         await page.goto(`${f.h.origin}/app/sources/${source.versionId}/ocr`)
-        await page.getByRole('checkbox').check()
+        await page.locator('main').getByRole('checkbox').check()
         await activate(page.getByRole('button',{name:'Approve and send this PDF for OCR',exact:true}))
         await page.waitForURL(url=>url.searchParams.has('notice'))
         assert.equal(calls,previous+1)

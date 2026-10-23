@@ -63,7 +63,7 @@ try {
    await shot(owner,width,'source-consent')
   }
   assert.equal(calls,0)
-  await owner.getByRole('checkbox').check()
+  await owner.locator('main').getByRole('checkbox').check()
   await owner.getByRole('button',{name:'Approve and send this PDF for OCR',exact:true}).click()
   try {
    const success = owner.getByRole('heading',{name:'OCR is ready for author review',exact:true})

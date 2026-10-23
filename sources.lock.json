@@ -4051,7 +4051,7 @@
       "executable": false
     },
     "tests/beam/live-source-ocr.mjs": {
-      "sha256": "22da5e3d01c6fd7105e9ad371706da35f571f707a85218bfa069a0caa27e73a7",
+      "sha256": "3ca74969a9014c545d194001da76f10746977f4ad8f33ecc2e433eec688868dc",
       "executable": false
     },
     "tests/beam/live-webhook.mjs": {
@@ -4075,7 +4075,7 @@
       "executable": false
     },
     "tests/beam/provider-browser.mjs": {
-      "sha256": "ee19dd041d664a9fe165411969a583dcc3ab172c423ff4622d34a4e6873bff81",
+      "sha256": "aa60449e532881fe69c832f981cdfa94575b5168954a3637e5d35f54fcc096c2",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
