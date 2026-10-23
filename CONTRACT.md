@@ -475,7 +475,7 @@ removed or changed by this contract-only round.
 
 ## Status
 
-The named public-door evidence below records the committed qualification candidates (23 October 2026).
+Judged from the code and tests at commit `397a81b571766399d43d183e5bb21d3904177025` (23 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
