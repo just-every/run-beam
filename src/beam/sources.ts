@@ -35,11 +35,13 @@ export async function createSource(env: Bindings, actor: Actor, input: Input) {
 export async function addSourceVersion(env: Bindings, actor: Actor, input: Input) {
   requireRole(actor, 'author')
   const sourceId = input.text('source')
-  const source = await one(env, 'SELECT id FROM beam_sources WHERE id = ?', sourceId)
+  const source = await one(env, `SELECT id FROM beam_sources WHERE id=? AND erased_at IS NULL
+    AND NOT EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind='source' AND e.subject_id=beam_sources.id AND e.state!='complete')`, sourceId)
   insist(source, 'source_not_found', 404)
   const provenance = input.text('provenance', { max: 2000 })
   const stored = await store(env, (await input.file('file', { maxBytes: SOURCE_BYTES }))!)
-  insist(await one(env, 'SELECT 1 FROM beam_sources WHERE id=? AND erased_at IS NULL', sourceId), 'source_not_found', 404)
+  insist(await one(env, `SELECT 1 FROM beam_sources WHERE id=? AND erased_at IS NULL
+    AND NOT EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind='source' AND e.subject_id=beam_sources.id AND e.state!='complete')`, sourceId), 'source_not_found', 404)
   const latest = await one<{ number: number }>(env, 'SELECT MAX(number) AS number FROM beam_source_versions WHERE source_id = ?', sourceId)
   const id = newId(), number = (latest?.number ?? 0) + 1, at = now()
   // Courses whose published lessons, packages or xAPI activities cite an earlier version of this source.

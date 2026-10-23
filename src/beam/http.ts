@@ -83,6 +83,7 @@ function failure(error: unknown): { code: string; status: number; detail?: unkno
   if (error instanceof BeamError) return { code: error.code, status: error.status, detail: error.detail }
   if (error instanceof AuthError) return { code: error.code, status: error.status }
   const code = error instanceof Error ? error.message : ''
+  if (code.includes('source_unavailable')) return { code: 'source_unavailable', status: 409 }
   if (/^(IMPORT_|PROVENANCE_|TARGET_|NATIVE_EDIT_CONFLICT|REVERSAL_)/.test(code)) return { code: code.split(/[:\s]/)[0].toLowerCase(), status: 409 }
   console.error('beam_internal_error', error)
   return { code: 'internal_error', status: 500 }

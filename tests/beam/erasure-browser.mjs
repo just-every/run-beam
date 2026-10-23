@@ -1,3 +1,4 @@
+import { sourceErasureBrowserCheck } from './erasure-source-browser.mjs'
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -83,5 +84,6 @@ try { for (const width of [1440,390]) {
   assert.ok(data.records.beam_attempts.rows.some(row=>row.id===practical.id))
   assert.ok(data.records.beam_members.rows.some(row=>row.id===f.ids.learner&&row.email===null))
   console.log(`PASS erasure owner policy/hold/preview/execute/resume/report/practice removal ${width}`)
+  await sourceErasureBrowserCheck(f,page,width,directory)
  } finally {await context.close();await f.h.close()}
 }} finally {await browser.close()}

@@ -212,7 +212,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "cd4b8423c46abc987e0a226d867782f0a2018cb57e7d67235223291a6bb191b6",
+      "sha256": "3f0dbc9e823e1ac18924ea8efcc40bf46e116b93a0be4874ef7d18084a19ba5e",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -232,7 +232,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "fc94f23696e7e470c607ce4bea49c1bc44fd18951690986991c7d2d386966baf",
+      "sha256": "185d7843bed90672e18ce957edcd87f451ab960ff3a64455d443a9a02b7188d4",
       "executable": false
     },
     "DEMO.md": {
@@ -693,6 +693,18 @@
     },
     "migrations/core/0094_beam_proposal_withdrawal.sql": {
       "sha256": "143ad3a8808ac66b6448651e5f34a6238084f2e7e7956515414c64d101f4af3f",
+      "executable": false
+    },
+    "migrations/core/0095_beam_source_erasure_admission.sql": {
+      "sha256": "478490028edb0fde9195de6496a79bda4e9185451dd0953a428858116fdbdb6d",
+      "executable": false
+    },
+    "migrations/core/0096_beam_authoring_source_admission.sql": {
+      "sha256": "89b13487dc57a72139043c3d44ec3cd2174bab9275a4ee37d2a876784d73ebf3",
+      "executable": false
+    },
+    "migrations/core/0097_beam_learning_source_admission.sql": {
+      "sha256": "064cfee5343660dd1514a16ed01514df438e7152c7e8862191d9eb7c0066a543",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1184,7 +1196,7 @@
       "executable": false
     },
     "src/beam/actions.ts": {
-      "sha256": "8c0d8f55f809fca49cbb6d21306b2dda8e8646ac4497137e6fbe10cd32c15d0c",
+      "sha256": "fe70a01cb50f87a346892b926f9339ca24aaf29068404c5a97fc189dd02bda80",
       "executable": false
     },
     "src/beam/actor.ts": {
@@ -1312,7 +1324,7 @@
       "executable": false
     },
     "src/beam/courses.ts": {
-      "sha256": "fb6329b8d6188b6443543bbb95fa7255d7d25beb11496d487f666df64619c45a",
+      "sha256": "1f3b166fc117748a50c8a15c31d39e0df0a9968eeed9aedfe592a6caea175bc3",
       "executable": false
     },
     "src/beam/coverage.ts": {
@@ -1391,8 +1403,12 @@
       "sha256": "7a0cd66d897d13ac00b85fee661ace3c7fc214e92d6da3fa6988cf3e94143846",
       "executable": false
     },
+    "src/beam/erasure-source-drafts.ts": {
+      "sha256": "49ac9c1dcc6199bcba9568b4279374fe8372ba262935c6f31d10ee937e761023",
+      "executable": false
+    },
     "src/beam/erasure.ts": {
-      "sha256": "fb27e0f1c8549a627893a5b1af40a607a6ac13dc85b30604e45aa941a3a8fabd",
+      "sha256": "441d9fc631217af1568648e6742d46f37e952f683de4391b925de697c3c62def",
       "executable": false
     },
     "src/beam/escalations.ts": {
@@ -1428,7 +1444,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "1aeff3c53c17b369c927372d8c6005c9b0f290dd19f0aeb4f88bfe0b635a0ed3",
+      "sha256": "9649fb90c6af2cf88e431afbe8259df59f99065e234285d02fe47a51f571f9b5",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -1812,7 +1828,7 @@
       "executable": false
     },
     "src/beam/sources.ts": {
-      "sha256": "7ca9f0e7ac1290da21535115f0e01ab8373adc4dc03afa8000257dec3b191357",
+      "sha256": "0cc469b3a96d305f69e01b846d2ac05f044563e09261eea48b5e4b4376dc5a59",
       "executable": false
     },
     "src/beam/survey.ts": {
@@ -1935,8 +1951,12 @@
       "sha256": "17afbc062dbbed1b04aa0af3ae848912d32321e0ab840a23846b1ea09d65958c",
       "executable": false
     },
+    "src/beam/ui/erasure-source-drafts.ts": {
+      "sha256": "75e4d81bd0c9cd9235d07a52025c45e718bd165b585eb29a924cde8302e8b448",
+      "executable": false
+    },
     "src/beam/ui/erasure.ts": {
-      "sha256": "a121c3d3c053403990395910c8b5c8b4f97fc9aaf651edfc7229244ecc67a8b3",
+      "sha256": "4d9a25e52ef3a735fdd4119321b695f6ee62031548f30c9f8d05f3a3e1b46f66",
       "executable": false
     },
     "src/beam/ui/errors.ts": {
@@ -3896,7 +3916,15 @@
       "executable": false
     },
     "tests/beam/erasure-browser.mjs": {
-      "sha256": "eb287eca76cbc5037ece4be2a5c44536c4c35279fed0b94c642b4119c77cb374",
+      "sha256": "edd28e6b55afc6f8d85e3c4d212abb704d4cef76d2f2178bcb61a82f2e7b4482",
+      "executable": false
+    },
+    "tests/beam/erasure-source-browser.mjs": {
+      "sha256": "5a2949260ba47125fe504dad074bcb2f17908674c10c6ca6bcf69960bdbf4dba",
+      "executable": false
+    },
+    "tests/beam/erasure-source-drafts.mjs": {
+      "sha256": "5ce822468db719ffe1db0f12ca558390f91dd5d7afed8927eca1fb6b12bb4989",
       "executable": false
     },
     "tests/beam/fixtures.mjs": {
@@ -3968,7 +3996,7 @@
       "executable": false
     },
     "tests/beam/live-multimedia.mjs": {
-      "sha256": "08b61d56c7b7f65cace57bbf39acf51bd3a1be4a244df3108473aa651d521a5c",
+      "sha256": "b8328efebd91d8369d080cc96fc1707b11a32fc19762be77381dda2ce5b99db3",
       "executable": false
     },
     "tests/beam/live-provider-runtime.mjs": {
@@ -4084,7 +4112,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "e564d439ba6cd119d77a4f128a5187910097790ab356ca4f16dc686541adb92d",
+      "sha256": "3146433bafb69176a0f29162c60de0c5ff6c35334fd3f613129424d3cdd1f069",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {

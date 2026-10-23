@@ -40,30 +40,34 @@ try {
         try {
           if (title.includes('slides')) {
             await frame.locator('body').waitFor({state:'attached'})
-            const position=frame.locator('.punch-viewer-navbar-page-number')
-            await position.waitFor({state:'attached'})
-            const before=await position.textContent()
-            const content=frame.locator('.punch-viewer-content')
-            const rendered=await content.innerHTML()
-            await frame.locator('.punch-viewer-navbar-next').click()
-            await position.evaluate((node,before)=>new Promise((resolve,reject)=>{
-              const timer=setTimeout(()=>{clearInterval(check);reject(new Error('Public slide position did not change'))},15000),check=setInterval(()=>{if(node.textContent!==before){clearTimeout(timer);clearInterval(check);resolve()}},50)
+            const body=frame.locator('body'), before=await body.innerText()
+            const image=await iframe.screenshot()
+            await iframe.focus()
+            await page.keyboard.press('ArrowRight')
+            await body.evaluate((node,before)=>new Promise((resolve,reject)=>{
+              const timer=setTimeout(()=>{clearInterval(check);reject(new Error('Public slide position did not change'))},15000),check=setInterval(()=>{if(node.innerText!==before){clearTimeout(timer);clearInterval(check);resolve()}},50)
             }),before)
-            assert.notEqual(await content.innerHTML(),rendered,'learner navigation changes the actual public slide')
-            console.log('LIVE SLIDES',width,before,'to',await position.textContent())
+            assert.notDeepEqual(await iframe.screenshot(),image,'learner navigation changes the rendered public slide')
+            console.log('LIVE SLIDES',width,before,'to',await body.innerText())
           } else {
             const video=frame.locator('video:visible').first()
             await video.waitFor({state:'attached',timeout:30000})
-            await video.evaluate(media=>{media.muted=true})
+            const initial=await video.evaluate(media=>{media.muted=true;return {src:media.currentSrc,playing:!media.paused}})
             console.log('LIVE CONTROLS',title,width,await frame.locator('video,button,[role="button"]').evaluateAll(nodes=>nodes.map(node=>({tag:node.tagName,label:node.getAttribute('aria-label'),title:node.getAttribute('title'),text:node.textContent?.slice(0,60),visible:!!(node.offsetWidth&&node.offsetHeight),...(node instanceof HTMLVideoElement?{time:node.currentTime,duration:node.duration,paused:node.paused}:{} )})).filter(node=>node.visible)))
             const controls=await frame.getByRole('button',{name:/^play\b/i}).all()
             let play
             for (const control of controls) if (await control.isVisible()) {play=control;break}
             assert.ok(play,'the real provider exposes an accessible Play control')
             await play.click()
-            await video.evaluate(media=>new Promise((resolve,reject)=>{const start=media.currentTime,timer=setTimeout(()=>{clearInterval(check);reject(new Error('Actual provider playback did not advance'))},15000),check=setInterval(()=>{if(media.currentTime>start+0.2){clearTimeout(timer);clearInterval(check);resolve()}},50)}))
-            console.log('LIVE PLAYBACK',title,width,await video.evaluate(media=>({time:media.currentTime,duration:media.duration,readyState:media.readyState})))
-            await video.evaluate(media=>media.pause())
+            // Providers replace the thumbnail video node when real playback starts.
+            // Observe the current content element, never a detached preview node.
+            const playing=await frame.locator('body').evaluate((body,initial)=>new Promise((resolve,reject)=>{
+              const timer=setTimeout(()=>{clearInterval(check);reject(new Error('Actual provider playback did not advance'))},15000),check=setInterval(()=>{
+                const media=[...body.querySelectorAll('video')].filter(media=>media.offsetWidth&&media.offsetHeight&&!media.paused&&media.readyState>=2&&(!initial.playing||media.currentSrc!==initial.src)).sort((a,b)=>b.duration-a.duration)[0]
+                if(media?.currentTime>0.2){const result={time:media.currentTime,duration:media.duration,readyState:media.readyState};media.pause();clearTimeout(timer);clearInterval(check);resolve(result)}
+              },50)
+            }),initial)
+            console.log('LIVE PLAYBACK',title,width,playing)
           }
           assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
           await page.screenshot({path:join(evidence,`${width}-live-${title.split(' ')[0].toLowerCase()}.png`)})

@@ -78,9 +78,11 @@ export async function normaliseDraft(env: Bindings, value: unknown, course: stri
   const lessons: Lesson[] = []
   for (const lesson of draft.lessons) {
     insist(lesson && typeof lesson.title === 'string' && lesson.title.trim() && lesson.title.length <= 160 && typeof lesson.body === 'string' && lesson.body.length <= 50_000 && Array.isArray(lesson.sources), 'invalid_lesson')
-    for (const version of lesson.sources) insist(typeof version === 'string' && await one(env, 'SELECT 1 FROM beam_source_versions WHERE id = ?', version), 'source_version_not_found', 404)
     const blocks = await normaliseBlocks(env, lesson.blocks, { admit, course })
-    lessons.push({ ...(blocks.length ? { blocks } : {}), id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources: [...new Set([...lesson.sources, ...blocks.flatMap(block => [block.source, block.captions?.source].filter((source): source is string => !!source))])] })
+    const sources = [...new Set([...lesson.sources, ...blocks.flatMap(block => [block.source, block.captions?.source].filter((source): source is string => !!source))])]
+    for (const version of sources) insist(typeof version === 'string' && await one(env, `SELECT 1 FROM beam_source_versions v JOIN beam_sources s ON s.id=v.source_id WHERE v.id=? AND s.erased_at IS NULL
+      AND NOT EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind='source' AND e.subject_id=s.id AND e.state!='complete')`, version), 'source_version_not_found', 404)
+    lessons.push({ ...(blocks.length ? { blocks } : {}), id: typeof lesson.id === 'string' && lesson.id ? lesson.id : newId(), title: lesson.title.trim(), body: lesson.body, sources })
   }
   const packages = draft.packages ?? []
   insist(Array.isArray(packages) && packages.length <= 20 && packages.every(id => typeof id === 'string'), 'invalid_packages')
@@ -139,8 +141,11 @@ export async function editDraft(env: Bindings, actor: Actor, input: Input, actio
   const admittedXapi = action === 'xapi.attach' && actor.owner && !actor.agent ? draft.xapiActivities?.slice(-1) ?? []
     : action === 'course.restore' && !actor.agent ? (await all(env, 'SELECT x.activity_id FROM beam_revision_xapi x JOIN beam_course_revisions r ON r.id=x.course_revision_id WHERE r.id=? AND r.course_id=?', input.text('revision'), course.id)).map(row => row.activity_id as string) : []
   keepsTools(before, draft, attach, admittedXapi)
+  const sourceIds = JSON.stringify([...new Set(draft.lessons.flatMap(lesson => lesson.sources))])
   const result = await env.DB.batch([
-    stmt(env, 'UPDATE beam_courses SET draft_json = ?, draft_version = draft_version + 1, title = ? WHERE id = ? AND draft_version = ?', JSON.stringify(draft), draft.title, course.id, expected),
+    stmt(env, `UPDATE beam_courses SET draft_json = ?, draft_version = draft_version + 1, title = ? WHERE id = ? AND draft_version = ?
+      AND NOT EXISTS(SELECT 1 FROM json_each(?) ref LEFT JOIN beam_source_versions v ON v.id=ref.value LEFT JOIN beam_sources s ON s.id=v.source_id
+        WHERE v.id IS NULL OR s.id IS NULL OR s.erased_at IS NOT NULL OR EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind='source' AND e.subject_id=s.id AND e.state!='complete'))`, JSON.stringify(draft), draft.title, course.id, expected, sourceIds),
     stmt(env, 'INSERT INTO beam_audit (at, actor, action, subject, detail, via) SELECT ?, ?, ?, ?, ?, ? WHERE changes() = 1', now(), actor.id, action, course.id, JSON.stringify({ from: expected, ...detail }), auditVia(actor)),
   ])
   insist(result[0].meta.changes === 1, 'stale_draft', 409)

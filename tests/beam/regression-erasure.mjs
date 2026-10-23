@@ -1,3 +1,4 @@
+import { sourceDraftWithdrawalCheck } from './erasure-source-drafts.mjs'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -92,6 +93,7 @@ export async function erasureCheck() {
     assert.equal(await h.files.head(`sha256/${hash(originalBytes)}`), null)
     assert.equal((await h.raw(`/api/beam/source-files/${source.versionId}`, { cookie: cookies.author })).status, 404)
     await api('author', 'source.create', { title: 'Reconnect erased original', reviewer: ids.reviewer, licence: 'owned', licenceEvidence: 'Employer-authored original', provenance: 'Same original', file: file('obsolete.txt', originalBytes) }, 409)
+    const sourceWithdrawal = await sourceDraftWithdrawalCheck(f)
     // A complete saved dry run is withdrawn explicitly; its rule cannot use a stale approval.
     const followOn = await f.course('Follow-on equipment practice')
     const dryRule = await api('owner', 'automation.save', { name: 'Equipment follow-on', trigger: 'completion', sourceCourse: c.id, targetCourse: followOn.id, dueDays: 7 })
@@ -180,7 +182,13 @@ export async function erasureCheck() {
     await exportArchive(await portability(), later)
     const target = await harness()
     try {
-      await assert.rejects(importArchive(await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations }), old, undefined, later), /erasure_epoch/)
+      const restored = await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations })
+      await assert.rejects(importArchive(restored, old, undefined, later), /erasure_epoch/)
+      await importArchive(restored, later)
+      const restoredOwner = await target.signIn('owner@example.test')
+      assert.equal((await target.raw(`/api/beam/source-files/${sourceWithdrawal.source.versionId}`, { cookie: restoredOwner })).status, 404)
+      assert.deepEqual((await target.api(`courses/${sourceWithdrawal.course.id}`, restoredOwner)).draft.lessons, sourceWithdrawal.kept)
+
     } finally { await target.close() }
     const exported = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
     assert.equal(exported.records.beam_sequence_answers.rows.filter(row => row.assignment_id === practice).length, 0)

@@ -8,6 +8,7 @@ import { ruleSnapshots } from './erasure-snapshots'
 import { personCustody } from './erasure-custody'
 import { erasureOwner, erasureSettings } from './erasure-policy'
 import { identityDigest, preparedCheckpoint } from './erasure-fence'
+import { sourceDrafts, sourceDraftFence } from './erasure-source-drafts'
 export async function erasurePreview(env: Bindings, actor: Actor, input: Input) {
   erasureOwner(actor)
   const kind = input.text('kind'), subject = input.text('subject')
@@ -24,7 +25,7 @@ export async function erasurePreview(env: Bindings, actor: Actor, input: Input) 
   const retention = { assessmentDays: settings.policy.assessment_days, policyVersion: settings.policy.version, justification: settings.policy.justification, holds: holds.map(row => ({ id: row.id, justification: row.justification })), retainUntil, retain: holds.length > 0 || !!retainUntil && retainUntil > now() }
   const native = person ? await personCustody(env, subject) : null
   const versions = source ? await all(env, 'SELECT id,sha256 FROM beam_source_versions WHERE source_id=? ORDER BY id', subject) : []
-  const cited = source ? await one(env, `SELECT count(*) AS count FROM beam_lesson_revisions l WHERE EXISTS(SELECT 1 FROM json_each(l.source_version_ids) c JOIN beam_source_versions v ON v.id=c.value WHERE v.source_id=?)`, subject) : null
+  const sourceContent = source ? await sourceDrafts(env, subject) : { courses: [], blocked: [] }
   const importTables = await all<{ name: string }>(env, "SELECT name FROM sqlite_master WHERE type='table' AND name GLOB 'ik_*' ORDER BY name")
   const imports = []
   for (const row of importTables) {
@@ -34,11 +35,10 @@ export async function erasurePreview(env: Bindings, actor: Actor, input: Input) 
   const providers = person ? await all(env, 'SELECT connection_id,actor_name FROM beam_xapi_actors WHERE learner_id=? ORDER BY connection_id', subject) : []
   if (source && await one(env, 'SELECT 1 FROM beam_source_ocr_runs r JOIN beam_source_versions v ON v.id=r.source_version_id WHERE v.source_id=? LIMIT 1', subject)) providers.push({ connection_id: 'ocr:openai', actor_name: subject })
   if (person?.email) providers.push({ connection_id: `mail:${env.MAIL_PROVIDER}`, actor_name: await identityDigest(env, person.email) })
-  const sourceReferences = source ? await one<{count:number}>(env, `SELECT (SELECT count(*) FROM beam_acknowledgments WHERE source_id=?) + (SELECT count(*) FROM beam_source_notices WHERE source_id=?) + (SELECT count(*) FROM beam_courses c, json_each(c.draft_json,'$.lessons') l, json_each(l.value,'$.sources') citation JOIN beam_source_versions v ON v.id=citation.value WHERE v.source_id=?) AS count`, subject, subject, subject) : null
-  const unsupported = [...(native?.unsupported ?? []), ...((cited?.count || sourceReferences?.count) && !holds.length ? ['cited source content requires retention and derived-content erasure before this source can be erased'] : [])]
+  const unsupported = [...(native?.unsupported ?? []), ...(source && !holds.length ? [...sourceContent.blocked, ...(sourceContent.courses.length ? ['Source-derived draft lessons require explicit withdrawal before source erasure.'] : [])] : [])]
   const dryRuns = person ? await ruleSnapshots(env, subject) : []
   const preparations = person ? await proposalSnapshots(env, subject) : []
-  const inventory = { proposalSnapshots: preparations, ruleSnapshots: dryRuns, rows: native?.rows ?? [{ table: 'beam_source_versions', count: versions.length, category: 'personal' }], fileHashes: native?.fileHashes ?? versions.map(row => row.sha256), imports, providers, unsupported, authoredMaterial: native?.authoredMaterial ?? 'Published citations are not rewritten by erasure.', importEffect: 'Affected import originals are withdrawn, including shared originals; unfinished private uploads, retained previews and approvals are retired. Permanent settings and revoked signing keys remain.', devices: 'Web pages and downloads cannot be remotely erased. Sessions are revoked; no native or offline cache door exists today.' }
+  const inventory = { sourceDrafts: sourceContent, proposalSnapshots: preparations, ruleSnapshots: dryRuns, rows: native?.rows ?? [{ table: 'beam_source_versions', count: versions.length, category: 'personal' }], fileHashes: native?.fileHashes ?? versions.map(row => row.sha256), imports, providers, unsupported, authoredMaterial: native?.authoredMaterial ?? 'Published citations are not rewritten by erasure.', importEffect: 'Affected import originals are withdrawn, including shared originals; unfinished private uploads, retained previews and approvals are retired. Permanent settings and revoked signing keys remain.', devices: 'Web pages and downloads cannot be remotely erased. Sessions are revoked; no native or offline cache door exists today.' }
   const digest = await sha256Hex(new TextEncoder().encode(JSON.stringify({ kind, subject, inventory, retention })))
   return { kind, subject, name: person?.name ?? source?.title, digest, retention, inventory }
 }
@@ -56,11 +56,13 @@ export async function beginErasure(env: Bindings, actor: Actor, input: Input) {
   for (const row of historical) { const payload = JSON.parse(row.payload); for (const key of ['email','name']) if (typeof payload[key] === 'string' && payload[key] && !values.includes(payload[key])) values.push(payload[key]); if (payload.email && !identities.includes(payload.email)) identities.push(payload.email) }
   const selectors = { values, targets: [{ id: preview.subject, kind: 'person' }], operator: member?.operator_id ?? null }
   const statements = [
+    ...(preview.kind === 'source' && !preview.retention.holds.length ? (await sourceDraftFence(env, preview.subject, { expectedFileHashes: preview.inventory.fileHashes })).statements : []),
     stmt(env, 'INSERT INTO beam_erasure_jobs(id,kind,subject_id,requested_by,requested_at,phase,state,selectors_json,inventory_json,retention_json) VALUES(?,?,?,?,?,?,?,?,?,?)', id, preview.kind, preview.subject, actor.id, at, preview.kind === 'person' ? 'imports' : 'native', 'pending', JSON.stringify(selectors), JSON.stringify(preview.inventory), JSON.stringify({ ...preview.retention, requestedReason: reason, retainUntil: preview.retention.retainUntil })),
     ...await preparedCheckpoint(env),
     ...await Promise.all(identities.map(async value => stmt(env, 'INSERT OR IGNORE INTO beam_erasure_tombstones VALUES(?,?,?)', await identityDigest(env, value), id, at))),
     ...preview.inventory.fileHashes.map(hash => stmt(env, 'INSERT OR IGNORE INTO beam_erasure_files(job_id,sha256) VALUES(?,?)', id, hash)),
     ...preview.inventory.providers.map(provider => stmt(env, 'INSERT INTO beam_erasure_providers(job_id,connection_id,actor_name) VALUES(?,?,?)', id, provider.connection_id, provider.actor_name)),
+    stmt(env, 'DELETE FROM beam_erasure_guard'),
     ...(member ? [stmt(env, 'UPDATE beam_members SET erasure_pending=1 WHERE id=?', member.id), stmt(env, "UPDATE oa_operators SET status='inactive' WHERE id=? AND role!='owner'", member.operator_id), stmt(env, 'UPDATE oa_sessions SET revoked_at=COALESCE(revoked_at,?) WHERE operator_id=?', at, member.operator_id)] : []),
   ]
   await commit(env, statements, { actor, action: 'erasure.begin', subject: id, detail: { kind: preview.kind, subject: preview.subject, retention: preview.retention.retain } })

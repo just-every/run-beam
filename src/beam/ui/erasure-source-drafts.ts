@@ -1,0 +1,7 @@
+import { area, form, h, hidden, type Html } from './html'
+
+type DraftCustody = { courses: { id: string; title: string; draftVersion: number; lessons: { id: string; title: string }[]; digest: string }[]; blocked: string[] }
+export function sourceDraftWithdrawal(subject: string, digest: string, custody: DraftCustody): Html {
+  if (!custody.courses.length && !custody.blocked.length) return h``
+  return h`<h3>Unpublished lessons from this source</h3><p>Withdrawal removes the complete listed lessons, including corrected text, tables and images. Other lessons remain. It does not erase the original: refresh this custody preview and start source erasure afterwards.</p>${custody.courses.map(course => h`<section><h4>${course.title} · draft ${course.draftVersion}</h4><ul>${course.lessons.map(lesson => h`<li>${lesson.title}</li>`)}</ul></section>`)}${custody.blocked.length ? h`<p class="flash error">These lessons cannot be withdrawn while related custody remains.</p><ul>${custody.blocked.map(reason => h`<li>${reason}</li>`)}</ul>` : form('erasure.source-drafts.withdraw', `/app/erasure?kind=source&subject=${subject}`, [hidden('kind','source'),hidden('subject',subject),hidden('digest',digest),area('Reason for withdrawing unpublished source lessons','justification'),h`<label class="check"><input type="checkbox" name="consent" value="yes" required> I approve permanent withdrawal of the complete listed unpublished lessons.</label>`], 'Withdraw unpublished source lessons')}`
+}
