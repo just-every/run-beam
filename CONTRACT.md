@@ -475,13 +475,13 @@ removed or changed by this contract-only round.
 
 ## Status
 
-Judged from the code and tests at commit `9ef41ab0546d7203a2251f0363a7d911f34b9b09` (23 October 2026).
+The named public-door evidence below records the committed qualification candidates (23 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 20 | 0 | 0 | 20 |
-| Target and push further | 56 | 31 | 39 | 126 |
-| All | 76 | 31 | 39 | 146 |
+| Target and push further | 57 | 30 | 39 | 126 |
+| All | 77 | 30 | 39 | 146 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
