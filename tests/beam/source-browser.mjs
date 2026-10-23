@@ -101,6 +101,11 @@ export async function sourceBrowserCheck(f) {
         await page.getByLabel('First row contains column headings', { exact: true }).check()
         await page.getByLabel('I compared the extracted lessons', { exact: false }).check()
         for (const checkbox of await page.locator('input[name="resolvedUncertainties"]').all()) await checkbox.check()
+        if (format === 'pdf') {
+          await page.getByText('Preview original PDF',{exact:true}).click()
+          await page.frameLocator('iframe.lesson-document').locator('canvas[data-page="1"]').waitFor({state:'visible'})
+          assert.match(await page.frameLocator('iframe.lesson-document').locator('#pdf-page-text').textContent(),/Equipment/)
+        }
         await shot(`merged-table-${format}-correction`)
         await page.getByRole('button', { name: 'Add reviewed lessons to draft', exact: true }).click()
         await page.waitForURL(url => url.pathname === `/app/courses/${mergedCourse.id}`)
@@ -129,6 +134,10 @@ export async function sourceBrowserCheck(f) {
           await page.getByLabel('Row 2, cell 1, nested table 1, row 2, cell 2',{exact:true}).fill('Sanitized tip')
           await page.getByLabel('I compared the extracted lessons',{exact:false}).check()
           for (const checkbox of await page.locator('input[name="resolvedUncertainties"]').all()) await checkbox.check()
+          if (format === 'pdf') {
+            await page.getByText('Preview original PDF',{exact:true}).click()
+            await page.frameLocator('iframe.lesson-document').locator('canvas[data-page="1"]').waitFor({state:'visible'})
+          }
           await shot(`nested-table-${format}-correction`)
           await page.getByRole('button',{name:'Add reviewed lessons to draft',exact:true}).click()
           await page.waitForURL(url=>url.pathname===`/app/courses/${nestedCourse.id}`)

@@ -117,7 +117,7 @@ async function openOriginal() {
     const bytes = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
     if (bytes.length > 10000000) throw new Error('File size');
     loading = getDocument({ data: bytes, useWorkerFetch: false, useSystemFonts: true, disableFontFace: true,
-      enableXfa: false, isEvalSupported: false, useWasm: false, stopAtErrors: true, maxImageSize: MAX_PIXELS, canvasMaxAreaInBytes: MAX_PIXELS * 4,
+      enableXfa: false, useWasm: false, stopAtErrors: true, maxImageSize: MAX_PIXELS, canvasMaxAreaInBytes: MAX_PIXELS * 4,
       cMapUrl: undefined, standardFontDataUrl: undefined, wasmUrl: undefined, iccUrl: undefined });
     timer = setTimeout(() => { void loading.destroy().catch(() => {}); }, 15000);
     pdf = await loading.promise;

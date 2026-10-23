@@ -1652,7 +1652,7 @@
       "executable": false
     },
     "src/beam/pdf-viewer-client.ts": {
-      "sha256": "c92a5031f025c3417ff2c15c3426f08c2ba6681d0edfa297b1ab86e5d30f3fa3",
+      "sha256": "6a672df73f95e8c5e1a9c9057d7063156903f7d6233d131267aa40bf678a75f0",
       "executable": false
     },
     "src/beam/pdf-viewer.ts": {
@@ -1804,7 +1804,7 @@
       "executable": false
     },
     "src/beam/source-pdf.ts": {
-      "sha256": "1013370791f2dbfcb5d6f6b55fe09e874bdf8de04704d987de3c5756fe8c21ca",
+      "sha256": "4fc95bc2582047e79bd02224c58573901605986f260cc997f0cbf80285b9f49c",
       "executable": false
     },
     "src/beam/source-png.ts": {
@@ -3967,6 +3967,10 @@
       "sha256": "5517a81ce15a4b4c9931963480b84e3de00b1619b8d6d860dcd86200a933a4eb",
       "executable": false
     },
+    "tests/beam/live-multimedia.mjs": {
+      "sha256": "51fca1bbbd56506912b7b8ea0b2ab3a5535e73d1f57d54d9880e7d1dfc31a107",
+      "executable": false
+    },
     "tests/beam/live-provider-runtime.mjs": {
       "sha256": "de0562697fef8e920107a10e067ea5c4f2cb8bca3eb3c7012e4159431dcd0eda",
       "executable": false
@@ -4224,7 +4228,7 @@
       "executable": false
     },
     "tests/beam/source-browser.mjs": {
-      "sha256": "64c7cba698acbba843374380cf2eb9128d9ce1e3f39f8b314c6d2ec885051843",
+      "sha256": "f6206ec11cb248823b8699ef9958c450487b1993aa3de838abde2ce38c7ed8f9",
       "executable": false
     },
     "tests/beam/source-fixtures.mjs": {
