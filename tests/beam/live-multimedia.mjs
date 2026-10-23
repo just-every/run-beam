@@ -25,6 +25,7 @@ try {
     ['Loom product demo','https://www.loom.com/share/3d029f2547b24ada97b2101f60a258b9'],
     ['Data citation slides','https://docs.google.com/presentation/d/12iLxkVFEthMzUYfEHtBaOPU9ADu8al7KEJZbYBNVN2k/embed?start=false&loop=false&delayms=3000'],
   ]
+  if(selectedProvider&&!examples.some(([title])=>title.startsWith(selectedProvider)))throw new Error('Unknown qualification provider')
   for (const [text,url] of examples) draft=await f.api('author','course.block',{course:course.id,draftVersion:draft.draftVersion,lesson,content:{kind:'embed',text,url}})
   const revision=(await f.api('author','course.submit',{course:course.id,draftVersion:draft.draftVersion})).id
   await f.publish(revision)
@@ -53,6 +54,11 @@ try {
             assert.notDeepEqual(await iframe.screenshot(),image,'learner navigation changes the rendered public slide')
             console.log('LIVE SLIDES',width,before,'to',await body.innerText())
           } else {
+            if (title.startsWith('YouTube')) await frame.locator('#movie_player').evaluate(player=>new Promise((resolve,reject)=>{
+              const timer=setTimeout(()=>{clearInterval(check);reject(new Error('Public video player never became ready'))},15000),check=setInterval(()=>{
+                if(typeof player.getPlayerState==='function'&&typeof player.playVideo==='function'&&typeof player.getPlayerState()==='number'){clearTimeout(timer);clearInterval(check);resolve()}
+              },50)
+            }))
             const video=frame.locator('video:visible').first()
             await video.waitFor({state:'attached',timeout:30000})
             const initial=await video.evaluate(media=>{media.muted=true;return {src:media.currentSrc,playing:!media.paused}})
@@ -61,7 +67,8 @@ try {
             let play
             for (const control of controls) if (await control.isVisible()) {play=control;break}
             assert.ok(play,'the real provider exposes an accessible Play control')
-            await play.click()
+            await play.focus()
+            await page.keyboard.press('Enter')
             // Providers replace the thumbnail video node when real playback starts.
             // Observe the current content element, never a detached preview node.
             const playing=await frame.locator('body').evaluate((body,initial)=>new Promise((resolve,reject)=>{
