@@ -47,11 +47,21 @@ export async function announcementGroups(env: Bindings, actor: Actor) {
 }
 
 /** A saved audience never grants continuing access to a learner's private replies. */
-export async function announcementReplyAuthority(env: Bindings, member: string, kind: string, target: string, basis: string, learner: string) {
+export async function announcementReplyAuthority(env: Bindings, member: string, kind: string, target: string, basis: string, learner: string, announcement: string) {
   if (kind === 'session') return !!await sessionAnnouncementAuthority(env, member, target, basis)
   const actor = await dashboardAuthority(env, member)
   if (!actor || !(isManager(actor) || actor.adminUnits.length) || !inScope(actor, learner)) return false
   if (kind === 'team') return actor.owner || !!actor.teams?.includes(target)
-  if (kind === 'cohort') return !!await one(env, "SELECT 1 FROM beam_audiences WHERE id=? AND state='active'", target)
+  if (kind === 'cohort' && !await one(env, "SELECT 1 FROM beam_audiences WHERE id=? AND state='active'", target)) return false
+  if ((kind === 'location' || kind === 'cohort') && !actor.owner) {
+    // Keep the original management boundary: another team must not silently
+    // preserve private replies after a captured team relationship is lost.
+    const saved = await one<{ authority_teams: string | null }>(env,
+      'SELECT authority_teams FROM beam_announcement_recipients WHERE announcement_id=? AND learner_id=?', announcement, learner)
+    const teams: string[] = JSON.parse(saved?.authority_teams ?? '[]')
+    const current = (await all<{ team_id: string }>(env,
+      'SELECT team_id FROM beam_team_members WHERE member_id=?', learner)).map(row => row.team_id)
+    return teams.length > 0 && teams.every(team => actor.teams?.includes(team) && current.includes(team))
+  }
   return true
 }

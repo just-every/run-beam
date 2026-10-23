@@ -114,6 +114,20 @@ async function announcementAudienceBrowser(f, cohort) {
         await as('manager')
         await page.goto(`${f.h.origin}/app/announcements`)
         assert.ok(await page.getByText(/Checklist ready/).count())
+        await f.api('owner', 'team.managers', { team: f.ids.team, members: [] })
+        try {
+          await page.reload()
+          assert.equal(await page.getByText(/Checklist ready/).count(), 0)
+          await page.screenshot({ path: `${evidence}/${width}-announcement-sender-closed.png`, fullPage: true })
+          await as('learner')
+          await page.goto(`${f.h.origin}/app/learning`)
+          const closed = page.locator('section.announcement').filter({ has: page.getByRole('heading', { name: `Cohort training ${width}`, exact: true }) })
+          assert.equal(await closed.locator('form').count(), 0)
+          assert.ok(await closed.getByText('Replies are closed because the sender no longer has access to this audience.').isVisible())
+          await page.screenshot({ path: `${evidence}/${width}-announcement-learner-closed.png`, fullPage: true })
+        } finally {
+          await f.api('owner', 'team.managers', { team: f.ids.team, members: [f.ids.manager] })
+        }
       } finally { await context.close() }
     }
   } finally { await browser.close() }

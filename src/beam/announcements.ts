@@ -44,11 +44,17 @@ export async function sendAnnouncement(env: Bindings, actor: Actor, input: Input
     WHERE m.employment<>'terminated' AND (o.status IS NULL OR o.status='active')`)).map(member => member.id))
   learners = [...new Set(learners)].filter(learner => learner !== actor.id && active.has(learner))
   insist(learners.length > 0, 'no_recipients', 409)
+  const authorityTeams = new Map<string, string[]>()
+  if ((kind === 'location' || kind === 'cohort') && !actor.owner) {
+    const memberships = await all<{ member_id: string; team_id: string }>(env,
+      'SELECT member_id,team_id FROM beam_team_members WHERE team_id IN (SELECT value FROM json_each(?))', JSON.stringify(actor.teams))
+    for (const row of memberships) authorityTeams.set(row.member_id, [...(authorityTeams.get(row.member_id) ?? []), row.team_id])
+  }
   const title = input.text('title', { max: 160 }), body = input.text('body', { max: 4000 })
   const id = newId(), at = now()
   await commit(env, [
     stmt(env, 'INSERT INTO beam_announcements (id, sender_id, audience_kind, audience_id, title, body, sent_at, basis, instructor_grant_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', id, actor.id, kind, target, title, body, at, authority.basis, authority.grant),
-    ...learners.map(learner => stmt(env, 'INSERT INTO beam_announcement_recipients (announcement_id, learner_id) VALUES (?, ?)', id, learner)),
+    ...learners.map(learner => stmt(env, 'INSERT INTO beam_announcement_recipients (announcement_id, learner_id, authority_teams) VALUES (?, ?, ?)', id, learner, authorityTeams.has(learner) ? JSON.stringify(authorityTeams.get(learner)) : null)),
   ], { actor, action: 'announcement.send', subject: id, detail: { audience: `${kind}:${target}`, title, recipients: learners.length, delivered: 'in_app', channels: ['in_app'], basis: authority.basis, grant: authority.grant } })
   return { id, recipients: learners.length, delivered: ['in_app'], notSent: ['email', 'slack', 'teams'] }
 }
@@ -58,7 +64,7 @@ export async function replyToAnnouncement(env: Bindings, actor: Actor, input: In
   const id = input.text('announcement')
   insist(await one(env, 'SELECT 1 FROM beam_announcement_recipients WHERE announcement_id = ? AND learner_id = ?', id, actor.id), 'not_found', 404)
   const announcement = await one(env, 'SELECT sender_id, audience_kind, audience_id, basis FROM beam_announcements WHERE id = ?', id)
-  insist(announcement && (await announcementReplyAuthority(env, announcement.sender_id, announcement.audience_kind, announcement.audience_id, announcement.basis, actor.id)), 'announcement_replies_closed', 403)
+  insist(announcement && (await announcementReplyAuthority(env, announcement.sender_id, announcement.audience_kind, announcement.audience_id, announcement.basis, actor.id, id)), 'announcement_replies_closed', 403)
   const body = input.text('body', { max: 2000 }), reply = newId()
   await commit(env, [stmt(env, 'INSERT INTO beam_announcement_replies (id, announcement_id, learner_id, body, sent_at) VALUES (?, ?, ?, ?, ?)', reply, id, actor.id, body, now())],
     { actor, action: 'announcement.reply', subject: id, detail: {} })
@@ -75,7 +81,7 @@ export async function announcements(env: Bindings, actor: Actor) {
     LEFT JOIN beam_teams t ON a.audience_kind = 'team' AND t.id = a.audience_id LEFT JOIN beam_courses c ON a.audience_kind = 'course' AND c.id = a.audience_id LEFT JOIN beam_sessions s ON a.audience_kind = 'session' AND s.id = a.audience_id LEFT JOIN beam_audiences cohort ON a.audience_kind='cohort' AND cohort.id=a.audience_id WHERE a.sender_id = ? ORDER BY a.sent_at DESC, a.rowid DESC`, actor.id)
   const replies = await all(env, `SELECT p.id, p.announcement_id AS announcement, p.body, p.sent_at AS sentAt, p.learner_id AS learner, m.name AS learnerName FROM beam_announcement_replies p JOIN beam_announcements a ON a.id = p.announcement_id
     JOIN beam_members m ON m.id = p.learner_id WHERE a.sender_id = ? ORDER BY p.sent_at`, actor.id)
-  const open = async (row: Row, member: string, learner: string) => announcementReplyAuthority(env, member, row.audienceKind, row.audience, row.basis, learner)
+  const open = async (row: Row, member: string, learner: string) => announcementReplyAuthority(env, member, row.audienceKind, row.audience, row.basis, learner, row.id)
   const receivedOpen = await Promise.all(received.map(row => open(row, row.sender, actor.id)))
   const sentReplies = await Promise.all(sent.map(async row => {
     const visible = []

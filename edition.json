@@ -86,7 +86,8 @@
           "migrations/core/0100_beam_notification_scope.sql",
           "migrations/core/0101_beam_announcement_audiences.sql",
           "migrations/core/0102_beam_notification_recipients.sql",
-          "migrations/core/0103_beam_evidence_notifications.sql"
+          "migrations/core/0103_beam_evidence_notifications.sql",
+          "migrations/core/0104_beam_announcement_reply_scope.sql"
         ]
       }
     },
