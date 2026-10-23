@@ -185,7 +185,9 @@ export async function erasureCheck() {
       const restored = await createPortability({ db: target.db, buckets: { files: target.files }, policy, migrations })
       await assert.rejects(importArchive(restored, old, undefined, later), /erasure_epoch/)
       await importArchive(restored, later)
+      assert.equal((await target.raw('/auth/bootstrap', { body: { token: target.vars.SETUP_TOKEN, displayName: 'Owner' } })).status, 303)
       const restoredOwner = await target.signIn('owner@example.test')
+      await target.raw('/setup', { cookie: restoredOwner, form: new URLSearchParams({ confirm: 'yes' }) })
       assert.equal((await target.raw(`/api/beam/source-files/${sourceWithdrawal.source.versionId}`, { cookie: restoredOwner })).status, 404)
       assert.deepEqual((await target.api(`courses/${sourceWithdrawal.course.id}`, restoredOwner)).draft.lessons, sourceWithdrawal.kept)
 
