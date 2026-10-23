@@ -6,6 +6,7 @@ import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
 import { all, BeamError, commit, insist, newId, now, one, sha256Hex, stmt, type Row } from './core'
 import type { Input } from './input'
+import { ownerPredicate } from './movein/door'
 import { openSecret, sealSecret } from './integration-secrets'
 import { getResolvedPDFJS } from 'unpdf'
 
@@ -35,6 +36,8 @@ export async function sourceOcrConfig(env: Bindings, actor: Actor) {
 export async function configureSourceOcr(env: Bindings, actor: Actor, input: Input) {
   owner(actor)
   const operation = input.text('operation'), current = await configuration(env)
+  const expected = input.integer('version', { min: 0, optional: true }) ?? current?.version ?? 0
+  insist(expected === (current?.version ?? 0), 'source_ocr_config_changed', 409)
   insist(['enable', 'disable', 'rotate', 'revoke'].includes(operation), 'source_ocr_operation')
   const apiKey = input.text('apiKey', { max: 512, optional: true })
   insist(!apiKey || /^[\x21-\x7e]+$/.test(apiKey), 'source_ocr_key_invalid')
@@ -49,11 +52,21 @@ export async function configureSourceOcr(env: Bindings, actor: Actor, input: Inp
   const cipher = revoke ? null : apiKey ? await sealSecret(env, apiKey, 'source-ocr:openai') : current?.key_cipher ?? null
   const cap = enable || rotate ? input.integer('maxCostCents', { min: SOURCE_OCR_ESTIMATE_CENTS, max: 100_000 })! : current?.max_cost_cents ?? 0
   if (enable) { insist(cipher, 'source_ocr_key_required', 409); await openSecret(env, cipher, 'source-ocr:openai') }
-  await commit(env, [stmt(env, `INSERT INTO beam_source_ocr_config(singleton,enabled,key_cipher,version,max_cost_cents,updated_by,updated_at,total_budget_cents,account_mode,agreement_confirmed) VALUES(1,?,?,?,?,?,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET
-    enabled=excluded.enabled,key_cipher=excluded.key_cipher,version=beam_source_ocr_config.version+1,max_cost_cents=excluded.max_cost_cents,updated_by=excluded.updated_by,updated_at=excluded.updated_at,total_budget_cents=excluded.total_budget_cents,account_mode=excluded.account_mode,agreement_confirmed=excluded.agreement_confirmed`,
-  enable ? 1 : 0, cipher, (current?.version ?? 0) + 1, cap, actor.id, now(), totalBudget, mode, agreement ? 1 : 0)],
-  { actor, action: 'source.ocr.configure', subject: 'source-ocr', detail: { operation, maxCostCents: cap, totalBudgetCents: totalBudget, accountMode: mode, agreementConfirmed: agreement, model: SOURCE_OCR_MODEL } })
-  return { enabled: enable, hasKey: !!cipher, maxCostCents: cap }
+  const authority = ownerPredicate(actor), at = now()
+  // Serialize the reviewed version, live owner authority, key and budget together.
+  // A stale tab or overlapping save cannot restore an old key after revocation.
+  const changed = await env.DB.batch([
+    stmt(env, `INSERT INTO beam_source_ocr_config(singleton,enabled,key_cipher,version,max_cost_cents,updated_by,updated_at,total_budget_cents,account_mode,agreement_confirmed)
+      SELECT 1,?,?,?,?,?,?,?,?,? WHERE coalesce((SELECT version FROM beam_source_ocr_config WHERE singleton=1),0)=? AND (${authority.sql})
+      ON CONFLICT(singleton) DO UPDATE SET enabled=excluded.enabled,key_cipher=excluded.key_cipher,version=excluded.version,
+        max_cost_cents=excluded.max_cost_cents,updated_by=excluded.updated_by,updated_at=excluded.updated_at,
+        total_budget_cents=excluded.total_budget_cents,account_mode=excluded.account_mode,agreement_confirmed=excluded.agreement_confirmed`,
+      enable ? 1 : 0, cipher, expected + 1, cap, actor.id, at, totalBudget, mode, agreement ? 1 : 0, expected, ...authority.params ?? []),
+    stmt(env, `INSERT INTO beam_audit(at,actor,action,subject,detail) SELECT ?,?,'source.ocr.configure','source-ocr',? WHERE changes()=1`,
+      at, actor.id, JSON.stringify({ operation, maxCostCents: cap, totalBudgetCents: totalBudget, accountMode: mode, agreementConfirmed: agreement, model: SOURCE_OCR_MODEL })),
+  ])
+  insist(changed[0].meta.changes === 1, 'source_ocr_config_changed', 409)
+  return { enabled: enable, hasKey: !!cipher, maxCostCents: cap, version: expected + 1 }
 }
 async function source(env: Bindings, id: string) {
   const version = await one(env, 'SELECT v.*,s.title FROM beam_source_versions v JOIN beam_sources s ON s.id=v.source_id WHERE v.id=? AND s.erased_at IS NULL AND NOT EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind=\'source\' AND e.subject_id=s.id AND e.state!=\'complete\')', id)

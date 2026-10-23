@@ -1,5 +1,6 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  source_ocr_config_changed: 'the OCR account settings changed. Reload the account page and review the current key state and budget before saving again.',
   file_size: 'the file is empty or exceeds this upload’s size limit. Your prior files and records are unchanged. Choose a smaller supported file and retry.',
   source_ocr_agreement_required: 'review and confirm the employer provider agreements before enabling or rotating this account.',
   source_ocr_account_mode: 'select sandbox or production for the employer’s provider project.',

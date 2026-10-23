@@ -216,7 +216,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "0df8cd6b7ff841f86a18c57002bdd05a534d5a5589cf79b4f0a34134f7303703",
+      "sha256": "02e77552c36363e0087ee6f2d8e10daa5dd0c80dfdfa50ef899e1506f7307be5",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -236,7 +236,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "dd7bec6febaa2d3ef69a5ed324fae6728dcaae77d03bc40f22e433a2ba5baaa7",
+      "sha256": "9bc8b2e9885c27ee9ed670e07a009c402a956f213771c7a755fa37a2484d0275",
       "executable": false
     },
     "DEMO.md": {
@@ -296,7 +296,7 @@
       "executable": false
     },
     "docs/operations.md": {
-      "sha256": "7257d9bc3296ac1735c9d14d0f6ac644d76597d0f782e50fcc6b7566af336735",
+      "sha256": "ce83510c336688c93c13c57170bd7c613b0af4e71c54c7c7c18dad08c23e14ce",
       "executable": false
     },
     "docs/people.md": {
@@ -1832,7 +1832,7 @@
       "executable": false
     },
     "src/beam/source-ocr.ts": {
-      "sha256": "5e641785f7093c8f29a0ae38de2fc97ac4c149f6eb5d66323fa575b8935e88ba",
+      "sha256": "81162eb9d10aa7900bbc86d37e2d521b103ee71ec47670e87f1eeafda923bee4",
       "executable": false
     },
     "src/beam/source-office-merges.ts": {
@@ -2008,7 +2008,7 @@
       "executable": false
     },
     "src/beam/ui/errors.ts": {
-      "sha256": "54e4d035f76a4dfa198a54f4ab0ca6e7eae7eb78f6db6247709049b49e48ee5a",
+      "sha256": "b7e12575bb40643706d641b68949bc0096be0614ce60f290d5c3eb2056b83d97",
       "executable": false
     },
     "src/beam/ui/evidence.ts": {
@@ -2140,7 +2140,7 @@
       "executable": false
     },
     "src/beam/ui/source-ocr.ts": {
-      "sha256": "f2c0e08a0a6a84510b20fdf92af99b471b047ae3f34f7746b4b7a5639f6e1009",
+      "sha256": "6dbe32feb289345e1e55beec26534a5f9c1898086860362533f05088ded90d11",
       "executable": false
     },
     "src/beam/ui/source-preparation.ts": {
@@ -4280,7 +4280,7 @@
       "executable": false
     },
     "tests/beam/regression-source-ocr.mjs": {
-      "sha256": "0ed4736398ab408e53fd887fe1884dbf2b2cae86d9a926ba77869d41e6fb4f98",
+      "sha256": "78f4fa5817282dc7cc1de18e15dddcf09ef06b1ec27f23d0f986909fb668a1f6",
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {

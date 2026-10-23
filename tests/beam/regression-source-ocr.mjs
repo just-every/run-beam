@@ -120,5 +120,24 @@ export async function sourceOcrCheck() {
     const revoked = await h.submit('source.ocr.configure', cookies.owner, { operation: 'revoke' }, '/app/sources/ocr')
     assert.equal(revoked.searchParams.get('error'), null)
     assert.equal((await api('owner', 'source-ocr')).hasKey, false)
+    // A stale Settings tab must not restore a revoked key or replace a later budget decision.
+    const retiredVersion = afterLeaks.version
+    const staleSave = await h.submit('source.ocr.configure', cookies.owner, {
+      operation: 'enable', version: retiredVersion, ...options, consent: 'yes', agreementConfirmed: 'yes',
+      apiKey: 'synthetic-beam-1001', totalBudgetCents: 10000,
+    }, '/app/sources/ocr')
+    assert.equal(staleSave.searchParams.get('error'), 'source_ocr_config_changed')
+    assert.equal((await api('owner', 'source-ocr')).hasKey, false)
+    const latest = await api('owner', 'source-ocr')
+    const changes = await Promise.all(['enable', 'rotate'].map(operation => f.request('/api/beam/source.ocr.configure', {
+      role: 'owner', body: { operation, version: latest.version, ...options, apiKey: 'synthetic-beam-1002', totalBudgetCents: 10000 },
+    })))
+    assert.deepEqual(changes.map(row => row.status).sort(), [200, 409], 'only one concurrent save consumes the reviewed configuration version')
+    const winner = await api('owner', 'source-ocr')
+    assert.equal(winner.version, latest.version + 1)
+    assert.equal(winner.reservedEstimateCents, latest.reservedEstimateCents, 'account changes retain every provider reservation')
+    const pending = await h.submit('source.ocr.configure', cookies.owner, { operation: 'revoke', version: winner.version }, '/app/sources/ocr')
+    assert.equal(pending.searchParams.get('error'), null)
+    assert.equal((await api('owner', 'source-ocr')).hasKey, false)
   } finally { await f.h.close() }
 }
