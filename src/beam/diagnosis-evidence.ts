@@ -12,7 +12,8 @@ export const validDay = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && 
 export async function diagnosisImport(env: Bindings, actor: Actor, id: string) {
  const row = await one(env, 'SELECT i.*, m.name AS actor_name FROM beam_diagnosis_imports i JOIN beam_members m ON m.id = i.actor WHERE i.id = ?', id)
  insist(row, 'import_not_found', 404)
- insist(actor.owner || row.actor === actor.id || row.reviewer === actor.id, 'forbidden', 403)
+ const current = await one(env, 'SELECT reviewer_id FROM beam_courses WHERE id=?', row.course)
+ insist(actor.owner || row.actor === actor.id && isManager(actor) || row.reviewer === actor.id && current?.reviewer_id === actor.id && actor.roles.has('reviewer'), 'forbidden', 403)
  return reconcileErrorImport(env, row)
 }
 export async function importErrors(env: Bindings, actor: Actor, input: Input) {

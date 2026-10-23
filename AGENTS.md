@@ -384,3 +384,25 @@ structure. Real SMS/Teams send/reply/consent qualification remains blocked on
 unprovisioned provider prerequisites under LEARN-012/NOTICE-003. ct approved
 this boundary as adopted with riders, 22 Oct. Learner erasure of practice
 replies (`beam_sequence_answers`) are removed by the owner erasure door, even while assessed evidence is held. OPS-003 remains partial for its named custody/propagation gaps.
+
+## Scoped operational evidence and overdue recovery
+
+Humans authorize `error-feed.authorize` with `course`, `jobRole`, `teams` and
+`consent: true`. The Error diagnosis page provides the same form. Supply its
+`feed` to `outcome.import` with `purpose: diagnosis` and the existing CSV fields,
+or `records: [{ id, employeeId, date, value }]`. Record ids are opaque identifiers,
+not personal detail; extra record fields are discarded. `error-feed.revoke`
+with `feed` withdraws all of its evidence. Current authority and cohort shrink
+invalidate affected comparisons before release. Agents prepare diagnoses from
+these minimized human imports; they cannot authorize, import or revoke feeds.
+
+A human current direct manager reports a bounced learner delivery using
+`recovery.delivery` with `assignment`, `team` and the existing delivery `message`
+id. Reports are labelled human-reported and cannot set an earlier timestamp.
+Prepare overdue work with `agent.propose`, `kind: process_change`, and
+`payload: { recovery: { assignment, team, substitute, expiresOn } }`.
+Only the owner or a current direct manager approves the exact proposal. Approval
+grants existing temporary coverage and runs that assignment's existing controlled
+escalation. It retains original dates and assessment evidence. A full calendar or
+unknown return date remains visible for the substitute to resolve during paid
+work. No automatic slot, exception, completion or backdated evidence is created.

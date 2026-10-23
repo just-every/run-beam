@@ -11,6 +11,7 @@ import { memberNames } from './people'
 import { assignmentPlan, processChange, reminderDrafts } from './plans'
 import { scenarioKind } from './practice'
 import { questionPlanKind } from './questions'
+import { recoveryVisible } from './recovery'
 import { interventionKind } from './interventions'
 
 export interface Kind {
@@ -131,6 +132,7 @@ export async function listProposals(env: Bindings, actor: Actor, state = 'waitin
   const rows = await all(env, 'SELECT * FROM beam_agent_proposals WHERE withdrawn_at IS NULL AND state = ? ORDER BY created_at DESC LIMIT 200', state)
   const visible = []
   for (const row of rows) {
+    if (JSON.parse(row.payload_json).recovery && !await recoveryVisible(env, actor, JSON.parse(row.payload_json).recovery)) continue
     const canDecide = !actor.agent && await KINDS[row.kind].mayDecide(env, actor, JSON.parse(row.payload_json)).then(() => true, () => false)
     if (canDecide || row.prepared_by === actor.id) visible.push({ ...shape(row, names), canDecide })
   }
@@ -140,6 +142,7 @@ export async function listProposals(env: Bindings, actor: Actor, state = 'waitin
 export async function proposalDetail(env: Bindings, actor: Actor, id: string) {
   const row = await one(env, 'SELECT * FROM beam_agent_proposals WHERE id = ?', id)
   if (!row || row.withdrawn_at) throw new BeamError('not_found', 404)
+  if (JSON.parse(row.payload_json).recovery && !await recoveryVisible(env, actor, JSON.parse(row.payload_json).recovery)) throw new BeamError('not_found', 404)
   const mine = row.prepared_by === actor.id
   if (!mine) await KINDS[row.kind].mayDecide(env, actor, JSON.parse(row.payload_json)).catch(() => { throw new BeamError('not_found', 404) })
   return shape(row, await memberNames(env))

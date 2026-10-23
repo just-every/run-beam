@@ -49,3 +49,7 @@ export async function reportRecoveryBounce(env: Bindings, actor: Actor, input: I
  await commit(env, [stmt(env, "INSERT OR IGNORE INTO beam_recovery_delivery VALUES(?,'bounced',?,?)", message, actor.id, now())], { actor, action: 'recovery.delivery-reported', subject: facts.assignment, detail: { message, status: 'bounced', source: 'human_report' } })
  return { message, status: 'bounced', source: 'human_report' }
 }
+
+export async function recoveryVisible(env: Bindings, actor: Actor, payload: any) {
+ return actor.owner || actor.managedTeams.includes(payload.team) && !!await one(env, 'SELECT 1 FROM beam_team_members t JOIN beam_assignments a ON a.learner_id=t.member_id WHERE a.id=? AND t.team_id=?', payload.assignment, payload.team)
+}

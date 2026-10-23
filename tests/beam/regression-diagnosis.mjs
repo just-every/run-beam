@@ -103,6 +103,18 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  const blank = await api('manager', 'outcome.import', { ...parameters, csv: 'Employee ID,Date,Value\n' + members.map((_, i) => `DX${i + 1},2030-02-05,${i < 3 ? '' : 4}`).join('\n') })
  const missing = await read(blank.id)
  assert.deepEqual([missing.groups.trained.measured, missing.groups.trained.missing, missing.groups.trained.mean], [3, 3, 4])
+ const practical = await course('Operational practical evidence', true)
+ const attempted = []
+ for (let i=0;i<3;i++) {
+  const assignment = (await api('manager', 'assignment.create', { course: practical.id, learners: [members[i]], dueDate: '2030-10-01' })).created[0]
+  for (const lesson of (await h.api(`assignments/${assignment}`, sessions[i])).lessons) await h.api('lesson.complete', sessions[i], { assignment, lesson: lesson.id })
+  attempted.push((await h.api('practical.submit', sessions[i], { assignment, evidence: 'PRIVATE ASSESSMENT DETAIL' })).id)
+ }
+ const attemptFeed = (await api('manager', 'error-feed.authorize', { course: practical.id, jobRole: 'Packing', teams: [ids.team], consent: true })).id
+ const attemptImport = await api('manager', 'outcome.import', { ...parameters, course: practical.id, feed: attemptFeed, records: members.map((_,i) => ({ id: `synthetic-beam-${i+20}`, employeeId: `DX${i+1}`, date: '2030-02-05', value: 2 })) })
+ const attemptView = await read(attemptImport.id)
+ assert.deepEqual(attemptView.attemptEvidence.citations.map(a => a.id).sort(), attempted.sort())
+ assert.ok(!JSON.stringify(attemptView).includes('PRIVATE ASSESSMENT DETAIL'))
  // No individual inference via a near-duplicate cohort or groups below three.
  await api('owner', 'person.directory', { member: members[5], jobRole: 'Other role' })
  const near = await api('manager', 'outcome.import', { ...parameters, csv })
@@ -156,18 +168,6 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  assert.equal((await agent('diagnosis.prepare', { import: operational.id }, 409)).error, 'import_withdrawn')
  assert.equal((await api('manager', 'agent.decide', { proposal: waiting.id, sha256: waiting.sha256, decision: 'approve' }, 409)).error, 'diagnosis_basis_withdrawn')
  await api('manager', 'outcome.import', { ...parameters, feed, records }, 409)
- const practical = await course('Operational practical evidence', true)
- const attempted = []
- for (let i=0;i<3;i++) {
-  const assignment = (await api('manager', 'assignment.create', { course: practical.id, learners: [members[i]], dueDate: '2030-10-01' })).created[0]
-  for (const lesson of (await h.api(`assignments/${assignment}`, sessions[i])).lessons) await h.api('lesson.complete', sessions[i], { assignment, lesson: lesson.id })
-  attempted.push((await h.api('practical.submit', sessions[i], { assignment, evidence: 'PRIVATE ASSESSMENT DETAIL' })).id)
- }
- const attemptFeed = (await api('manager', 'error-feed.authorize', { ...grant, course: practical.id })).id
- const attemptImport = await api('manager', 'outcome.import', { ...parameters, course: practical.id, feed: attemptFeed, records })
- const attemptView = await read(attemptImport.id)
- assert.deepEqual(attemptView.attemptEvidence.citations.map(a => a.id).sort(), attempted.sort())
- assert.ok(!JSON.stringify(attemptView).includes('PRIVATE ASSESSMENT DETAIL'))
  // A live team change invalidates saved comparisons and permanently scrubs their observations.
  const scopeFeed = (await api('manager', 'error-feed.authorize', grant)).id
  const scopeImport = await api('manager', 'outcome.import', { ...parameters, feed: scopeFeed, records })
@@ -220,10 +220,21 @@ async function browserProof(h, cookie, imports, withdrawn = false) {
    if (withdrawn) continue
    await page.goto(`${h.origin}/app/diagnoses`)
    if (!imports.length) { await page.getByText('No evidence imported yet.', { exact: true }).waitFor(); await page.screenshot({ path: `${out}/AGENT-002-empty-${width}.png`, fullPage: true }) }
+   let browserFeed = null
+   if (imports.length === 2) {
+    await page.getByText('Authorize operational feed', { exact: true }).click()
+    await page.getByLabel('Feed job role', { exact: true }).fill('Packing')
+    await page.getByRole('checkbox', { name: 'Regression floor', exact: true }).check()
+    await page.getByRole('checkbox', { name: 'I authorize minimized operational measures for this exact scope.', exact: true }).check()
+    await page.screenshot({ path: `${out}/AGENT-001-authorize-${width}.png`, fullPage: true })
+    await page.getByRole('button', { name: 'Authorize feed', exact: true }).click()
+    browserFeed = (await h.api('error-feeds', cookie))[0].id
+   }
    await page.getByText('Import error evidence', { exact: true }).click()
    await page.getByLabel('Job role', { exact: true }).fill('Packing')
    await page.screenshot({ path: `${out}/AGENT-002-import-${width}.png`, fullPage: true })
    if (imports.length === 2) {
+    await page.getByLabel('Authorized feed (optional)', { exact: true }).selectOption(browserFeed)
     await page.getByLabel('Error metric', { exact: true }).fill('Browser packing audit')
     await page.getByLabel('Unit', { exact: true }).fill('errors / 100 crates')
     await page.getByLabel('Window start', { exact: true }).fill('2030-02-01')
@@ -232,7 +243,13 @@ async function browserProof(h, cookie, imports, withdrawn = false) {
     await page.getByRole('button', { name: 'Import evidence', exact: true }).click()
     await page.getByRole('link', { name: `Browser packing audit · browser-errors-${width}.csv`, exact: true }).click()
     await page.getByRole('heading', { name: 'Evidence is uncertain', exact: true }).waitFor()
-    await page.screenshot({ path: `${out}/AGENT-002-imported-${width}.png`, fullPage: true })
+    await page.getByRole('heading', { name: 'Operational evidence', exact: true }).waitFor()
+    assert.ok((await page.getByRole('button').allTextContents()).every(text => text.trim().length>0), 'every button has a visible text label')
+    await page.screenshot({ path: `${out}/AGENT-001-imported-${width}.png`, fullPage: true })
+    await page.locator(`form:has(input[name="feed"][value="${browserFeed}"])`).getByRole('button', { name: 'Revoke feed', exact: true }).click()
+    await page.getByRole('link', { name: `Browser packing audit · browser-errors-${width}.csv`, exact: true }).click()
+    await page.getByText('Withdrawn. This import is excluded from every later diagnosis.', { exact: true }).waitFor()
+    await page.screenshot({ path: `${out}/AGENT-001-revoked-${width}.png`, fullPage: true })
    }
    await page.goto(`${h.origin}/app/agent`)
    await page.getByRole('link', { name: 'Compare error evidence', exact: true }).waitFor()

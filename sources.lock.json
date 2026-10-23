@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "2e43aba7e95730fd09ae0b12478aee67122ac6f014456cb1456ab3620117a084",
+  "manifest": "eb22d874c3048f725bd095828e3e2743ddbdc585ccde82446e657fdb946df8f0",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -80,7 +80,9 @@
           "migrations/core/0090_beam_cmi5.sql",
           "migrations/core/0091_beam_microlearning.sql",
           "migrations/core/0092_beam_erasure.sql",
-          "migrations/core/0093_beam_source_ocr.sql"
+          "migrations/core/0093_beam_source_ocr.sql",
+          "migrations/core/0098_beam_error_feeds.sql",
+          "migrations/core/0099_beam_recovery_delivery.sql"
         ]
       },
       "baseline": null
@@ -212,7 +214,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "6f4efc913475be4be601bee5be781761a9ec571f7102968ab861695de799c5f0",
+      "sha256": "1d9613117f3c31cd977316dc4222631d8c001bf1f5627838b28a87c8a2b0e7f7",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -220,7 +222,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "9986af21a35dfdd673f516133b2ac1112e38ab1a69b5af37d795b3f40c4a23cb",
+      "sha256": "71946456876bd9991bec9bf88ccce42d2e4729b57c1dca01136bba6d249325a0",
       "executable": false
     },
     "base-copies.json": {
@@ -232,7 +234,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3630f931c565ccb296afd08076707d8abfeab0b6e2e849408673b357e18c8842",
+      "sha256": "328a3175db4736a6c72176698c16875e0ef5e1ef0c05fe50b31b0851e04e7410",
       "executable": false
     },
     "DEMO.md": {
@@ -312,7 +314,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "2e43aba7e95730fd09ae0b12478aee67122ac6f014456cb1456ab3620117a084",
+      "sha256": "eb22d874c3048f725bd095828e3e2743ddbdc585ccde82446e657fdb946df8f0",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -705,6 +707,14 @@
     },
     "migrations/core/0097_beam_learning_source_admission.sql": {
       "sha256": "064cfee5343660dd1514a16ed01514df438e7152c7e8862191d9eb7c0066a543",
+      "executable": false
+    },
+    "migrations/core/0098_beam_error_feeds.sql": {
+      "sha256": "682d17306cfc8101070cf2f1a0700e3dc6d207bcaca61a9b39453a44439f9869",
+      "executable": false
+    },
+    "migrations/core/0099_beam_recovery_delivery.sql": {
+      "sha256": "b515c4034347031982ee5aab3ad0431652e0b7ffb88bcdee7f213fcdcccc7ab1",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1196,7 +1206,7 @@
       "executable": false
     },
     "src/beam/actions.ts": {
-      "sha256": "fe70a01cb50f87a346892b926f9339ca24aaf29068404c5a97fc189dd02bda80",
+      "sha256": "75f9e7399a674e20fad1f3e088067fb9923d127e427aca68f0923686abcfb7a2",
       "executable": false
     },
     "src/beam/actor.ts": {
@@ -1208,7 +1218,7 @@
       "executable": false
     },
     "src/beam/agent-work.ts": {
-      "sha256": "334e9a11efb2a6b154a0957253156124f62d66fa7527e0779a318fae7c512940",
+      "sha256": "913d1d735ca42a1234902b5f3adc956af69877ca960513d45bfc72b79f38f580",
       "executable": false
     },
     "src/beam/announcement-authority.ts": {
@@ -1344,7 +1354,7 @@
       "executable": false
     },
     "src/beam/data-export-inventory.ts": {
-      "sha256": "abfd24ae2e0f8009dd1ab7dab709422193030c5213494c69a0032876626ce9e0",
+      "sha256": "89d24930c951e947e73067ad2da7a58cf54abc1e8d9a585c24d9f229d075875b",
       "executable": false
     },
     "src/beam/data-export.ts": {
@@ -1352,11 +1362,11 @@
       "executable": false
     },
     "src/beam/diagnosis-comparison.ts": {
-      "sha256": "8e2b7a0546752d8605719654ef014295c13393f7c4034b31fd070796aaa919de",
+      "sha256": "94a4dc9d9330a0c5efe8cd5dbb4186544b05cd11ff12301589d8211e3ef8317e",
       "executable": false
     },
     "src/beam/diagnosis-evidence.ts": {
-      "sha256": "dad3d84bcf3180b54a431efe90f1d7fe05ff078802525f811ef95613977235c3",
+      "sha256": "e8e82acd823aab06b1d725ee446a876b80be47c630f4f2751b0dc8df6876bd95",
       "executable": false
     },
     "src/beam/diff.ts": {
@@ -1376,7 +1386,7 @@
       "executable": false
     },
     "src/beam/erasure-custody.ts": {
-      "sha256": "b69cccee8ff1ab35dfbb1bf3992fb7fd1137cf9f87917128321c467ad77fa874",
+      "sha256": "5c354008e3618527e5076b5ee68e6921f07989c912fa832c2de6d7349de98238",
       "executable": false
     },
     "src/beam/erasure-fence.ts": {
@@ -1411,8 +1421,12 @@
       "sha256": "73015568c5ac0b93c42f0c5ddeeb575db0a411262bc455739f49001b204620f5",
       "executable": false
     },
+    "src/beam/error-feeds.ts": {
+      "sha256": "31759bf4dd47deead0cc2b94403dda9308df25e2cc16dbabdc1d7014b8376690",
+      "executable": false
+    },
     "src/beam/escalations.ts": {
-      "sha256": "b4df7648bb11eeb0a01f2afdeb1e5be4f8be43aebe4112e552c723bc97835466",
+      "sha256": "c8ac4ecb29a6cc6875dd35db03db929e49bd3d134cb7374c086f6b4b95f6e584",
       "executable": false
     },
     "src/beam/estate.ts": {
@@ -1480,7 +1494,7 @@
       "executable": false
     },
     "src/beam/interventions.ts": {
-      "sha256": "452213f045e1eab9b16abc23d561e6f52105081f0326585cafedc67e895a4098",
+      "sha256": "3b13867960f8518664945a262bdc2f9d9c57f878ed8c8120bd2ab0cda4d06de2",
       "executable": false
     },
     "src/beam/language.ts": {
@@ -1684,7 +1698,7 @@
       "executable": false
     },
     "src/beam/plans.ts": {
-      "sha256": "7c35939bb751553207d8ec22633f9b948df5dd883f5299ac481547e635e5b991",
+      "sha256": "e06d454fceba805ffa354c442d3a7bd9d714ebf3c4760bf1e66c0e80243e6b5c",
       "executable": false
     },
     "src/beam/practice.ts": {
@@ -1717,6 +1731,10 @@
     },
     "src/beam/records.ts": {
       "sha256": "dc19c15ed525bec4af4dd7d9e8407a2b2b6db81cb8df48052ddd14f738fffae8",
+      "executable": false
+    },
+    "src/beam/recovery.ts": {
+      "sha256": "b110bf915115eba426df919c43c4eb053279634bf86b007d12ec9dafdfc579c0",
       "executable": false
     },
     "src/beam/registrations.ts": {
@@ -1860,7 +1878,7 @@
       "executable": false
     },
     "src/beam/ui/agent.ts": {
-      "sha256": "f0b64b2ce6bc7d86e8e9f7294e3376301fe2adc7a0e7ba745a3c4eb0907ecf3c",
+      "sha256": "d490d6d61e8b6b65b24ae774ce8d6e8c3489cc385031583c4283fd1de9343167",
       "executable": false
     },
     "src/beam/ui/announcements.ts": {
@@ -1936,7 +1954,7 @@
       "executable": false
     },
     "src/beam/ui/diagnoses.ts": {
-      "sha256": "9e0e3d603b8c8fefdde1995aa1e96ca73efac52247b33f784bb5d5aaaccc6f30",
+      "sha256": "4b75485bb6b58378067481f85cd0891776ddaae1dfa927d905f6878678ff3dce",
       "executable": false
     },
     "src/beam/ui/directory.ts": {
@@ -2132,7 +2150,7 @@
       "executable": false
     },
     "src/beam/views.ts": {
-      "sha256": "572400a267e971a4d4358a0353f3ed13f3ba5bd6250b1a6b88e7d79820b255d5",
+      "sha256": "26d1a7f831d885fd2819bb9a508155920ec75681eeabfb290031dcb09302d23b",
       "executable": false
     },
     "src/beam/webhook-recovery.ts": {
@@ -4096,7 +4114,7 @@
       "executable": false
     },
     "tests/beam/regression-diagnosis.mjs": {
-      "sha256": "7b9ea585984423e4aef70996e45f3736945c724cd102ca7a68853d4046f5bb03",
+      "sha256": "576983f78e62c94978d30022010450b20d0d943e3e2c3ec29ac9320b82176366",
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
@@ -4172,7 +4190,7 @@
       "executable": false
     },
     "tests/beam/regression-notices.mjs": {
-      "sha256": "55cd6086741cdd9a95ab3cf99fa54c9e32b67f73b56da75c0786df47ba5c4955",
+      "sha256": "e586930f027e3ec067b39b8682123356ef3723ff311aed57cd70a3d8342327bf",
       "executable": false
     },
     "tests/beam/regression-packages.mjs": {
