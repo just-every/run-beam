@@ -77,9 +77,25 @@ export async function providerControlBrowserCheck() {
         assert.equal(calls,previous+1)
         await page.goto(f.h.origin+'/app/sources/ocr')
         await shot('recovered-job')
-        await activate(accountForm('revoke').getByRole('button'))
-        await page.waitForURL(url=>url.searchParams.has('notice'))
+        // Keep this tab open while another Settings tab revokes the provider.
+        const other = await context.newPage()
+        try {
+          await other.goto(f.h.origin+'/app/sources/ocr')
+          const revoke = other.locator('form[action="/app/do/source.ocr.configure"]').filter({has:other.locator('input[name="operation"][value="revoke"]')})
+          await revoke.getByRole('button').focus()
+          await Promise.all([other.waitForNavigation({waitUntil:'domcontentloaded'}),other.keyboard.press('Enter')])
+          assert.equal(new URL(other.url()).searchParams.get('error'),null)
+        } finally { await other.close() }
         assert.equal((await f.api('owner','source-ocr')).hasKey,false)
+        const stale = accountForm('enable')
+        await stale.locator('input[name="apiKey"]').fill('synthetic-beam-1003')
+        for (const check of await stale.getByRole('checkbox').all()) await check.check()
+        await activate(stale.getByRole('button'))
+        await page.waitForURL(url=>url.searchParams.get('error')==='source_ocr_config_changed')
+        await page.getByRole('alert').filter({hasText:'Reload the account page'}).waitFor()
+        assert.equal((await f.api('owner','source-ocr')).hasKey,false,'a stale Settings tab cannot restore a revoked key')
+        await shot('stale-settings-refused')
+        await page.goto(f.h.origin+'/app/sources/ocr')
         await shot('revoked')
       } finally {await context.close()}
     }
