@@ -1,5 +1,8 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  source_ocr_agreement_required: 'review and confirm the employer provider agreements before enabling or rotating this account.',
+  source_ocr_account_mode: 'select sandbox or production for the employer’s provider project.',
+  source_ocr_budget_exhausted: 'the total OCR budget is exhausted. No provider call was made. Review the request history and explicitly change the budget before approving a fresh request.',
   package_invalid_manifest: 'the package manifest is invalid. Correct the named problem in the source package and upload it again.',
   package_unsupported_feature: 'this package uses a feature Beam cannot play. The unsupported feature is named below; use a supported export before assigning it.',
   package_invalid_zip: 'the ZIP is damaged or exceeds the supported package limits. Re-export the original package and try again.',

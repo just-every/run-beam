@@ -212,7 +212,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "6f4efc913475be4be601bee5be781761a9ec571f7102968ab861695de799c5f0",
+      "sha256": "99b1f629b56d114fb9afacafbd5b474a12c8bb4906bd573599bcaa0adb6b3d4b",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -232,7 +232,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3630f931c565ccb296afd08076707d8abfeab0b6e2e849408673b357e18c8842",
+      "sha256": "41d4775dd40cc67c7d9fdf1c0251b94cec9b7677cea87b3cf3608da543cbfaae",
       "executable": false
     },
     "DEMO.md": {
@@ -1304,7 +1304,7 @@
       "executable": false
     },
     "src/beam/costs.ts": {
-      "sha256": "6e22b2cd45328f42181a36d30ca26e11815fe2cf32a011aaa9aca1c3952b897b",
+      "sha256": "e5809048d12fec59c1e35934da79ae7ccc7fa86b5f6d86eb6a1c395e60000f0b",
       "executable": false
     },
     "src/beam/course-access.ts": {
@@ -1792,7 +1792,7 @@
       "executable": false
     },
     "src/beam/source-ocr.ts": {
-      "sha256": "ac1699e03ccc00d8c84fe5668a36c847108ca00f763025ae7fc4379cc467ff22",
+      "sha256": "aba8bd6f276c3845fae1d21cabc9f065eb66d56467b6a294101d016c58a80035",
       "executable": false
     },
     "src/beam/source-office-merges.ts": {
@@ -1960,7 +1960,7 @@
       "executable": false
     },
     "src/beam/ui/errors.ts": {
-      "sha256": "762e0416c51b1a4e4ad58dc401efc3f1bba244946c04be2d70b05fcc01e20efb",
+      "sha256": "270f65a255a7f78b2597e25e7a284a86630b7d72c4df1faab7871aff4b2a1768",
       "executable": false
     },
     "src/beam/ui/evidence.ts": {
@@ -2028,7 +2028,7 @@
       "executable": false
     },
     "src/beam/ui/managing.ts": {
-      "sha256": "7b2082c355d9dfb491024a34e3795dfdcf45ab528a2605b36242df2387e115b2",
+      "sha256": "6615aca0a5f0d508bd704accd7c219c8a01712d5540c765f2db07ac705310a8e",
       "executable": false
     },
     "src/beam/ui/media.ts": {
@@ -2088,7 +2088,7 @@
       "executable": false
     },
     "src/beam/ui/source-ocr.ts": {
-      "sha256": "09a804e12e6f429a6fe90ef02bdb320d6e47c769fe35356e8aa3e97e0943a97a",
+      "sha256": "ac004f8e2712d7e9bb51fe8a48d0246ff3432fefb6be6b4a51f72e23dc495c76",
       "executable": false
     },
     "src/beam/ui/source-preparation.ts": {
@@ -4004,7 +4004,7 @@
       "executable": false
     },
     "tests/beam/live-source-ocr.mjs": {
-      "sha256": "cb738059b2dee5cd941495e1fcbc3981da199424fb237584af8a8c8b15501618",
+      "sha256": "efd8c3a08ce2c535ce76206fdd8ec3ce71e70022c889f641ebaa55cb4d1aff1d",
       "executable": false
     },
     "tests/beam/live-webhook.mjs": {
@@ -4040,7 +4040,7 @@
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {
-      "sha256": "b10b9a4945c9fbda96ee444363f7ade1d3230732a76fffcdbab21eb0f2b44dea",
+      "sha256": "013dd4640879240f492c402829d623a5d5270c21ffbdc3f5c8062d2097c75a05",
       "executable": false
     },
     "tests/beam/regression-attendance.mjs": {
@@ -4208,7 +4208,7 @@
       "executable": false
     },
     "tests/beam/regression-source-ocr.mjs": {
-      "sha256": "97b393b1736d40054c281dae5ec36661b05a33a165ef8c72f18fbc89b247c520",
+      "sha256": "10d34d325f24f72ed123737a02a3aec356ee78d66244f54fb6b3038baec50397",
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {

@@ -25,9 +25,10 @@ const configuration = (env: Bindings) => one(env, 'SELECT * FROM beam_source_ocr
 export async function sourceOcrConfig(env: Bindings, actor: Actor) {
   owner(actor)
   const config = await configuration(env)
-  const runs = await all(env, 'SELECT id,source_version_id,sha256,model,state,approved_at,completed_at,estimate_cents,max_cost_cents,failure,usage_json,provider_response_id FROM beam_source_ocr_runs ORDER BY approved_at DESC LIMIT 50')
-  const budget = await one(env, 'SELECT coalesce(sum(estimate_cents),0) AS reserved FROM beam_source_ocr_runs')
+  const runs = await all(env, 'SELECT id,source_version_id,sha256,model,state,approved_at,completed_at,estimate_cents,max_cost_cents,failure,usage_json,provider_response_id,provider_attempted FROM beam_source_ocr_runs ORDER BY approved_at DESC LIMIT 50')
+  const budget = await one(env, 'SELECT coalesce(sum(estimate_cents),0) AS reserved FROM beam_source_ocr_runs WHERE provider_attempted=1')
   return { enabled: config?.enabled === 1, hasKey: !!config?.key_cipher, version: config?.version ?? 0, maxCostCents: config?.max_cost_cents ?? 0,
+    accountMode: config?.account_mode ?? 'production', agreementConfirmed: config?.agreement_confirmed === 1, totalBudgetCents: config?.total_budget_cents ?? 0,
     model: SOURCE_OCR_MODEL, estimateCents: SOURCE_OCR_ESTIMATE_CENTS, currency: 'USD', reservedEstimateCents: budget?.reserved ?? 0,
     runs: runs.map(({ usage_json, ...run }): Row => ({ ...run, usage: usage_json ? JSON.parse(usage_json) : null })) }
 }
@@ -39,14 +40,19 @@ export async function configureSourceOcr(env: Bindings, actor: Actor, input: Inp
   insist(!apiKey || /^[\x21-\x7e]+$/.test(apiKey), 'source_ocr_key_invalid')
   const enable = operation === 'enable', rotate = operation === 'rotate', revoke = operation === 'revoke'
   if (enable || rotate) insist(input.flag('consent'), 'source_ocr_config_consent_required', 409)
+  const mode = enable || rotate ? input.text('accountMode') : current?.account_mode ?? 'production'
+  const agreement = enable || rotate ? input.flag('agreementConfirmed') : current?.agreement_confirmed === 1
+  const totalBudget = enable || rotate ? input.integer('totalBudgetCents', { min: 0, max: 10_000_000 })! : current?.total_budget_cents ?? 0
+  insist(['sandbox', 'production'].includes(mode), 'source_ocr_account_mode')
+  if (enable || rotate) insist(agreement, 'source_ocr_agreement_required', 409)
   if (rotate) insist(apiKey, 'source_ocr_key_required')
   const cipher = revoke ? null : apiKey ? await sealSecret(env, apiKey, 'source-ocr:openai') : current?.key_cipher ?? null
   const cap = enable || rotate ? input.integer('maxCostCents', { min: SOURCE_OCR_ESTIMATE_CENTS, max: 100_000 })! : current?.max_cost_cents ?? 0
   if (enable) { insist(cipher, 'source_ocr_key_required', 409); await openSecret(env, cipher, 'source-ocr:openai') }
-  await commit(env, [stmt(env, `INSERT INTO beam_source_ocr_config VALUES(1,?,?,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET
-    enabled=excluded.enabled,key_cipher=excluded.key_cipher,version=excluded.version,max_cost_cents=excluded.max_cost_cents,updated_by=excluded.updated_by,updated_at=excluded.updated_at`,
-  enable ? 1 : 0, cipher, (current?.version ?? 0) + 1, cap, actor.id, now())],
-  { actor, action: 'source.ocr.configure', subject: 'source-ocr', detail: { operation, maxCostCents: cap, model: SOURCE_OCR_MODEL } })
+  await commit(env, [stmt(env, `INSERT INTO beam_source_ocr_config(singleton,enabled,key_cipher,version,max_cost_cents,updated_by,updated_at,total_budget_cents,account_mode,agreement_confirmed) VALUES(1,?,?,?,?,?,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET
+    enabled=excluded.enabled,key_cipher=excluded.key_cipher,version=beam_source_ocr_config.version+1,max_cost_cents=excluded.max_cost_cents,updated_by=excluded.updated_by,updated_at=excluded.updated_at,total_budget_cents=excluded.total_budget_cents,account_mode=excluded.account_mode,agreement_confirmed=excluded.agreement_confirmed`,
+  enable ? 1 : 0, cipher, (current?.version ?? 0) + 1, cap, actor.id, now(), totalBudget, mode, agreement ? 1 : 0)],
+  { actor, action: 'source.ocr.configure', subject: 'source-ocr', detail: { operation, maxCostCents: cap, totalBudgetCents: totalBudget, accountMode: mode, agreementConfirmed: agreement, model: SOURCE_OCR_MODEL } })
   return { enabled: enable, hasKey: !!cipher, maxCostCents: cap }
 }
 async function source(env: Bindings, id: string) {
@@ -72,7 +78,7 @@ export async function sourceOcrPreview(env: Bindings, actor: Actor, sourceVersio
   owner(actor)
   const config = await configuration(env), { version, bytes } = await source(env, sourceVersion)
   insist(config?.enabled && config.key_cipher, 'source_ocr_disabled', 409)
-  insist(config.max_cost_cents >= SOURCE_OCR_ESTIMATE_CENTS, 'source_ocr_budget_required', 409)
+  insist(config.agreement_confirmed && config.max_cost_cents >= SOURCE_OCR_ESTIMATE_CENTS, 'source_ocr_budget_required', 409)
   insist(!await one(env, "SELECT 1 FROM beam_source_ocr_runs WHERE source_version_id=? AND sha256=? AND state IN ('running','completed')", sourceVersion, version.sha256), 'source_ocr_already_active', 409)
   const payload = { id: newId(), sourceVersion, sha256: version.sha256, model: SOURCE_OCR_MODEL, pageCount: await pageCount(bytes), configVersion: config.version,
     owner: actor.id, session: actor.sessionId, expiresAt: now() + 15 * 60_000, estimateCents: SOURCE_OCR_ESTIMATE_CENTS, maxCostCents: config.max_cost_cents }
@@ -159,10 +165,20 @@ export async function runSourceOcr(env: Bindings, actor: Actor, input: Input) {
   insist(config?.enabled && config.key_cipher && config.version === approval.configVersion, 'source_ocr_disabled', 409)
   insist(version.sha256 === approval.sha256 && approval.model === SOURCE_OCR_MODEL && approval.estimateCents === SOURCE_OCR_ESTIMATE_CENTS && approval.maxCostCents === config.max_cost_cents && approval.maxCostCents >= approval.estimateCents, 'source_ocr_approval_mismatch', 409)
   const key = await openSecret(env, config.key_cipher, 'source-ocr:openai')
-  try { await commit(env, [stmt(env, `INSERT INTO beam_source_ocr_runs(id,source_version_id,sha256,model,state,approved_by,approved_at,config_version,estimate_cents,max_cost_cents,page_count)
-    VALUES(?,?,?,?,'running',?,?,?,?,?,?)`, approval.id, approval.sourceVersion, approval.sha256, SOURCE_OCR_MODEL, actor.id, now(), config.version, approval.estimateCents, approval.maxCostCents, approval.pageCount)],
+  // A single serialized INSERT both tests and reserves the cumulative budget.
+  // Refused requests retain a visible receipt but consume no provider reservation.
+  try { await commit(env, [stmt(env, `INSERT INTO beam_source_ocr_runs(id,source_version_id,sha256,model,state,approved_by,approved_at,config_version,estimate_cents,max_cost_cents,page_count,provider_attempted,failure,completed_at)
+    SELECT ?,?,?,?,CASE WHEN budget.allowed THEN 'running' ELSE 'failed' END,?,?,?,?,?,?,budget.allowed,
+      CASE WHEN budget.allowed THEN NULL ELSE 'source_ocr_budget_exhausted' END,CASE WHEN budget.allowed THEN NULL ELSE ? END
+    FROM (SELECT coalesce(sum(estimate_cents),0)+? <= ? AS allowed FROM beam_source_ocr_runs WHERE provider_attempted=1) budget
+    WHERE EXISTS(SELECT 1 FROM beam_source_ocr_config WHERE singleton=1 AND enabled=1 AND version=? AND agreement_confirmed=1)`,
+    approval.id, approval.sourceVersion, approval.sha256, SOURCE_OCR_MODEL, actor.id, now(), config.version, approval.estimateCents, approval.maxCostCents, approval.pageCount,
+    now(), approval.estimateCents, config.total_budget_cents, config.version)],
     { actor, action: 'source.ocr.approve', subject: approval.sourceVersion, detail: { run: approval.id, sha256: approval.sha256, model: SOURCE_OCR_MODEL, estimateCents: approval.estimateCents, maxCostCents: approval.maxCostCents } }) }
   catch { throw new BeamError('source_ocr_approval_used_or_active', 409) }
+  const reserved = await one(env, 'SELECT state FROM beam_source_ocr_runs WHERE id=?', approval.id)
+  insist(reserved, 'source_ocr_disabled', 409)
+  insist(reserved.state === 'running', 'source_ocr_budget_exhausted', 409)
   try {
     const live = await configuration(env)
     insist(live?.enabled && live.version === approval.configVersion, 'source_ocr_disabled', 409)

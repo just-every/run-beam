@@ -41,7 +41,7 @@ try {
  const bytes=await readFile(new URL('./fixtures/synthetic-beam-scan.pdf',import.meta.url))
  const source=await api('author','source.create',{title:'Opening the work area — scanned original',reviewer:ids.reviewer,licence:'owned',licenceEvidence:'Original CC0 procedure created for Beam qualification',provenance:'Image-only original scan',file:file('synthetic-beam-scan.pdf',bytes)})
  const config=await api('owner','source-ocr')
- await api('owner','source.ocr.configure',{operation:'enable',apiKey:process.env.BEAM_OCR_KEY,maxCostCents:config.estimateCents,consent:true})
+ await api('owner','source.ocr.configure',{operation:'enable',accountMode:'sandbox',agreementConfirmed:true,totalBudgetCents:10000,apiKey:process.env.BEAM_OCR_KEY,maxCostCents:config.estimateCents,consent:true})
  const {chromium}=await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
  browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']})
  const directory=process.env.BEAM_EVIDENCE_DIR || 'test-results';await mkdir(directory,{recursive:true})

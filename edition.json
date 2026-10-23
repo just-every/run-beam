@@ -80,7 +80,8 @@
           "migrations/core/0090_beam_cmi5.sql",
           "migrations/core/0091_beam_microlearning.sql",
           "migrations/core/0092_beam_erasure.sql",
-          "migrations/core/0093_beam_source_ocr.sql"
+          "migrations/core/0093_beam_source_ocr.sql",
+          "migrations/core/0098_beam_ocr_budget.sql"
         ]
       }
     },

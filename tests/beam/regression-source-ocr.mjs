@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { fixture } from './regression-fixture.mjs'
 import { file } from './harness.mjs'
 import { sourceProcedurePdf } from './source-fixtures.mjs'
 import { sourceOcrProviderResponse } from './source-ocr-fixtures.mjs'
 export async function sourceOcrCheck() {
-  const requests = []
+  const requests = [], authorizations = []
   let refuse = false
   const f = await fixture({ outboundService: async request => {
     if (request.url !== 'https://api.openai.com/v1/responses') return null
+    authorizations.push(request.headers.get('authorization'))
     requests.push(await request.json())
     return refuse ? Response.json({ error: { message: 'synthetic-beam-1 private provider detail' } }, { status: 403 }) : Response.json(sourceOcrProviderResponse())
   } })
@@ -16,9 +18,10 @@ export async function sourceOcrCheck() {
     const original = sourceProcedurePdf(true)
     const add = title => api('author', 'source.create', { title, reviewer: ids.reviewer, licence: 'owned', licenceEvidence: 'Employer-authored scanned procedure', provenance: 'Original procedure', file: file('synthetic-beam-1.pdf', original) })
     const source = await add('Scanned opening procedure')
-    await api('author', 'source.ocr.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true }, 403)
+    await api('author', 'source.ocr.configure', { operation: 'enable', accountMode: 'sandbox', agreementConfirmed: true, totalBudgetCents: 10000, apiKey: 'synthetic-beam-1001', maxCostCents: 1000, consent: true }, 403)
     await api('owner', `sources/${source.versionId}/ocr-preview`, undefined, 409)
-    await api('owner', 'source.ocr.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
+    const configured = await h.submit('source.ocr.configure', cookies.owner, { operation: 'enable', accountMode: 'sandbox', agreementConfirmed: 'yes', totalBudgetCents: 10000, apiKey: 'synthetic-beam-1001', maxCostCents: 1000, consent: 'yes' }, '/app/sources/ocr')
+    assert.equal(configured.searchParams.get('error'), null)
     const before = await api('owner', 'source-ocr')
     assert.equal('key_cipher' in before, false)
     const preview = await api('owner', `sources/${source.versionId}/ocr-preview`)
@@ -54,7 +57,7 @@ export async function sourceOcrCheck() {
     await api('owner', 'source.ocr.configure', { operation: 'disable' })
     await api('owner', 'source.ocr.run', { ...oldApproval, consent: true }, 409)
     assert.equal(requests.length, 1)
-    await api('owner', 'source.ocr.configure', { operation: 'enable', maxCostCents: 1000, consent: true })
+    await api('owner', 'source.ocr.configure', { operation: 'enable', accountMode: 'sandbox', agreementConfirmed: true, totalBudgetCents: 10000, maxCostCents: 1000, consent: true })
     refuse = true
     const denied = await api('owner', `sources/${next.versionId}/ocr-preview`)
     await api('owner', 'source.ocr.run', { ...denied, consent: true }, 502)
@@ -66,7 +69,41 @@ export async function sourceOcrCheck() {
     assert.ok(costs.providers.some(row => row.kind === 'source_ocr' && row.billing === 'employer_account'))
     assert.equal(costs.ocr.reservedEstimateCents, config.reservedEstimateCents)
     assert.equal(costs.ocr.invoice, false)
-    await api('owner', 'source.ocr.configure', { operation: 'revoke' })
+    // Budget refusal is a durable job receipt and leaves all prior outcomes intact.
+    const budgetSource = await add('Budget-bound scanned procedure')
+    const options = { accountMode: 'sandbox', agreementConfirmed: true, maxCostCents: 1000, consent: true }
+    await api('owner', 'source.ocr.configure', { operation: 'enable', ...options, totalBudgetCents: 0 })
+    const over = await api('owner', `sources/${budgetSource.versionId}/ocr-preview`)
+    await api('owner', 'source.ocr.run', { ...over, consent: true }, 409)
+    const exhausted = await api('owner', 'source-ocr')
+    assert.equal(requests.length, 2, 'zero budget refuses actual model work at the provider boundary')
+    assert.equal(exhausted.reservedEstimateCents, config.reservedEstimateCents)
+    assert.ok(exhausted.runs.some(row => row.source_version_id === budgetSource.versionId && row.state === 'failed' && row.failure === 'source_ocr_budget_exhausted' && row.provider_attempted === 0))
+    // Rotation invalidates outstanding approvals and requires explicit re-enabling.
+    const stale = await api('owner', `sources/${budgetSource.versionId}/ocr-preview`)
+    const rotated = await h.submit('source.ocr.configure', cookies.owner, { operation: 'rotate', ...options, consent: 'yes', agreementConfirmed: 'yes', apiKey: 'synthetic-beam-1002', totalBudgetCents: config.reservedEstimateCents + before.estimateCents }, '/app/sources/ocr')
+    assert.equal(rotated.searchParams.get('error'), null)
+    await api('owner', 'source.ocr.run', { ...stale, consent: true }, 409)
+    assert.equal((await api('owner', 'source-ocr')).enabled, false)
+    await api('owner', 'source.ocr.configure', { operation: 'enable', ...options, totalBudgetCents: config.reservedEstimateCents + before.estimateCents })
+    const concurrentSource = await add('Concurrent budget-bound procedure')
+    const approvals = await Promise.all([budgetSource, concurrentSource].map(source => api('owner', `sources/${source.versionId}/ocr-preview`)))
+    refuse = false
+    const results = await Promise.all(approvals.map(approval => h.raw('/api/beam/source.ocr.run', { cookie: cookies.owner, body: { ...approval, consent: true } })))
+    assert.deepEqual(results.map(row => row.status).sort(), [200, 409], 'concurrent jobs share one atomic remaining reservation')
+    assert.equal(requests.length, 3)
+    assert.equal(authorizations.at(-1), 'Bearer synthetic-beam-1002', 'only the rotated key reaches the provider')
+    const final = await api('owner', 'source-ocr')
+    assert.equal(final.reservedEstimateCents, config.reservedEstimateCents + before.estimateCents)
+    const safe = JSON.stringify([final, await api('owner','costs'), await api('owner','audit?category=content'), await (await h.raw('/app/data-export.json',{cookie:cookies.owner})).json()])
+    for (const secret of ['synthetic-beam-1001', 'synthetic-beam-1002']) assert.ok(!safe.includes(secret), 'public views and learning exports withhold planted provider secrets')
+    const page = await (await h.raw('/app/sources/ocr', {cookie:cookies.owner})).text()
+    assert.ok(page.includes('source_ocr_budget_exhausted') && !page.includes('synthetic-beam-1001') && !page.includes('synthetic-beam-1002'))
+    const diagnostic = spawnSync(process.execPath, ['scripts/diagnose-configuration.mjs'], { input: JSON.stringify({MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-beam-1001',OPENAI_API_KEY:'synthetic-beam-1002'}), encoding:'utf8' })
+    assert.ok([0,1].includes(diagnostic.status))
+    for (const secret of ['synthetic-beam-1001','synthetic-beam-1002']) assert.ok(!(diagnostic.stdout + diagnostic.stderr).includes(secret), 'configuration diagnostics do not echo planted secrets')
+    const revoked = await h.submit('source.ocr.configure', cookies.owner, { operation: 'revoke' }, '/app/sources/ocr')
+    assert.equal(revoked.searchParams.get('error'), null)
     assert.equal((await api('owner', 'source-ocr')).hasKey, false)
   } finally { await f.h.close() }
 }
