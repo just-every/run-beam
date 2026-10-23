@@ -9,6 +9,9 @@ import { fixture } from './regression-fixture.mjs'
 if (!process.argv.includes('--live')) throw new Error('Run explicitly with --live for actual provider playback')
 const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
 const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+const selectedWidth=process.argv.find(arg=>arg.startsWith('--width='))?.split('=')[1]
+const selectedProvider=process.argv.find(arg=>arg.startsWith('--provider='))?.split('=')[1]
+if(selectedWidth&&!['1440','390'].includes(selectedWidth))throw new Error('Unsupported qualification width')
 await mkdir(evidence, { recursive: true })
 const f = await fixture({ businessName: 'Sierra Lakes Produce', names: { learner: 'Riley Morgan', author: 'Jordan Lee', reviewer: 'Sam Taylor' } })
 let browser
@@ -28,13 +31,13 @@ try {
   const assignment=await f.assign(course), learning=await f.view(assignment)
   browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic','--ignore-certificate-errors']})
   const failures=[]
-  for (const width of [1440,390]) {
+  for (const width of [1440,390].filter(width=>!selectedWidth||String(width)===selectedWidth)) {
     const context=await browser.newContext({viewport:{width,height:900},ignoreHTTPSErrors:true})
     try {
       await context.addCookies(f.cookies.learner.split('; ').map(cookie=>{const at=cookie.indexOf('=');return {name:cookie.slice(0,at),value:cookie.slice(at+1),url:f.h.origin}}))
       const page=await context.newPage()
       await page.goto(`${f.h.origin}/app/learn/${assignment}/lessons/${learning.lessons[0].id}`)
-      for (const [title] of examples) {
+      for (const [title] of examples.filter(([title])=>!selectedProvider||title.startsWith(selectedProvider))) {
         const iframe=page.locator(`iframe[title="${title}"]`), frame=page.frameLocator(`iframe[title="${title}"]`)
         await iframe.scrollIntoViewIfNeeded()
         try {
