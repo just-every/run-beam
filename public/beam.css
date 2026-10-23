@@ -3,6 +3,10 @@
    and pending, green for done and a warm red-orange for overdue. Tokens and faces come from /site/theme.css and
    /site/fonts.css, which every app page links first; pages are server-rendered and need no script. */
 
+/* App-only text tokens: meet AA on the existing pale work surface and status
+   backgrounds without changing the shared run-site or Base theme. */
+:root { --muted: #585f73; --green-ink: #106d35; }
+
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; min-height: 100vh; background: var(--app-surface); color: var(--ink); font: 15px/1.5 var(--font-body); }
