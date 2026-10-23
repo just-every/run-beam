@@ -23,6 +23,7 @@ import { saveRenewal, previewRenewal, setRenewalState, replayRenewal } from './r
 import { setRenewalNoticeConsent } from './renewal-notice-outbox'
 import { replayRenewalNotice } from './renewal-notices'
 import { saveEscalationPolicy, resolveEscalation, runEscalationsNow } from './escalations'
+import { reportRecoveryBounce } from './recovery'
 import { authorizeErrorFeed, revokeErrorFeed } from './error-feeds'
 import { withdrawErrors } from './diagnosis-evidence'
 import { prepareDiagnosis } from './diagnosis-comparison'
@@ -267,6 +268,7 @@ export const actions: Record<string, Handler> = {
   'skill.personalization': (env, actor, input) => setPersonalization(env, actor, input),
   'skill.diagnostic': (env, actor, input) => recordDiagnostic(env, actor, input),
   'skill.path.approve': (env, actor, input) => approvePath(env, actor, input),
+  'recovery.delivery': reportRecoveryBounce,
   'error-feed.authorize': authorizeErrorFeed,
   'error-feed.revoke': revokeErrorFeed,
   'diagnosis.withdraw': (env, actor, input) => withdrawErrors(env, actor, input),

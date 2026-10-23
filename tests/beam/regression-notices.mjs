@@ -342,8 +342,82 @@ export async function escalationCheck(f) {
   await api('owner', 'escalation.run', {})
   assert.equal(mails().length, sentBeforeHold + 1, 'cancellation stops future sends')
   assert.ok(!(await queue('owner')).some(row => row.assignment === held))
+  // Combined recovery: leave, a reported bounce and a full assessor calendar, approved through Agent work.
+  await api('owner', 'team.managers', { team: ids.team, members: [ids.other] })
+  await api('owner', 'person.directory', { member: ids.learner, employment: 'active' })
+  const recoveryCourse = await course('Combined blocked-work recovery', true), recoveryAssignment = await assign(recoveryCourse)
+  await api('owner', 'instructor.grant', { member: ids.assessor, expiresOn: '2030-12-31' })
+  await api('owner', 'assignment.create', { course: recoveryCourse.id, learners: [ids.assessor], dueDate: '2030-10-01' })
+  const full = await api('owner', 'session.schedule', { course: recoveryCourse.id, title: 'Full recovery assessor calendar', instructor: ids.assessor, date: '2030-12-03', time: '09:00', minutes: 60, timezone: 'UTC', format: 'classroom', location: 'Yard', capacity: 1 })
+  await api('assessor', 'session.register', { session: full.id })
+  const originalRecovery = (await api('learner', `assignments/${recoveryAssignment}`)).assignment
+  await due(recoveryAssignment, 2)
+  await tick()
+  const learnerDelivery = (await item('other', recoveryAssignment)).messages.find(m => m.route === 'learner')
+  // The queue exposes the exact delivery id used by the in-product bounce report.
+  assert.ok(learnerDelivery.id)
+  await api('other', 'recovery.delivery', { assignment: recoveryAssignment, team: ids.team, message: learnerDelivery.id })
+  await api('owner', 'person.directory', { member: ids.learner, employment: 'leave' })
+  await due(recoveryAssignment, 4)
+  const payload = { assignment: recoveryAssignment, team: ids.team, substitute: ids.manager, expiresOn: '2030-12-01' }
+  const token = (await api('other', 'agent.issue', { expiresInSeconds: 900 })).token
+  const agent = async (path, body, status = 200) => {
+   const response = await h.fetch(`/api/beam/${path}`, { method: 'POST', headers: { authorization: `Bearer ${token}`, origin: h.origin, 'content-type': 'application/json' }, body: JSON.stringify(body) })
+   const text = await response.text(); assert.equal(response.status, status, text.slice(0,300)); return JSON.parse(text)
+  }
+  const proposalInput = { kind: 'process_change', title: 'Arrange paid recovery after leave', inputs: [{ type: 'assignment', id: recoveryAssignment }], reasons: ['Current leave, bounced learner mail and unavailable assessor capacity.'], payload: { recovery: payload } }
+  const proposal = await agent('agent.propose', proposalInput)
+  const prepared = await api('other', `proposals/${proposal.id}`)
+  assert.deepEqual([prepared.payload.recovery.facts.onLeave, prepared.payload.recovery.facts.missingAssessorCapacity], [true,true])
+  assert.ok(prepared.payload.recovery.facts.failures.some(f => f.failure === 'mail_bounced' && f.source === 'human_report' && f.sourceId === learnerDelivery.id))
+  assert.ok(prepared.payload.recovery.plan.includes('paid-work') && prepared.payload.recovery.plan.includes('No assessment is passed'))
+  await agent('agent.decide', { proposal: proposal.id, sha256: proposal.sha256, decision: 'approve' }, 403)
+  await agent('recovery.delivery', { assignment: recoveryAssignment, team: ids.team, message: learnerDelivery.id }, 403)
+  await api('manager', 'agent.decide', { proposal: proposal.id, sha256: proposal.sha256, decision: 'approve' }, 409)
+  await agent('agent.propose', { ...proposalInput, payload: { recovery: { ...payload, backdate: '2020-01-01' } } }, 400)
+  await agent('agent.propose', { ...proposalInput, payload: { recovery: { ...payload, passed: true } } }, 400)
+  await api('other', 'agent.decide', { proposal: proposal.id, sha256: '0'.repeat(64), decision: 'approve' }, 409)
+  const beforeRecovery = mails().length
+  if (process.env.BEAM_RECOVERY_BROWSER === '1') await recoveryBrowser(f, proposal.id, false)
+  const approved = await api('other', 'agent.decide', { proposal: proposal.id, sha256: proposal.sha256, decision: 'approve' })
+  assert.equal(approved.result.coverage.member, ids.manager)
+  assert.ok(approved.result.delivery.some(d => d.recipient === ids.manager))
+  assert.equal(mails().length, beforeRecovery + 1)
+  assert.ok(mails().at(-1).to.includes('manager@example.test') && mails().at(-1).text.includes('paid work time'))
+  assert.equal((await api('learner', `assignments/${recoveryAssignment}`)).assignment.dueDate, originalRecovery.dueDate)
+  assert.equal((await api('learner', `assignments/${recoveryAssignment}`)).completion, null)
+  assert.equal((await item('manager', recoveryAssignment)).messages.at(-1).status, 'accepted')
+  if (process.env.BEAM_RECOVERY_BROWSER === '1') await recoveryBrowser(f, proposal.id, true)
+  await api('other', 'agent.decide', { proposal: proposal.id, sha256: proposal.sha256, decision: 'approve' }, 409)
+  await api('owner', 'team.coverage.end', { grant: approved.result.coverage.id })
+  await api('owner', 'assignment.cancel', { assignment: recoveryAssignment, reason: 'Recovery proof complete.' })
   const p = await api('owner', 'escalation-policy')
   await api('owner', 'escalation.policy', { ...policy, version: p.version, enabled: false })
   await tick()
   assert.deepEqual(await queue('owner'), [])
+}
+
+async function recoveryBrowser(f, proposal, approved) {
+ const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+ const { mkdir } = await import('node:fs/promises')
+ const out = process.env.BEAM_DIAGNOSIS_EVIDENCE || 'test-results'
+ await mkdir(out, { recursive: true })
+ const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+ try {
+  const context = await browser.newContext({ ignoreHTTPSErrors: true })
+  await context.addCookies(f.cookies.other.split('; ').map(pair => { const i=pair.indexOf('='); return { name: pair.slice(0,i), value: pair.slice(i+1), url: f.h.origin, secure: true } }))
+  const page = await context.newPage()
+  for (const width of [1440,390]) {
+   await page.setViewportSize({ width, height: 1000 })
+   await page.goto(`${f.h.origin}/app/agent${approved ? '?state=approved' : ''}`)
+   const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Arrange paid recovery after leave', exact: true }) })
+   await card.getByText('mail_bounced', { exact: true }).waitFor()
+   assert.ok(await card.getByText('On leave', { exact: true }).isVisible())
+   if (approved) await card.getByText(/Temporary coverage granted/).waitFor()
+   assert.ok(await page.locator('body').evaluate(body => body.scrollWidth<=innerWidth))
+   assert.ok((await page.getByRole('button').allTextContents()).every(text => text.trim().length>0), 'every button has a visible text label')
+   await page.screenshot({ path: `${out}/AGENT-006-${approved ? 'approved' : 'waiting'}-${width}.png`, fullPage: true })
+  }
+  await context.close()
+ } finally { await browser.close() }
 }

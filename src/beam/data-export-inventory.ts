@@ -14,6 +14,8 @@ export const LEARNING_INVENTORY = {
   beam_renewal_cycles: 'completion_id, rule_id, assignment_id, expires_at, due_date, timezone, created_at',
   beam_credit_renewal_cycles: 'credit_id, member_id, rule_id, assignment_id, history_id, source, expires_at, due_date, timezone, created_at',
   beam_renewal_notices: 'id, rule_id, assignment_id, learner_id, recipient_id, route, consent_version, cost_cents, consented_by, consented_at, activated_at, state, outcome, attempts, language, provider, provider_message_id, sent_at, send_token, send_started_at, send_expires_at, created_at',
+  beam_error_feeds: 'id, actor, course, job_role, teams_json, authorized_at, revoked_at',
+  beam_recovery_delivery: 'message, status, recorded_by, recorded_at',
   beam_escalation_policy: 'id, version, enabled, reminder_hours, manager_hours, fallback_hours, updated_by, updated_at',
   beam_escalation_messages: 'id, assignment_id, recipient_id, route, status, sent_at',
   beam_escalation_resolutions: 'assignment_id, reason, resolved_by, resolved_at',

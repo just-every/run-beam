@@ -48,6 +48,7 @@ async function targets(env: Bindings, item: Row, fallback: boolean) {
 
 async function facts(env: Bindings, item: Row) {
   const failures = await all(env, `SELECT outcome,failure,updated_at AS at,json_extract(input_json,'$.route') AS route FROM beam_automation_executions WHERE kind='escalation' AND json_extract(input_json,'$.assignment')=? AND state<>'succeeded' ORDER BY updated_at`, item.id)
+  failures.push(...await all(env, `SELECT r.status AS outcome,'mail_bounced' AS failure,r.recorded_at AS at,m.route,r.message AS sourceId,'human_report' AS source FROM beam_recovery_delivery r JOIN beam_escalation_messages m ON m.id=r.message WHERE m.assignment_id=? ORDER BY r.recorded_at`, item.id))
   let capacity = false
   if (item.assessor) {
     const assessor = await one(env, `SELECT 1 FROM beam_members m JOIN oa_operators o ON o.id=m.operator_id JOIN beam_member_roles r ON r.member_id=m.id AND r.role='assessor' WHERE m.id=? AND m.employment='active' AND o.status='active'`, item.assessor)
@@ -67,7 +68,7 @@ export async function escalationQueue(env: Bindings, actor: Actor) {
     result.push({ assignment: item.id, learner: item.learner, learnerName: item.learnerName, course: item.course, courseTitle: item.courseTitle, dueAt: item.dueAt,
       managerAt: item.dueAt + policy.manager_hours * HOUR, fallbackAt: item.dueAt + policy.fallback_hours * HOUR,
       ...await facts(env, item), reachesNow: (await targets(env, item, now() >= item.dueAt + policy.fallback_hours * HOUR)).map(row => ({ id: row.id, route: row.route })),
-      messages: await all(env, 'SELECT recipient_id AS recipient,route,status,sent_at AS at FROM beam_escalation_messages WHERE assignment_id=? ORDER BY sent_at,id', item.id) })
+      messages: await all(env, 'SELECT id,recipient_id AS recipient,route,status,sent_at AS at FROM beam_escalation_messages WHERE assignment_id=? ORDER BY sent_at,id', item.id) })
   }
   return result
 }
@@ -82,11 +83,12 @@ export async function resolveEscalation(env: Bindings, actor: Actor, input: Inpu
 }
 
 /** Cron never retries held/failed work; the owner's explicit run does. Learner mail pauses on leave; an active exception pauses all delivery. */
-export async function runEscalations(env: Bindings, manual = false) {
+export async function runEscalations(env: Bindings, manual = false, onlyAssignment?: string) {
   const policy = await escalationPolicy(env)
   if (!policy?.enabled) return []
   const results = []
   for (const item of await unresolved(env)) {
+    if (onlyAssignment && item.id !== onlyAssignment) continue
     const elapsed = now() - item.dueAt
     if (elapsed < policy.reminder_hours * HOUR) continue
     if (elapsed < policy.manager_hours * HOUR && item.employment === 'leave') continue

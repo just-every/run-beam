@@ -2,6 +2,7 @@
 // drafts and recorded process-change recommendations. A plan names the exact
 // published revision it assigns; approving it after a newer publication is
 // refused, so nobody is assigned something they did not review.
+import { recoveryKind } from './recovery'
 import type { Bindings } from '../auth.server'
 import type { Kind } from './agent-work'
 import { isManager, type Actor } from './actor'
@@ -92,13 +93,14 @@ export const processChange: Kind = {
   prepare: ['manager'],
   async validate(env, _actor, value) {
     const payload = object(value, 'invalid_payload')
+    if (payload.recovery) return { recovery: await recoveryKind.validate(env, _actor, payload.recovery) }
     const plan = payload.questionPlan === undefined || payload.questionPlan === null ? null : text(payload.questionPlan, 'invalid_question_plan', 64)
     if (plan) insist(await one(env, 'SELECT 1 FROM beam_question_plans WHERE id = ?', plan), 'question_plan_not_found', 404)
     return { summary: text(payload.summary, 'invalid_summary', 300), change: text(payload.change, 'invalid_change', 4000), questionPlan: plan }
   },
-  mayDecide: managerOnly,
+  async mayDecide(env, actor, payload) { if (payload.recovery) await recoveryKind.mayDecide(env, actor, payload.recovery); else await managerOnly(env, actor) },
   // Approval records the decision; changing the procedure itself stays a person's work.
-  async apply() { return { recorded: true } },
+  async apply(env, actor, proposal, selection) { if (proposal.payload.recovery) return recoveryKind.apply(env, actor, { id: proposal.id, payload: proposal.payload.recovery }, selection); return { recorded: true } },
 }
 
 /** Approved reminder messages for the learner's open assignments. */

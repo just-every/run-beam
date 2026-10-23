@@ -156,6 +156,18 @@ async function diagnosis({ api, h, ids, cookies, course, publish }) {
  assert.equal((await agent('diagnosis.prepare', { import: operational.id }, 409)).error, 'import_withdrawn')
  assert.equal((await api('manager', 'agent.decide', { proposal: waiting.id, sha256: waiting.sha256, decision: 'approve' }, 409)).error, 'diagnosis_basis_withdrawn')
  await api('manager', 'outcome.import', { ...parameters, feed, records }, 409)
+ const practical = await course('Operational practical evidence', true)
+ const attempted = []
+ for (let i=0;i<3;i++) {
+  const assignment = (await api('manager', 'assignment.create', { course: practical.id, learners: [members[i]], dueDate: '2030-10-01' })).created[0]
+  for (const lesson of (await h.api(`assignments/${assignment}`, sessions[i])).lessons) await h.api('lesson.complete', sessions[i], { assignment, lesson: lesson.id })
+  attempted.push((await h.api('practical.submit', sessions[i], { assignment, evidence: 'PRIVATE ASSESSMENT DETAIL' })).id)
+ }
+ const attemptFeed = (await api('manager', 'error-feed.authorize', { ...grant, course: practical.id })).id
+ const attemptImport = await api('manager', 'outcome.import', { ...parameters, course: practical.id, feed: attemptFeed, records })
+ const attemptView = await read(attemptImport.id)
+ assert.deepEqual(attemptView.attemptEvidence.citations.map(a => a.id).sort(), attempted.sort())
+ assert.ok(!JSON.stringify(attemptView).includes('PRIVATE ASSESSMENT DETAIL'))
  // A live team change invalidates saved comparisons and permanently scrubs their observations.
  const scopeFeed = (await api('manager', 'error-feed.authorize', grant)).id
  const scopeImport = await api('manager', 'outcome.import', { ...parameters, feed: scopeFeed, records })

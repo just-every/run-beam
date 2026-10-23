@@ -23,7 +23,8 @@ function preview(proposal: any, names: Map<string, string>, labels: Map<string, 
     case 'scenario': return h`<p>${labels.get(p.courseRevision)} · ${p.steps.length} ${p.steps.length === 1 ? 'step' : 'steps'}</p><details><summary>Rubric and steps</summary><p><strong>Rubric.</strong> ${p.rubric}</p><ol>${p.steps.map((step: any) => h`<li><p>${step.situation}</p><ul>${step.choices.map((choice: any) => h`<li>${choice.label} — <span class="muted">${choice.feedback}</span></li>`)}</ul></li>`)}</ol></details>`
     case 'question_plan': return h`<p><strong>Purpose.</strong> ${p.purpose}</p><ol>${p.questions.map((question: string) => h`<li>${question}</li>`)}</ol><p class="muted">Asks ${p.participants.map((member: string) => names.get(member)).join(', ')} · closes ${formatDay(p.closesOn)}. Answers are optional and shown without names.</p>`
     case 'intervention': return h`<p class="muted">Diagnosed role: ${p.role}. Recommended: ${p.options.find((option: any) => option.id === p.recommended)?.summary}.</p>${table(['Option', 'Kind', 'Expected benefit', 'People', 'Paid time'], p.options.map((option: any) => [h`${option.id === p.recommended ? h`<strong>${option.summary}</strong>` : option.summary}${option.courseRevision ? h`<br><span class="muted">${labels.get(option.courseRevision) ?? ''}</span>` : ''}`, option.kind.replace('_', ' '), option.expectedBenefit, option.people.map((person: string) => names.get(person)).join(', ') || '—', `${option.paidMinutesPerPerson} min each, ${option.totalPaidMinutes} min in all`]))}`
-    case 'process_change': return h`<p><strong>${p.summary}</strong></p><p>${p.change}</p><p class="muted">Approving records the decision; changing the procedure is still done by a person.</p>`
+    case 'process_change': if (p.recovery) { const p = proposal.payload.recovery; return h`<p>${p.plan}</p><p>Original deadline: ${when(p.originalDueAt, zone)}. Temporary manager: ${names.get(p.substitute)} until ${p.expiresOn}.</p>${table(['Blocker', 'Current fact'], [['On leave', p.facts.onLeave ? 'Yes' : 'No'], ['No contact route', p.facts.noContactRoute ? 'Yes' : 'No'], ['Attempts exhausted', p.facts.attemptsExhausted ? 'Yes' : 'No'], ['Assessor calendar full or unavailable', p.facts.missingAssessorCapacity ? 'Yes' : 'No'], ['Failed delivery', p.facts.failures.map((f: any) => f.failure || f.outcome).join(', ') || 'None recorded']])}<p>${p.missing.join(' ')}</p>` }
+      return h`<p><strong>${p.summary}</strong></p><p>${p.change}</p><p class="muted">Approving records the decision; changing the procedure is still done by a person.</p>`
   }
   return h``
 }
@@ -37,6 +38,7 @@ function resultLine(proposal: any): Html {
   if (!r) return h``
   if (proposal.kind === 'assignment_plan') return h`<p>${r.created.length} assigned${r.kept.length ? `, ${r.kept.length} already had an open assignment` : ''}.</p>`
   if (proposal.kind === 'reminders') return h`<p>${r.delivered.length} delivered${r.skipped.length ? `, ${r.skipped.length} skipped because the assignment closed` : ''}.</p>`
+  if (proposal.kind === 'process_change' && proposal.payload.recovery) return h`<p>Temporary coverage granted. Original deadline retained. Escalation results: ${r.delivery.map((d: any) => d.outcome).join(', ') || 'No delivery eligible under current policy'}.</p>`
   if (proposal.kind === 'scenario') return h`<p>Deployed for practice.</p>`
   if (proposal.kind === 'question_plan') return h`<p><a href="/app/questions/${r.plan}">Open the question plan</a></p>`
   return h`<p>Recorded.</p>`

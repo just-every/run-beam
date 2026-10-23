@@ -117,7 +117,7 @@ export async function decide(env: Bindings, actor: Actor, input: Input) {
 }
 
 const shape = (row: any, names: Map<string, string>) => ({
-  id: row.id, kind: row.kind, label: KINDS[row.kind].label, title: row.title, agent: row.agent, viaAgent: row.via_agent === 1,
+  id: row.id, kind: row.kind, label: JSON.parse(row.payload_json).recovery ? 'Overdue recovery' : KINDS[row.kind].label, title: row.title, agent: row.agent, viaAgent: row.via_agent === 1,
   preparedBy: row.prepared_by, preparedByName: names.get(row.prepared_by), inputs: JSON.parse(row.inputs_json), reasons: JSON.parse(row.reasons_json), excluded: JSON.parse(row.excluded_json),
   payload: JSON.parse(row.payload_json), sha256: row.payload_sha256, state: row.state, decidedBy: row.decided_by, decidedByName: row.decided_by ? names.get(row.decided_by) : null,
   decidedAt: row.decided_at, note: row.decision_note, result: row.result_json ? JSON.parse(row.result_json) : null, createdAt: row.created_at,
