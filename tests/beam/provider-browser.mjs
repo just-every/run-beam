@@ -34,7 +34,10 @@ export async function providerControlBrowserCheck() {
           assert.equal(iconOnly,0,'changed screens contain no icon-only controls without tooltips')
           await page.screenshot({path:join(evidence,`${width}-provider-${name}.png`),fullPage:true})
         }
-        const activate = async control => { if(width===390)await control.tap();else {await control.focus();await page.keyboard.press('Enter')} }
+        const activate = async control => {
+          const action=async()=>{if(width===390)await control.tap();else{await control.focus();await page.keyboard.press('Enter')}}
+          await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),action()])
+        }
         const accountForm = operation => page.locator('form[action="/app/do/source.ocr.configure"]').filter({has:page.locator(`input[name="operation"][value="${operation}"]`)})
         const configure = async (operation,budget) => {
           const form=accountForm(operation)

@@ -1974,7 +1974,7 @@
       "executable": false
     },
     "src/beam/ui/errors.ts": {
-      "sha256": "e675b21c70d8caa8e174e736b0cf23d50ebd8db49d09a1241d14b577a763bcd5",
+      "sha256": "54e4d035f76a4dfa198a54f4ab0ca6e7eae7eb78f6db6247709049b49e48ee5a",
       "executable": false
     },
     "src/beam/ui/evidence.ts": {
@@ -4050,7 +4050,7 @@
       "executable": false
     },
     "tests/beam/provider-browser.mjs": {
-      "sha256": "04af2372d30664b59ec5f9f6d0a466990a21b2eeb64159a424d28f34bbe468a4",
+      "sha256": "ee19dd041d664a9fe165411969a583dcc3ab172c423ff4622d34a4e6873bff81",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {

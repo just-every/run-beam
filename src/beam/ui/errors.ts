@@ -98,7 +98,6 @@ const ERRORS: Record<string, string> = {
   expiry_before_issue: "the certificate’s expiry date must be after its issue date.",
   certificate_file_type: "upload a photo or PDF of the certificate. Other file types are not accepted.",
   discussion_file_type: "attach a photo or PDF to the discussion. Other file types are not accepted.",
-  file_size: "the file is empty or too large. Choose a smaller, nonempty file and upload it again.",
   invalid_filename: "the file needs a valid name. Rename it and upload it again.",
   invalid_base64: "the uploaded file could not be read. Choose the file again and upload it.",
   file_missing: "the stored file is unavailable. Contact your learning administrator; your learning record has not been removed.",
