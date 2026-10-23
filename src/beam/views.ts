@@ -1,3 +1,4 @@
+import { accommodationRequests } from './accommodation-requests'
 import { cutoverPreview } from './movein/cutover'
 import { operationsHealth } from './operations'
 import { sourceOcrConfig, sourceOcrPreview } from './source-ocr'
@@ -129,6 +130,7 @@ export const views: Record<string, View> = {
   coverage: (env, actor, request) => coverageReport(env, actor, coverageFilters(new URL(request.url))),
   credits: (env, actor) => creditsView(env, actor),
   quality: (env, actor, request) => programQuality(env, actor, new URL(request.url)),
+  'accommodation-requests': accommodationRequests,
   operations: (env, actor) => operationsHealth(env, actor),
   costs: async (env, actor) => providerCosts(env, actor),
   'diagnosis-comparison': (env, actor, request, id) => compareErrors(env, actor, id, new URL(request.url)),
@@ -167,7 +169,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
-  [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
+  [/^accommodation-requests$/, 'accommodation-requests'], [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
   [/^erasure-settings$/, 'erasure-settings'], [/^erasure\/([\w-]+)$/, 'erasure'],
   [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'], [/^xapi$/, 'xapi'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],

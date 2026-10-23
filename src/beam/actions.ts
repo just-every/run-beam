@@ -1,3 +1,4 @@
+import { requestAccommodation, decideAccommodation } from './accommodation-requests'
 import { declineCutoverCredit, approveCutover } from './movein/cutover'
 import { withdrawSourceDrafts } from './erasure-source-drafts'
 import { withdrawProposalSnapshots } from './erasure-proposals'
@@ -299,6 +300,8 @@ export const actions: Record<string, Handler> = {
   'assignment.window': (env, actor, input) => setAssignmentWindow(env, actor, input),
   'access.extend': (env, actor, input) => extendAccess(env, actor, input),
   'attempt.grant': (env, actor, input) => grantAttempt(env, actor, input),
+  'accommodation.request': requestAccommodation,
+  'accommodation.decide': decideAccommodation,
   'accommodation.grant': (env, actor, input) => grantAccommodation(env, actor, input),
   'assignment.reset': (env, actor, input) => resetAssignment(env, actor, input),
   'lesson.complete': (env, actor, input) => completeLesson(env, actor, input),

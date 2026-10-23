@@ -107,5 +107,32 @@ export async function timedCheck(f) {
   assert.deepEqual([timing.timeLimitMinutes, timing.extraMinutes, timing.closeReason, timing.accommodation.grantedBy, timing.accommodation.note], [10, 5, 'submitted', ids.owner, 'LEARN-011 extra time'])
   const page = await (await h.raw(`/app/attempts/${submitted.id}`, { cookie: cookies.manager })).text()
   assert.ok(page.includes('50% extra time') && page.includes(`granted by ${timing.accommodation.grantedByName}`))
+  // A request is private and cannot grant time by itself. Decline/replay and
+  // concurrent approval use the same public doors as the request/review cards.
+  await api('learner', 'accommodation.request', { assignment: second, kind: 'percent', amount: 50 }, 404)
+  await api('learner', 'accommodation.request', { assignment: mine, kind: 'percent', amount: 401 }, 400)
+  const requested = await h.submit('accommodation.request', cookies.learner, { assignment: mine, kind: 'minutes', amount: '10' }, '/app/learning')
+  assert.equal(requested.searchParams.get('error'), null)
+  const pending = (await api('learner', 'accommodation-requests'))[0]
+  assert.equal(pending.state, 'pending')
+  await api('learner', 'accommodation.request', { assignment: mine, kind: 'percent', amount: 50 }, 409)
+  assert.equal((await api('manager', 'accommodation-requests')).some(row => row.id === pending.id), false)
+  assert.equal((await api('assessor', 'accommodation-requests')).some(row => row.id === pending.id), false)
+  await api('manager', 'accommodation.decide', { request: pending.id, decision: 'approve' }, 403)
+  const declined = await h.submit('accommodation.decide', cookies.owner, { request: pending.id, decision: 'decline' }, '/app/business')
+  assert.equal(declined.searchParams.get('error'), null)
+  await api('owner', 'accommodation.decide', { request: pending.id, decision: 'approve' }, 409)
+  const next = await api('learner', 'accommodation.request', { assignment: mine, kind: 'percent', amount: 50 })
+  const approvals = await Promise.all([1, 2].map(() => f.request('/api/beam/accommodation.decide', { role: 'owner', body: { request: next.id, decision: 'approve' } })))
+  assert.deepEqual(approvals.map(row => row.status).sort(), [200, 409])
+  const approved = approvals.find(row => row.status === 200).data
+  const exported = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
+  assert.equal(exported.records.beam_accommodation_requests.rows.find(row => row.id === next.id).grant_id, approved.grant)
+  assert.equal(exported.records.beam_accommodations.rows.filter(row => row.id === approved.grant).length, 1)
+  assert.equal((await api('learner', `assignments/${mine}`)).quiz.session.deadline, again.deadline, 'approval never changes a running attempt')
+  await api('owner', 'assignment.reset', { assignment: mine, reason: 'Start a fresh accommodated attempt' })
+  await f.lessons(mine)
+  const fresh = await api('learner', 'quiz.start', { assignment: mine })
+  assert.equal(fresh.deadline - fresh.startedAt, 15 * MINUTE, 'the approved learner request grants extra time to future attempts')
   return { started, expired: detail, accommodated: timing }
 }

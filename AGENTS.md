@@ -384,3 +384,18 @@ structure. Real SMS/Teams send/reply/consent qualification remains blocked on
 unprovisioned provider prerequisites under LEARN-012/NOTICE-003. ct approved
 this boundary as adopted with riders, 22 Oct. Learner erasure of practice
 replies (`beam_sequence_answers`) are removed by the owner erasure door, even while assessed evidence is held. OPS-003 remains partial for its named custody/propagation gaps.
+
+## Extra-time requests (LEARN-011, partial)
+
+Learners use My learning to request numeric minutes/percentage on one of their
+open course assignments. Do not submit a diagnosis or medical information; no
+free-text medical field is collected. Requests are private to the requester and
+the human owner, who approves or declines in Settings. A pending request grants
+nothing. Approval creates exactly one ordinary course-scoped accommodation for
+future attempts; running deadlines stay unchanged. Existing direct owner/team
+manager grants remain available. Request/review uses `accommodation.request` and
+`accommodation.decide`; `GET /api/beam/accommodation-requests` returns only the
+current person's requests, or all to the owner. Export includes request lineage;
+erasure removes personal requests even when assessed evidence is held. These
+conservative privacy/decision defaults await ct; real screen-reader, package
+equivalence, other accommodation and native-app qualification remain gaps.
