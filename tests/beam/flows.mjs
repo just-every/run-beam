@@ -6,7 +6,10 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { pdf, procedureV1, procedureV2 } from './fixtures.mjs'
 import { file, harness } from './harness.mjs'
-import { agentFlows } from './agent-flows.mjs'
+import { agentFlows, agentCheck } from './regression-agent.mjs'
+import { fixture } from './regression-fixture.mjs'
+import { assessorCheck, offlineCheck, renewalCheck } from './regression-learning.mjs'
+import { sourceCustodyCheck } from './regression-sources.mjs'
 import { importFlows, importTrust } from './import-flows.mjs'
 
 const trust = importTrust()
@@ -14,6 +17,8 @@ const h = await harness({bindings: trust.bindings})
 const sha = value => createHash('sha256').update(value).digest('hex')
 const check = async (id, run) => { await run(); console.log(`${id} passed`) }
 const people = {}, ids = {}
+// Consolidated clauses retain their focused public-door assertions in an isolated installation.
+const focused = async run => {const f=await fixture();try{return await run(f)}finally{await f.h.close()}}
 const publish = async (revision, fields = {}) => {
   const result = await h.submit('revision.decide', people.reviewer, { revision, decision: 'publish', ...fields })
   assert.equal(result.searchParams.get('error'), null)
@@ -63,27 +68,7 @@ try {
     await h.api('me', people.lee)
   })
 
-  await check('BEAM-02', async () => {
-    await h.api('source.create', people.author, { title: 'Opening procedure', licence: 'borrowed', licenceEvidence: 'x', reviewer: ids.reviewer, provenance: 'x', file: file('opening.txt', procedureV1) }, 400)
-    const source = await h.api('source.create', people.author, { title: 'Opening procedure', licence: 'owned', licenceEvidence: 'Written by the clinic manager in 2024.', reviewer: ids.reviewer, provenance: 'Clinic shared drive, Procedures/Opening.docx exported as text', file: file('opening.txt', procedureV1) })
-    assert.equal(source.sha256, sha(procedureV1))
-    Object.assign(ids, { source: source.id, sourceV1: source.versionId })
-    const listed = (await h.api('sources', people.reviewer)).find(row => row.id === source.id)
-    assert.equal(listed.reviewer, ids.reviewer)
-    assert.equal(listed.versions[0].provenance, 'Clinic shared drive, Procedures/Opening.docx exported as text')
-    await h.api('sources', people.sam, undefined, 403)
-    const bytes = await h.raw(`/app/files/source/${ids.sourceV1}?download=1`, { cookie: people.author })
-    assert.equal(sha(Buffer.from(await bytes.arrayBuffer())), sha(procedureV1))
-    // A learner cannot open material that is not part of their training.
-    assert.equal((await h.raw(`/app/files/source/${ids.sourceV1}`, { cookie: people.sam })).status, 404)
-    // Uploaded content is inert data: markup is served as sandboxed plain text.
-    const markup = await h.api('source.create', people.author, { title: 'Pasted page', licence: 'owned', licenceEvidence: 'Ours', reviewer: ids.reviewer, provenance: 'Pasted', file: file('page.html', '<html><script>alert(1)</script></html>') })
-    const served = await h.raw(`/app/files/source/${markup.versionId}`, { cookie: people.author })
-    assert.match(served.headers.get('content-type'), /^text\/plain/)
-    assert.match(served.headers.get('content-security-policy'), /sandbox/)
-    const evidence = await h.api('source.create', people.author, { title: 'Fridge log template', licence: 'owned', licenceEvidence: 'Ours', reviewer: ids.reviewer, provenance: 'Scanned', file: file('fridge.pdf', pdf) })
-    assert.equal(evidence.mediaType, 'application/pdf')
-  })
+  await check('BEAM-02', async () => sourceCustodyCheck({h,people,ids,sha}))
 
   let draftVersion
   await check('BEAM-03', async () => {
@@ -208,6 +193,7 @@ try {
     assert.ok(decided.completion)
     const detail = await h.api(`attempts/${practical.id}`, people.sam)
     assert.deepEqual([detail.decision.assessor, detail.decision.decision], [ids.manager, 'accepted'])
+    await focused(assessorCheck)
   })
 
   await check('BEAM-09', async () => {
@@ -261,6 +247,7 @@ try {
     const held = Date.parse('2025-06-01T02:00:00Z')
     assert.deepEqual([completion.completedAt, completion.expiresAt], [held, held + 365 * 86_400_000], 'held at noon Sydney time; renews after the path’s 365 days')
     ids.leeRecordsCertificate = completion.certificate
+    await focused(offlineCheck)
   })
 
   await check('BEAM-11', async () => {
@@ -289,6 +276,7 @@ try {
     assert.ok(!(await h.api('reminders', people.sam)).some(row => row.id === overdue.created[0]))
     const dashboard = await (await h.raw('/app', { cookie: people.author })).text()
     assert.match(dashboard, /overdue since/i)
+    await focused(renewalCheck)
   })
 
   await check('BEAM-13', async () => {
@@ -310,8 +298,7 @@ try {
     assert.deepEqual(version.flaggedCourses, [ids.opening])
     const notice = (await h.api('queues', people.reviewer)).notices.find(row => row.course === ids.opening)
     assert.ok(notice)
-    // A human-authored proposal records its inputs. The scoped agent door is
-    // exercised separately by regressions.mjs.
+    // Human and credential preparation share this clause; both public-door assertions run here.
     const course = await h.api(`courses/${ids.opening}`, people.author)
     const proposed = structuredClone(course.draft)
     proposed.lessons[1].body = 'Follow the opening procedure, record the fridge temperature in the log.'
@@ -328,6 +315,7 @@ try {
     await h.api('notice.decide', people.author, { notice: notice.id, decision: 'draft_updated', note: 'x' }, 403)
     await h.api('notice.decide', people.reviewer, { notice: notice.id, decision: 'draft_updated', note: 'The fridge step changed; revising.', nextReviewOn: '2031-06-30', retraining: 'none' })
     assert.ok(!(await h.api('queues', people.reviewer)).notices.length)
+    await focused(agentCheck)
   })
 
   await check('BEAM-15', async () => importFlows({h, people, ids, trust}))

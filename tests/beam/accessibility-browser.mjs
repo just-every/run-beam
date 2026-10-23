@@ -24,6 +24,7 @@ export async function accessibilityBrowserCheck(){
     audits.push({width,screen:name,violations:result.violations.map(row=>({id:row.id,impact:row.impact,help:row.help,nodes:row.nodes.map(node=>({target:node.target,summary:node.failureSummary}))})),incomplete:result.incomplete.map(row=>({id:row.id,help:row.help}))})
     const tree=await page.locator('main').ariaSnapshot();assert.ok(tree.includes('heading')&&tree.includes('level=1'),'named main heading reaches the accessibility tree')
     await shot(name)
+    await writeFile(join(evidence,'accessibility-progress.json'),JSON.stringify({audits},null,2)+'\n')
    }
    const c=await f.api('author','course.create',{title:`Accessible workstation inspection ${width}`,reviewer:f.ids.reviewer})
    let version=(await f.api('author','course.lesson',{course:c.id,draftVersion:1,title:'Inspect the station',body:'Inspect clean tools. Record the reading before use.',sources:[]})).draftVersion
@@ -52,8 +53,9 @@ export async function accessibilityBrowserCheck(){
    await activate(page.locator('[data-save-continue]'))
    await activate(page.getByRole('link',{name:'Take the quiz',exact:true}))
    await audit('timed-start')
-   assert.ok((await page.locator('main').innerText()).includes('15 minutes'))
+   assert.ok((await page.locator('main').innerText()).includes('50% extra time'))
    await activate(page.getByRole('button',{name:'Start the timed quiz',exact:true}));await audit('timed-quiz')
+   const session=(await f.view(assignment)).quiz.session;assert.equal(session.deadline-session.startedAt,15*60_000,'recorded 50% accommodation provides a 15-minute deadline')
    const radio=page.getByLabel('The reading',{exact:true});await activate(radio,{navigate:false,space:true});assert.equal(await radio.isChecked(),true)
    await activate(page.getByRole('button',{name:'Submit answers',exact:true}))
    await activate(page.getByRole('link',{name:'Submit evidence',exact:true}));await audit('practical')

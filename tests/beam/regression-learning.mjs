@@ -29,7 +29,7 @@ async function learningReliabilityCheck(f) {
   assert.equal((await f.view(assignment)).completion.revision, c.revision)
 }
 
-async function assessor(f) {
+export async function assessorCheck(f) {
   const { api, h, cookies, course, assign, view, lessons, ids, request } = f
   const c = await course('Practical revocation', true), assignment = await assign(c)
   await lessons(assignment)
@@ -65,7 +65,7 @@ async function assessor(f) {
   return result
 }
 
-async function offline(f) {
+export async function offlineCheck(f) {
   const { api, h, cookies, course, nextRevision, publish, assign, view, offline, request } = f
   const c = await course('Exact offline revision'), assignment = await assign(c)
   const revisionB = await nextRevision(c)
@@ -101,7 +101,7 @@ async function offline(f) {
   return result
 }
 
-async function renewal(f) {
+export async function renewalCheck(f) {
   const { api, course, ids, view } = f
   // Keep all attestations on one current day: an expired fixed date makes the next renewal overdue after 17:00 UTC.
   const heldOn = new Date().toISOString().slice(0, 10)
@@ -327,7 +327,7 @@ async function windows(f) {
   assert.equal((await api('learner', `assignments/${renewal}`)).access.closesAt, renewed.access.closesAt)
   return { a30, aDated, renewal, extension: extended.access.extensions[0] }
 }
-export const learningChecks = [['LEARN-003 retry without duplicate learning or evidence', learningReliabilityCheck], ['BEAM-08 live named assessor authority', assessor], ['BEAM-10 exact offline revision', offline], ['BEAM-12 recurring renewal provenance', renewal], ['LEARN-019 reset with history kept', reset], ['AUTO-009 access windows', windows]]
+export const learningChecks = [['LEARN-003 retry without duplicate learning or evidence', learningReliabilityCheck], ['LEARN-019 reset with history kept', reset], ['AUTO-009 access windows', windows]]
 
 // LEARN-017's implemented language slice; other surfaces stay named in the contract Gap.
 export async function languageCheck() {

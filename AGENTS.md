@@ -26,7 +26,7 @@ rer describe
 ```
 
 `verify` builds, typechecks and runs `tests/email-link.mjs` and
-`tests/beam/flows.mjs` (with `agent-flows.mjs`) plus the focused
+`tests/beam/flows.mjs` (with `regression-agent.mjs`) plus the focused
 `tests/beam/regressions.mjs` checks (`pnpm run test:regressions`). The browser journey runs on release tags and nightly in a disposable fresh
 clone: `BEAM_TEST_CHECKOUT=1 pnpm run test:journey` (it runs setup, dev, build,
 preview, export and import itself). Reset is destructive local cleanup; import
