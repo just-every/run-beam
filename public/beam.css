@@ -109,6 +109,10 @@ mark.hl, .hl { background: var(--marigold-soft); color: var(--marigold-ink); pad
 .row-link:hover .row-title { text-decoration: underline; text-underline-offset: 3px; }
 .row-link .chevron { flex: none; color: var(--faint); }
 .row .progress { flex: none; width: 120px; }
+/* Keep request details readable beside a decision, and stack them on narrow cards. */
+.accommodation-requests .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); align-items: start; gap: 12px 24px; }
+.accommodation-requests .row > * { min-width: 0; }
+.accommodation-requests form { width: 100%; }
 ol.numbered { counter-reset: step; }
 ol.numbered > li { counter-increment: step; }
 ol.numbered .row::before { content: counter(step); flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--app-tint); color: var(--navy-deep); font: 700 15px/1 var(--font-condensed); }

@@ -8,7 +8,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { fixture } from './regression-fixture.mjs'
 
 export async function accessibilityBrowserCheck(){
- const f=await fixture(),{chromium}=await import(process.env.BEAM_PLAYWRIGHT_MODULE||'@playwright/test')
+ const f=await fixture({names:{learner:'Alexandra Montgomery'}}),{chromium}=await import(process.env.BEAM_PLAYWRIGHT_MODULE||'@playwright/test')
  const evidence=process.env.BEAM_EVIDENCE_DIR||'test-results';await mkdir(evidence,{recursive:true})
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']}),audits=[]
  try{for(const width of [1440,390]){
@@ -40,7 +40,25 @@ export async function accessibilityBrowserCheck(){
    await activate(page.getByRole('button',{name:'Send extra-time request',exact:true}))
    const request=(await f.api('learner','accommodation-requests')).find(row=>row.assignment===assignment)
    assert.equal(request.state,'pending')
-   await as('owner');await page.goto(f.h.origin+'/app/business');await audit('extra-time-review')
+   await as('owner');await page.goto(f.h.origin+'/app/business')
+   const requests=page.locator('section.card').filter({has:page.getByRole('heading',{name:'Extra-time requests',exact:true})})
+   const requestRow=requests.locator('.row').filter({has:page.locator(`input[name="request"][value="${request.id}"]`)})
+   const layout=await requestRow.evaluate(row=>{
+    const title=row.querySelector('.row-title'),text=title.firstChild,brokenWords=[]
+    // Normal requester and course words must fit without breaking into a vertical column.
+    for(const word of text.textContent.matchAll(/\S+/g)){
+     const range=document.createRange();range.setStart(text,word.index);range.setEnd(text,word.index+word[0].length)
+     const lines=new Set(Array.from(range.getClientRects(),rect=>Math.round(rect.top)))
+     if(lines.size>1)brokenWords.push(word[0])
+    }
+    const bounds=node=>{const {left,right,top,bottom}=node.getBoundingClientRect();return{left,right,top,bottom}}
+    return{brokenWords,row:bounds(row),text:bounds(row.querySelector('.row-text')),form:bounds(row.querySelector('form')),controls:Array.from(row.querySelectorAll('select,button'),bounds)}
+   })
+   assert.deepEqual(layout.brokenWords,[],'requester and course words remain readable')
+   for(const control of layout.controls){assert.ok(control.left>=layout.row.left&&control.right<=layout.row.right,'decision controls stay inside the request row')}
+   if(width===390){assert.ok(layout.form.top>=layout.text.bottom,'phone decision follows the complete request text');assert.equal(layout.text.right,layout.row.right,'phone request text uses the full row')}
+   await requests.scrollIntoViewIfNeeded();await requests.screenshot({path:join(evidence,`${width}-accessibility-extra-time-card.png`)})
+   await audit('extra-time-review')
    const decision=page.locator('form[action="/app/do/accommodation.decide"]').filter({has:page.locator(`input[name="request"][value="${request.id}"]`)})
    await activate(decision.getByRole('button',{name:'Record decision',exact:true}))
    assert.equal((await f.api('learner','accommodation-requests')).find(row=>row.id===request.id).state,'approved')

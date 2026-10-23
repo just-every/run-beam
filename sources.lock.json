@@ -216,7 +216,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "8bb8bf1e13a0859c19d2d7f5ac51de6f883a45f0371d8bf9094a3f13de6a6e5a",
+      "sha256": "980a5a168dece9a883c427ca7e47b136784baeb6d1ee81f039c21fcd5751613a",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -236,7 +236,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "82fe293c7212b2eb403c558d3178bcb2a22967fe141737ec4a112949e5e74232",
+      "sha256": "34485292aef3ed3d15077d9e21eeb592b6ce0466a648f78666499b5cc7ce4e3e",
       "executable": false
     },
     "DEMO.md": {
@@ -776,7 +776,7 @@
       "executable": false
     },
     "public/beam.css": {
-      "sha256": "04c4a932d3eb4951d51b2ce463527279929be5ada4645f4a76c5fdea72e51634",
+      "sha256": "72949fe9967543a1dded652613232b7c7f3723284d7f4922543d94bbcce347fa",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1896,7 +1896,7 @@
       "executable": false
     },
     "src/beam/ui/accommodation-requests.ts": {
-      "sha256": "99f51226ec7ea87204efc22c8f787c24b2a48cb2a64aba16ad09fbe13768626e",
+      "sha256": "44371ec1f8237cb4c9694810174858488a92f7fcc202bd808d7c34e3e343bdd6",
       "executable": false
     },
     "src/beam/ui/acknowledgments.ts": {
@@ -3948,7 +3948,7 @@
       "executable": false
     },
     "tests/beam/accessibility-browser.mjs": {
-      "sha256": "8b77b791e1b4810b693153e3d092f448de40d9fa27ca11c82c065ed269d4489e",
+      "sha256": "a0339775b2eaae018a287f364aa1d2efb523add6a2abb294a38f51b9b119f84b",
       "executable": false
     },
     "tests/beam/capacity.mjs": {
