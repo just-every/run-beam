@@ -73,3 +73,13 @@ export async function sourceDraftWithdrawalCheck(f) {
   await api('owner','erasure.begin',{...request,subject:frozenSource.id,digest:packagePreview.digest},409)
   return { source, course, kept: after.draft.lessons }
 }
+
+if (process.argv[1] && import.meta.url === (await import('node:url')).pathToFileURL(process.argv[1]).href) {
+  const { fixture }=await import('./regression-fixture.mjs')
+  const f=await fixture()
+  try {
+    await f.api('owner','erasure.policy',{assessmentDays:0,justification:'Erase only explicitly approved source custody.',consent:true})
+    await sourceDraftWithdrawalCheck(f)
+    console.log('PASS source draft withdrawal and admission fences')
+  } finally { await f.h.close() }
+}
