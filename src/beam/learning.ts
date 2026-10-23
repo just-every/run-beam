@@ -5,7 +5,7 @@ import { ltiRequirements } from './lti-requirements'
 // Flows 6-9: learners resume lessons, take deterministic quizzes and submit
 // practical evidence; completion is recorded only when every requirement of the
 // exact assigned revision is met, and is bound to that revision.
-import { completionNotifications } from './notification-delivery'
+import { completionNotifications, pendingEvidenceNotifications } from './notification-delivery'
 import { ATTEMPT_CHAIN, MOVE_CHAIN, countingAssignment, movesOf } from './moves'
 import { attendanceRecords, keepsRoster } from './attendance'
 import type { Bindings } from '../auth.server'
@@ -321,6 +321,7 @@ export async function submitPractical(env: Bindings, actor: Actor, input: Input)
     if (stored) return replay(stored)
     throw error
   }
+  await pendingEvidenceNotifications(env, id)
   return { id, number, state: 'awaiting_review' }
 }
 

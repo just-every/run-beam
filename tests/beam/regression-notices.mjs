@@ -8,6 +8,7 @@ import { sessionAnnouncementCheck } from './regression-announcement-sessions.mjs
 export async function announcementCheck(f) {
   const { api, h, cookies, ids, course } = f
   const page = async (path, role) => await (await h.raw(path, { cookie: cookies[role] })).text()
+  const managerName = (await api('manager', 'me')).name, learnerName = (await api('learner', 'me')).name, assessorName = (await api('assessor', 'me')).name
   const team = await f.team('Announce team', [ids.learner, ids.assessor])
   assert.equal((await h.submit('announcement.send', cookies.manager, { audience: `team:${team}`, title: 'Room change', body: 'Thursday training moves to the back office.' }, '/app/announcements')).searchParams.get('error'), null)
   const sent = (await api('manager', 'announcements')).sent.find(row => row.title === 'Room change')
@@ -15,13 +16,13 @@ export async function announcementCheck(f) {
 
   // Each recipient sees it with its sender and no recipient list.
   const home = await page('/app/learning', 'learner')
-  assert.ok(home.includes('Room change') && home.includes('From manager') && !home.includes('assessor'))
+  assert.ok(home.includes('Room change') && home.includes(`From ${managerName}`) && !home.includes(assessorName))
   const received = (await api('learner', 'announcements')).received.find(row => row.id === sent.id)
   assert.ok(received && !('recipients' in received))
 
   // A private reply: the sender reads it; the other recipient and the owner's audit do not.
   assert.equal((await h.submit('announcement.reply', cookies.learner, { announcement: sent.id, body: 'I will be ten minutes late.' }, '/app/learning')).searchParams.get('error'), null)
-  assert.deepEqual((await api('manager', 'announcements')).sent.find(row => row.id === sent.id).replies.map(reply => [reply.learnerName, reply.body]), [['learner', 'I will be ten minutes late.']])
+  assert.deepEqual((await api('manager', 'announcements')).sent.find(row => row.id === sent.id).replies.map(reply => [reply.learnerName, reply.body]), [[learnerName, 'I will be ten minutes late.']])
   assert.ok((await page('/app/announcements', 'manager')).includes('I will be ten minutes late.'))
   assert.deepEqual((await api('assessor', 'announcements')).received.find(row => row.id === sent.id).replies, [])
   const audit = await api('owner', `audit?q=${sent.id}`)
@@ -37,7 +38,85 @@ export async function announcementCheck(f) {
   await api('owner', 'team.members', { team: elsewhere, members: [ids.other] })
   assert.equal((await api('manager', 'announcement.send', { audience: `team:${elsewhere}`, title: 'x', body: 'y' }, 403)).error, 'learner_outside_your_team')
   await api('learner', 'announcement.send', { audience: `team:${team}`, title: 'x', body: 'y' }, 403)
+  await announcementAudienceCheck(f, team)
   await sessionAnnouncementCheck(f)
+}
+
+async function announcementAudienceCheck(f, team) {
+  const { api, ids } = f
+  await api('owner', 'person.directory', { member: ids.learner, location: 'Austin: North' })
+  await api('owner', 'person.directory', { member: ids.other, location: 'Austin: North' })
+  const cohort = await api('owner', 'audience.save', { name: 'North cohort', locations: ['Austin: North'] })
+  await api('owner', 'audience.preview', { audience: cohort.id })
+  await api('owner', 'audience.state', { audience: cohort.id, state: 'active' })
+  for (const audience of ['location:Austin: North', `cohort:${cohort.id}`]) {
+    const notice = await api('manager', 'announcement.send', { audience, title: 'North safety', body: 'Paid work time training in the north room.' })
+    assert.equal(notice.recipients, 1)
+    assert.ok(!(await api('other', 'announcements')).received.some(row => row.id === notice.id))
+    await api('learner', 'announcement.reply', { announcement: notice.id, body: 'North room confirmed.' })
+    assert.equal((await api('manager', 'announcements')).sent.find(row => row.id === notice.id).replies.length, 1)
+    await api('owner', 'team.managers', { team, members: [] })
+    await api('owner', 'team.managers', { team: ids.team, members: [] })
+    assert.equal((await api('learner', 'announcements')).received.find(row => row.id === notice.id).repliesOpen, false)
+    await api('learner', 'announcement.reply', { announcement: notice.id, body: 'After revocation' }, 403)
+    assert.deepEqual((await api('manager', 'announcements')).sent.find(row => row.id === notice.id).replies, [])
+    await api('owner', 'team.managers', { team, members: [ids.manager] })
+    await api('owner', 'team.managers', { team: ids.team, members: [ids.manager] })
+    assert.equal((await api('manager', 'announcements')).sent.find(row => row.id === notice.id).replies.length, 1)
+  }
+  const snapshot = await api('manager', 'announcement.send', { audience: `cohort:${cohort.id}`, title: 'Saved audience', body: 'Audience at send time.' })
+  await api('owner', 'person.directory', { member: ids.assessor, location: 'Austin: North' })
+  assert.ok(!(await api('assessor', 'announcements')).received.some(row => row.id === snapshot.id))
+  await api('learner', 'announcement.send', { audience: `cohort:${cohort.id}`, title: 'No', body: 'No' }, 403)
+  await api('manager', 'announcement.send', { audience: 'location:Outside', title: 'No', body: 'No' }, 409)
+  if (process.argv.includes('--browser')) await announcementAudienceBrowser(f, cohort)
+  await api('owner', 'audience.state', { audience: cohort.id, state: 'paused' })
+  await api('manager', 'announcement.send', { audience: `cohort:${cohort.id}`, title: 'Paused', body: 'No' }, 404)
+  assert.equal((await api('learner', 'announcements')).received.find(row => row.id === snapshot.id).repliesOpen, false)
+  for (const role of ['learner', 'assessor', 'other']) await api('owner', 'person.directory', { member: ids[role], location: '' })
+}
+
+async function announcementAudienceBrowser(f, cohort) {
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const { mkdir } = await import('node:fs/promises')
+  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  await mkdir(evidence, { recursive: true })
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
+      try {
+        const as = async role => {
+          await context.clearCookies()
+          await context.addCookies(f.cookies[role].split('; ').map(cookie => { const split = cookie.indexOf('='); return { name: cookie.slice(0, split), value: cookie.slice(split + 1), url: f.h.origin } }))
+        }
+        await as('manager')
+        const page = await context.newPage()
+        await page.goto(`${f.h.origin}/app/announcements`)
+        const form = page.locator('form[action="/app/do/announcement.send"]')
+        assert.ok(await form.locator('option[value="location:Austin: North"]').count())
+        await form.getByLabel('To', { exact: true }).selectOption(`cohort:${cohort.id}`)
+        await form.getByLabel('Title', { exact: true }).fill(`Cohort training ${width}`)
+        await form.getByLabel('Message', { exact: true }).fill('Bring the checklist to paid training.')
+        await form.getByRole('button').click()
+        await page.waitForURL('**/app/announcements*')
+        await page.screenshot({ path: `${evidence}/${width}-announcement-audiences.png`, fullPage: true })
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+        await as('learner')
+        await page.goto(`${f.h.origin}/app/learning`)
+        const announcement = page.locator('section.announcement').filter({ has: page.getByRole('heading', { name: `Cohort training ${width}`, exact: true }) })
+        await announcement.locator('summary').click()
+        await announcement.getByLabel('Your reply', { exact: true }).fill('Checklist ready.')
+        await announcement.getByRole('button').click()
+        await page.waitForURL('**/app/learning*')
+        await page.screenshot({ path: `${evidence}/${width}-announcement-reply.png`, fullPage: true })
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+        await as('manager')
+        await page.goto(`${f.h.origin}/app/announcements`)
+        assert.ok(await page.getByText(/Checklist ready/).count())
+      } finally { await context.close() }
+    }
+  } finally { await browser.close() }
 }
 
 // NOTICE-005's explicitly partial in-app slice: configured completion events,
@@ -148,6 +227,86 @@ export async function notificationRulesCheck(f) {
   await api('owner', 'notification.state', { rule: rule.id, enabled: false })
   await api('owner', 'team.managers', { team: ids.team, members: [ids.manager] })
   await api('owner', 'person.directory', { member: ids.learner, manager: '', location: '' })
+
+  // Scoped administrators configure a real path notice through the same public doors.
+  const unit = await api('owner', 'unit.create', { name: 'Notice unit', teams: [ids.team] })
+  const grant = await api('owner', 'admin.grant', { unit: unit.id, member: ids.other })
+  const pathCourse = await course('Path safety')
+  const path = await api('owner', 'path.create', { name: 'Safety path', team: ids.team })
+  const revision = await api('owner', 'path.revise', { path: path.id, courses: [pathCourse.id], dueDays: ['7'] })
+  const scopedFields = { name: 'Path completion', recipient: 'learner', team: ids.team, path: path.id, subject: '{course_name} finished', body: 'Paid training: {assignment_link}' }
+  await api('other', 'notification.save', { ...scopedFields, team: '' }, 403)
+  const outsideTeam = await api('owner', 'team.create', { name: 'Outside notification scope' })
+  await api('other', 'notification.save', { ...scopedFields, team: outsideTeam.id }, 403)
+  await api('other', 'notification.save', { ...scopedFields, rule: rule.id, version: edited.version, team: outsideTeam.id }, 403)
+  const scopedRule = await api('other', 'notification.save', scopedFields)
+  assert.equal((await api('other', 'notification-rules')).rules.find(row => row.id === scopedRule.id).path_id, path.id)
+  await api('other', 'notification.state', { rule: scopedRule.id, enabled: true }, 409)
+  await api('other', 'notification.test', { rule: scopedRule.id })
+  assert.ok((await inbox('other')).some(row => row.rule_id === scopedRule.id && row.test))
+  await api('other', 'notification.state', { rule: scopedRule.id, enabled: true })
+  const pathAssignment = (await api('owner', 'path.assign', { path: path.id })).created[0]
+  // Change the current path revision before completion: the assignment's original path still matches.
+  await api('owner', 'path.revise', { path: path.id, courses: [pathCourse.id], dueDays: ['9'] })
+  assert.equal((await api('owner', `assignments/${pathAssignment}`)).assignment.pathRevision, revision.id)
+  await lessons(pathAssignment)
+  const pathInbox = async () => (await inbox('learner')).filter(row => row.rule_id === scopedRule.id)
+  assert.equal((await pathInbox()).length, 1)
+  await complete(pathCourse) // Same course, direct enrollment: not this path.
+  assert.equal((await pathInbox()).length, 1)
+  await api('other', 'notification.replay', { rule: scopedRule.id })
+  assert.equal((await pathInbox()).length, 1)
+  if (process.argv.includes('--browser')) await notificationScopeBrowser(f, path, scopedRule)
+
+  // Revocation removes the configuration door and holds future work until explicit authorized replay.
+  await api('owner', 'admin.revoke', { grant: grant.id })
+  await api('other', 'notification-rules', undefined, 403)
+  await api('other', 'notification.replay', { rule: scopedRule.id }, 403)
+  const heldAssignment = (await api('owner', 'path.assign', { path: path.id })).created[0]
+  await lessons(heldAssignment)
+  assert.equal((await pathInbox()).length, 1)
+  assert.ok((await api('owner', 'automation-controls')).executions.some(row => row.kind === 'notification' && row.outcome === 'scope_revoked'))
+  const custom = await api('owner', 'role.save', { name: 'Scoped notices', permissions: ['notifications'], teams: [ids.team] })
+  const customGrant = await api('owner', 'role.grant', { role: custom.id, member: ids.other })
+  await api('other', 'notification.state', { rule: scopedRule.id, enabled: true })
+  await api('other', 'notification.replay', { rule: scopedRule.id })
+  assert.equal((await pathInbox()).length, 2)
+  await api('other', 'notification.save', { ...scopedFields, team: outsideTeam.id }, 403)
+  await api('owner', 'role.revoke', { grant: customGrant.id })
+  await api('other', 'notification.test', { rule: scopedRule.id }, 403)
+  await api('owner', 'notification.state', { rule: scopedRule.id, enabled: false })
+  await notificationRelationshipCheck(f, unit.id)
+}
+
+async function notificationScopeBrowser(f, path, rule) {
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const { mkdir } = await import('node:fs/promises')
+  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  await mkdir(evidence, { recursive: true })
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
+      try {
+        await context.addCookies(f.cookies.other.split('; ').map(cookie => { const split = cookie.indexOf('='); return { name: cookie.slice(0, split), value: cookie.slice(split + 1), url: f.h.origin } }))
+        const page = await context.newPage()
+        await page.goto(`${f.h.origin}/app/notifications`)
+        const edit = page.locator('form[action="/app/do/notification.save"]').filter({ has: page.locator(`input[name="rule"][value="${rule.id}"]`) })
+        await edit.locator('..').locator('summary').click()
+        assert.equal(await edit.getByLabel('Path', { exact: true }).inputValue(), path.id)
+        await page.evaluate(() => scrollTo(0, 0))
+        await page.screenshot({ path: `${evidence}/${width}-notification-scope.png`, fullPage: true })
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+        const test = page.locator('form[action="/app/do/notification.test"]').filter({ has: page.locator(`input[name="rule"][value="${rule.id}"]`) })
+        await test.getByRole('button').click()
+        await page.waitForURL('**/app/notifications*')
+        await page.goto(`${f.h.origin}/app/learning`)
+        assert.ok(await page.locator('#notifications').isVisible())
+        await page.screenshot({ path: `${evidence}/${width}-notification-inbox.png`, fullPage: true })
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+      } finally { await context.close() }
+    }
+  } finally { await browser.close() }
 }
 
 // NOTICE-004: every policy/routing/delivery/resolution assertion uses the Worker
@@ -428,4 +587,74 @@ async function recoveryBrowser(f, proposal, approved) {
   }
   await context.close()
  } finally { await browser.close() }
+}
+
+async function notificationRelationshipCheck(f, unit) {
+  const { api, ids, course, lessons } = f
+  const practical = await course('Observed safety', true)
+  await api('owner', 'course.unit', { course: practical.id, unit })
+  const grant = await api('owner', 'admin.grant', { unit, member: ids.other })
+  const rules = {}
+  for (const recipient of ['assessor', 'admin']) {
+    rules[recipient] = await api('owner', 'notification.save', { name: `Completion for ${recipient}`, recipient, course: practical.id, team: ids.team, subject: '{learner_name} finished {course_name}', body: 'Training record: {assignment_link}' })
+    await api('owner', 'notification.test', { rule: rules[recipient].id })
+    await api('owner', 'notification.state', { rule: rules[recipient].id, enabled: true })
+  }
+  const pendingRule = await api('owner', 'notification.save', { name: 'Evidence awaiting assessor', event: 'evidence_pending', recipient: 'assessor', course: practical.id, team: ids.team, subject: '{learner_name}: evidence waiting', body: 'Review during paid work time: {assignment_link}' })
+  await api('owner', 'notification.test', { rule: pendingRule.id })
+  await api('owner', 'notification.state', { rule: pendingRule.id, enabled: true })
+  const assignment = (await api('owner', 'assignment.create', { course: practical.id, learners: [ids.learner], dueDate: '2030-10-01' })).created[0]
+  await lessons(assignment)
+  const attempt = await api('learner', 'practical.submit', { assignment, evidence: 'Demonstrated the observed procedure.' })
+  const pendingNotices = async role => (await api(role, 'notifications')).filter(row => row.rule_id === pendingRule.id && !row.test)
+  assert.equal((await pendingNotices('assessor')).length, 1)
+  assert.equal((await pendingNotices('other')).length, 0)
+  assert.ok((await pendingNotices('assessor'))[0].body.includes(`/app/attempts/${attempt.id}`))
+  assert.ok(!JSON.stringify(await api('learner', `attempts/${attempt.id}`)).includes('notice_resolutions'))
+  await api('owner', 'notification.replay', { rule: pendingRule.id })
+  assert.equal((await pendingNotices('assessor')).length, 1)
+  await api('owner', 'person.roles', { member: ids.assessor, roles: ['learner'] })
+  assert.equal((await pendingNotices('assessor')).length, 0)
+  await api('owner', 'person.roles', { member: ids.assessor, roles: ['assessor', 'learner'] })
+  if (process.argv.includes('--browser')) await pendingEvidenceBrowser(f, attempt.id)
+  await api('assessor', 'practical.decide', { attempt: attempt.id, decision: 'accepted', note: 'Observed complete procedure.' })
+  assert.equal((await pendingNotices('assessor')).length, 0)
+  await api('owner', 'notification.replay', { rule: pendingRule.id })
+  assert.equal((await pendingNotices('assessor')).length, 0)
+  await api('owner', 'notification.state', { rule: pendingRule.id, enabled: false })
+  const notices = async (role, recipient) => (await api(role, 'notifications')).filter(row => row.rule_id === rules[recipient].id && !row.test)
+  assert.equal((await notices('assessor', 'assessor')).length, 1)
+  assert.equal((await notices('other', 'assessor')).length, 0)
+  assert.equal((await notices('other', 'admin')).length, 1)
+  assert.equal((await notices('owner', 'admin')).length, 1)
+  await api('owner', 'person.roles', { member: ids.assessor, roles: ['learner'] })
+  await api('owner', 'admin.revoke', { grant: grant.id })
+  assert.equal((await notices('assessor', 'assessor')).length, 0)
+  assert.equal((await notices('other', 'admin')).length, 0)
+  await api('owner', 'person.roles', { member: ids.assessor, roles: ['assessor', 'learner'] })
+  assert.equal((await notices('assessor', 'assessor')).length, 1)
+  for (const rule of Object.values(rules)) await api('owner', 'notification.state', { rule: rule.id, enabled: false })
+}
+
+async function pendingEvidenceBrowser(f, attempt) {
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
+      try {
+        await context.addCookies(f.cookies.assessor.split('; ').map(cookie => { const split = cookie.indexOf('='); return { name: cookie.slice(0, split), value: cookie.slice(split + 1), url: f.h.origin } }))
+        const page = await context.newPage()
+        await page.goto(`${f.h.origin}/app/learning`)
+        const link = page.locator(`a[href="/app/attempts/${attempt}"]`).first()
+        assert.ok(await link.isVisible())
+        await page.screenshot({ path: `${evidence}/${width}-pending-evidence-notice.png`, fullPage: true })
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+        await link.click()
+        await page.waitForURL(`**/app/attempts/${attempt}`)
+        assert.ok(await page.locator('form[action="/app/do/practical.decide"]').isVisible())
+      } finally { await context.close() }
+    }
+  } finally { await browser.close() }
 }

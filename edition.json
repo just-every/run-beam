@@ -82,7 +82,11 @@
           "migrations/core/0092_beam_erasure.sql",
           "migrations/core/0093_beam_source_ocr.sql",
           "migrations/core/0098_beam_error_feeds.sql",
-          "migrations/core/0099_beam_recovery_delivery.sql"
+          "migrations/core/0099_beam_recovery_delivery.sql",
+          "migrations/core/0101_beam_notification_scope.sql",
+          "migrations/core/0102_beam_announcement_audiences.sql",
+          "migrations/core/0103_beam_notification_recipients.sql",
+          "migrations/core/0104_beam_evidence_notifications.sql"
         ]
       }
     },
