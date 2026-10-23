@@ -1,5 +1,10 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  source_ocr_config_changed: 'the OCR account settings changed. Reload the account page and review the current key state and budget before saving again.',
+  file_size: 'the file is empty or exceeds this upload’s size limit. Your prior files and records are unchanged. Choose a smaller supported file and retry.',
+  source_ocr_agreement_required: 'review and confirm the employer provider agreements before enabling or rotating this account.',
+  source_ocr_account_mode: 'select sandbox or production for the employer’s provider project.',
+  source_ocr_budget_exhausted: 'the total OCR budget is exhausted. No provider call was made. Review the request history and explicitly change the budget before approving a fresh request.',
   package_invalid_manifest: 'the package manifest is invalid. Correct the named problem in the source package and upload it again.',
   package_unsupported_feature: 'this package uses a feature Beam cannot play. The unsupported feature is named below; use a supported export before assigning it.',
   package_invalid_zip: 'the ZIP is damaged or exceeds the supported package limits. Re-export the original package and try again.',
@@ -94,7 +99,6 @@ const ERRORS: Record<string, string> = {
   expiry_before_issue: "the certificate’s expiry date must be after its issue date.",
   certificate_file_type: "upload a photo or PDF of the certificate. Other file types are not accepted.",
   discussion_file_type: "attach a photo or PDF to the discussion. Other file types are not accepted.",
-  file_size: "the file is empty or too large. Choose a smaller, nonempty file and upload it again.",
   invalid_filename: "the file needs a valid name. Rename it and upload it again.",
   invalid_base64: "the uploaded file could not be read. Choose the file again and upload it.",
   file_missing: "the stored file is unavailable. Contact your learning administrator; your learning record has not been removed.",

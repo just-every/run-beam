@@ -1,3 +1,5 @@
+import { requestAccommodation, decideAccommodation } from './accommodation-requests'
+import { declineCutoverCredit, approveCutover } from './movein/cutover'
 import { withdrawSourceDrafts } from './erasure-source-drafts'
 import { withdrawProposalSnapshots } from './erasure-proposals'
 import { withdrawRuleSnapshots } from './erasure-snapshots'
@@ -303,6 +305,8 @@ export const actions: Record<string, Handler> = {
   'assignment.window': (env, actor, input) => setAssignmentWindow(env, actor, input),
   'access.extend': (env, actor, input) => extendAccess(env, actor, input),
   'attempt.grant': (env, actor, input) => grantAttempt(env, actor, input),
+  'accommodation.request': requestAccommodation,
+  'accommodation.decide': decideAccommodation,
   'accommodation.grant': (env, actor, input) => grantAccommodation(env, actor, input),
   'assignment.reset': (env, actor, input) => resetAssignment(env, actor, input),
   'lesson.complete': (env, actor, input) => completeLesson(env, actor, input),
@@ -318,6 +322,8 @@ export const actions: Record<string, Handler> = {
   'history.accept': (env, actor, input) => acceptHistory(env, actor, input),
   // REPORT-001 / MOVE-009: the expiring window and imported-history credit decisions.
   'report.window': (env, actor, input) => saveExpiringWindow(env, actor, input),
+  'cutover.credit.decline': declineCutoverCredit,
+  'cutover.approve': approveCutover,
   'credit.preview': (env, actor, input) => previewCredit(env, actor, input),
   'credit.approve': (env, actor, input) => approveCredit(env, actor, input),
   'credit.undo': (env, actor, input) => undoCredit(env, actor, input),

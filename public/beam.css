@@ -3,6 +3,10 @@
    and pending, green for done and a warm red-orange for overdue. Tokens and faces come from /site/theme.css and
    /site/fonts.css, which every app page links first; pages are server-rendered and need no script. */
 
+/* App-only text tokens: meet AA on the existing pale work surface and status
+   backgrounds without changing the shared run-site or Base theme. */
+:root { --muted: #585f73; --green-ink: #106d35; }
+
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; min-height: 100vh; background: var(--app-surface); color: var(--ink); font: 15px/1.5 var(--font-body); }
@@ -105,6 +109,10 @@ mark.hl, .hl { background: var(--marigold-soft); color: var(--marigold-ink); pad
 .row-link:hover .row-title { text-decoration: underline; text-underline-offset: 3px; }
 .row-link .chevron { flex: none; color: var(--faint); }
 .row .progress { flex: none; width: 120px; }
+/* Keep request details readable beside a decision, and stack them on narrow cards. */
+.accommodation-requests .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); align-items: start; gap: 12px 24px; }
+.accommodation-requests .row > * { min-width: 0; }
+.accommodation-requests form { width: 100%; }
 ol.numbered { counter-reset: step; }
 ol.numbered > li { counter-increment: step; }
 ol.numbered .row::before { content: counter(step); flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--app-tint); color: var(--navy-deep); font: 700 15px/1 var(--font-condensed); }
@@ -476,3 +484,11 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
 .erasure{min-width:0;overflow-wrap:anywhere}.erasure form{max-width:100%}
 
 .source-comparison figure{margin:0;min-width:0}.source-comparison img{display:block;max-width:100%;height:auto}
+
+/* Keyboard bypass and the existing mobile menu: no hidden, unfocusable toggle. */
+.skip-link { position: fixed; left: 16px; top: 8px; z-index: 100; transform: translateY(-200%); padding: 12px 18px; background: var(--white); color: var(--navy-deep); border-radius: 6px; }
+.skip-link:focus { transform: none; }
+@media (max-width: 860px) {
+  .menu-toggle { display: block; position: absolute; top: 16px; right: 16px; width: 94px; height: 44px; margin: 0; opacity: 0; z-index: 2; cursor: pointer; }
+  .menu-toggle:focus-visible + .rail .menu-button { outline: 2px solid var(--blue); outline-offset: 3px; }
+}

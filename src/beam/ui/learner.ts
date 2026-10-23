@@ -1,3 +1,4 @@
+import { accommodationRequestCard } from './accommodation-requests'
 import { xapiUrl } from '../packages/xapi-catalog'
 import { learnerXapi } from './xapi'
 import { learnerPackages } from './packages'
@@ -82,7 +83,7 @@ export async function dashboard(env: Bindings, actor: Actor, url: URL) {
   const side = [review, assess].filter(Boolean)
   const body = h`<h1>${t(actor, 'My learning')}</h1>
 ${actor.viewAs ? '' : form('language.change', '/app/learning', [select(t(actor, 'Language'), 'language', [{ value: 'default', label: t(actor, 'Use employer default') }, { value: 'en-US', label: 'English (US)' }, { value: 'es-US', label: 'Español (EE. UU.)' }], (await one(env, 'SELECT language FROM beam_members WHERE id=?', actor.id))?.language ?? 'default')], t(actor, 'Save language'), { secondary: true })}
-${await notificationCard(env, actor, zone)}${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${externalCard(external, actor)}${await recognitionCard(env, actor)}${await discussionCard(env, actor)}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine, actor.locale)}${asks}${agent}
+${await accommodationRequestCard(env, actor, record.assignments.map(row => ({ id: row.id, courseTitle: row.courseTitle, status: row.status })))}${await notificationCard(env, actor, zone)}${await noticeCard(env, actor, zone)}${offerCard}${reminderCard}${externalCard(external, actor)}${await recognitionCard(env, actor)}${await discussionCard(env, actor)}${receivedCard(notices.received, actor, zone)}${acknowledgmentCard(acknowledgments.mine, actor.locale)}${asks}${agent}
 ${open.length ? assigned : ''}
 <div class="grid">${open.length ? '' : assigned}${completed}${side}</div>`
   return page(t(actor, 'My learning'), actor, body, { current: '/app/learning', url })

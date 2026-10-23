@@ -37,7 +37,7 @@ const spanish: Record<string, string> = {
  'Credited until {date}': 'Crédito válido hasta el {date}',
  'Decision by {name} on {date}: {reason}': 'Decisión de {name} del {date}: {reason}',
  'Saved.': 'Guardado.',
- 'My learning': 'Mi aprendizaje', 'Menu': 'Menú', 'Main': 'Principal', 'Learner': 'Estudiante',
+ 'Skip to content': 'Saltar al contenido', 'My learning': 'Mi aprendizaje', 'Menu': 'Menú', 'Main': 'Principal', 'Learner': 'Estudiante',
  'Skills': 'Habilidades', 'Recognition': 'Reconocimiento', 'Certificates': 'Certificados',
  'question': 'pregunta', 'questions': 'preguntas', 'point': 'punto', 'points': 'puntos',
  '{questions} worth {points}.': '{questions} por un total de {points}.',

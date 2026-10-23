@@ -1,3 +1,6 @@
+import { accommodationRequests } from './accommodation-requests'
+import { cutoverPreview } from './movein/cutover'
+import { operationsHealth } from './operations'
 import { sourceOcrConfig, sourceOcrPreview } from './source-ocr'
 import { erasureSettings } from './erasure-policy'
 import { erasureReport } from './erasure'
@@ -120,6 +123,7 @@ export const views: Record<string, View> = {
   certificate: (env, actor, _request, id) => certificateRecord(env, actor, id),
   'certificate-templates': async (env, actor) => { insist(actor.owner || actor.grants.certificates, 'forbidden', 403); return await templates(env) },
   imports: (env, actor) => importJobs(env, actor),
+  cutover: (env,actor,_request,id) => cutoverPreview(env,actor,id),
   'import-settings': (env, actor) => importSettings(env, actor),
   history: (env, actor) => importedHistory(env, actor),
   messages: (env, actor) => reminderMessages(env, actor),
@@ -127,6 +131,8 @@ export const views: Record<string, View> = {
   coverage: (env, actor, request) => coverageReport(env, actor, coverageFilters(new URL(request.url))),
   credits: (env, actor) => creditsView(env, actor),
   quality: (env, actor, request) => programQuality(env, actor, new URL(request.url)),
+  'accommodation-requests': accommodationRequests,
+  operations: (env, actor) => operationsHealth(env, actor),
   costs: async (env, actor) => providerCosts(env, actor),
   'diagnosis-comparison': (env, actor, request, id) => compareErrors(env, actor, id, new URL(request.url)),
   'error-feeds': errorFeeds,
@@ -165,7 +171,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
-  [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
+  [/^accommodation-requests$/, 'accommodation-requests'], [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
   [/^erasure-settings$/, 'erasure-settings'], [/^erasure\/([\w-]+)$/, 'erasure'],
   [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'], [/^xapi$/, 'xapi'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],
@@ -177,8 +183,8 @@ const ROUTES: [RegExp, string][] = [
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^gusto-language$/, 'gusto-language'],
   [/^course-locales\/([\w-]+)$/, 'course-locales'],
-  [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^import-settings$/, 'import-settings'], [/^history$/, 'history'],
-  [/^dashboards$/, 'dashboards'], [/^dashboards\/([\w-]+)$/, 'dashboard'], [/^messages$/, 'messages'], [/^report$/, 'report'], [/^coverage$/, 'coverage'], [/^credits$/, 'credits'], [/^quality$/, 'quality'], [/^costs$/, 'costs'], [/^error-feeds$/, 'error-feeds'], [/^diagnoses$/, 'diagnoses'], [/^diagnosis-imports\/([\w-]+)$/, 'diagnosis-comparison'], [/^outcomes\/([\w-]+)$/, 'outcome'], [/^evaluations\/([\w-]+)$/, 'evaluation'], [/^app-credentials$/, 'app-credentials'], [/^skills$/, 'skills'], [/^skills\/([\w-]+)$/, 'skill-recommendations'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^impact\/([\w-]+)$/, 'impact'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^audiences$/, 'audiences'], [/^roster-batches$/, 'roster-batches'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'], [/^recognition$/, 'recognition'], [/^discussions\/([\w-]+)$/, 'discussions'], [/^discussion-notices$/, 'discussion-notices'],
+  [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^cutover\/([\w-]+)$/, 'cutover'], [/^import-settings$/, 'import-settings'], [/^history$/, 'history'],
+  [/^dashboards$/, 'dashboards'], [/^dashboards\/([\w-]+)$/, 'dashboard'], [/^messages$/, 'messages'], [/^report$/, 'report'], [/^coverage$/, 'coverage'], [/^credits$/, 'credits'], [/^quality$/, 'quality'], [/^costs$/, 'costs'], [/^operations$/, 'operations'], [/^error-feeds$/, 'error-feeds'], [/^diagnoses$/, 'diagnoses'], [/^diagnosis-imports\/([\w-]+)$/, 'diagnosis-comparison'], [/^outcomes\/([\w-]+)$/, 'outcome'], [/^evaluations\/([\w-]+)$/, 'evaluation'], [/^app-credentials$/, 'app-credentials'], [/^skills$/, 'skills'], [/^skills\/([\w-]+)$/, 'skill-recommendations'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^impact\/([\w-]+)$/, 'impact'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^audiences$/, 'audiences'], [/^roster-batches$/, 'roster-batches'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'], [/^recognition$/, 'recognition'], [/^discussions\/([\w-]+)$/, 'discussions'], [/^discussion-notices$/, 'discussion-notices'],
 ]
 
 export function route(path: string): { view: View; id: string } {

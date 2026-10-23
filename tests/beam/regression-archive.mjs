@@ -24,7 +24,7 @@ export const migrations = async () => migrationReplay(plan, policy)
 // withholding policy (as before it) still restores, and its grants come back disabled the same way.
 export async function archiveCheck(f) {
   const { api, h, cookies, ids, course, assign, lessons } = f
-  await api('owner', 'source.ocr.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
+  await api('owner', 'source.ocr.configure', { operation: 'enable', accountMode: 'sandbox', agreementConfirmed: true, totalBudgetCents: 10000, apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
   const ocrCipher = (await h.db.prepare('SELECT key_cipher FROM beam_source_ocr_config WHERE singleton=1').first()).key_cipher
   const app = await api('owner', 'app.issue', { name: 'Payroll report sync', audience: 'reports.read', expiresInDays: 30 })
   const bearer = (worker, token) => worker.fetch('/api/beam/v1/report', { headers: { authorization: `Bearer ${token}` } })
@@ -45,6 +45,7 @@ export async function archiveCheck(f) {
     const archive = join(scratch, 'withheld.rer'), legacy = join(scratch, 'legacy.rer')
     await exportArchive(await createPortability({ db: h.db, buckets: { files: h.files }, policy }), archive)
     const text = await readFile(archive, 'utf8')
+    assert.ok(!text.includes('synthetic-beam-1'), 'installation export excludes the planted provider secret')
     assert.ok(verifiers.every(value => !text.includes(value)), 'OPS-007: the archive carries no verifier hash')
     const rows = []
     for await (const record of fileRecords(archive, readArchive)) if (record.kind === 'part') rows.push(...record.items.filter(item => item.kind === 'row'))

@@ -2,7 +2,7 @@ import { sourceNestedDocx, htmlNestedCompanionZip } from './source-nested-fixtur
 import { htmlCompanionZip, htmlAmbiguousZip, htmlTraversalZip, htmlOversizeZip, htmlCorruptZip } from './source-html-fixtures.mjs'
 import { sourceViewerPdf, taggedNestedPdf, taggedReorderedPdf, taggedMergedPdf, taggedCoveredRowPdf, taggedCoveragePdf, taggedInvalidSpanPdf } from './source-pdf-fixtures.mjs'
 import assert from 'node:assert/strict'
-import { pdf, syntheticImage } from './fixtures.mjs'
+import { pdf, syntheticImage, procedureV1 } from './fixtures.mjs'
 import { file } from './harness.mjs'
 
 import { sourceProcedureDocx, sourceMergedDocx, sourceLegacyMergedDocx, sourceProcedurePptx, sourceProcedureHtml, sourceProcedurePdf, sourceTaggedPdf, sourceUntaggedTablePdf, sourceDocx as document, sourceParagraph as paragraph } from './source-fixtures.mjs'
@@ -555,4 +555,27 @@ export async function multimediaBrowserCheck(f, media) {
       console.log(`PASS media browser editor/reuse/duplicate/reorder/preview/native playback/learner/review/allowlist/comparison ${width}`)
     }
   } finally { await browser.close() }
+}
+
+/** Original source-custody assertions, called by flows BEAM-02 without another registration. */
+export async function sourceCustodyCheck({h,people,ids,sha}) {
+  await h.api('source.create', people.author, { title: 'Opening procedure', licence: 'borrowed', licenceEvidence: 'x', reviewer: ids.reviewer, provenance: 'x', file: file('opening.txt', procedureV1) }, 400)
+  const source = await h.api('source.create', people.author, { title: 'Opening procedure', licence: 'owned', licenceEvidence: 'Written by the clinic manager in 2024.', reviewer: ids.reviewer, provenance: 'Clinic shared drive, Procedures/Opening.docx exported as text', file: file('opening.txt', procedureV1) })
+  assert.equal(source.sha256, sha(procedureV1))
+  Object.assign(ids, { source: source.id, sourceV1: source.versionId })
+  const listed = (await h.api('sources', people.reviewer)).find(row => row.id === source.id)
+  assert.equal(listed.reviewer, ids.reviewer)
+  assert.equal(listed.versions[0].provenance, 'Clinic shared drive, Procedures/Opening.docx exported as text')
+  await h.api('sources', people.sam, undefined, 403)
+  const bytes = await h.raw(`/app/files/source/${ids.sourceV1}?download=1`, { cookie: people.author })
+  assert.equal(sha(Buffer.from(await bytes.arrayBuffer())), sha(procedureV1))
+  // A learner cannot open material that is not part of their training.
+  assert.equal((await h.raw(`/app/files/source/${ids.sourceV1}`, { cookie: people.sam })).status, 404)
+  // Uploaded content is inert data: markup is served as sandboxed plain text.
+  const markup = await h.api('source.create', people.author, { title: 'Pasted page', licence: 'owned', licenceEvidence: 'Ours', reviewer: ids.reviewer, provenance: 'Pasted', file: file('page.html', '<html><script>alert(1)</script></html>') })
+  const served = await h.raw(`/app/files/source/${markup.versionId}`, { cookie: people.author })
+  assert.match(served.headers.get('content-type'), /^text\/plain/)
+  assert.match(served.headers.get('content-security-policy'), /sandbox/)
+  const evidence = await h.api('source.create', people.author, { title: 'Fridge log template', licence: 'owned', licenceEvidence: 'Ours', reviewer: ids.reviewer, provenance: 'Scanned', file: file('fridge.pdf', pdf) })
+  assert.equal(evidence.mediaType, 'application/pdf')
 }

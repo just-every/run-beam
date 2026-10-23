@@ -26,7 +26,7 @@ rer describe
 ```
 
 `verify` builds, typechecks and runs `tests/email-link.mjs` and
-`tests/beam/flows.mjs` (with `agent-flows.mjs`) plus the focused
+`tests/beam/flows.mjs` (with `regression-agent.mjs`) plus the focused
 `tests/beam/regressions.mjs` checks (`pnpm run test:regressions`). The browser journey runs on release tags and nightly in a disposable fresh
 clone: `BEAM_TEST_CHECKOUT=1 pnpm run test:journey` (it runs setup, dev, build,
 preview, export and import itself). Reset is destructive local cleanup; import
@@ -406,3 +406,18 @@ grants existing temporary coverage and runs that assignment's existing controlle
 escalation. It retains original dates and assessment evidence. A full calendar or
 unknown return date remains visible for the substitute to resolve during paid
 work. No automatic slot, exception, completion or backdated evidence is created.
+
+## Extra-time requests (LEARN-011, partial)
+
+Learners use My learning to request numeric minutes/percentage on one of their
+open course assignments. Do not submit a diagnosis or medical information; no
+free-text medical field is collected. Requests are private to the requester and
+the human owner, who approves or declines in Settings. A pending request grants
+nothing. Approval creates exactly one ordinary course-scoped accommodation for
+future attempts; running deadlines stay unchanged. Existing direct owner/team
+manager grants remain available. Request/review uses `accommodation.request` and
+`accommodation.decide`; `GET /api/beam/accommodation-requests` returns only the
+current person's requests, or all to the owner. Export includes request lineage;
+erasure removes personal requests even when assessed evidence is held. These
+conservative privacy/decision defaults await ct; real screen-reader, package
+equivalence, other accommodation and native-app qualification remain gaps.
