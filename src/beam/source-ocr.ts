@@ -183,6 +183,9 @@ export async function runSourceOcr(env: Bindings, actor: Actor, input: Input) {
     const live = await configuration(env)
     insist(live?.enabled && live.version === approval.configVersion, 'source_ocr_disabled', 409)
     const output = await provider(key, bytes, approval.pageCount), at = now()
+    // An untrusted provider may echo authentication data in passages or metadata.
+    // Refuse the entire result before storing it or exposing author preparation.
+    insist(!JSON.stringify(output).includes(key), 'source_ocr_secret_in_result', 502)
     insist(await one(env, 'SELECT 1 FROM beam_source_versions v JOIN beam_sources s ON s.id=v.source_id WHERE v.id=? AND v.sha256=? AND s.erased_at IS NULL', approval.sourceVersion, approval.sha256), 'source_ocr_original_changed', 409)
     const result: SourceOcrResult = { sourceVersion: approval.sourceVersion, sha256: approval.sha256, model: SOURCE_OCR_MODEL, pages: output.pages, createdAt: at, reviewRequired: true }
     const saved = await env.DB.batch([stmt(env, `UPDATE beam_source_ocr_runs SET state='completed',completed_at=?,result_json=?,usage_json=?,provider_response_id=? WHERE id=? AND state='running'

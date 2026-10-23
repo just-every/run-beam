@@ -55,6 +55,12 @@ export async function cutoverCheck({browser=false}={}){
   assert.equal((await api('owner',`cutover/${corrected.planId}`)).approval.id,approved.id)
   assert.deepEqual((await api('owner','operations')).learning,before,'approval creates neither enrollment nor completion')
   if(browser)await (await import('./cutover-browser.mjs')).cutoverBrowserCheck(f,corrected.planId,c.id)
+  await api('owner','person.directory',{member:ids.learner,email:'changed@cutover.test'})
+  const identityChanged=await api('owner',`cutover/${corrected.planId}`)
+  assert.equal(identityChanged.canApprove,false)
+  assert.equal(identityChanged.approval,null)
+  assert.ok(identityChanged.rows.some(row=>row.issues.some(issue=>issue.includes('Source email differs'))))
+  await api('owner','person.directory',{member:ids.learner,email:'learner@example.test'})
   const next=(await api('owner',`cutover/${corrected.planId}`)).digest
   await api('owner','assignment.due',{assignment:enrollment.created[0],dueDate:'2030-10-02',dueTime:'17:00',timezone:'UTC',reason:'Owner-approved schedule change'})
   await api('owner','cutover.approve',{plan:corrected.planId,digest:next,reason:'Stale comparison',consent:true},409)
