@@ -57,7 +57,13 @@ jobs:
       # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
       # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
       - name: Use the official Ubuntu HTTPS archive for browser dependencies
-        run: sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+        run: |
+          # Current runner images use mirror+file: indirection in ubuntu.sources.
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$source" ]; then
+              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|http://archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
+            fi
+          done
       - run: pnpm exec playwright install --with-deps --only-shell chromium
       - run: pnpm exec rer verify
       - uses: actions/upload-artifact@v4
@@ -154,7 +160,13 @@ jobs:
       # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
       # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
       - name: Use the official Ubuntu HTTPS archive for browser dependencies
-        run: sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+        run: |
+          # Current runner images use mirror+file: indirection in ubuntu.sources.
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$source" ]; then
+              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|http://archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
+            fi
+          done
       - run: pnpm exec playwright install --with-deps --only-shell chromium
       - run: pnpm exec rer build
       - run: node tests/beam/regressions.mjs --only=AUTHOR-001,AUTHOR-002 --browser
