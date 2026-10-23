@@ -731,6 +731,10 @@
       "sha256": "09a51c6d5f4e58e7cc6fcfff3b8758746250971b6d49e0be0dcd1760dd9270f7",
       "executable": false
     },
+    "public/beam-pdf.css": {
+      "sha256": "40737a9a18c35052d03276d4a79104b9ac8ad87f23bc62b73ef089a8dd77e02c",
+      "executable": false
+    },
     "public/beam.css": {
       "sha256": "4064795571c5048a78d663a3a3fef7053ce8068e959babc3933893ca198bef9f",
       "executable": false
@@ -1252,7 +1256,7 @@
       "executable": false
     },
     "src/beam/blocks.ts": {
-      "sha256": "5c2af39b5a0fdb1af2df5a2a6995cf242ed40e86022f602771cda0c8d868b75f",
+      "sha256": "a57d3dc0d803701c443345eae84a2ca6b2bc44264273fc00b52a445235278480",
       "executable": false
     },
     "src/beam/caption-file.ts": {
@@ -1376,7 +1380,7 @@
       "executable": false
     },
     "src/beam/erasure-proposals.ts": {
-      "sha256": "612c1d906f0059ff809b06a8e920875f85fea50667168f222e4b33f74aab98fa",
+      "sha256": "f5fd5320769eef468e287dff25556a6f86947aa047c58a062d0877b35032bbda",
       "executable": false
     },
     "src/beam/erasure-run.ts": {
@@ -1424,7 +1428,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "7d139bfe9e69dbe2528f0e990fcc325b778c8bc8311488b665a5fef3b68a162a",
+      "sha256": "1aeff3c53c17b369c927372d8c6005c9b0f290dd19f0aeb4f88bfe0b635a0ed3",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -1472,7 +1476,7 @@
       "executable": false
     },
     "src/beam/lesson-tables.ts": {
-      "sha256": "2f49640976fa035627865420b32ffca7dcee139ea743355de8e8d07def5d041e",
+      "sha256": "a6c8d91e6733b2ce948fa021a006acb8a2b21893aed347a84040921a0467faa6",
       "executable": false
     },
     "src/beam/live.ts": {
@@ -1504,7 +1508,7 @@
       "executable": false
     },
     "src/beam/media.ts": {
-      "sha256": "51dc40ee1bac09ded3d72c086451467dd0be0c4692e56920d2f92a8261921c69",
+      "sha256": "605f45bdf01526f4db2c4c1712132b513ac820466d35e20bc9f07cc31f230218",
       "executable": false
     },
     "src/beam/messages.ts": {
@@ -1647,6 +1651,14 @@
       "sha256": "b6df01fa58bc61e1d08ee47d40a992bac0d7361935e616f0125581db01bb16f5",
       "executable": false
     },
+    "src/beam/pdf-viewer-client.ts": {
+      "sha256": "c92a5031f025c3417ff2c15c3426f08c2ba6681d0edfa297b1ab86e5d30f3fa3",
+      "executable": false
+    },
+    "src/beam/pdf-viewer.ts": {
+      "sha256": "14c3d8ac58f7d98db30f8e2e43dd75d5df973b5afabb397e0cd953e2e32ec4c5",
+      "executable": false
+    },
     "src/beam/pdf.ts": {
       "sha256": "8d10d7a0617564d92bd3b4eda50f6e57039d91bafb7b6062651a5697aa146e33",
       "executable": false
@@ -1673,6 +1685,10 @@
     },
     "src/beam/questions.ts": {
       "sha256": "dd051785b0d8dec4a0180bd40d5c27ff22213bfaa59a8455b6d013f5eed036f4",
+      "executable": false
+    },
+    "src/beam/raw-imports.d.ts": {
+      "sha256": "862263317a4ed2b8dda203a834ef18e32df49a676fc5dd58f6de98befcedf6be",
       "executable": false
     },
     "src/beam/recognition.ts": {
@@ -1740,7 +1756,7 @@
       "executable": false
     },
     "src/beam/source-content.ts": {
-      "sha256": "9c959f1540ed93d5990fdb241b5c87d802246c026f6e25c6925f3f04763d4fe9",
+      "sha256": "e48a3154c30d399cf985782d5456c46cd957373cf44559b8887b65bc789117cf",
       "executable": false
     },
     "src/beam/source-document.ts": {
@@ -1748,7 +1764,7 @@
       "executable": false
     },
     "src/beam/source-extraction.ts": {
-      "sha256": "ee8c4bcbd8477f0e4a75c96a8b24ba3515dc54111250f6b55092f3713b08c251",
+      "sha256": "45966c48f17161cd126a196be964c56ea64d352a4130d58b948dc30798be539b",
       "executable": false
     },
     "src/beam/source-html-archive.ts": {
@@ -1756,7 +1772,7 @@
       "executable": false
     },
     "src/beam/source-html.ts": {
-      "sha256": "d969aa1754ed538d6d3e0340fe98427debe806091fcc8b4366a2045d3f722946",
+      "sha256": "5a830373d41c78278d09567452597b935fee3bc8e26d64d789fcaf08ffe11360",
       "executable": false
     },
     "src/beam/source-ocr.ts": {
@@ -1764,11 +1780,15 @@
       "executable": false
     },
     "src/beam/source-office-merges.ts": {
-      "sha256": "f13afee247e3e9dbe354bdfcb826b0becd9161cb12b324e8d0cbaf0fbeac319a",
+      "sha256": "08d53762b3f6523684ecc6b9dd4b25a21cdbf29549079f6876cb5dfe244a44ad",
+      "executable": false
+    },
+    "src/beam/source-office-table.ts": {
+      "sha256": "74fc3351bc697d820119af66c5cafd0f668fe15308c6b80298a2107ac71d4ba9",
       "executable": false
     },
     "src/beam/source-office.ts": {
-      "sha256": "55e5a181ca8470d11ab46bbd5e8960e885843be4d47c40c09fcf12a0c9f331ff",
+      "sha256": "c17572a235799cfea83a9fe7a31a620b209d3a2a953e34f6850f5a090e9a848f",
       "executable": false
     },
     "src/beam/source-pdf-layout.ts": {
@@ -1776,15 +1796,15 @@
       "executable": false
     },
     "src/beam/source-pdf-structure.ts": {
-      "sha256": "3d2a3afc3673b7e6f1aa47f0b36783eb5ff351c02d57031efd5c4cf2b7f8e1c6",
+      "sha256": "3a5a08f0f1c47f014b21be12386597f5cabe4802e31b8be52072d0153bcf2c6c",
       "executable": false
     },
     "src/beam/source-pdf-tables.ts": {
-      "sha256": "26bc10c9fc6d27d204c01541202b7d61e8f554ef2f6ea20547ddff5eb8c44c9c",
+      "sha256": "17714d58059b8eccd3978783a76a66310795a69b54ef6c78d51cd5772793b7da",
       "executable": false
     },
     "src/beam/source-pdf.ts": {
-      "sha256": "456045f2891eb0022ebd97350bf2db5effe1af6f6d976d1fefc4c692da1f9012",
+      "sha256": "1013370791f2dbfcb5d6f6b55fe09e874bdf8de04704d987de3c5756fe8c21ca",
       "executable": false
     },
     "src/beam/source-png.ts": {
@@ -1797,6 +1817,10 @@
     },
     "src/beam/survey.ts": {
       "sha256": "4c0348f8f424cfd92a874f150a36e6bd34f7e5d166a35ad1702eea45c8826ef3",
+      "executable": false
+    },
+    "src/beam/table-traversal.ts": {
+      "sha256": "c31d1d6f17150071316f86357aee64430b27492f0dfc5d45e95b9574514ce0af",
       "executable": false
     },
     "src/beam/time.ts": {
@@ -1860,7 +1884,7 @@
       "executable": false
     },
     "src/beam/ui/blocks.ts": {
-      "sha256": "50ad0b1aaaf98ef273aa20739dffbd053aeac421943b9e6280bb4a11cc3fdfdf",
+      "sha256": "722e5d2acf743c55a16d7bde6778699360c8a3bf8a84786962680150ce1a60e6",
       "executable": false
     },
     "src/beam/ui/catalog.ts": {
@@ -1975,6 +1999,10 @@
       "sha256": "e8870b0c49f5167b11ab2d3eadcfcb2f1872fd230cd7bcfe90a5d267928ac211",
       "executable": false
     },
+    "src/beam/ui/lesson-table.ts": {
+      "sha256": "c6df89e52bf1c4bb4d55c8f3605cf4cad819a0ee57b46179f8c2c93026867f7f",
+      "executable": false
+    },
     "src/beam/ui/live.ts": {
       "sha256": "29fb64e76cbd2f3c3dea5df779f79a1674accd6b3db108856593de771b531735",
       "executable": false
@@ -1984,7 +2012,7 @@
       "executable": false
     },
     "src/beam/ui/media.ts": {
-      "sha256": "6328ac54a3f9ac5cc2f315d05699c66ae6541acd94cb087569d8810924221989",
+      "sha256": "b75c0873244e3ae03795d5888d7da3148879375571bdf8067c51766af37156d3",
       "executable": false
     },
     "src/beam/ui/microlearning.ts": {
@@ -2044,7 +2072,11 @@
       "executable": false
     },
     "src/beam/ui/source-preparation.ts": {
-      "sha256": "f8805f218555187e0d0cd39c213287a7c2f5e37c40b9524f20ddda396945dfe4",
+      "sha256": "632e68c6bc510655738f5d8c3c123190fed5aa9c6ab575622050ae4e33cf6b8d",
+      "executable": false
+    },
+    "src/beam/ui/source-table-fields.ts": {
+      "sha256": "d993bc63e16e868799ee18ccb55153d480a7a695d8797beb3ed59d2d22cc7149",
       "executable": false
     },
     "src/beam/ui/timing.ts": {
@@ -4148,7 +4180,7 @@
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {
-      "sha256": "6f2ea87ce4e2ebca979f50a9c725fdaf761a8342754d86302670d31032bcc142",
+      "sha256": "4c9e979a3bcdcc9d408795849e661f642cc450fc1c037dce9d44fcea17cc9f88",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {
@@ -4192,7 +4224,7 @@
       "executable": false
     },
     "tests/beam/source-browser.mjs": {
-      "sha256": "a58364330b8f8ee3a20f605985582a13f00ac67cd52c726ffcacd30e39e77c96",
+      "sha256": "64c7cba698acbba843374380cf2eb9128d9ce1e3f39f8b314c6d2ec885051843",
       "executable": false
     },
     "tests/beam/source-fixtures.mjs": {
@@ -4203,12 +4235,16 @@
       "sha256": "4e88d05921d37975feef1aa946eaf8a75c730ab0ddcc21fea7953338990f2a6f",
       "executable": false
     },
+    "tests/beam/source-nested-fixtures.mjs": {
+      "sha256": "fb6538cfc8cf11d6c8b45453c6a18ad411f87b637e3eac2e21da96e46763bd10",
+      "executable": false
+    },
     "tests/beam/source-ocr-fixtures.mjs": {
       "sha256": "4fbd27ec8a0fda77d967e23287c69a26c6a28fc65b25a55d3e43915e7d4ff4be",
       "executable": false
     },
     "tests/beam/source-pdf-fixtures.mjs": {
-      "sha256": "ebfa0d583b7e4696743ff038ffba132cb98197a63c300fc121af4f74d0116976",
+      "sha256": "89eaae7ae47ccd1b129deeff745ffe3a4ebcb75bc8735d1869c5c84503d92597",
       "executable": false
     },
     "tests/beam/xapi-activity.mjs": {
