@@ -200,7 +200,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "ae9c5efb37f9911149502cbd1d5f6c1f6ab6a1fd36ab3856e1b3a977da7af787",
+      "sha256": "6ad06e1aaf85295d31c29a89b8a89f4fb36250024201ce73ba28828796bfefa5",
       "executable": false
     },
     ".gitignore": {
@@ -1936,7 +1936,7 @@
       "executable": false
     },
     "src/beam/ui/erasure.ts": {
-      "sha256": "28a6e7e5337df8a76216b20bbf7159a2c4807f66f849bda72673abf26ceca775",
+      "sha256": "a121c3d3c053403990395910c8b5c8b4f97fc9aaf651edfc7229244ecc67a8b3",
       "executable": false
     },
     "src/beam/ui/errors.ts": {
@@ -3896,7 +3896,7 @@
       "executable": false
     },
     "tests/beam/erasure-browser.mjs": {
-      "sha256": "52fcd955642dc12354649c4c12d3f1ff69bea76d07d1547d10294955d55005f2",
+      "sha256": "eb287eca76cbc5037ece4be2a5c44536c4c35279fed0b94c642b4119c77cb374",
       "executable": false
     },
     "tests/beam/fixtures.mjs": {
@@ -3968,7 +3968,7 @@
       "executable": false
     },
     "tests/beam/live-multimedia.mjs": {
-      "sha256": "51fca1bbbd56506912b7b8ea0b2ab3a5535e73d1f57d54d9880e7d1dfc31a107",
+      "sha256": "08b61d56c7b7f65cace57bbf39acf51bd3a1be4a244df3108473aa651d521a5c",
       "executable": false
     },
     "tests/beam/live-provider-runtime.mjs": {

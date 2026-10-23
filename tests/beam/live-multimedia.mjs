@@ -54,7 +54,6 @@ try {
             const play=frame.getByRole('button',{name:/^play(?: video)?$/i}).first()
             if (await play.count()) await play.click()
             else await iframe.click({position:{x:Math.floor((await iframe.boundingBox()).width/2),y:Math.floor((await iframe.boundingBox()).height/2)}})
-            await video.evaluate(async media=>{media.muted=true;await media.play()})
             await video.evaluate(media=>new Promise((resolve,reject)=>{const start=media.currentTime,timer=setTimeout(()=>{clearInterval(check);reject(new Error('Actual provider playback did not advance'))},15000),check=setInterval(()=>{if(media.currentTime>start+0.2){clearTimeout(timer);clearInterval(check);resolve()}},50)}))
             console.log('LIVE PLAYBACK',title,width,await video.evaluate(media=>({time:media.currentTime,duration:media.duration,readyState:media.readyState})))
             await video.evaluate(media=>media.pause())
@@ -65,7 +64,7 @@ try {
         } catch(error) {
           failures.push(`${title} ${width}: ${error.message}`)
           console.log('LIVE REFUSAL',title,width,error.message)
-          console.log('PROVIDER PAGE',await frame.locator('body').innerText().catch(()=>'(no provider document)'))
+          console.log('PROVIDER PAGE',await frame.locator('body').innerText().then(text=>text.slice(0,3000)).catch(()=>'(no provider document)'))
           await page.screenshot({path:join(evidence,`${width}-live-${title.split(' ')[0].toLowerCase()}-refused.png`)})
         }
       }

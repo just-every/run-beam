@@ -55,6 +55,7 @@ try { for (const width of [1440,390]) {
   const preparation=page.locator('form[action="/app/do/erasure.proposals.withdraw"]')
   await preparation.getByLabel('Reason for withdrawing saved preparations').fill('Withdraw the unapplied preparation containing Riley’s data.')
   await preparation.getByRole('checkbox').check()
+  assert.equal(await page.getByLabel('Person to erase',{exact:true}).inputValue(),f.ids.learner)
   await shot('shared-preparation-withdrawal',preparation)
   await preparation.getByRole('button',{name:'Withdraw saved preparations'}).click()
   assert.equal(new URL(page.url()).searchParams.get('error'),null)

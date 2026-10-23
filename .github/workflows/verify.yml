@@ -54,7 +54,11 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       # rer verify ends with the hydration check, which needs Chromium.
-      - run: pnpm exec playwright install --with-deps chromium
+      # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
+      # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
+      - name: Use the official Ubuntu HTTPS archive for browser dependencies
+        run: sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
       - run: pnpm exec rer verify
       - uses: actions/upload-artifact@v4
         if: always()
@@ -147,7 +151,11 @@ jobs:
           node-version: '22.20.0'
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
-      - run: pnpm exec playwright install --with-deps chromium
+      # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
+      # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
+      - name: Use the official Ubuntu HTTPS archive for browser dependencies
+        run: sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
       - run: pnpm exec rer build
       - run: node tests/beam/regressions.mjs --only=AUTHOR-001,AUTHOR-002 --browser
       - run: node tests/beam/erasure-browser.mjs
