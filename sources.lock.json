@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "2e43aba7e95730fd09ae0b12478aee67122ac6f014456cb1456ab3620117a084",
+  "manifest": "9404ea54e0256f8f6929200ee8a1a12a2492a42a4f1d0914000666e236c1777c",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -80,7 +80,8 @@
           "migrations/core/0090_beam_cmi5.sql",
           "migrations/core/0091_beam_microlearning.sql",
           "migrations/core/0092_beam_erasure.sql",
-          "migrations/core/0093_beam_source_ocr.sql"
+          "migrations/core/0093_beam_source_ocr.sql",
+          "migrations/core/0098_beam_ocr_budget.sql"
         ]
       },
       "baseline": null
@@ -312,7 +313,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "2e43aba7e95730fd09ae0b12478aee67122ac6f014456cb1456ab3620117a084",
+      "sha256": "9404ea54e0256f8f6929200ee8a1a12a2492a42a4f1d0914000666e236c1777c",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -705,6 +706,10 @@
     },
     "migrations/core/0097_beam_learning_source_admission.sql": {
       "sha256": "064cfee5343660dd1514a16ed01514df438e7152c7e8862191d9eb7c0066a543",
+      "executable": false
+    },
+    "migrations/core/0098_beam_ocr_budget.sql": {
+      "sha256": "e8e8e686b102d95da84c37fa2f2eaedac27c1ef95707f85ffa048a40065021eb",
       "executable": false
     },
     "ONBOARDING.md": {
