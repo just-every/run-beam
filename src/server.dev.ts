@@ -6,6 +6,8 @@ import worker from './server'
 import { withDevIdentity } from './modules/operator-auth/dev/index.mjs'
 import { authConfig, runtimeBindings, type Bindings } from './auth.server'
 import { PERSONA_ROLES, devPersonas } from './dev-personas'
+import { fontDocumentResponse } from './base/font-response'
+import { fontLinks } from './base/font-head'
 
 const devWorker = withDevIdentity<Bindings, typeof worker>(worker, { bindings: runtimeBindings, config: authConfig, personas: devPersonas })
 
@@ -22,10 +24,16 @@ async function personaMembers(env: Bindings) {
   }))
 }
 
+// The dev layer answers its one-click sign-in and its hand-off page itself; they get the look
+// (/fonts/fonts.css) that auth.server.ts gives the deployed sign-in pages, once.
+const look = fontLinks.find(link => link.rel === 'stylesheet')!.href
+
 export default {
   ...devWorker,
   async fetch(request, env, execution) {
     await personaMembers(env)
-    return devWorker.fetch!(request as never, env, execution as never) as Promise<Response>
+    const response = await (devWorker.fetch!(request as never, env, execution as never) as Promise<Response>)
+    if (!['/signin', '/__dev/key'].includes(new URL(request.url).pathname) || (await response.clone().text()).includes(look)) return response
+    return (await fontDocumentResponse(response))!
   },
 } satisfies ExportedHandler<Bindings>

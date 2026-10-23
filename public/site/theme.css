@@ -2,7 +2,8 @@
    marigold for the exception and chosen states, green for done, red-orange for overdue, and white and pale periwinkle
    sections that alternate (never cream). Every Beam document reads this file: the run site's pages, Base's /run,
    /contract and not-found pages (the --rer-* names below), the installed app (public/beam.css, the app-* names), and
-   Base's sign-in, /setup and Lobby through /rer-theme.css, which imports it. */
+   Base's sign-in, /setup and Lobby through /fonts/fonts.css, which imports it. /rer-theme.css repeats the --rer-* theme
+   tokens as literals: change both. */
 :root {
   --ink: #0d1228;
   --ink-2: #1e2540;

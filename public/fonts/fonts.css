@@ -1,0 +1,53 @@
+/* Beam's frame for Base's documents (sign-in, first-run /setup, the Lobby), beside its theme. /rer-theme.css holds
+   only what rer's theme reader takes (the --rer-* theme tokens and the faces), so everything else these documents wear
+   is here: the site's faces and tokens, which are defined once in /site/fonts.css and /site/theme.css, and the frame in
+   the site's family: a periwinkle field, one white soft card with no outline, the Roboto Serif display heading, Inter
+   body, hairline fields with a periwinkle focus ring and the navy button. The root document and /setup
+   (src/base/font-head.ts) and the Lobby (the edition identity's fonts) link this file before the theme; the sign-in
+   pages (src/auth.server.ts) and the development sign-in and hand-off pages (src/server.dev.ts) add it after their
+   own style. rer's demo host inlines this path and the theme into the hosted demo's gate, and no other file. These
+   documents are Base copies; they are styled here, from the files they link, and never edited. */
+@import url('/site/fonts.css');
+@import url('/site/theme.css');
+
+html.rer-themed body { background: radial-gradient(ellipse at 50% 0%, var(--pale), transparent 70%), linear-gradient(180deg, var(--periwinkle), var(--band) 55%, var(--pale)); background-attachment: fixed; color: var(--ink); font-family: var(--font-body); }
+html.rer-themed main { max-width: 520px; padding: 40px 40px 36px; border: 0; border-radius: 20px; background: var(--white); box-shadow: 0 1px 2px rgba(13, 18, 40, .05), 0 24px 60px -24px rgba(13, 18, 40, .28); }
+html.rer-themed h1 { font-family: var(--font-display); font-size: 46px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+html.rer-themed p, html.rer-themed dt { color: var(--body); }
+html.rer-themed .brand, html.rer-themed .rer-brand { justify-content: center; gap: 10px; color: var(--ink); font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+html.rer-themed .brand::before, html.rer-themed .rer-brand::before { width: 30px; height: 35px; }
+html.rer-themed main > .brand + h1, html.rer-themed main > .rer-brand + h1 { text-align: center; }
+html.rer-themed label { font-size: 14px; font-weight: 600; color: var(--ink); }
+html.rer-themed label:has(input[type=checkbox]) { font-size: 15px; font-weight: 400; }
+html.rer-themed input:not([type=checkbox]):not([type=hidden]) { min-height: 46px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--white); color: var(--ink); }
+html.rer-themed input:not([type=checkbox]):not([type=hidden]):hover { border-color: var(--rer-border); }
+html.rer-themed input[type=checkbox] { accent-color: var(--blue); }
+html.rer-themed input:not([type=checkbox]):not([type=hidden]):focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue), 0 0 0 4px var(--focus-ring); }
+html.rer-themed input[type=checkbox]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; box-shadow: none; }
+html.rer-themed button { min-height: 48px; border-radius: 10px; background: var(--navy); color: var(--white); font-weight: 600; font-size: 16px; }
+html.rer-themed button:hover { background: var(--ink-2); }
+/* Buttons in Base's sign-in frame keep Base's ring (.rer-themed button:focus-visible, the same specificity), which won
+   while this rule sat in the theme, before Base's style; :where() keeps this rule's specificity. */
+html.rer-themed :focus-visible:not(:where(main:has(> .brand + h1) button)) { outline-color: var(--blue); }
+html.rer-themed a { color: var(--ink); text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+html.rer-themed a:hover { text-decoration-color: currentColor; }
+
+/* /setup: the heading and its line sit above the card; the owner's details and the confirmation are the card. */
+html.rer-themed main:has(> dl) { max-width: 620px; padding: 0; background: transparent; box-shadow: none; text-align: center; }
+html.rer-themed main:has(> dl) > p:not(.rer-brand) { margin-bottom: 28px; color: var(--ink-2); }
+html.rer-themed main > dl, html.rer-themed main:has(> dl) > form { margin: 0; background: var(--white); text-align: left; }
+html.rer-themed main > dl { padding: 24px 28px 4px; border-radius: 20px 20px 0 0; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0; box-shadow: 0 1px 2px rgba(13, 18, 40, .05), 0 -4px 30px -20px rgba(13, 18, 40, .2); }
+html.rer-themed main > dl dt, html.rer-themed main > dl dd { padding: 12px 0; border-bottom: 1px solid var(--line); }
+html.rer-themed main > dl dt { font-size: 15px; }
+html.rer-themed main > dl dd { font-weight: 600; overflow-wrap: anywhere; }
+html.rer-themed main:has(> dl) > form { padding: 16px 28px 28px; border-radius: 0 0 20px 20px; box-shadow: 0 24px 60px -24px rgba(13, 18, 40, .28); }
+
+@media (max-width: 480px) {
+  html.rer-themed main { padding: 28px 20px; }
+  html.rer-themed h1 { font-size: 34px; }
+  html.rer-themed main:has(> dl) { padding: 0; }
+  html.rer-themed main > dl { padding: 16px 20px 4px; grid-template-columns: 1fr; }
+  html.rer-themed main > dl dt { padding-bottom: 0; border-bottom: 0; }
+  html.rer-themed main > dl dd { padding-top: 2px; }
+  html.rer-themed main:has(> dl) > form { padding: 12px 20px 24px; }
+}

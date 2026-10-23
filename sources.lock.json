@@ -822,6 +822,10 @@
       "sha256": "576393c5d889009a45beb6c8d8744ff61dab4eb819dd4a813601a38ddd36c691",
       "executable": false
     },
+    "public/fonts/fonts.css": {
+      "sha256": "2564af6f133f338d470eccc836aedc13e27b05ffdd2848151c0b620f7c62d04b",
+      "executable": false
+    },
     "public/fonts/inter/inter-latin-wght-normal.woff2": {
       "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
       "executable": false
@@ -839,7 +843,7 @@
       "executable": false
     },
     "public/fonts/README.md": {
-      "sha256": "3cb26d88636988c65b3cbed3d0f63d6ad7957b443cb7ddf80e76e5b9a37dceec",
+      "sha256": "1f817934fe30ef4ba35e5f57da50fef6932d6f04e46ac76892b028ea79bd85ab",
       "executable": false
     },
     "public/fonts/roboto-condensed/LICENSE.txt": {
@@ -859,7 +863,7 @@
       "executable": false
     },
     "public/rer-theme.css": {
-      "sha256": "f6348887edb91d2f1648f0f8ec5cb129faea0f04f51d5514cb7aaec6c292b3e4",
+      "sha256": "c6ac4369c9c582726a28f7cdc48030e68a8422f8b910a028912643d71b10efa4",
       "executable": false
     },
     "public/site/closing-1152.avif": {
@@ -1015,7 +1019,7 @@
       "executable": false
     },
     "public/site/theme.css": {
-      "sha256": "3dc69dbdcbb5585056f8e9d4b8598f67cd396dea125f908168a045a68806be38",
+      "sha256": "d08402fc4b128ad0d7cfee84a942ab50a804cfc543597348a44e990ceedaddf9",
       "executable": false
     },
     "README.md": {
@@ -1151,7 +1155,7 @@
       "executable": false
     },
     "src/base/font-head.ts": {
-      "sha256": "5a688549e421adebecb5a842ffd97ed5acd60ee27b22ed12dcab697afba682c1",
+      "sha256": "b9405dc3deeee35b682b6037a3daf43e02a7e9c02fc649512eb6b6cbf9f238a7",
       "executable": false
     },
     "src/base/font-response.ts": {
@@ -2219,7 +2223,7 @@
       "executable": false
     },
     "src/identity.ts": {
-      "sha256": "287c0d7b1b0b224691fdcb80f4d822e9d5c16128222fa26063ff5cfc6ca876c1",
+      "sha256": "442f041864556a1bab8e619dedad64d202b94c067785a6031b0a702fcc1e1a14",
       "executable": false
     },
     "src/mail.server.d.mts": {
@@ -3867,7 +3871,7 @@
       "executable": false
     },
     "src/server.dev.ts": {
-      "sha256": "2f66d58f678d96b3b42b1fe271cd396b3d4aa22d0e9b37673a97833c45e0af3e",
+      "sha256": "f5fe952925c3d9ed8e6c58c6eb6515d96046268098b2480ef3d0bad11dbe47d5",
       "executable": false
     },
     "src/server.ts": {

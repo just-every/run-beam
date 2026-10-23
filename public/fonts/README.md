@@ -10,6 +10,6 @@ from another origin.
 | Roboto Condensed (variable, Latin) | `roboto-condensed/roboto-condensed-latin-wght-normal.woff2` | `roboto-condensed/LICENSE.txt` | https://github.com/googlefonts/roboto-classic | the app's titles, big numbers and rail wordmark; the hero cards' long lines |
 | JetBrains Mono (variable, Latin) | `jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2` | `jetbrains-mono/LICENSE.txt` | https://github.com/JetBrains/JetBrainsMono | commands on the run site |
 
-Every Beam document declares its faces through `public/site/fonts.css`: the run site and the installed app link it, and Base's sign-in, `/setup` and Lobby reach it through `/rer-theme.css`. Roboto Serif Display is an instance of Roboto Serif's
+Every Beam document declares its faces through `public/site/fonts.css`: the run site and the installed app link it, and Base's sign-in, `/setup` and Lobby reach it through `/fonts/fonts.css`. The installer reads only `/rer-theme.css`, which repeats the four faces: change both. Roboto Serif Display is an instance of Roboto Serif's
 variable font (fontsource 5.3.0) pinned at the axes the design desk used and subset to Latin-1 plus typographic
 punctuation; Inter, Roboto Condensed and JetBrains Mono are fontsource 5.3.0's Latin subsets.
