@@ -1,5 +1,6 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  file_size: 'the file is empty or exceeds this upload’s size limit. Your prior files and records are unchanged. Choose a smaller supported file and retry.',
   source_ocr_agreement_required: 'review and confirm the employer provider agreements before enabling or rotating this account.',
   source_ocr_account_mode: 'select sandbox or production for the employer’s provider project.',
   source_ocr_budget_exhausted: 'the total OCR budget is exhausted. No provider call was made. Review the request history and explicitly change the budget before approving a fresh request.',

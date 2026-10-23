@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { fixture } from './regression-fixture.mjs'
 import { file } from './harness.mjs'
 import { sourceProcedurePdf } from './source-fixtures.mjs'
@@ -9,11 +10,13 @@ import { sourceOcrProviderResponse } from './source-ocr-fixtures.mjs'
 /** Settings and actual provider-job refusal/recovery through the built pages. */
 export async function providerControlBrowserCheck() {
   let calls = 0
+  console.log('Provider browser: create isolated installation')
   const f = await fixture({outboundService: async request => {
     if (request.url !== 'https://api.openai.com/v1/responses') return null
     calls++
     return Response.json(sourceOcrProviderResponse())
   }})
+  console.log('Provider browser: installation ready')
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence,{recursive:true})
@@ -79,3 +82,5 @@ export async function providerControlBrowserCheck() {
     }
   } finally {await browser.close();await f.h.close()}
 }
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {await providerControlBrowserCheck();console.log('PASS provider Settings browser 1440/390')}

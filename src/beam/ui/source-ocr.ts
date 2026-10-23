@@ -9,15 +9,15 @@ const usd = (cents: number) => `USD ${(cents / 100).toFixed(2)}`
 export async function sourceOcrPage(env: Bindings, actor: Actor, url: URL) {
   const config = await sourceOcrConfig(env, actor), back = '/app/sources/ocr'
   const approval = h`<label class="check"><input type="checkbox" name="consent" value="yes" required> I authorize this server to hold my business's OpenAI account key for OCR. Each original still needs my separate approval before it leaves Beam.</label>`
-  const controls = [
+  const controls = () => [
     select('Account mode (your declared OpenAI project)', 'accountMode', [{value:'sandbox',label:'Sandbox project'}, {value:'production',label:'Production project'}], config.accountMode),
     field('Total retained request budget (USD cents)', 'totalBudgetCents', {type:'number',value:config.totalBudgetCents, hint:'Zero refuses all jobs. Successful, failed and unknown provider attempts retain their estimate across key rotations; increasing this limit requires your explicit save.'}),
     h`<label class="check"><input type="checkbox" name="agreementConfirmed" value="yes" required> I have reviewed OpenAI account terms, data processing and retention agreements and am authorized to send these employer documents.</label>`]
-  const configure = form('source.ocr.configure', back, [hidden('operation', 'enable'), ...controls,
+  const configure = form('source.ocr.configure', back, [hidden('operation', 'enable'), ...controls(),
     field(config.hasKey ? 'Replacement OpenAI API key (leave blank to keep the held key)' : 'OpenAI API key', 'apiKey', { type: 'password', required: !config.hasKey }),
     field('Maximum approved estimate per document (USD cents)', 'maxCostCents', { type: 'number', value: config.maxCostCents || config.estimateCents,
       hint: `The current conservative estimate is ${usd(config.estimateCents)}. Each source approval names its exact estimate and this maximum. This is an approval ceiling at declared rates, not an OpenAI billing limit.` }), approval], config.enabled ? 'Update OCR account and limit' : 'Enable OCR account')
-  const rotate = config.hasKey ? form('source.ocr.configure', back, [hidden('operation', 'rotate'), ...controls,
+  const rotate = config.hasKey ? form('source.ocr.configure', back, [hidden('operation', 'rotate'), ...controls(),
     field('New OpenAI API key', 'apiKey', { type: 'password' }), hidden('maxCostCents', config.maxCostCents), approval], 'Rotate key and disable OCR') : ''
   const stop = config.hasKey ? h`${form('source.ocr.configure', back, hidden('operation', 'disable'), 'Disable OCR', { secondary: true })}${form('source.ocr.configure', back, hidden('operation', 'revoke'), 'Revoke and remove the held key', { secondary: true })}` : ''
   return page('Source OCR account', actor, h`<div class="source-ocr">${backLink('/app/sources', 'Sources')}<h1>Source OCR account</h1><p class="lede">OCR reads an explicitly selected PDF through your business's OpenAI account. Opening pages never sends a document.</p>

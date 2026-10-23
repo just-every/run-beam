@@ -84,7 +84,8 @@ export class Input {
     const value = this.values[name] as { filename?: unknown; base64?: unknown; type?: unknown } | undefined
     if (!value && optional) return null
     insist(value && typeof value.filename === 'string' && typeof value.base64 === 'string', `missing_${name}`)
-    insist(value.base64.length <= Math.ceil(maxBytes / 3) * 4 && /^[A-Za-z0-9+/]*={0,2}$/.test(value.base64), 'invalid_base64')
+    insist(value.base64.length <= Math.ceil(maxBytes / 3) * 4, 'file_size', 400, { maxBytes })
+    insist(/^[A-Za-z0-9+/]*={0,2}$/.test(value.base64), 'invalid_base64')
     const bytes = Uint8Array.from(atob(value.base64), character => character.charCodeAt(0))
     insist(bytes.length > 0 && bytes.length <= maxBytes, 'file_size')
     return { filename: cleanFilename(value.filename), bytes, declaredType: typeof value.type === 'string' ? value.type : '' }
