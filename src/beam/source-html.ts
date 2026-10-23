@@ -3,21 +3,23 @@ import { parse } from 'parse5'
 import { insist } from './core'
 import { utf8 } from './source-archive'
 import { SourceContent, type SourceCell } from './source-content'
+import { MAX_TABLE_CELLS, MAX_TABLE_DEPTH } from './lesson-tables'
 
 interface HtmlNode { nodeName: string; tagName?: string; value?: string; attrs?: { name: string; value: string }[]; childNodes?: HtmlNode[] }
 export type HtmlImageResolver = (source: string) => { bytes: Uint8Array; filename: string } | undefined
 const blocked = new Set(['head', 'script', 'style', 'template', 'noscript', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'form', 'input', 'button', 'select', 'textarea', 'canvas', 'svg', 'math'])
 const attr = (node: HtmlNode, name: string) => node.attrs?.find(item => item.name === name)?.value ?? ''
 const kids = (node: HtmlNode) => node.childNodes ?? []
-function text(node: HtmlNode): string {
-  if (blocked.has(node.tagName ?? '')) return ''
+function text(node: HtmlNode, cellText = false): string {
+  if (blocked.has(node.tagName ?? '') || cellText && node.tagName === 'table') return ''
   if (node.nodeName === '#text') return node.value ?? ''
   if (node.tagName === 'br') return '\n'
-  return kids(node).map(text).join('')
+  const value = kids(node).map(child => text(child, cellText)).join('')
+  return cellText && ['p', 'div', 'li'].includes(node.tagName ?? '') ? `${value}\n` : value
 }
-function inner(node: HtmlNode) { return text(node).replace(/[\t ]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim() }
-function find(node: HtmlNode, name: string): HtmlNode[] {
-  return kids(node).flatMap(item => item.tagName === name ? [item] : item.tagName === 'table' || blocked.has(item.tagName ?? '') ? [] : find(item, name))
+function inner(node: HtmlNode, cellText = false) { return text(node, cellText).replace(/[\t ]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim() }
+function find(node: HtmlNode, name: string, throughTables = false): HtmlNode[] {
+  return kids(node).flatMap(item => item.tagName === name ? [item] : (!throughTables && item.tagName === 'table' || blocked.has(item.tagName ?? '')) ? [] : find(item, name, throughTables))
 }
 function image(node: HtmlNode, content: SourceContent, location: string, resolve?: HtmlImageResolver) {
   const source = attr(node, 'src'), alt = attr(node, 'alt') || attr(node, 'title')
@@ -37,11 +39,26 @@ function image(node: HtmlNode, content: SourceContent, location: string, resolve
     }
   }
 }
+function htmlGrid(node: HtmlNode, depth = 1, budget = { cells: 0 }): { text: string; table: SourceCell[][] } {
+  const rows = find(node, 'tr')
+  insist(depth <= MAX_TABLE_DEPTH && rows.length > 0 && rows.length <= 100, 'document_table_limit', 422)
+  const table = rows.map(row => {
+    const cells = kids(row).filter(cell => ['td', 'th'].includes(cell.tagName ?? ''))
+    insist(cells.length <= 30, 'document_table_limit', 422)
+    return cells.map(cell => {
+      insist(++budget.cells <= MAX_TABLE_CELLS, 'document_table_limit', 422)
+      const nested = find(cell, 'table')
+      return { text: inner(cell, true), colSpan: Number(attr(cell, 'colspan') || 1), rowSpan: Number(attr(cell, 'rowspan') || 1), header: cell.tagName === 'th',
+        ...(nested.length ? { tables: nested.map(table => htmlGrid(table, depth + 1, budget)) } : {}) }
+    })
+  })
+  return { text: find(node, 'caption').map(caption => inner(caption)).join(' ') || 'Procedure table', table }
+}
 function htmlTable(node: HtmlNode, content: SourceContent, location: string, resolve?: HtmlImageResolver) {
-  const rows: SourceCell[][] = find(node, 'tr').map(row => kids(row).filter(cell => ['td', 'th'].includes(cell.tagName ?? '')).map(cell => ({ text: inner(cell), colSpan: Number(attr(cell, 'colspan') || 1), rowSpan: Number(attr(cell, 'rowspan') || 1), header: cell.tagName === 'th' })))
-  content.table(rows, location, find(node, 'caption').map(inner).join(' ') || 'Procedure table')
-  for (const img of find(node, 'img')) image(img, content, location, resolve)
-  if (find(node, 'table').length) content.warnings.add('A nested HTML table was reduced to its enclosing cell text. Inspect its structure against the original.')
+  const grid = htmlGrid(node)
+  content.table(grid.table, location, grid.text)
+  // Traverse the untouched complete tree once: nested images are neither lost nor extracted twice.
+  for (const img of find(node, 'img', true)) image(img, content, location, resolve)
 }
 export function extractHtml(bytes: Uint8Array, content: SourceContent, resolve?: HtmlImageResolver) {
   insist(bytes.length <= 1_000_000, 'document_text_size', 422)

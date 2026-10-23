@@ -1,8 +1,10 @@
 // A format-neutral, bounded preparation document. Asset bytes never enter JSON.
 import { insist } from './core'
 import { sniff } from './files'
+import { normaliseTable, type LessonCell } from './lesson-tables'
+import { tableText } from './table-traversal'
 
-export interface SourceCell { text: string; colSpan: number; rowSpan: number; header: boolean }
+export type SourceCell = LessonCell
 export interface SourceBlock { kind: 'image' | 'table'; text: string; asset?: string; table?: SourceCell[][] }
 export interface ExtractedLesson { title: string; body: string; blocks?: SourceBlock[] }
 export interface SourcePassage { location: string; text: string; kind: 'text' | 'heading' | 'table' | 'image'; lesson: number }
@@ -37,9 +39,9 @@ export class SourceContent {
     this.passage('text', text, location)
   }
   table(table: SourceCell[][], location: string, caption = 'Procedure table') {
-    insist(table.length > 0 && table.length <= 100 && table.some(row => row.length) && table.every(row => row.length <= 30 && row.every(cell => cell.text.length <= 5000 && Number.isInteger(cell.colSpan) && cell.colSpan >= 1 && cell.colSpan <= 30 && Number.isInteger(cell.rowSpan) && cell.rowSpan >= 1 && cell.rowSpan <= 100)), 'document_table_limit', 422)
-    this.block({ kind: 'table', text: caption, table })
-    this.passage('table', table.map(row => row.map(cell => cell.text).join('\t')).join('\n'), location)
+    const checked = normaliseTable(table, { plainText: false })
+    this.block({ kind: 'table', text: caption, table: checked })
+    this.passage('table', tableText(checked), location)
   }
   image(bytes: Uint8Array | undefined, filename: string, description: string, location: string) {
     const alt = description.trim()

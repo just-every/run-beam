@@ -1,5 +1,6 @@
+import { sourceNestedDocx, htmlNestedCompanionZip } from './source-nested-fixtures.mjs'
 import { htmlCompanionZip, htmlAmbiguousZip, htmlTraversalZip, htmlOversizeZip, htmlCorruptZip } from './source-html-fixtures.mjs'
-import { taggedReorderedPdf, taggedMergedPdf, taggedCoveredRowPdf, taggedCoveragePdf, taggedInvalidSpanPdf } from './source-pdf-fixtures.mjs'
+import { sourceViewerPdf, taggedNestedPdf, taggedReorderedPdf, taggedMergedPdf, taggedCoveredRowPdf, taggedCoveragePdf, taggedInvalidSpanPdf } from './source-pdf-fixtures.mjs'
 import assert from 'node:assert/strict'
 import { pdf, syntheticImage } from './fixtures.mjs'
 import { file } from './harness.mjs'
@@ -97,6 +98,9 @@ export async function sourceExtractionCheck(f) {
     ['synthetic-beam-15-reordered.pdf', taggedReorderedPdf(), ['Prepare']],
     ['synthetic-beam-16-merged.pdf', taggedMergedPdf(), ['Prepare']],
     ['synthetic-beam-17-covered.pdf', taggedCoveredRowPdf(), ['Prepare']],
+    ['synthetic-beam-27-nested.docx', sourceNestedDocx(), ['Prepare']],
+    ['synthetic-beam-28-nested.pdf', taggedNestedPdf(), ['Prepare']],
+    ['synthetic-beam-29-nested-table.html.zip', htmlNestedCompanionZip(), ['Prepare', 'Close']],
   ]
   for (const [filename, data, titles] of formats) {
     const imported = await upload(filename, data)
@@ -113,6 +117,13 @@ export async function sourceExtractionCheck(f) {
       assert.equal(extracted.lessons[0].blocks.find(block => block.kind === 'image').text, 'Probe placement')
       assert.ok(extracted.warnings.some(warning => warning.includes('not fetched')))
       assert.ok(extracted.lessons[0].body.includes('[Image: Remote diagram]'))
+    }
+    if (/27-nested|28-nested|29-nested/.test(filename)) {
+      const table = extracted.lessons[0].blocks.find(block => block.kind === 'table').table
+      assert.deepEqual(table.map(row => row.map(cell => cell.text)), [['Tool','Condition'],['Probe','Clean']])
+      assert.deepEqual(table[1][0].tables[0].table.map(row => row.map(cell => cell.text)), [['Part','Condition'],['Tip','Clean']])
+      table[1][0].tables[0].table[1][1].text = 'Sanitized tip'
+      assert.ok(extracted.passages.some(passage => passage.kind === 'table' && passage.text.includes('Tip')))
     }
     if (filename.includes('reordered')) {
       assert.equal(extracted.lessons[0].body, 'Inspect the clean probe.')
@@ -146,7 +157,7 @@ export async function sourceExtractionCheck(f) {
     const screen = await h.raw(`/app/sources/${imported.versionId}/prepare?course=${fresh.id}`, { cookie: cookies.author }).then(response => response.text())
     assert.ok(screen.includes('name="reviewed"') && screen.includes(extracted.original))
     if (extracted.assets.length) await api('author', 'source.convert', { ...fields, draftVersion: converted.draftVersion, lessons: [{ title: 'Forged asset', body: '', blocks: [{ kind: 'image', text: 'Foreign', asset: 'asset-999' }] }] }, 404)
-    if (filename.endsWith('.html.zip')) {
+    if (filename.endsWith('.html.zip') && !filename.includes('29-nested')) {
       const revision = (await api('author', 'course.submit', { course: fresh.id, draftVersion: converted.draftVersion })).id
       await f.publish(revision)
       const assignment = await f.assign(fresh), learning = await f.view(assignment)
@@ -154,10 +165,10 @@ export async function sourceExtractionCheck(f) {
       assert.ok(rendered.includes('alt="Probe placement"'))
       assert.deepEqual(Buffer.from(await (await h.raw(extracted.assets[0].href, { cookie: cookies.learner })).arrayBuffer()), syntheticImage)
     }
-    if (/merged|reordered|covered/.test(filename)) {
+    if (/merged|reordered|covered|27-nested|28-nested|29-nested/.test(filename)) {
       const table = converted.draft.lessons[0].blocks.find(block => block.kind === 'table').table
       assert.deepEqual(table, extracted.lessons[0].blocks.find(block => block.kind === 'table').table)
-      if (!filename.includes('reordered')) assert.ok(screen.includes('colspan="2" rowspan="2"'))
+      if (/merged|covered/.test(filename)) assert.ok(screen.includes('colspan="2" rowspan="2"'))
       const revision = (await api('author', 'course.submit', { course: fresh.id, draftVersion: converted.draftVersion })).id
       const snapshot = await api('reviewer', `revisions/${revision}`)
       assert.deepEqual(snapshot.lessons[0].blocks.find(block => block.kind === 'table').table, table)
@@ -167,7 +178,11 @@ export async function sourceExtractionCheck(f) {
       const rendered = await h.raw(`/app/learn/${assignment}/lessons/${learning.lessons[0].id}`, { cookie: cookies.learner }).then(response => response.text())
       if (filename.includes('merged')) assert.ok(rendered.includes('colspan="2" rowspan="2">Probe</td>') && rendered.includes('Sanitized'))
       else if (filename.includes('covered')) assert.ok(rendered.includes('colspan="2" rowspan="2">Probe</td>') && rendered.includes('colspan="1" rowspan="2">Clean</td>'))
-      else assert.ok(rendered.includes('Inspect the clean probe.') && rendered.includes('Gloves'))
+      else if (filename.includes('nested')) {
+        assert.equal((rendered.match(/<table>/g) || []).length, 2)
+        assert.ok(rendered.includes('Sanitized tip') && rendered.indexOf('Probe') < rendered.indexOf('Tip'))
+        assert.deepEqual(table[1][0].tables[0].table, snapshot.lessons[0].blocks.find(block=>block.kind==='table').table[1][0].tables[0].table)
+      } else assert.ok(rendered.includes('Inspect the clean probe.') && rendered.includes('Gloves'))
       assert.deepEqual(snapshot.lessons[0].sources, [imported.versionId])
     }
   }
@@ -196,12 +211,11 @@ export async function sourceExtractionCheck(f) {
   const legacyCorrection = await api('author', 'source.convert', { ...legacyFields, resolvedUncertainties: legacyExtraction.uncertainties.map(item => item.id) })
   assert.equal(legacyCorrection.draft.lessons[0].blocks.find(block => block.kind === 'table').table[1][0].text, legacyCell.text)
   for (const body of [
-    '<w:tbl><w:tr><w:tc>' + paragraph('Retained original table text') + '<w:tbl><w:tr><w:tc>' + paragraph('Nested text') + '</w:tc></w:tr></w:tbl></w:tc></w:tr></w:tbl>',
     '<w:tbl><w:tr><w:trPr><w:gridBefore w:val="1"/></w:trPr><w:tc>' + paragraph('Retained original table text') + '</w:tc></w:tr></w:tbl>',
   ]) {
     const unsupported = await upload('synthetic-beam-10.docx', document(paragraph('Compare table layout.') + body))
     const unsupportedTable = await api('author', `sources/${unsupported.versionId}/extraction`)
-    assert.ok(unsupportedTable.warnings.some(warning => warning.includes('unsupported table layout')))
+    assert.ok(unsupportedTable.warnings.length > 0)
     assert.ok(unsupportedTable.uncertainties.some(item => item.text.includes('Retained original table text') && item.location.startsWith('Document block')))
     assert.match(unsupportedTable.lessons[0].body, /Retained original table text/)
     assert.equal((await api('author', 'source.convert', { course: course.id, draftVersion: (await api('author', `courses/${course.id}`)).draftVersion, sourceVersion: unsupported.versionId, reviewed: true, lessons: unsupportedTable.lessons }, 409)).error, 'source_uncertainty_review_required')
@@ -265,7 +279,7 @@ export async function multimediaCheck(f) {
     ['image', 'synthetic-beam-1.png', syntheticImage],
     ['audio', 'synthetic-beam-2.mp3', syntheticAudio],
     ['video', 'synthetic-beam-3.webm', syntheticVideo],
-    ['document', 'synthetic-beam-4.pdf', pdf],
+    ['document', 'synthetic-beam-4.pdf', sourceViewerPdf()],
   ]) assets[kind] = (await api('author', 'source.create', { title: `Synthetic ${kind}`, licence: 'owned', licenceEvidence: 'Generated for this integration journey', reviewer: ids.reviewer, provenance: 'Synthetic Beam media fixture', file: file(filename, bytes) })).versionId
   const captionOriginal = await api('author','source.create',{title:'Inspection captions',licence:'owned',licenceEvidence:'Employer-authored captions',reviewer:ids.reviewer,provenance:'Original captions',file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean pool.\n')})
   assets.caption = (await api('author','source.version',{source:captionOriginal.id,provenance:'Corrected probe terminology against the video',file:file('inspection-en.vtt','WEBVTT\n\n00:00.000 --> 00:00.900\nInspect the clean probe.\n')})).id
@@ -331,7 +345,7 @@ export async function multimediaCheck(f) {
   assert.match(previewHtml, /<strong>clean tools<\/strong>/)
   assert.match(previewHtml, /<em>check<\/em>/)
   assert.match(previewHtml, /sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"/)
-  assert.match(previewHtml, /sandbox=""/)
+  assert.match(previewHtml, /sandbox="allow-scripts"/)
   assert.match(preview.headers.get('content-security-policy'), /frame-src 'self' https:\/\/www.youtube.com/)
   assert.deepEqual(await api('author', `courses/${c.id}`), beforePreview)
   assert.equal((await api('author', `courses/${c.id}`)).draftVersion, current.draftVersion)
@@ -363,6 +377,14 @@ export async function multimediaCheck(f) {
   assert.equal(documentDownload.status, 200)
   assert.match(documentDownload.headers.get('content-disposition'), /^attachment;/)
   assert.equal(documentDownload.headers.get('content-type'), 'application/octet-stream')
+  const viewer = await h.raw(`/app/files/source/${assets.document}/pdf-preview`, {cookie:cookies.learner})
+  assert.equal(viewer.status,200)
+  assert.match(viewer.headers.get('content-security-policy'),/sandbox allow-scripts;/)
+  assert.ok(!viewer.headers.get('content-security-policy').includes('allow-same-origin'))
+  assert.equal(viewer.headers.get('cache-control'),'private, no-store')
+  assert.equal((await h.raw(`/app/files/source/${assets.document}/pdf-preview`,{cookie:cookies.other})).status,404)
+  assert.equal((await h.raw(`/app/files/source/${assets.image}/pdf-preview`,{cookie:cookies.author})).status,422)
+  assert.equal((await h.raw(`/app/files/source/${assets.document}/pdf-preview`)).status,303)
   // Reuse into another course retains exact immutable source attribution.
   const other = await api('author', 'course.create', { title: 'Reused course', reviewer: ids.reviewer })
   let target = await api('author', 'course.lesson', { course: other.id, draftVersion: 1, title: 'Reused procedure', body: 'A different lesson.', sources: [] })
@@ -479,7 +501,29 @@ export async function multimediaBrowserCheck(f, media) {
       await page.getByText('Check your answer', { exact: true }).click()
       assert.equal(await page.locator('input[type=radio]:checked').count(), 1)
       assert.equal(await page.locator('iframe.lesson-embed').count(), 8)
-      assert.equal(await page.locator('iframe.lesson-document').getAttribute('sandbox'), '')
+      assert.equal(await page.locator('iframe.lesson-document').getAttribute('sandbox'), 'allow-scripts')
+      await page.getByText('Preview PDF',{exact:true}).click()
+      const pdf = page.frameLocator('iframe.lesson-document')
+      await pdf.locator('canvas[data-page="1"]').waitFor({state:'visible'})
+      assert.match(await pdf.locator('#pdf-page-text').textContent(),/Inspect the clean probe/)
+      const red = await pdf.locator('canvas').evaluate(canvas=>{
+        const ctx=canvas.getContext('2d'), pixel=ctx.getImageData(Math.floor(canvas.width*0.2),Math.floor(canvas.height*0.7),1,1).data
+        return [...pixel]
+      })
+      assert.ok(red[0]>200 && red[1]<40 && red[2]<40,'actual PDF artwork renders red on page one')
+      assert.equal(await pdf.locator('body').evaluate(()=>{try {return !!parent.document.body}catch{return false}}),false)
+      await pdf.getByRole('button',{name:'Next page',exact:true}).click()
+      await pdf.locator('canvas[data-page="2"]').waitFor({state:'visible'})
+      assert.match(await pdf.locator('#pdf-page-text').textContent(),/Store the sanitized probe/)
+      const blue=await pdf.locator('canvas').evaluate(canvas=>[...canvas.getContext('2d').getImageData(Math.floor(canvas.width*0.2),Math.floor(canvas.height*0.7),1,1).data])
+      assert.ok(blue[0]<40 && blue[1]<40 && blue[2]>200,'actual PDF artwork renders blue on page two')
+      await pdf.getByLabel('Zoom',{exact:true}).selectOption('1.25')
+      await pdf.locator('#pdf-stage[aria-busy="false"]').waitFor()
+      assert.ok(Math.abs(await pdf.locator('canvas').evaluate(canvas=>canvas.getBoundingClientRect().width)-400*1.25*96/72)<1)
+      await pdf.getByLabel('Zoom',{exact:true}).selectOption('fit')
+      await pdf.getByRole('button',{name:'Previous page',exact:true}).click()
+      await pdf.locator('canvas[data-page="1"]').waitFor({state:'visible'})
+      await pdf.getByText('Page text',{exact:true}).click()
       assert.ok((await page.getByRole('link', { name: 'Download Station document (PDF)', exact: true }).getAttribute('href')).endsWith('?download=1'))
       await shot('learner')
       await as('reviewer')

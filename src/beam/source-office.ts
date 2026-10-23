@@ -1,7 +1,7 @@
 import { insist } from './core'
 import { attribute as attr, child, children, descendants, elements, localName as local, officeArchive, relationships, type XmlNode, type OfficeArchive } from './source-archive'
-import { SourceContent, type SourceCell } from './source-content'
-import { wordTableCells } from './source-office-merges'
+import { SourceContent } from './source-content'
+import { officeTable } from './source-office-table'
 
 function paragraphText(node: XmlNode, content: SourceContent): string {
   const name = local(node.name)
@@ -26,102 +26,6 @@ function images(node: XmlNode, part: string, archive: OfficeArchive, content: So
     content.image(path && archive.has(path) ? archive.read(path, 8_000_000) : undefined, path.split('/').at(-1) || 'image', description, location)
   }
 }
-function table(node: XmlNode, content: SourceContent, pptx: boolean, location: string): SourceCell[][] | undefined {
-  const rows = children(node, 'tr'), result: SourceCell[][] = []
-  insist(rows.length > 0 && rows.length <= 100, 'document_table_limit', 422)
-  // These layouts cannot be represented faithfully by the lesson table grid.
-  // Retain the located text and require an explicit comparison, rather than
-  // manufacturing spans or silently dropping the unsupported cell contents.
-  if (descendants(node, 'tbl').length || !pptx && rows.some(row => {
-    const properties = child(row, 'trPr')
-    return ['gridBefore', 'gridAfter'].some(name => Number(attr(child(properties, name), 'val') || 0) !== 0)
-  })) {
-    const reason = 'An unsupported table layout (nested table or omitted grid cells) was retained as text. Reconstruct its cells against the original before conversion.'
-    const text = descendants(node, 'p').map(p => paragraphText(p, content)).join('\n')
-    content.warnings.add(reason); content.uncertain(location, text, reason); content.text(text, location)
-    return
-  }
-  let previous = new Map<number, { cell: SourceCell; column: number }>()
-  const occupied: ({ cell: SourceCell; row: number; column: number } | undefined)[][] = rows.map(() => [])
-  const firstRow = ['1', 'true'].includes(attr(child(node, 'tblPr'), 'firstRow') ?? '')
-  const gridWidth = children(child(node, 'tblGrid') ?? node, 'gridCol').length
-  let width = gridWidth || undefined
-  for (const [rowIndex, row] of rows.entries()) {
-    const cells: SourceCell[] = [], current = new Map<number, { cell: SourceCell; column: number }>()
-    let column = 0
-    const headerFlag = child(child(row, 'trPr'), 'tblHeader')
-    const header = pptx ? firstRow && rowIndex === 0 : !!headerFlag && !['0', 'false', 'off'].includes(attr(headerFlag, 'val') ?? '')
-    const rowCells = pptx ? children(row, 'tc') : wordTableCells(row, cell => {
-      const text = children(cell, 'p').map(p => paragraphText(p, content)).join('\n')
-      if (text.trim()) {
-        const reason = 'A merged table continuation contains text. Compare and place this text in the merged cell before conversion.'
-        content.warnings.add(reason); content.uncertain(location, text, reason)
-      }
-      return !!text.trim()
-    })
-    for (const cell of rowCells) {
-      const properties = child(cell, 'tcPr'), merge = child(properties, 'vMerge')
-      const span = Number(pptx ? attr(cell, 'gridSpan') || 1 : attr(child(properties, 'gridSpan'), 'val') || 1)
-      const rowSpan = pptx ? Number(attr(cell, 'rowSpan') || 1) : 1
-      insist(Number.isInteger(span) && span > 0 && span <= 30 && Number.isInteger(rowSpan) && rowSpan > 0 && rowSpan <= rows.length - rowIndex, 'document_table_limit', 422)
-      const body = pptx ? child(cell, 'txBody') : cell
-      const text = body ? children(body, 'p').map(p => paragraphText(p, content)).join('\n') : ''
-      if (pptx) {
-        // DrawingML keeps a physical tc for EVERY grid position, including
-        // covered cells. A gridSpan must not advance past those placeholders.
-        const horizontal = ['1', 'true'].includes(attr(cell, 'hMerge') ?? '')
-        const vertical = ['1', 'true'].includes(attr(cell, 'vMerge') ?? '')
-        const owner = occupied[rowIndex][column]
-        if (owner) {
-          insist(horizontal === (column > owner.column) && vertical === (rowIndex > owner.row), 'document_invalid_table_merge', 422)
-          insist(span === (column === owner.column ? owner.cell.colSpan : 1) && rowSpan === (rowIndex === owner.row ? owner.cell.rowSpan : 1), 'document_invalid_table_merge', 422)
-          if (text.trim()) {
-            const reason = 'A merged table continuation contains text. Compare and place this text in the merged cell before conversion.'
-            content.warnings.add(reason); content.uncertain(location, text, reason)
-            owner.cell.text += `${owner.cell.text ? '\n' : ''}${text}`
-          }
-        } else {
-          insist(!horizontal && !vertical && column + span <= 30 && (!width || column + span <= width), 'document_invalid_table_merge', 422)
-          const value: SourceCell = { text, colSpan: span, rowSpan, header }
-          cells.push(value)
-          for (let y = rowIndex; y < rowIndex + rowSpan; y++) for (let x = column; x < column + span; x++) {
-            insist(!occupied[y][x], 'document_invalid_table_merge', 422)
-            occupied[y][x] = { cell: value, row: rowIndex, column }
-          }
-        }
-        column++
-      } else {
-        const state = merge ? attr(merge, 'val') ?? 'continue' : undefined
-        insist(state === undefined || state === 'restart' || state === 'continue', 'document_invalid_table_merge', 422)
-        if (state === 'continue') {
-          const owner = previous.get(column)
-          insist(owner && owner.column === column && owner.cell.colSpan === span && Array.from({ length: span }, (_, offset) => previous.get(column + offset)).every(value => value === owner), 'document_invalid_table_merge', 422)
-          owner.cell.rowSpan++
-          if (text.trim()) {
-            const reason = 'A merged table continuation contains text. Compare and place this text in the merged cell before conversion.'
-            content.warnings.add(reason); content.uncertain(location, text, reason)
-            owner.cell.text += `${owner.cell.text ? '\n' : ''}${text}`
-          }
-          for (let offset = 0; offset < span; offset++) current.set(column + offset, owner)
-        } else {
-          const value: SourceCell = { text, colSpan: span, rowSpan: 1, header }
-          cells.push(value)
-          if (state === 'restart') {
-            const owner = { cell: value, column }
-            for (let offset = 0; offset < span; offset++) current.set(column + offset, owner)
-          }
-        }
-        column += span
-      }
-      insist(column <= 30, 'document_table_limit', 422)
-    }
-    width ??= column
-    insist(column === width && (!pptx || occupied[rowIndex].length === column), 'document_invalid_table_merge', 422)
-    previous = current
-    result.push(cells)
-  }
-  return result
-}
 
 export function extractDocx(bytes: Uint8Array, content: SourceContent) {
   const archive = officeArchive(bytes)
@@ -145,7 +49,7 @@ export function extractDocx(bytes: Uint8Array, content: SourceContent) {
       }
       images(node, 'word/document.xml', archive, content, location)
     } else if (name === 'tbl') {
-      const cells = table(node, content, false, location)
+      const cells = officeTable(node, content, false, location, node => paragraphText(node, content))
       if (cells) content.table(cells, location)
       images(node, 'word/document.xml', archive, content, location)
     } else if (name !== 'sectPr') content.warnings.add('An unsupported document block was omitted; inspect the original before preparing lessons.')
@@ -176,7 +80,7 @@ export function extractPptx(bytes: Uint8Array, content: SourceContent) {
         for (const paragraph of children(body, 'p')) content.text(paragraphText(paragraph, content), location)
       }
       for (const grid of descendants(shape, 'tbl')) {
-        const cells = table(grid, content, true, location)
+        const cells = officeTable(grid, content, true, location, node => paragraphText(node, content))
         if (cells) content.table(cells, location, `Slide ${slideIndex + 1} table`)
       }
       // A picture is itself an image container, unlike a Word paragraph.

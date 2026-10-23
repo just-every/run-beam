@@ -38,16 +38,22 @@ export function taggedPdfContent(tree: unknown, runs: TextRun[]): Part[] | null 
   const textIds = [...mapped].filter(([, value]) => normalize(value)).map(([id]) => id)
   if (!valid || textIds.some(id => !referenced.has(id))) return null
   const parts: Part[] = [], represented: string[] = [], consumed = new Set<string>()
-  function take(node: PdfStructure): string {
+  function take(node: PdfStructure, omitTables = false): string {
+    const values: string[] = []
     function account(item: PdfStructure) {
+      if (omitTables && item !== node && item.role === 'Table') return
       if (item.type === 'content' && item.id && normalize(mapped.get(item.id) ?? '')) {
         if (consumed.has(item.id)) valid = false
         consumed.add(item.id)
+        values.push(mapped.get(item.id) ?? '')
       }
       for (const child of item.children ?? []) account(child)
     }
     account(node)
-    return cached.get(node) ?? ''
+    return values.join(' ')
+  }
+  function tableContent(table: SourceCell[][]): string {
+    return table.flatMap(row => row.map(cell => [cell.text, ...(cell.tables ?? []).map(nested => tableContent(nested.table))].join(' '))).join(' ')
   }
   function visit(node: PdfStructure) {
     if (/^H[1-6]?$/.test(node.role ?? '')) {
@@ -58,7 +64,7 @@ export function taggedPdfContent(tree: unknown, runs: TextRun[]): Part[] | null 
     if (node.role === 'Table') {
       const table = taggedPdfTable(node, take)
       if (!table) valid = false
-      else { parts.push({ kind: 'table', table }); represented.push(table.map(row => row.map(cell => cell.text).join(' ')).join(' ')) }
+      else { parts.push({ kind: 'table', table }); represented.push(tableContent(table)) }
       return
     }
     if (['P', 'LI', 'Caption'].includes(node.role ?? '') || node.type === 'content') {

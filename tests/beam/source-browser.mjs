@@ -1,5 +1,6 @@
+import { sourceNestedDocx, htmlNestedCompanionZip } from './source-nested-fixtures.mjs'
 import { htmlCompanionZip } from './source-html-fixtures.mjs'
-import { taggedMergedPdf } from './source-pdf-fixtures.mjs'
+import { taggedMergedPdf, taggedNestedPdf } from './source-pdf-fixtures.mjs'
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -121,14 +122,41 @@ export async function sourceBrowserCheck(f) {
         assert.equal(await page.getByRole('cell', { name: 'Sanitized', exact: true }).count(), 1)
         await shot(`merged-table-${format}-learner`)
         }
+        for (const [format, bytes] of [['docx',sourceNestedDocx()],['pdf',taggedNestedPdf()]]) {
+          await as('author')
+          const nestedCourse = await f.api('author','course.create',{title:`${shift} nested equipment checklist (${format})`,reviewer:f.ids.reviewer})
+          await upload(`${shift} nested equipment original (${format})`, `synthetic-beam-nested.${format}`,bytes,nestedCourse)
+          await page.getByLabel('Row 2, cell 1, nested table 1, row 2, cell 2',{exact:true}).fill('Sanitized tip')
+          await page.getByLabel('I compared the extracted lessons',{exact:false}).check()
+          for (const checkbox of await page.locator('input[name="resolvedUncertainties"]').all()) await checkbox.check()
+          await shot(`nested-table-${format}-correction`)
+          await page.getByRole('button',{name:'Add reviewed lessons to draft',exact:true}).click()
+          await page.waitForURL(url=>url.pathname===`/app/courses/${nestedCourse.id}`)
+          assert.equal(new URL(page.url()).searchParams.get('error'),null)
+          const draft=await f.api('author',`courses/${nestedCourse.id}`)
+          assert.equal(draft.draft.lessons[0].blocks.find(block=>block.kind==='table').table[1][0].tables[0].table[1][1].text,'Sanitized tip')
+          await page.getByRole('button',{name:'Submit for review',exact:true}).click()
+          const revision=(await f.api('author',`courses/${nestedCourse.id}`)).revisions.find(item=>item.state==='in_review').id
+          await as('reviewer')
+          await page.goto(`${f.h.origin}/app/revisions/${revision}`)
+          await shot(`nested-table-${format}-human-review`)
+          await page.getByRole('button',{name:'Publish this revision',exact:true}).click()
+          const assignment=await f.assign(nestedCourse), learning=await f.view(assignment)
+          await as('learner')
+          await page.goto(`${f.h.origin}/app/learn/${assignment}/lessons/${learning.lessons[0].id}`)
+          assert.equal(await page.locator('table table').count(),1)
+          assert.equal(await page.getByRole('cell',{name:'Sanitized tip',exact:true}).count(),1)
+          await shot(`nested-table-${format}-learner`)
+        }
         await as('author')
         const htmlCourse = await f.api('author', 'course.create', { title: `${shift} packaged HTML inspection`, reviewer: f.ids.reviewer })
-        await upload(`${shift} HTML procedure and companion images`, 'synthetic-beam-19.html.zip', htmlCompanionZip({nested:true}), htmlCourse)
+        await upload(`${shift} HTML procedure and companion images`, 'synthetic-beam-19.html.zip', htmlNestedCompanionZip(), htmlCourse)
         const htmlImage = page.getByRole('img', { name: 'Probe placement', exact: true })
         await htmlImage.evaluate(image => image.decode())
         await page.getByLabel('Accessible image description', { exact: true }).fill('Probe placement beside clean tools')
         await page.getByLabel('Row 2, cell 2', { exact: true }).fill('Sanitized')
         await page.getByLabel('I compared the extracted lessons', { exact: false }).check()
+        await page.getByLabel('Row 2, cell 1, nested table 1, row 2, cell 2',{exact:true}).fill('Sanitized tip')
         await shot('html-companion-correction')
         await page.getByRole('button', { name: 'Add reviewed lessons to draft', exact: true }).click()
         await page.waitForURL(url => url.pathname === `/app/courses/${htmlCourse.id}`)
@@ -145,6 +173,8 @@ export async function sourceBrowserCheck(f) {
         await page.goto(`${f.h.origin}/app/learn/${htmlAssignment}/lessons/${htmlLearning.lessons[0].id}`)
         await page.getByRole('img', { name: 'Probe placement beside clean tools', exact: true }).evaluate(image => image.decode())
         assert.equal(await page.getByRole('cell', { name: 'Sanitized', exact: true }).count(), 1)
+        assert.equal(await page.locator('table table').count(),1)
+        assert.equal(await page.getByRole('cell',{name:'Sanitized tip',exact:true}).count(),1)
         await shot('html-companion-learner')
         console.log(`PASS source browser original/correction/table/image/review/publication/scan-refusal ${width}`)
       } finally { await context.close() }

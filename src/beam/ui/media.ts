@@ -4,6 +4,7 @@ import type { Language } from '../language'
 import type { Bindings } from '../../auth.server'
 import { embedPolicy, safeUrl, type Block } from '../media'
 import { h, raw, lessonText, type Html } from './html'
+import { renderLessonTable } from './lesson-table'
 
 function richText(text: string) {
   const formatted = lessonText(text).html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>').replace(/_([^_\n]+)_/g, '<em>$1</em>').replace(/`([^`\n]+)`/g, '<code>$1</code>')
@@ -15,10 +16,10 @@ export function renderBlocks(blocks: Block[] | undefined, hosts: string[], local
     const source = block.asset ? `/app/files/source-asset/${encodeURIComponent(block.source ?? '')}/${encodeURIComponent(block.asset)}` : `/app/files/source/${encodeURIComponent(block.source ?? '')}`
     let content: Html
     if (block.kind === 'text') content = richText(block.text)
-    else if (block.kind === 'table') content = h`<div class="table-wrap"><table><caption>${block.text}</caption><tbody>${block.table?.map(row => h`<tr>${row.map(cell => cell.header ? h`<th scope="col" colspan="${cell.colSpan}" rowspan="${cell.rowSpan}">${cell.text}</th>` : h`<td colspan="${cell.colSpan}" rowspan="${cell.rowSpan}">${cell.text}</td>`)}</tr>`)}</tbody></table></div>`
+    else if (block.kind === 'table') content = renderLessonTable(block.text, block.table ?? [])
     else if (block.kind === 'image') content = h`<figure><img class="lesson-image" src="${source}" alt="${block.text}" loading="lazy"><figcaption>${block.text}</figcaption></figure>`
     else if (block.kind === 'audio' || block.kind === 'video') content = h`<figure>${block.kind === 'audio' ? h`<audio controls preload="metadata" src="${source}" aria-label="${block.text}"></audio>` : h`<video controls preload="metadata" src="${source}" aria-label="${block.text}">${block.captions ? h`<track kind="captions" src="/app/files/caption/${encodeURIComponent(block.captions.source)}" srclang="${block.captions.language}" label="${block.captions.label}" default>` : ''}</video>`}<figcaption>${block.text} · <a href="${source}" download>${tr('Download original')}</a></figcaption></figure>`
-    else if (block.kind === 'document') content = h`<figure><figcaption><a href="${source}?download=1" download>${tr('Download {title} (PDF)', { title: block.text })}</a></figcaption><p class="muted">${tr('If your browser supports a protected PDF preview, you can read it here. Otherwise, download the original document.')}</p><details><summary>${tr('Preview PDF')}</summary><iframe class="lesson-document" src="${source}" title="${block.text}" sandbox="" loading="lazy"></iframe></details></figure>`
+    else if (block.kind === 'document') content = h`<figure><figcaption><a href="${source}?download=1" download>${tr('Download {title} (PDF)', { title: block.text })}</a></figcaption><p class="muted">${tr('Read the original PDF in the protected preview, or download the document.')}</p><details><summary>${tr('Preview PDF')}</summary><iframe class="lesson-document" src="${source}/pdf-preview" title="${block.text}" sandbox="allow-scripts" loading="lazy"></iframe></details></figure>`
     else if (block.kind === 'link') content = h`<p><a href="${block.url}" target="_blank" rel="noopener noreferrer">${block.text}</a></p>`
     else if (block.kind === 'lti') content = h`<p>${block.text}: ${tr('external learning tool. Open the tool from this course’s overview; its grade is required alongside every native lesson and assessment.')}</p>`
     else if (block.kind === 'embed') {

@@ -1,3 +1,4 @@
+import { tableCellEntries } from './table-traversal'
 import { sourceOcrResult } from './source-ocr'
 // AUTHOR-002: read-only extraction and an explicit author-reviewed conversion.
 // No extraction writes records, publishes, or changes the immutable original.
@@ -81,9 +82,9 @@ function reviewedLessons(input: Input, original: ExtractedLesson[]) {
     lesson.title = titles[index]; lesson.body = bodies[index]
     for (const [blockIndex, block] of (lesson.blocks ?? []).entries()) {
       if (block.kind === 'image') block.text = descriptions[image++]
-      else for (const [rowIndex, row] of (block.table ?? []).entries()) for (const entry of row) {
-        entry.text = cells[cell++]
-        if (rowIndex === 0) entry.header = headers.has(`${index}:${blockIndex}`)
+      else if (block.table) {
+        for (const { cell: entry } of tableCellEntries(block.table)) entry.text = cells[cell++]
+        for (const entry of block.table[0] ?? []) entry.header = headers.has(`${index}:${blockIndex}`)
       }
     }
   }

@@ -1,0 +1,20 @@
+/* The protected document reader uses Beam's existing tokens and type scale. */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; color: var(--ink); background: var(--app-surface, var(--pale)); font: 15px/1.5 var(--font-body); }
+main { padding: 12px; }
+nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 10px; background: var(--white); border: 1px solid var(--line); border-radius: 10px; }
+button, select { min-height: 44px; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--ink); background: var(--white); font: inherit; }
+button { cursor: pointer; font-weight: 600; }
+button:hover:enabled { background: var(--pale); }
+button:disabled, select:disabled { opacity: .55; cursor: default; }
+:focus-visible { outline: 2px solid var(--blue, var(--eyebrow)); outline-offset: 2px; }
+#pdf-position { font-variant-numeric: tabular-nums; }
+#pdf-status { margin: 10px 2px; color: var(--body); }
+#pdf-stage { width: 100%; overflow: auto; min-height: 100px; }
+canvas { display: block; margin: 0 auto; background: var(--white); box-shadow: 0 1px 5px #0d122820; }
+canvas[hidden] { display: none; }
+details { margin-top: 14px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); }
+summary { cursor: pointer; font-weight: 600; }
+#pdf-page-text { margin-top: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 420px) { main { padding: 8px; } nav { gap: 8px; } #pdf-position { order: -1; width: 100%; } }

@@ -1,5 +1,6 @@
 import type { Block } from '../media'
 import { BLOCK_KINDS } from '../media'
+import { tableCellEntries, tableShape } from '../table-traversal'
 import { area, field, form, h, hidden, select } from './html'
 const LABELS: Record<typeof BLOCK_KINDS[number], string> = { table: 'Table', text: 'Rich text', image: 'Image', audio: 'Audio', video: 'Video', document: 'Document (PDF)', link: 'Link', check: 'Knowledge check', embed: 'Web content', lti: 'External LTI tool' }
 export function blockEditor(course: string, draftVersion: number, lesson: string, blocks: Block[], sources: { value: string; label: string }[], reusable: { value: string; label: string }[]) {
@@ -11,7 +12,7 @@ export function blockEditor(course: string, draftVersion: number, lesson: string
     ['image', 'audio', 'video', 'document'].includes(kind) ? select('Source version', 'source', sources, block?.source ?? '', { blank: 'Choose an uploaded source' }) : '',
     kind === 'video' ? [select('Caption source version (WebVTT)', 'captionSource', sources, block?.captions?.source ?? '', { required: false, blank: 'No captions', hint: 'Upload a UTF-8 WebVTT source with plain cue text. Select a new source version to correct published captions.' }), field('Caption language (BCP47, for example en-AU)', 'captionLanguage', { value: block?.captions?.language ?? '', required: false }), field('Caption label', 'captionLabel', { value: block?.captions?.label ?? '', required: false, hint: 'Language and label are required when a caption source is selected.' })] : '',
     block?.asset ? hidden('asset', block.asset) : '',
-    kind === 'table' && block?.table ? [hidden('tableShape', JSON.stringify(block.table.map(row => row.map(cell => ({ ...cell, text: '' }))))), ...block.table.flatMap((row, index) => row.map((cell, column) => area(`Row ${index + 1}, cell ${column + 1}`, 'tableCells', cell.text, false)))] : '',
+    kind === 'table' && block?.table ? [hidden('tableShape', JSON.stringify(tableShape(block.table))), ...tableCellEntries(block.table).map(({ cell, label }) => area(label, 'tableCells', cell.text, false))] : '',
     ['embed', 'link'].includes(kind) ? field('HTTPS URL', 'url', { type: 'url', value: block?.url ?? '' }) : '',
     kind === 'check' ? [area('Choices, one per line', 'choices', block?.choices?.join('\n') ?? ''), field('Correct choice number', 'answer', { type: 'number', value: (block?.answer ?? 0) + 1 }), area('Explanation', 'feedback', block?.feedback ?? '', false)] : '',
   ]

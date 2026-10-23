@@ -16,7 +16,7 @@ export async function extractPdf(bytes: Uint8Array, content: SourceContent) {
     const task = getDocument({
       data: new Uint8Array(bytes),
       useSystemFonts: false, useWorkerFetch: false,
-      disableFontFace: true, stopAtErrors: true, maxImageSize: 4_000_000,
+      disableFontFace: true, isEvalSupported: false, enableXfa: false, useWasm: false, stopAtErrors: true, maxImageSize: 4_000_000,
       cMapUrl: undefined, standardFontDataUrl: undefined, wasmUrl: undefined,
     })
     destroy = () => task.destroy()

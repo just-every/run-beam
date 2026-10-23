@@ -3,6 +3,7 @@ import { sourceOcrPage, sourceOcrConsentPage } from './ui/source-ocr'
 import { erasurePage } from './ui/erasure'
 import { sourcePreparationPage } from './ui/source-preparation'
 import { sourceAsset } from './source-extraction'
+import { PDF_LIBRARY_PATH, PDF_BOOTSTRAP_PATH, pdfLibraryResponse, pdfViewerBootstrapResponse, pdfViewerResponse } from './pdf-viewer'
 import { learningConnectivityResponse } from './ui/learning-connectivity'
 import { sequencePage, sequencePreviewPage } from './ui/microlearning'
 import { sequenceView, sequencePreview } from './microlearning'
@@ -103,6 +104,13 @@ export async function beamResponse(request: Request, original: Bindings): Promis
 async function beamDoorResponse(request: Request, original: Bindings): Promise<Response | null> {
   const env = runtimeBindings(original)
   const url = new URL(request.url)
+  // These fixed modules contain installed application code only. Opaque PDF
+  // frames cannot carry a human cookie on their CORS module requests.
+  if (url.pathname === PDF_LIBRARY_PATH || url.pathname === PDF_BOOTSTRAP_PATH) {
+    if (!['GET', 'HEAD'].includes(request.method)) return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } })
+    const response = url.pathname === PDF_LIBRARY_PATH ? pdfLibraryResponse() : pdfViewerBootstrapResponse()
+    return request.method === 'HEAD' ? new Response(null, response) : response
+  }
   const cmi5 = await cmi5PublicResponse(env, request)
   if (cmi5) return cmi5
   const content = await packageContentResponse(env, request).catch(error => { const { code, status } = failure(error); return json({ error: code }, status) })
@@ -127,6 +135,12 @@ async function beamDoorResponse(request: Request, original: Bindings): Promise<R
     actor.locale = (await languagePreference(env, actor.id)).language
     const view = await viewDoor(env, actor, request, url, api)
     if (view) return view
+    const pdfPreview = url.pathname.match(/^\/app\/files\/source\/([\w-]+)\/pdf-preview$/)
+    if (pdfPreview) {
+      if (!['GET', 'HEAD'].includes(request.method)) return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } })
+      const response = await pdfViewerResponse(env, actor, pdfPreview[1], env.AUTH_ORIGIN)
+      return request.method === 'HEAD' ? new Response(null, response) : response
+    }
     if (url.pathname === '/app/xapi/launch' && request.method === 'POST') { const result = await launchXapi(env, actor, await Input.from(request)); return new Response(null, { status: 303, headers: { location: result.href, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } }) }
     if (url.pathname === '/api/beam/lti/authorize') return await authorizeLti(env, actor, request)
     if (url.pathname === '/app/lti/launch' && request.method === 'POST') { const result = await launchLti(env, actor, await Input.from(request)); return Response.redirect(result.loginUrl, 303) }

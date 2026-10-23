@@ -60,6 +60,53 @@ function taggedDocument({ reordered = false, merged = false, coveredRow = false,
   return pdfObjects(objects)
 }
 
+export function taggedNestedPdf() {
+  const objects = [], add = value => (objects.push(value), objects.length), ref = id => `${id} 0 R`
+  const catalog = add(''), pages = add(''), page = add(''), content = add('')
+  const font = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'), root = add('')
+  const heading = add(''), paragraph = add(''), table = add(''), parentTree = add('')
+  const runs = ['Prepare', 'Inspect the clean probe.'], parents = [heading, paragraph]
+  function grid(rows, parent) {
+    const id = parent || add(''), rowIds = rows.map(() => add(''))
+    rows.forEach((row, y) => {
+      const ids = row.map(value => {
+        const cell = add(''), mcid = runs.length
+        runs.push(value.text); parents.push(cell)
+        const child = value.nested ? grid(value.nested) : null
+        if (child) objects[child - 1] = objects[child - 1].replace('/P 0 0 R', `/P ${ref(cell)}`)
+        objects[cell - 1] = `<< /Type /StructElem /S /${y === 0 ? 'TH' : 'TD'} /P ${ref(rowIds[y])} /Pg ${ref(page)} /K ${child ? `[${mcid} ${ref(child)}]` : mcid} >>`
+        return cell
+      })
+      objects[rowIds[y] - 1] = `<< /Type /StructElem /S /TR /P ${ref(id)} /K [${ids.map(ref).join(' ')}] >>`
+    })
+    objects[id - 1] = `<< /Type /StructElem /S /Table /P ${parent ? ref(root) : '0 0 R'} /K [${rowIds.map(ref).join(' ')}] >>`
+    return id
+  }
+  grid([[{text:'Tool'},{text:'Condition'}],[{text:'Probe',nested:[[{text:'Part'},{text:'Condition'}],[{text:'Tip'},{text:'Clean'}]]},{text:'Clean'}]], table)
+  const stream = Buffer.from(runs.map((text, index) => `/Span << /MCID ${index} >> BDC BT /F1 12 Tf 30 ${320-index*22} Td (${text}) Tj ET EMC`).join('\n'))
+  objects[content - 1] = Buffer.concat([Buffer.from(`<< /Length ${stream.length} >>\nstream\n`),stream,Buffer.from('\nendstream')])
+  objects[catalog - 1] = `<< /Type /Catalog /Pages ${ref(pages)} /StructTreeRoot ${ref(root)} /MarkInfo << /Marked true >> >>`
+  objects[pages - 1] = `<< /Type /Pages /Count 1 /Kids [${ref(page)}] >>`
+  objects[page - 1] = `<< /Type /Page /Parent ${ref(pages)} /MediaBox [0 0 450 350] /Resources << /Font << /F1 ${ref(font)} >> >> /Contents ${ref(content)} /StructParents 0 >>`
+  objects[root - 1] = `<< /Type /StructTreeRoot /K [${[heading,paragraph,table].map(ref).join(' ')}] /ParentTree ${ref(parentTree)} >>`
+  objects[heading - 1] = `<< /Type /StructElem /S /H1 /P ${ref(root)} /Pg ${ref(page)} /K 0 >>`
+  objects[paragraph - 1] = `<< /Type /StructElem /S /P /P ${ref(root)} /Pg ${ref(page)} /K 1 >>`
+  objects[parentTree - 1] = `<< /Nums [0 [${parents.map(ref).join(' ')}]] >>`
+  return pdfObjects(objects)
+}
+
+/** Actual text and colored artwork on two pages, for the sandboxed PDF viewer. */
+export function sourceViewerPdf() {
+  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>']
+  for (const index of [0,1]) objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents ${6+index} 0 R >>`)
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
+  for (const [index, text] of ['Inspect the clean probe.', 'Store the sanitized probe.'].entries()) {
+    const stream = Buffer.from(`q ${index ? '0 0 1' : '1 0 0'} rg 40 40 100 80 re f Q BT /F1 18 Tf 40 240 Td (${text}) Tj ET`)
+    objects.push(Buffer.concat([Buffer.from(`<< /Length ${stream.length} >>\nstream\n`),stream,Buffer.from('\nendstream')]))
+  }
+  return pdfObjects(objects)
+}
+
 function pdfObjects(objects) {
   const parts = [Buffer.from('%PDF-1.7\n')], offsets = []
   let length = parts[0].length

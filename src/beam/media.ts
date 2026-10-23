@@ -1,5 +1,5 @@
 // Structured lesson content. Uploaded HTML is never a renderer or an embed.
-import { normaliseTable } from './lesson-tables'
+import { normaliseTable, type LessonCell } from './lesson-tables'
 import { sourceAssetIds } from './source-extraction'
 import { loadCaptionSource, normaliseCaptionReference, type Captions } from './captions'
 import type { Bindings } from '../auth.server'
@@ -9,7 +9,7 @@ import type { Input } from './input'
 export const BLOCK_KINDS = ['text', 'image', 'audio', 'video', 'document', 'link', 'check', 'embed', 'lti', 'table'] as const
 export interface Block {
   id: string; kind: typeof BLOCK_KINDS[number]; text: string; source?: string; url?: string
-  asset?: string; table?: { text: string; colSpan: number; rowSpan: number; header: boolean }[][];
+  asset?: string; table?: LessonCell[][];
   resource?: string; passPercent?: number;
   captions?: Captions;
   choices?: string[]; answer?: number; feedback?: string

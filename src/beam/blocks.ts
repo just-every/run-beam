@@ -5,6 +5,7 @@ import { insist, newId } from './core'
 import type { Input } from './input'
 import { normaliseBlocks } from './media'
 import { requireCourseRole } from './units'
+import { fillTableCells } from './table-traversal'
 
 // PACK-006: an external-tool block enters a draft only through the owner's lti.attach, for a resource selected for the
 // same course; these doors never add or copy one. Duplicating, moving and removing within the course stay open.
@@ -12,13 +13,7 @@ const ATTACH_ONLY = 'lti_attach_required'
 
 export async function saveBlock(env: Bindings, actor: Actor, input: Input) {
   await requireCourseRole(env, actor, input.text('course'), 'author')
-  const table = input.has('tableShape') ? input.json('tableShape') as { text: string }[][] : undefined
-  if (table) {
-    insist(Array.isArray(table) && table.length <= 100 && table.every(row => Array.isArray(row) && row.length <= 30), 'invalid_table')
-    const cells = input.list('tableCells', { keepEmpty: true }); let index = 0
-    for (const row of table) for (const cell of row) cell.text = cells[index++]
-    insist(index === cells.length, 'invalid_table_cells')
-  }
+  const table = input.has('tableShape') ? fillTableCells(input.json('tableShape'), input.list('tableCells', { keepEmpty: true })) : undefined
   const value = input.has('content') ? input.json('content') : {
     table, asset: input.text('asset', { optional: true }) || undefined, kind: input.text('kind'), text: input.text('text', { max: 10_000 }), source: input.text('source', { optional: true }), url: input.text('url', { max: 2000, optional: true }),
     captions: input.has('captionSource') ? { source: input.text('captionSource'), language: input.text('captionLanguage', { max: 100 }), label: input.text('captionLabel', { max: 100 }) } : undefined,

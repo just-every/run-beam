@@ -12,6 +12,7 @@ function merge(properties: XmlNode | undefined, name: string): Merge {
   return value
 }
 
+/** continuation reports direct text or nested grids that must travel with the merge owner. */
 export function wordTableCells(row: XmlNode, continuation: (cell: XmlNode) => boolean): XmlNode[] {
   const result: XmlNode[] = []
   let owner: { cell: XmlNode; properties: XmlNode; span: number; vertical: Merge } | undefined
@@ -31,7 +32,8 @@ export function wordTableCells(row: XmlNode, continuation: (cell: XmlNode) => bo
       owner.properties.children = owner.properties.children.filter(item => typeof item === 'string' || localName(item.name) !== 'gridSpan')
       owner.properties.children.push({ name: 'w:gridSpan', attrs: { 'w:val': String(owner.span) }, children: [] })
       // Empty physical placeholders must not append blank paragraphs to the
-      // origin. Images are extracted separately from the untouched source tree.
+      // origin. Nonempty nested grids stay intact; images are extracted once
+      // from the untouched source tree, never from these normalized copies.
       if (continuation(cell)) owner.cell.children.push(...cell.children.filter(item => typeof item === 'string' || localName(item.name) !== 'tcPr'))
     } else if (horizontal === 'restart') {
       const normalizedProperties: XmlNode = { ...properties!, children: properties!.children.filter(item => typeof item === 'string' || !['hMerge', 'gridSpan'].includes(localName(item.name))) }
