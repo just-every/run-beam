@@ -5,7 +5,8 @@ import { scormPackage } from './scorm-fixtures.mjs'
 
 // Source custody enters through Sources and normal draft conversion, never direct D1 edits.
 export async function sourceDraftWithdrawalCheck(f) {
-  const { api, ids, h, cookies } = f
+  const { ids, h, cookies } = f
+  const api=async (...args)=>{console.log('Source custody request',args[0],args[1]);const result=await f.api(...args);console.log('Source custody accepted',args[1]);return result}
   const source = await api('author','source.create',{title:'Unpublished inspection procedure',reviewer:ids.reviewer,licence:'owned',licenceEvidence:'Employer-authored procedure',provenance:'Original source under a privacy request',file:file('synthetic-beam-30.docx',sourceNestedDocx())})
   const course=await api('author','course.create',{title:'Unpublished equipment inspection',reviewer:ids.reviewer})
   const base=await api('author','course.lesson',{course:course.id,draftVersion:course.draftVersion,title:'Unrelated opening check',body:'Retain this separately authored lesson.',sources:[]})

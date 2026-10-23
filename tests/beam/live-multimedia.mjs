@@ -75,6 +75,7 @@ try {
         } catch(error) {
           failures.push(`${title} ${width}: ${error.message}`)
           console.log('LIVE REFUSAL',title,width,error.message)
+          console.log('PROVIDER MEDIA STATE',await frame.locator('body').evaluate(body=>({videos:[...body.querySelectorAll('video')].map(media=>({time:media.currentTime,duration:media.duration,paused:media.paused,readyState:media.readyState,networkState:media.networkState,error:media.error&&{code:media.error.code,message:media.error.message},width:media.offsetWidth,height:media.offsetHeight})),player:typeof document.getElementById('movie_player')?.getPlayerState==='function'?document.getElementById('movie_player').getPlayerState():null})).catch(()=>null))
           console.log('PROVIDER PAGE',await frame.locator('body').innerText().then(text=>text.slice(0,3000)).catch(()=>'(no provider document)'))
           await page.screenshot({path:join(evidence,`${width}-live-${title.split(' ')[0].toLowerCase()}-refused.png`)})
         }
