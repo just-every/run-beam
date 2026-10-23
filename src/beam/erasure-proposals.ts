@@ -10,15 +10,19 @@ import { preparedCheckpoint } from './erasure-fence'
 const fields = ['title','agent','inputs_json','reasons_json','excluded_json','payload_json','payload_sha256','result_json','state','decided_by','decided_at','decision_note'] as const
 const independent = "NOT EXISTS(SELECT 1 FROM beam_outcome_plans WHERE intervention=p.id) AND NOT EXISTS(SELECT 1 FROM beam_outcome_evaluations WHERE intervention=p.id)"
 async function affected(env: Bindings, member: string) {
-  const selectors = `SELECT ?1 UNION SELECT email FROM beam_members WHERE id=?1
-    UNION SELECT employee_id FROM beam_members WHERE id=?1 UNION SELECT username FROM beam_members WHERE id=?1
-    UNION SELECT id FROM beam_assignments WHERE learner_id=?1
+  const person = await one<{ email: string | null; employee_id: string | null; username: string | null }>(env,
+    'SELECT email,employee_id,username FROM beam_members WHERE id=?', member)
+  const aliases = [member, person?.email, person?.employee_id, person?.username].filter((value): value is string => typeof value === 'string' && value.length > 0)
+  // Materialize lineage once. Reusing a compound-select CTE inside every
+  // json_tree predicate lets SQLite inline and multiply its UNION terms.
+  const lineage = await all<{ id: string }>(env, `SELECT id FROM beam_assignments WHERE learner_id=?1
     UNION SELECT id FROM beam_attempts WHERE assignment_id IN (SELECT id FROM beam_assignments WHERE learner_id=?1)
     UNION SELECT id FROM beam_completions WHERE learner_id=?1
     UNION SELECT c.id FROM beam_certificates c JOIN beam_completions x ON x.id=c.completion_id WHERE x.learner_id=?1
-    UNION SELECT id FROM beam_imported_history WHERE json_extract(payload,'$.member')=?1 OR lower(json_extract(payload,'$.email'))=(SELECT lower(email) FROM beam_members WHERE id=?1)`
-  const contains = ['inputs_json','reasons_json','excluded_json','payload_json','result_json'].map(field => `EXISTS(SELECT 1 FROM json_tree(p.${field}) j WHERE j.atom IN (SELECT value FROM subjects))`).join(' OR ')
-  return all<Row>(env, `WITH subjects(value) AS (${selectors}) SELECT p.* FROM beam_agent_proposals p WHERE p.withdrawn_at IS NULL AND p.state IN ('waiting','declined') AND ${independent} AND (${contains}) ORDER BY p.id LIMIT 40`, member)
+    UNION SELECT id FROM beam_imported_history WHERE json_extract(payload,'$.member')=?1 OR lower(json_extract(payload,'$.email'))=lower(?2)`, member, person?.email ?? null)
+  const subjects = JSON.stringify([...new Set([...aliases, ...lineage.map(row => row.id)])])
+  const contains = ['inputs_json','reasons_json','excluded_json','payload_json','result_json'].map(field => `EXISTS(SELECT 1 FROM json_tree(p.${field}) j WHERE j.atom IN (SELECT value FROM json_each(?1)))`).join(' OR ')
+  return all<Row>(env, `SELECT p.* FROM beam_agent_proposals p WHERE p.withdrawn_at IS NULL AND p.state IN ('waiting','declined') AND ${independent} AND (${contains}) ORDER BY p.id LIMIT 40`, subjects)
 }
 const fingerprint = (row: Row) => sha256Hex(new TextEncoder().encode(JSON.stringify(fields.map(field => row[field]))))
 export async function proposalSnapshots(env: Bindings, member: string) {
