@@ -1,3 +1,4 @@
+import { declineCutoverCredit, approveCutover } from './movein/cutover'
 import { withdrawSourceDrafts } from './erasure-source-drafts'
 import { withdrawProposalSnapshots } from './erasure-proposals'
 import { withdrawRuleSnapshots } from './erasure-snapshots'
@@ -313,6 +314,8 @@ export const actions: Record<string, Handler> = {
   'history.accept': (env, actor, input) => acceptHistory(env, actor, input),
   // REPORT-001 / MOVE-009: the expiring window and imported-history credit decisions.
   'report.window': (env, actor, input) => saveExpiringWindow(env, actor, input),
+  'cutover.credit.decline': declineCutoverCredit,
+  'cutover.approve': approveCutover,
   'credit.preview': (env, actor, input) => previewCredit(env, actor, input),
   'credit.approve': (env, actor, input) => approveCredit(env, actor, input),
   'credit.undo': (env, actor, input) => undoCredit(env, actor, input),

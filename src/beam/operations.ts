@@ -37,9 +37,10 @@ export async function operationsHealth(env: Bindings, actor: Actor) {
   try { await env.FILES.head('beam-operational-readiness-probe') } catch { filesReadiness = 'unavailable; prior files retained, retry after storage access is restored' }
   return { asOf:at,
     readiness:{ database:'reachable', files:filesReadiness, mail:env.MAIL_PROVIDER && env.MAIL_PROVIDER!=='development' ? 'configured, delivery unverified' : 'development only' },
-    people:await count("SELECT count(*) AS count FROM beam_members m LEFT JOIN oa_operators o ON o.id=m.operator_id WHERE m.employment='active' AND m.erased_at IS NULL AND (o.id IS NULL OR o.status='active')"),
+    people:await count("SELECT count(*) AS count FROM beam_members m LEFT JOIN oa_operators o ON o.id=m.operator_id WHERE m.employment='active' AND m.erased_at IS NULL AND o.status='active'"),
+    directoryPeople:await count("SELECT count(*) AS count FROM beam_members WHERE employment='active' AND erased_at IS NULL"),
     learning:{assignments:await count('SELECT count(*) AS count FROM beam_assignments'),completions:await count('SELECT count(*) AS count FROM beam_completions'),importedHistory:await count('SELECT count(*) AS count FROM beam_imported_history')},
-    jobs:OPERATIONAL_JOBS.map(name=>{const job=jobs.find(job=>job.name===name);return job ? {...job,stalled:job.outcome==='running'&&job.startedAt<at-10*60*1000} : {name,outcome:'not_run',lastSuccessAt:null,stalled:false,failures:0}}),
+    jobs:OPERATIONAL_JOBS.map(name=>{const job=jobs.find(job=>job.name===name);return job ? {...job,name,stalled:job.outcome==='running'&&job.startedAt<at-10*60*1000} : {name,outcome:'not_run',lastSuccessAt:null,stalled:false,failures:0}}),
     backlog:{rosterRows:await count("SELECT count(*) AS count FROM beam_roster_batch_rows r JOIN beam_roster_batches b ON b.id=r.batch_id WHERE b.state='applying' AND r.state!='done'"),
       imports:await count("SELECT count(*) AS count FROM ik_jobs WHERE state IN ('queued','applying','undoing')"),
       automation:await count("SELECT count(*) AS count FROM beam_automation_executions WHERE state!='succeeded'"),

@@ -1,3 +1,4 @@
+import { cutoverPage } from './ui/cutover'
 import { captionFile } from './caption-file'
 import { sourceOcrPage, sourceOcrConsentPage } from './ui/source-ocr'
 import { erasurePage } from './ui/erasure'
@@ -322,6 +323,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/certificates\/([\w-]+)\.pdf$/))) return certificatePdfResponse(env, actor, match[1])
   if (path === '/app/certificate-templates') return templatesPage(env, actor, url)
   if (path === '/app/evidence') return evidencePage(env, actor, url)
+  const cutover = path.match(/^\/app\/import\/cutover\/([\w-]+)$/)
+  if (cutover) return cutoverPage(env,actor,cutover[1],url)
   if (path === '/app/import') return importPage(env, actor, url)
   if (path === '/app/reports') return reportPage(env, actor, url)
   if (path === '/app/coverage') return coveragePage(env, actor, url)

@@ -24,9 +24,9 @@ try {
   }
   const baseline=(await api('owner','people')).members
   const roster=['Employee ID,Name,Email,Employment,Location,Job role',...Array.from({length:200-baseline.length},(_,n)=>`synthetic-beam-${n+1000},Employee ${n+1},employee-${n+1}@capacity.test,active,${n%2?'Austin':'Chicago'},Operator`)].join('\n')
-  const batch=await timed('roster-preview',()=>api('owner','people.batch.preview',{file:file('capacity-roster.csv',roster),invite:false}))
+  const batch=await timed('roster-preview',()=>api('owner','people.batch.preview',{file:file('capacity-roster.csv',roster),invite:true}))
   assert.equal(batch.rows.length,200-baseline.length)
-  await timed('roster-apply',async()=>{for(let n=0;n<10;n++){const applied=await api('owner','people.batch.apply',{batch:batch.id});if(applied.done)return;assert.ok(n<9)}})
+  await timed('roster-apply',async()=>{for(let n=0;n<20;n++){await h.db.prepare('UPDATE oa_limits SET window=window-1').run();const applied=await api('owner','people.batch.apply',{batch:batch.id});if(applied.done)return;assert.ok(n<19)}})
   const members=(await api('owner','people')).members
   assert.equal(members.length,200)
   const team=await f.team('All 200 employees',members.map(row=>row.id))
@@ -76,7 +76,7 @@ try {
     assert.equal((await h.api('records/me',person.cookie)).history.length,2)
     for(const asset of assets)assert.deepEqual(Buffer.from(await(await h.raw(`/api/beam/source-files/${asset.id}`,{cookie:person.cookie})).arrayBuffer()),asset.bytes)
   })))
-  const before=await api('owner','operations');assert.equal(before.people,200);assert.equal(before.learning.assignments,200);assert.equal(before.learning.completions,8);assert.equal(before.learning.importedHistory,401)
+  const before=await api('owner','operations');assert.equal(before.people,200);assert.equal(before.directoryPeople,200);assert.equal(before.learning.assignments,200);assert.equal(before.learning.completions,8);assert.equal(before.learning.importedHistory,401)
   // Admission fails before mutation, then a corrected file succeeds without losing prior files or records.
   const tooLarge=file('oversized.txt',Buffer.alloc(25_000_001,120))
   const refused=await api('owner','source.create',{title:'Oversized original',licence:'owned',licenceEvidence:'Employer original',reviewer:ids.reviewer,provenance:'Capacity limit',file:tooLarge},400)

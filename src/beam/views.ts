@@ -1,3 +1,4 @@
+import { cutoverPreview } from './movein/cutover'
 import { operationsHealth } from './operations'
 import { sourceOcrConfig, sourceOcrPreview } from './source-ocr'
 import { erasureSettings } from './erasure-policy'
@@ -120,6 +121,7 @@ export const views: Record<string, View> = {
   certificate: (env, actor, _request, id) => certificateRecord(env, actor, id),
   'certificate-templates': async (env, actor) => { insist(actor.owner || actor.grants.certificates, 'forbidden', 403); return await templates(env) },
   imports: (env, actor) => importJobs(env, actor),
+  cutover: (env,actor,_request,id) => cutoverPreview(env,actor,id),
   'import-settings': (env, actor) => importSettings(env, actor),
   history: (env, actor) => importedHistory(env, actor),
   messages: (env, actor) => reminderMessages(env, actor),
@@ -177,7 +179,7 @@ const ROUTES: [RegExp, string][] = [
   [/^revisions\/([\w-]+)$/, 'revision'], [/^compare$/, 'compare'], [/^source-compare$/, 'source-compare'], [/^paths$/, 'paths'], [/^assignments\/([\w-]+)$/, 'assignment'], [/^attempts\/([\w-]+)$/, 'attempt'],
   [/^gusto-language$/, 'gusto-language'],
   [/^course-locales\/([\w-]+)$/, 'course-locales'],
-  [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^import-settings$/, 'import-settings'], [/^history$/, 'history'],
+  [/^records\/([\w-]+)$/, 'record'], [/^queues$/, 'queues'], [/^reminders$/, 'reminders'], [/^certificates\/([\w-]+)$/, 'certificate'], [/^imports$/, 'imports'], [/^cutover\/([\w-]+)$/, 'cutover'], [/^import-settings$/, 'import-settings'], [/^history$/, 'history'],
   [/^dashboards$/, 'dashboards'], [/^dashboards\/([\w-]+)$/, 'dashboard'], [/^messages$/, 'messages'], [/^report$/, 'report'], [/^coverage$/, 'coverage'], [/^credits$/, 'credits'], [/^quality$/, 'quality'], [/^costs$/, 'costs'], [/^operations$/, 'operations'], [/^diagnoses$/, 'diagnoses'], [/^diagnosis-imports\/([\w-]+)$/, 'diagnosis-comparison'], [/^outcomes\/([\w-]+)$/, 'outcome'], [/^evaluations\/([\w-]+)$/, 'evaluation'], [/^app-credentials$/, 'app-credentials'], [/^skills$/, 'skills'], [/^skills\/([\w-]+)$/, 'skill-recommendations'], [/^proposals$/, 'proposals'], [/^proposals\/([\w-]+)$/, 'proposal'], [/^impact\/([\w-]+)$/, 'impact'], [/^questions\/([\w-]+)$/, 'questions'], [/^practice\/([\w-]+)$/, 'practice'], [/^audit$/, 'audit'], [/^announcements$/, 'announcements'], [/^transcripts\/([\w-]+)$/, 'transcript'], [/^automation$/, 'automation'], [/^audiences$/, 'audiences'], [/^roster-batches$/, 'roster-batches'], [/^inactivity$/, 'inactivity'], [/^catalog$/, 'catalog'], [/^catalog-requests$/, 'catalog-requests'], [/^sessions$/, 'sessions'], [/^sessions\/([\w-]+)\/roster$/, 'roster'], [/^revisions\/([\w-]+)\/moves$/, 'move-preview'], [/^revisions\/([\w-]+)\/survey$/, 'survey'], [/^courses\/([\w-]+)\/collaboration$/, 'collaboration'], [/^content-queue$/, 'content-queue'], [/^instructors$/, 'instructors'], [/^external$/, 'external'], [/^certificate-templates$/, 'certificate-templates'], [/^recognition$/, 'recognition'], [/^discussions\/([\w-]+)$/, 'discussions'], [/^discussion-notices$/, 'discussion-notices'],
 ]
 

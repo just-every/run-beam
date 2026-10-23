@@ -30,7 +30,7 @@ if (form) form.addEventListener('submit', async event => {
     return {filename: file.name, base64: base64(new Uint8Array(await file.arrayBuffer()))};
   };
   try {
-    const courseList = await original('courseList'), reports = [], mappings = {};
+    const courseList = await original('courseList'), activeRequirements = await original('activeRequirements',true), reports = [], mappings = {};
     for (let slot = 1; slot <= 5; slot++) {
       const file = await original('report' + slot, true);
       if (!file) continue;
@@ -40,7 +40,7 @@ if (form) form.addEventListener('submit', async event => {
       const mapped = form.elements.namedItem('report' + slot + 'Mapping').value;
       if (mapped) mappings[course] = mapped;
     }
-    const bytes = new TextEncoder().encode(JSON.stringify({courseList, reports, mappings, dateFormat: form.elements.namedItem('dateFormat').value}));
+    const bytes = new TextEncoder().encode(JSON.stringify({courseList, reports, mappings, ...(activeRequirements ? {activeRequirements} : {}), dateFormat: form.elements.namedItem('dateFormat').value}));
     const bundleSha256 = await hash(bytes), totalChunks = Math.ceil(bytes.length / 65536);
     let uploadId;
     for (let index = 0; index < totalChunks; index++) {

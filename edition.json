@@ -82,7 +82,8 @@
           "migrations/core/0092_beam_erasure.sql",
           "migrations/core/0093_beam_source_ocr.sql",
           "migrations/core/0098_beam_ocr_budget.sql",
-          "migrations/core/0099_beam_operational_jobs.sql"
+          "migrations/core/0099_beam_operational_jobs.sql",
+          "migrations/core/0100_beam_cutover_review.sql"
         ]
       }
     },

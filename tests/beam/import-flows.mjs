@@ -114,6 +114,11 @@ export async function importFlows({h, people, ids, trust}) {
     assert.equal(report.counts.present + report.counts.explained, report.counts.sourceRecords)
     assert.equal(report.sourceIds.length, report.counts.sourceRecords)
     await assertApplied()
+    // A completed apply is a true replay: the same receipt and no additional native effects.
+    const completedHistory = await nativeSnapshot()
+    const replay = await json(request,'apply',{planId:plan.planId,reviewedFingerprint:plan.fingerprint},review)
+    assert.deepEqual(replay.job,job)
+    assert.deepEqual(await nativeSnapshot(),completedHistory)
     await until(request, 'undo', {planId: plan.planId}, undefined, 'undone')
     assert.deepEqual(await nativeSnapshot(), before)
   }
