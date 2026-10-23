@@ -212,7 +212,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "378a2cc7ff282f8c1279c6ed94c4004852dd5b8d1e459195a88b351c4fe0e4ef",
+      "sha256": "d7e8e6072c9126a34f91cbd03d34e104f0df5f04f63dad9410ebe4e1527fe125",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -748,7 +748,7 @@
       "executable": false
     },
     "public/beam.css": {
-      "sha256": "4064795571c5048a78d663a3a3fef7053ce8068e959babc3933893ca198bef9f",
+      "sha256": "3736fd70edeb881eafa940e5a7409b381bd48585313644dcc66b1abb43cbd69f",
       "executable": false
     },
     "public/brand/favicon-16.png": {

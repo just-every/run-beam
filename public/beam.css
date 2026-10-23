@@ -454,7 +454,7 @@ label.choice span span { display: block; color: var(--body); font-size: 14px; }
 .lesson-block img, .lesson-block video, .lesson-block audio { max-width: 100%; }
 .lesson-block video, .lesson-block audio { width: 100%; }
 .lesson-block iframe { display: block; width: 100%; border: 0; }
-.lesson-embed { aspect-ratio: 16 / 9; }
+.lesson-embed { aspect-ratio: 16 / 9; min-height: 200px; }
 .lesson-document { height: min(65vh, 44rem); }
 .lesson-block figcaption { margin-top: .5rem; }
 
