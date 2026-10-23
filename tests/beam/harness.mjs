@@ -5,9 +5,9 @@ import { emittedWorker } from '../runtime.mjs'
 export async function harness(options) {
   const { origin, vars, mails, edge, fetch, linkFor, close, db, files, scheduled } = await emittedWorker(options)
 
-  const raw = (path, { cookie, body, form, method } = {}) => fetch(path, {
+  const raw = (path, { cookie, body, form, method, headers = {} } = {}) => fetch(path, {
     method: method ?? (body !== undefined || form ? 'POST' : 'GET'),
-    headers: { ...(cookie ? { cookie } : {}), ...(body !== undefined || form ? { origin } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+    headers: { ...headers, ...(cookie ? { cookie } : {}), ...(body !== undefined || form ? { origin } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
     body: body !== undefined ? JSON.stringify(body) : form,
   })
 
@@ -30,12 +30,12 @@ export async function harness(options) {
   }
 
   /** Signs in through the ordinary emailed link (captured at the Resend edge). */
-  async function signIn(email, { requested = false } = {}) {
-    const sent = mails.length
-    if (!requested) assert.equal((await raw('/auth/magic-link', { body: { email, returnTo: '/app' } })).status, 202)
+  async function signIn(email, { requested = false, sourceIp } = {}) {
+    const sent = mails.length, headers = sourceIp ? {'CF-Connecting-IP':sourceIp} : {}
+    if (!requested) assert.equal((await raw('/auth/magic-link', { body: { email, returnTo: '/app' }, headers })).status, 202)
     const link = linkFor(email)
     assert.ok(link && (requested || mails.length > sent), `no sign-in message for ${email}`)
-    const confirmed = await raw('/auth/confirm', { body: { token: link.searchParams.get('token') } })
+    const confirmed = await raw('/auth/confirm', { body: { token: link.searchParams.get('token') }, headers })
     assert.equal(confirmed.status, 303, 'ordinary link confirmation')
     return confirmed.headers.getSetCookie().map(line => line.split(';')[0]).join('; ')
   }

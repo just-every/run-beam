@@ -29,7 +29,7 @@ try {
   await timed('roster-apply',async()=>{for(let n=0;n<20;n++){await h.db.prepare('UPDATE oa_limits SET window=window-1').run();const applied=await api('owner','people.batch.apply',{batch:batch.id});if(applied.done)return;assert.ok(n<19)}})
   const members=(await api('owner','people')).members
   assert.equal(members.length,200)
-  await timed('activate-200-accounts',async()=>{for(const person of members.filter(person=>!baseline.some(row=>row.id===person.id)))await h.signIn(person.email,{requested:true})})
+  await timed('activate-200-accounts',async()=>{for(const [index,person] of members.filter(person=>!baseline.some(row=>row.id===person.id)).entries())await h.signIn(person.email,{requested:true,sourceIp:`192.0.2.${index+1}`})})
   const team=await f.team('All 200 employees',members.map(row=>row.id))
   const c=await api('owner','course.create',{title:'Mixed-media workstation qualification',reviewer:ids.reviewer})
   let version=c.draftVersion
@@ -91,7 +91,7 @@ try {
     const evidence=process.env.BEAM_EVIDENCE_DIR||'test-results';await mkdir(evidence,{recursive:true})
     for(const width of [1440,390]){const context=await browser.newContext({viewport:{width,height:900},ignoreHTTPSErrors:true});try{await context.addCookies(cookies.owner.split('; ').map(value=>{const at=value.indexOf('=');return{name:value.slice(0,at),value:value.slice(at+1),url:h.origin}}));const page=await context.newPage();await page.goto(h.origin+'/app/business');await page.getByRole('heading',{name:'Installation health',exact:true}).waitFor();assert.ok((await page.locator('main').innerText()).includes('200 active people'));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:join(evidence,`${width}-capacity-health.png`),fullPage:true})}finally{await context.close()}}
   }
-  const receipt={head,run:process.env.BEAM_CAPACITY_RUN_ID||`cloud-capacity-${new Date(started).toISOString().replace(/[:.]/g,'-')}`,activePeople:200,enrollments:200,retainedCompletions:400,concurrentLearners:8,nativeCompletions:8,steps,elapsedMs:Date.now()-started,qualification:'Synthetic local built Worker; no hosted SLA or independent provider capacity qualification'}
+  const receipt={head,run:process.env.BEAM_CAPACITY_RUN_ID||`cloud-capacity-${new Date(started).toISOString().replace(/[:.]/g,'-')}`,activePeople:200,activation:'Ordinary emailed invitation confirmation with separate synthetic Cloudflare ingress client addresses; invitation rate windows advanced only in the isolated fixture clock.',enrollments:200,retainedCompletions:400,concurrentLearners:8,nativeCompletions:8,steps,elapsedMs:Date.now()-started,qualification:'Synthetic local built Worker; no hosted SLA or independent provider capacity qualification'}
   if(process.env.BEAM_EVIDENCE_DIR){await mkdir(process.env.BEAM_EVIDENCE_DIR,{recursive:true});await writeFile(join(process.env.BEAM_EVIDENCE_DIR,'capacity.json'),JSON.stringify(receipt,null,2)+'\n')}
   console.log('PASS OPS-008 capacity',JSON.stringify(receipt))
 }finally{if(browser)await browser.close();await f.h.close()}
