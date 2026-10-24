@@ -226,6 +226,8 @@ export async function portalThemeCheck(f) {
   await api('owner', 'theme.save', { ...settings, primary: 'red;display:none' }, 400)
   await api('owner', 'theme.save', { ...settings, senderName: 'Injected\r\nBcc: stranger@example.test' }, 400)
   await api('owner', 'theme.save', { ...settings, logo: file('active.svg', '<svg onload="alert(1)"></svg>') }, 400)
+  const damaged = Buffer.from(syntheticImage); damaged[29] ^= 1
+  await api('owner', 'theme.save', { ...settings, logo: file('damaged.png', damaged) }, 400)
   assert.equal((await api('owner', 'theme')).version, saved.version, 'invalid saves leave the admitted theme intact')
   const css = await h.raw('/beam-theme.css')
   assert.equal(css.status, 200)

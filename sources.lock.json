@@ -329,7 +329,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "73a47345ba1423c08272a22382f5f7fd0a89c6935235b518f0ffee364f955e58",
+      "sha256": "dcf21c247b11dce2d0c5a74ca9d47ae86da5c3e13848135ff9dee9f7e35d8cbd",
       "executable": false
     },
     "DEMO.md": {
@@ -1537,7 +1537,7 @@
       "executable": false
     },
     "src/beam/brand-image.ts": {
-      "sha256": "473a4c586fd3cf7251f1f73030909745e86e8cdadea85ad05eb7e0c5535f1780",
+      "sha256": "69d98a5ae274d047d3f4e3ae67c8360caa6e356339a5f6f5545c4175321a16f5",
       "executable": false
     },
     "src/beam/caption-file.ts": {
@@ -4441,7 +4441,7 @@
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
-      "sha256": "e2bdc4768aad5019261cb52a6d0addc730a386a588d3a424d5de6a13f0304d9b",
+      "sha256": "8f477097d0251bddad58774c67636e5b42ac467fd9c59a7a60fa1af02f62448f",
       "executable": false
     },
     "tests/beam/regression-discussions.mjs": {

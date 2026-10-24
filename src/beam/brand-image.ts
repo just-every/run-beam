@@ -1,5 +1,5 @@
 // Bounded raster decoding for certificate logos; uploaded images never supply PDF syntax.
-import { deflateSync, inflateSync } from 'node:zlib'
+import { crc32, deflateSync, inflateSync } from 'node:zlib'
 import { insist } from './core'
 export interface BrandImage { width: number; height: number; data: Uint8Array; filter: 'FlateDecode' | 'DCTDecode'; colors: number }
 export function brandImage(bytes: Uint8Array): BrandImage {
@@ -27,6 +27,7 @@ export function brandImage(bytes: Uint8Array): BrandImage {
   for (let offset = 8; offset + 12 <= bytes.length;) {
     const length = view.getUint32(offset), name = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8))
     insist(length <= bytes.length - offset - 12, 'theme_image_type')
+    insist(crc32(bytes.subarray(offset + 4, offset + 8 + length)) === view.getUint32(offset + 8 + length), 'theme_image_type')
     const data = bytes.subarray(offset + 8, offset + 8 + length)
     if (name === 'IHDR') {
       insist(offset === 8 && length === 13, 'theme_image_type')
@@ -37,7 +38,7 @@ export function brandImage(bytes: Uint8Array): BrandImage {
     } else if (name === 'PLTE') palette = data
     else if (name === 'tRNS') alpha = data
     else if (name === 'IDAT') chunks.push(data)
-    else if (name === 'IEND') { ended = true; break }
+    else if (name === 'IEND') { insist(length === 0 && offset + 12 === bytes.length, 'theme_image_type'); ended = true; break }
     offset += length + 12
   }
   insist(ended && channels && chunks.length && (kind !== 3 || palette && palette.length % 3 === 0), 'theme_image_type')

@@ -475,7 +475,7 @@ removed or changed by this contract-only round.
 
 ## Status
 
-The ORG-009 and ORG-011 rows are reconciled with the code and focused public-door proofs in this revision (24 October 2026); other rows retain their recorded evidence.
+Judged from the code and tests at commit `2c596d495d40d70294e4bedf7dd9863c846fedcc` (24 October 2026).
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
