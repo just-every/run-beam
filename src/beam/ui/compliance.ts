@@ -142,7 +142,7 @@ function decision(view: ComplianceView, link: Link, zone: string): Html {
   const grant = detail.exhausted ? form('attempt.grant', link({ status: view.filters.status, select: row.key }, '#decision'), [hidden('assignment', row.assignment), field('Reason for another attempt', 'reason')], 'Grant one more attempt', { secondary: true, className: 'grant' }) : ''
   return h`<aside class="card decision" id="decision" aria-labelledby="decision-name">
 <div class="decision-head"><h2 id="decision-name">${row.learnerName}</h2><p class="meta"><span class="meta-items">${row.team ? h`<span>${row.team}</span>` : ''}<span>${detail.email}</span></span></p>
-<details class="pop more"><summary aria-label="More for ${row.learnerName}">${raw(icon('dots', { size: 22 }))}</summary><ul><li><a href="/app/records/${row.learner}">Learner record</a></li>${row.assignment ? h`<li><a href="/app/learn/${row.assignment}">Assignment</a></li>` : ''}</ul></details></div>
+<details class="pop more"><summary data-tooltip="Learner actions" aria-label="More for ${row.learnerName}">${raw(icon('dots', { size: 22 }))}</summary><ul><li><a href="/app/records/${row.learner}">Learner record</a></li>${row.assignment ? h`<li><a href="/app/learn/${row.assignment}">Assignment</a></li>` : ''}</ul></details></div>
 ${banner ? h`<div class="banner-warn" role="note">${raw(icon('warning', { size: 26 }))}<div><h3>${banner[0]}</h3><p>${banner[1]}</p></div></div>` : ''}
 <dl class="facts">${facts.map(([term, value]) => h`<dt>${term}</dt><dd>${value}</dd>`)}</dl>
 ${resolution}${grant}

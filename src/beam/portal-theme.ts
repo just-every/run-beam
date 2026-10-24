@@ -1,3 +1,4 @@
+import { brandImage } from './brand-image'
 // ORG-009: presentation never changes authentication origin or cookie authority.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
@@ -32,7 +33,8 @@ export async function saveTheme(env: Bindings, actor: Actor, input: Input) {
     const file = await input.file(name, { optional: true, maxBytes: 256000 })
     if (!file) return previous?.[name] ?? null
     // Raster images only: an owner upload cannot introduce active SVG or HTML.
-    insist(['image/png', 'image/jpeg', 'image/webp'].includes(sniff(file.bytes)), 'theme_image_type')
+    insist(['image/png', 'image/jpeg'].includes(sniff(file.bytes)), 'theme_image_type')
+    brandImage(file.bytes)
     return store(env, file)
   }
   const logo = await image('logo'), favicon = await image('favicon')

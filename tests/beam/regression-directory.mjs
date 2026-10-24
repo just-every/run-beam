@@ -264,8 +264,18 @@ export async function portalThemeCheck(f) {
   const certificate = (await api('learner', 'records/me')).completions.find(value => value.course === c.id).certificate
   const pdf = await h.raw(`/app/certificates/${certificate}.pdf`, { cookie: cookies.learner })
   assert.equal(pdf.status, 200)
-  assert.ok(Buffer.from(await pdf.arrayBuffer()).toString('latin1').includes('0.090 0.247 0.373 RG'), 'certificate uses the admitted primary color')
-  if (process.argv.includes('--browser')) await portalThemeBrowserCheck(f, settings)
+  const pdfBytes = Buffer.from(await pdf.arrayBuffer())
+  assert.ok(pdfBytes.toString('latin1').includes('0.090 0.247 0.373 RG'), 'certificate uses the admitted primary color')
+  const { getDocumentProxy } = await import('unpdf')
+  const document = await getDocumentProxy(new Uint8Array(pdfBytes))
+  try {
+    const page = await document.getPage(1), operators = await page.getOperatorList()
+    assert.ok(operators.fnArray.includes(85), 'downloaded certificate contains a decoded employer image')
+  } finally { await document.destroy() }
+  if (process.argv.includes('--browser')) {
+    await f.assign(await f.course('Pending portal learning'))
+    await portalThemeBrowserCheck(f, settings)
+  }
 }
 
 async function portalThemeBrowserCheck(f, settings) {
@@ -299,6 +309,15 @@ async function portalThemeBrowserCheck(f, settings) {
         await page.getByRole('status').waitFor()
         await visit('learner', '/app/learning')
         await visit('manager', '/app/manage')
+        const actions = page.locator('summary[data-tooltip]').first()
+        await actions.focus()
+        assert.equal(await actions.evaluate(element => getComputedStyle(element, '::after').opacity), '1')
+        await page.screenshot({ path: join(directory, `${width}-portal-keyboard-tooltip.png`), fullPage: true })
+        await actions.evaluate(element => element.blur())
+        await actions.hover()
+        await page.waitForTimeout(350)
+        assert.equal(await actions.evaluate(element => getComputedStyle(element, '::after').opacity), '1')
+        await page.screenshot({ path: join(directory, `${width}-portal-hover-tooltip.png`), fullPage: true })
         await visit(null, '/signin')
         assert.equal(await page.locator('h1').innerText(), settings.signinHeading)
       } finally { await context.close() }

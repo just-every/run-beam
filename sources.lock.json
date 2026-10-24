@@ -901,7 +901,7 @@
       "executable": false
     },
     "public/beam.css": {
-      "sha256": "3736fd70edeb881eafa940e5a7409b381bd48585313644dcc66b1abb43cbd69f",
+      "sha256": "4741d825674e658f16b0ba9ef55ce574e7a4d3b199e56b1d64aad7bfddcb9f8b",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1536,6 +1536,10 @@
       "sha256": "a57d3dc0d803701c443345eae84a2ca6b2bc44264273fc00b52a445235278480",
       "executable": false
     },
+    "src/beam/brand-image.ts": {
+      "sha256": "d1d426cb5cb2e7f72d9e974bf1304f6c46bc9b2cd298bd19280a8a2d402a1df2",
+      "executable": false
+    },
     "src/beam/caption-file.ts": {
       "sha256": "ba83a4c94ebcaf7b201f23742f6d8cdc3ed74abfa5efb5dfc1abb683566a7b07",
       "executable": false
@@ -1549,7 +1553,7 @@
       "executable": false
     },
     "src/beam/certificates.ts": {
-      "sha256": "6031d064b566b63e201124068e37e35995c818d9e7f1b18670b0cc41f99a507e",
+      "sha256": "8aa05f9739506d5ef3fcc8ac9d611c015d9d821dcb67547a2fc1d131472640b7",
       "executable": false
     },
     "src/beam/collab.ts": {
@@ -1953,7 +1957,7 @@
       "executable": false
     },
     "src/beam/pdf.ts": {
-      "sha256": "8d10d7a0617564d92bd3b4eda50f6e57039d91bafb7b6062651a5697aa146e33",
+      "sha256": "f19716dd3c454bee5f8f28fc6d6863dc11768c736353b3ac04b8fce176f35448",
       "executable": false
     },
     "src/beam/people.ts": {
@@ -1965,7 +1969,7 @@
       "executable": false
     },
     "src/beam/portal-theme.ts": {
-      "sha256": "74a1f075086df0a1228af1510fa4ff7a99b8eee6cc96a0658a85ba9f169d2f82",
+      "sha256": "43bee797430c954692d831dec68b4377c6abb82fec1b029fbc94179191f3f6d6",
       "executable": false
     },
     "src/beam/practice.ts": {
@@ -2201,7 +2205,7 @@
       "executable": false
     },
     "src/beam/ui/compliance.ts": {
-      "sha256": "30eb9066a06ca31679feedaf8029ea2279c1da415c3b3a8540a080e4f79caa3d",
+      "sha256": "6e9e7eca0c064231813ff151bf68d32dae16be68f7feaf54e4f760990c5d2118",
       "executable": false
     },
     "src/beam/ui/course-access.ts": {
@@ -2245,7 +2249,7 @@
       "executable": false
     },
     "src/beam/ui/errors.ts": {
-      "sha256": "2f4df1b932c320716cd2f49f38e747e82127cc1f6b6e86c5cb323bb976ace6e5",
+      "sha256": "2ed97979d1ea8b97809084cdabf8b4575793e8978ab01f7e7aadd489df9f6ab9",
       "executable": false
     },
     "src/beam/ui/evidence.ts": {
@@ -2341,7 +2345,7 @@
       "executable": false
     },
     "src/beam/ui/portal-theme.ts": {
-      "sha256": "45b109f4b6bd4555601835ebf283765d1567341ee4b8f569828264db8d386ac5",
+      "sha256": "17b0a7307c5ac24f36b97c9d8cc16c5001629c6a15ca31472910349d10f03c49",
       "executable": false
     },
     "src/beam/ui/practice.ts": {
@@ -4437,7 +4441,7 @@
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
-      "sha256": "94a6ff9662ccf141ed453a34ce14c449fab6ec8263bb929b0e4a35612d09b8b8",
+      "sha256": "e5f4b71c653f95d2c9839c59f6d00c4683e2c50d125f1ba4bc80e980a5e95a18",
       "executable": false
     },
     "tests/beam/regression-discussions.mjs": {
