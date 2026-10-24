@@ -84,3 +84,52 @@ export async function rosterCheck(f) {
   assert.equal((await api('owner', 'people.batch.apply', { batch: leaving.id })).outcomes.deactivated, 1)
   assert.deepEqual([(await person('E1501')).employment, (await person('E1502')).employment], ['terminated', 'active'])
 }
+
+// Saved employer mappings produce ordinary, owner-reviewed roster batches without unattended writes.
+export async function rosterFeedCheck(f) {
+  const { api, h } = f
+  const headers = ['Employee', 'Name', 'Site', 'Employment']
+  const mapping = ['employeeId', 'name', 'location', 'employment']
+  const settings = { name: 'Paylocity roster', headers, mapping, intervalMinutes: 60, terminationLimit: 25 }
+  await api('manager', 'roster-feed.create', settings, 403)
+  await api('owner', 'roster-feed.create', { ...settings, automatic: true }, 409)
+  const feed = (await api('owner', 'roster-feed.create', settings)).id
+  await api('manager', 'roster-feeds', undefined, 403)
+  const upload = rows => file('synthetic-beam-roster.csv', [headers, ...rows].map(row => row.join(',')).join('\n'), 'text/csv')
+  const person = async () => (await api('owner', 'people')).members.find(row => row.employeeId === 'synthetic-beam-7')
+  const originalMailCount = h.mails.length
+  const firstFile = upload([['synthetic-beam-7', 'Frontline colleague', 'Austin', 'active']])
+  await api('manager', 'roster-feed.receive', { feed, file: firstFile }, 403)
+  const first = await api('owner', 'roster-feed.receive', { feed, file: firstFile })
+  assert.deepEqual([first.state, first.reason, await person(), h.mails.length], ['held', 'review_required', undefined, originalMailCount])
+  const duplicate = await api('owner', 'roster-feed.receive', { feed, file: firstFile })
+  assert.deepEqual([duplicate.id, duplicate.batch, duplicate.replayed], [first.id, first.batch, true])
+  await api('owner', 'people.batch.apply', { batch: first.batch })
+  const member = (await person()).id
+  const xlsx = await api('owner', 'roster-feed.receive', { feed, file: file('synthetic-beam-roster.xlsx', workbook([['Roster', [headers, ['synthetic-beam-7', 'Frontline colleague', 'Austin', 'active']]]])) })
+  assert.equal(xlsx.reason, 'review_required')
+  assert.ok(xlsx.batch)
+  const moved = await api('owner', 'roster-feed.receive', { feed, file: upload([['synthetic-beam-7', 'Frontline colleague', 'Dallas', 'active']]) })
+  assert.equal((await api('owner', `directory/${member}`)).person.location, 'Austin')
+  await api('owner', 'people.batch.apply', { batch: moved.batch })
+  assert.equal((await api('owner', `directory/${member}`)).person.location, 'Dallas')
+  const ambiguous = await api('owner', 'roster-feed.receive', { feed, file: upload([['synthetic-beam-7', 'Frontline colleague', 'Dallas', 'active'], ['synthetic-beam-7', 'Duplicate', 'Dallas', 'active']]) })
+  assert.equal(ambiguous.reason, 'ambiguous_or_invalid_rows')
+  const leaving = await api('owner', 'roster-feed.receive', { feed, file: upload([['synthetic-beam-7', 'Frontline colleague', 'Dallas', 'terminated']]) })
+  assert.equal(leaving.reason, 'mass_terminations')
+  assert.equal((await api('owner', `directory/${member}`)).person.employment, 'active')
+  const changed = await api('owner', 'roster-feed.receive', { feed, file: file('renamed.csv', 'Worker,Name,Site,Employment\nsynthetic-beam-8,Other,Austin,active\n', 'text/csv') })
+  assert.deepEqual([changed.reason, changed.batch], ['schema_changed', null])
+  const before = await api('owner', 'roster-feeds')
+  assert.equal(before.feeds.find(row => row.id === feed).stale, false)
+  // Advance only this feed's last-arrival timestamp to exercise a missed scheduled drop.
+  await h.db.prepare('UPDATE beam_roster_feeds SET last_received_at=? WHERE id=?').bind(Date.now() - 61 * 60000, feed).run()
+  const stale = await api('owner', 'roster-feeds')
+  assert.equal(stale.feeds.find(row => row.id === feed).stale, true)
+  assert.equal(stale.receipts.find(row => row.id === first.id).batchState, 'applied')
+  assert.equal(h.mails.length, originalMailCount)
+  await api('owner', 'people.batch.apply', { batch: leaving.batch })
+  assert.equal((await api('owner', `directory/${member}`)).person.employment, 'terminated')
+  assert.equal((await api('owner', 'roster-feed.receive', { feed, file: firstFile })).replayed, true)
+  assert.equal((await api('owner', `directory/${member}`)).person.employment, 'terminated')
+}

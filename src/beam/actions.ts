@@ -1,3 +1,4 @@
+import { createRosterFeed, receiveRosterFeed } from './connect/roster-feeds'
 import { configureFrontline, issueFrontline, unlockFrontline } from './frontline-auth'
 import { withdrawSourceDrafts } from './erasure-source-drafts'
 import { withdrawProposalSnapshots } from './erasure-proposals'
@@ -103,6 +104,7 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'roster-feed.create': createRosterFeed, 'roster-feed.receive': receiveRosterFeed,
   'source.ocr.close': closeSourceOcr,
   'source.ocr.configure': configureSourceOcr, 'source.ocr.run': runSourceOcr,
   'erasure.policy': saveErasurePolicy, 'erasure.hold': placeErasureHold, 'erasure.hold.release': releaseErasureHold,

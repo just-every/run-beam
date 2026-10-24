@@ -20,11 +20,18 @@ const recovery = `EXISTS(SELECT 1 FROM beam_admin_grants g WHERE g.member_id=m.i
 
 export async function configureFrontline(env: Bindings, actor: Actor, input: Input) {
   requireOwner(actor)
-  const enabled = input.flag('enabled')
-  await commit(env, [stmt(env, 'INSERT INTO beam_frontline_policy VALUES(1,?,1) ON CONFLICT(singleton) DO UPDATE SET enabled=excluded.enabled,revision=revision+1', enabled ? 1 : 0),
-    ...(!enabled ? [stmt(env, "UPDATE oa_sessions SET revoked_at=COALESCE(revoked_at,?) WHERE kind='password' AND operator_id IN (SELECT operator_id FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id)", now())] : [])],
-  { actor, action: 'frontline.policy', subject: 'frontline', detail: { enabled } })
-  return { enabled }
+  const previous = await one<{ enabled: number; password_enabled: number; pin_enabled: number; initial_days: number }>(env, 'SELECT * FROM beam_frontline_policy WHERE singleton=1')
+  const enabled = input.has('enabled') ? input.flag('enabled') : !!previous?.enabled
+  const passwordEnabled = input.has('passwordEnabled') ? input.flag('passwordEnabled') : previous?.password_enabled !== 0
+  const pinEnabled = input.has('pinEnabled') ? input.flag('pinEnabled') : previous?.pin_enabled !== 0
+  const initialDays = input.has('initialDays') ? input.integer('initialDays', { min: 1, max: 30 })! : previous?.initial_days ?? 7
+  await commit(env, [stmt(env, `INSERT INTO beam_frontline_policy(singleton,enabled,revision,password_enabled,pin_enabled,initial_days) VALUES(1,?,1,?,?,?)
+    ON CONFLICT(singleton) DO UPDATE SET enabled=excluded.enabled,revision=revision+1,password_enabled=excluded.password_enabled,pin_enabled=excluded.pin_enabled,initial_days=excluded.initial_days`, enabled ? 1 : 0, passwordEnabled ? 1 : 0, pinEnabled ? 1 : 0, initialDays),
+    stmt(env, `UPDATE oa_sessions SET revoked_at=COALESCE(revoked_at,?) WHERE kind='password' AND operator_id IN
+      (SELECT m.operator_id FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE ?=0 OR (c.mode='password' AND ?=0) OR (c.mode='pin' AND ?=0))`, now(), enabled ? 1 : 0, passwordEnabled ? 1 : 0, pinEnabled ? 1 : 0)],
+    { actor, action: 'frontline.policy', subject: 'frontline', detail: { enabled, passwordEnabled, pinEnabled, initialDays } })
+  return { enabled, passwordEnabled, pinEnabled, initialDays }
+
 }
 
 async function target(env: Bindings, actor: Actor, member: string) {
@@ -49,7 +56,8 @@ export async function issueFrontline(env: Bindings, actor: Actor, input: Input) 
   insist(!await one(env, 'SELECT 1 FROM beam_members WHERE lower(username)=? AND id<>?', username, person.id), 'username_in_use', 409)
   const mode = input.text('mode', { optional: true }) || 'password'
   insist(mode === 'password' || mode === 'pin', 'invalid_method')
-  const secret = random(), salt = random(), hash = await digest(secret, salt), expiresAt = now() + 7 * 86400000
+  const policy = await one<{ initial_days: number }>(env, 'SELECT initial_days FROM beam_frontline_policy WHERE singleton=1')
+  const secret = random(), salt = random(), hash = await digest(secret, salt), expiresAt = now() + (policy?.initial_days ?? 7) * 86400000
   const operator = person.operator_id || newId()
   const statements = []
   if (!person.operator_id) {
@@ -79,7 +87,7 @@ export async function frontlineResponse(env: Bindings, request: Request): Promis
     insist(request.method === 'POST', 'method_not_allowed', 405)
     insist(request.headers.get('origin') === env.AUTH_ORIGIN, 'invalid_origin', 403)
     insist(!request.headers.has('authorization'), 'human_required', 403)
-    const policy = await one<{ revision: number }>(env, 'SELECT revision FROM beam_frontline_policy WHERE singleton=1 AND enabled=1')
+    const policy = await one<{ revision: number; password_enabled: number; pin_enabled: number }>(env, 'SELECT revision,password_enabled,pin_enabled FROM beam_frontline_policy WHERE singleton=1 AND enabled=1')
     insist(policy, 'method_disabled', 403)
     insist((request.headers.get('content-type') || '').startsWith('application/json'), 'unsupported_content_type', 415)
     const input = await Input.from(request)
@@ -95,6 +103,7 @@ export async function frontlineResponse(env: Bindings, request: Request): Promis
     // Equal-cost verification also for unknown usernames. Public failures disclose no account details.
     const valid = same(await digest(secret, row?.salt || 'synthetic-beam-1'), row?.hash || '0'.repeat(64))
     insist(row && row.status === 'active' && row.employment !== 'terminated' && row.role !== 'owner' && row.role !== 'admin' && !row.recovery, 'invalid_credentials', 401)
+    insist(row.mode === 'pin' ? policy.pin_enabled === 1 : policy.password_enabled === 1, 'method_disabled', 403)
     insist(row.locked_until <= now(), 'invalid_credentials', 401)
     if (!valid) {
       await env.DB.prepare('UPDATE beam_frontline_credentials SET failures=failures+1,locked_until=CASE WHEN failures+1>=5 THEN ? ELSE locked_until END WHERE member_id=? AND revision=?').bind(now() + 900000, row.member_id, row.revision).run()
@@ -113,7 +122,7 @@ export async function frontlineResponse(env: Bindings, request: Request): Promis
       row.salt = salt
     }
     const result = await operatorAuth(env).admitVerifiedPassword(request, row.operator_id, { returnTo: '/app/learning' })
-    const current = await one(env, `SELECT 1 FROM beam_frontline_credentials c JOIN beam_frontline_policy p ON p.singleton=1 JOIN beam_members m ON m.id=c.member_id JOIN oa_operators o ON o.id=m.operator_id WHERE c.member_id=? AND c.revision=? AND c.salt=? AND p.enabled=1 AND p.revision=? AND m.employment<>'terminated' AND m.erased_at IS NULL AND m.erasure_pending=0 AND c.locked_until<=? AND o.role='member' AND o.status='active' AND NOT ${recovery}`, row.member_id, row.revision, row.salt, policy.revision, now(), now())
+    const current = await one(env, `SELECT 1 FROM beam_frontline_credentials c JOIN beam_frontline_policy p ON p.singleton=1 JOIN beam_members m ON m.id=c.member_id JOIN oa_operators o ON o.id=m.operator_id WHERE c.member_id=? AND c.revision=? AND c.salt=? AND p.enabled=1 AND p.revision=? AND ((c.mode='password' AND p.password_enabled=1) OR (c.mode='pin' AND p.pin_enabled=1)) AND m.employment<>'terminated' AND m.erased_at IS NULL AND m.erasure_pending=0 AND c.locked_until<=? AND o.role='member' AND o.status='active' AND NOT ${recovery}`, row.member_id, row.revision, row.salt, policy.revision, now(), now())
     if (!current) { await operatorAuth(env).signOut(new Request(request.url, { method: 'POST', headers: { origin: env.AUTH_ORIGIN, cookie: result.cookie.split(';')[0] } })); insist(false, 'invalid_credentials', 401) }
     await env.DB.prepare('UPDATE beam_frontline_credentials SET failures=0,locked_until=0 WHERE member_id=? AND revision=?').bind(row.member_id, row.revision).run()
     return answer({ returnTo: result.returnTo }, 200, result.cookie)

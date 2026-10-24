@@ -65,7 +65,7 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   insist(!await one(env, 'SELECT 1 FROM beam_members WHERE id=? AND (erasure_pending=1 OR erased_at IS NOT NULL)', member.id), 'member_erased', 403)
   if ('kind' in session && session.kind === 'password' && await one(env, 'SELECT 1 FROM beam_frontline_credentials WHERE member_id=?', member.id)) {
     insist(!owner && session.operator.role === 'member', 'workplace_recovery_required', 403)
-    insist(await one(env, `SELECT 1 FROM beam_members m JOIN beam_frontline_policy p ON p.singleton=1 WHERE m.id=? AND p.enabled=1 AND m.employment<>'terminated' AND NOT EXISTS(SELECT 1 FROM beam_admin_grants g WHERE g.member_id=m.id AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>?))`, member.id, now()), 'workplace_recovery_required', 403)
+    insist(await one(env, `SELECT 1 FROM beam_members m JOIN beam_frontline_policy p ON p.singleton=1 JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.id=? AND p.enabled=1 AND ((c.mode='password' AND p.password_enabled=1) OR (c.mode='pin' AND p.pin_enabled=1)) AND m.employment<>'terminated' AND NOT EXISTS(SELECT 1 FROM beam_admin_grants g WHERE g.member_id=m.id AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>?))`, member.id, now()), 'workplace_recovery_required', 403)
   }
   return resolveAuthority(env, member, { sessionId: session.id, sessionKind: 'kind' in session ? String(session.kind) : 'agent', email, owner, agent })
 }

@@ -1,3 +1,4 @@
+import { rosterFeeds } from './connect/roster-feeds'
 import { sourceOcrConfig, sourceOcrPreview } from './source-ocr'
 import { erasureSettings } from './erasure-policy'
 import { erasureReport } from './erasure'
@@ -75,6 +76,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  'roster-feeds': rosterFeeds,
   'source-ocr': sourceOcrConfig, 'source-ocr-preview': (env, actor, _request, id) => sourceOcrPreview(env, actor, id),
   'erasure-settings': erasureSettings, erasure: (env, actor, _request, id) => erasureReport(env, actor, id),
   webhooks: webhookView,
@@ -165,6 +167,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
+  [/^roster-feeds$/, 'roster-feeds'],
   [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
   [/^erasure-settings$/, 'erasure-settings'], [/^erasure\/([\w-]+)$/, 'erasure'],
   [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'], [/^xapi$/, 'xapi'],

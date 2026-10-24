@@ -413,7 +413,7 @@ The human owner enables the JSON-only web method with `frontline.policy` and
 `{ enabled: true }`; it starts disabled. The owner provisions a person who has
 an employee id using `frontline.issue` with `member`, `username` and
 `mode: password` or `pin`. It returns one initial secret once, expiring after
-seven days. A current team manager may reset an already-provisioned teammate
+the configured initial lifetime (seven days by default). A current team manager may reset an already-provisioned teammate
 through the same action; every reset ends existing sessions and audits actor,
 subject, method and expiry without secrets. `frontline.unlock` clears lockout
 within the same scope. Owner and current unit administrators keep workplace
@@ -423,7 +423,10 @@ Post JSON to `/auth/frontline` with exact Origin, `username` and `secret`.
 First use also requires `newPassword`: at least fifteen characters for a password
 or six numeric digits for a PIN. The initial secret is consumed atomically.
 The returned Base cookie signs the learner into the ordinary learning doors;
-there is no new sign-in screen yet. Five failed guesses lock the person for
+there is no new sign-in screen yet. The owner may set `passwordEnabled` and
+`pinEnabled` independently through `frontline.policy`, and `initialDays` from
+1 to 30. Disabling a method revokes its existing sessions permanently. The global
+`enabled` switch remains the kill switch. Five failed guesses lock the person for
 fifteen minutes; thirty requests per ten-minute network window are allowed.
 Password material uses salted PBKDF2-SHA-256 with 100,000 iterations, the Worker
 WebCrypto limit. Method disabling ends local password sessions; reset, access
@@ -432,6 +435,31 @@ old credential. Accounts without email use a non-deliverable internal key and
 never receive magic-link mail. Archives exclude credential rows and method
 activation; learning exports use their existing explicit inventory.
 
-People and sign-in UI, sheets and QR codes, configurable expiry, independent
-method switches, device throttling, SMS, shared tablets, native apps and HRIS
+People and sign-in UI, sheets and QR codes, device throttling, SMS, shared tablets, native apps and HRIS
 enrollment remain gaps; this is not the complete ORG-011 journey.
+
+## Roster feed preparation (CONNECT-019, partial)
+
+The human owner creates a saved mapping through `roster-feed.create` with
+`name`, ordered `headers` and `mapping` arrays, `intervalMinutes` from 15 to
+1440, and `terminationLimit` from 1 to 100 (percentage of rows). Mapping values
+are the existing roster target names, or `ignore`. Configuration is immutable;
+create a new feed to approve a changed schema. Automatic mode is unavailable.
+
+Post `feed` and a CSV or XLSX `file` to `roster-feed.receive`. The exact ordered
+headers must match. The result names a durable receipt, a hold reason and,
+where schema matches, an ordinary roster `batch`. All uploads wait for human
+review; no invitation, missing-person deactivation or automatic apply occurs.
+The owner inspects the existing roster preview and explicitly uses
+`people.batch.apply` to apply selected rows. Existing validation, resumability,
+erasure fences and audience synchronization still apply. Repeated bytes on the
+same feed return the original receipt and never create another batch. Interrupted
+preparation remains visible; no hidden retry or unattended action occurs.
+
+`GET /api/beam/roster-feeds` returns saved mappings, recent receipts and whether
+the last schema-valid arrival is overdue by the configured interval. A renamed
+column does not clear staleness. Schema changes, ambiguous or invalid rows and
+termination percentages above the limit have distinct hold reasons. This is
+manual preparation, without an SFTP service, cloud watcher, scheduled apply,
+AUTO-002 lifecycle enrollment or a configuration screen. Owner-only explicit
+review is the conservative default pending ct.

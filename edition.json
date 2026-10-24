@@ -89,6 +89,8 @@
           "migrations/core/0104_beam_evidence_notifications.sql",
           "migrations/core/0105_beam_announcement_reply_scope.sql",
           "migrations/core/0106_beam_frontline_auth.sql",
+          "migrations/core/0107_beam_frontline_methods.sql",
+          "migrations/core/0108_beam_roster_feed_previews.sql",
           "scripts/build-deployment-spec.mjs",
           "packaging.json"
         ]
