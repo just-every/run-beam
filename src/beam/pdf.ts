@@ -1,3 +1,4 @@
+import type { BrandImage } from './brand-image'
 // LEARN-002: a one-page, landscape, tagged PDF for a certificate. Assistive technology reads it in order: the document
 // carries its language and title, every line of text is a structure element (a heading or a paragraph) linked to its
 // marked content, and decoration is marked as an artifact. Text uses the standard Helvetica faces in WinAnsi encoding;
@@ -20,7 +21,7 @@ function literal(text: string) {
 // Average Helvetica advance widths (per 1000 em), close enough to centre a line.
 const width = (text: string, size: number, bold = false) => [...text].length * size * (bold ? 0.58 : 0.53)
 
-export function certificatePdf(title: string, lines: PdfLine[], accent: string, language = 'en-US'): Uint8Array<ArrayBuffer> {
+export function certificatePdf(title: string, lines: PdfLine[], accent: string, language = 'en-US', logo?: BrandImage): Uint8Array<ArrayBuffer> {
   const W = 792, H = 612
   const [r, g, b] = [1, 3, 5].map(index => parseInt(accent.slice(index, index + 2), 16) / 255)
   let y = H - 96
@@ -30,6 +31,11 @@ export function certificatePdf(title: string, lines: PdfLine[], accent: string, 
     const x = Math.max(48, (W - width(line.text, line.size, line.bold)) / 2)
     parts.push(`/${line.tag} <</MCID ${mcid}>> BDC BT /${line.bold ? 'F2' : 'F1'} ${line.size} Tf ${x.toFixed(1)} ${y.toFixed(1)} Td ${literal(line.text)} Tj ET EMC`)
   })
+  const imageId = 11 + lines.length
+  if (logo) {
+    const scale = Math.min(80 / logo.width, 32 / logo.height), width = logo.width * scale, height = logo.height * scale
+    parts.push(`/Artifact BMC q ${width.toFixed(2)} 0 0 ${height.toFixed(2)} ${((W-width)/2).toFixed(2)} 530 cm /Logo Do Q EMC`)
+  }
   const content = parts.join('\n')
   const first = 10
   const elements = lines.map((line, mcid) => `<< /Type /StructElem /S /${line.tag} /P 8 0 R /Pg 3 0 R /K ${mcid} >>`)
@@ -37,7 +43,7 @@ export function certificatePdf(title: string, lines: PdfLine[], accent: string, 
   const objects: Record<number, string> = {
     1: `<< /Type /Catalog /Pages 2 0 R /Lang (${language}) /MarkInfo << /Marked true >> /StructTreeRoot 6 0 R /ViewerPreferences << /DisplayDocTitle true >> >>`,
     2: '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    3: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 7 0 R /StructParents 0 /Tabs /S >>`,
+    3: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> ${logo ? `/XObject << /Logo ${imageId} 0 R >>` : ''} >> /Contents 7 0 R /StructParents 0 /Tabs /S >>`,
     4: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
     5: '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
     6: '<< /Type /StructTreeRoot /K [8 0 R] /ParentTree 9 0 R /ParentTreeNextKey 1 >>',
@@ -51,9 +57,15 @@ export function certificatePdf(title: string, lines: PdfLine[], accent: string, 
   let pdf = '%PDF-1.7\n%\xe2\xe3\xcf\xd3\n'
   const offsets: number[] = []
   for (let n = 1; n <= info; n++) { offsets[n] = pdf.length; pdf += `${n} 0 obj\n${objects[n]}\nendobj\n` }
+  if (logo) {
+    const data = Array.from(logo.data, byte => byte.toString(16).padStart(2, '0')).join('') + '>'
+    const image = `<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /Device${logo.colors === 1 ? 'Gray' : 'RGB'} /BitsPerComponent 8 /Filter [/ASCIIHexDecode /${logo.filter}] /Length ${data.length} >>\nstream\n${data}\nendstream`
+    offsets[imageId] = pdf.length; pdf += `${imageId} 0 obj\n${image}\nendobj\n`
+  }
+  const last = logo ? imageId : info
   const xref = pdf.length
-  pdf += `xref\n0 ${info + 1}\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}`
-  pdf += `trailer\n<< /Size ${info + 1} /Root 1 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+  pdf += `xref\n0 ${last + 1}\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}`
+  pdf += `trailer\n<< /Size ${last + 1} /Root 1 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF\n`
   // Every character above is one byte (latin1), so string offsets are byte offsets.
   const bytes = new Uint8Array(new ArrayBuffer(pdf.length))
   for (let index = 0; index < pdf.length; index++) bytes[index] = pdf.charCodeAt(index)

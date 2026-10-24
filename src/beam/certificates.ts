@@ -1,3 +1,5 @@
+import { brandImage } from './brand-image'
+import { sha256Hex as imageDigest } from './core'
 import { portalTheme } from './portal-theme'
 import { message } from './messages'
 import type { Language } from './language'
@@ -127,6 +129,15 @@ export async function certificatePdfResponse(env: Bindings, actor: Actor, id: st
     { text: `${tr('Certificate')} ${record.current.number}${record.current.correctedAt ? ` · ${message(actor.locale, 'corrected {date}, supersedes {number}', { date: formatDate(record.current.correctedAt, zone, actor.locale), number: record.number })}` : ''}`, size: 10, tag: 'P', gapBefore: t.signatoryName ? 18 : 40 },
     { text: tr('This certificate records completion of the issuer’s own training. It is not an accreditation or a statement of competence.'), size: 9, tag: 'P', gapBefore: 4 },
   ]
-  const bytes = certificatePdf(`${t.id ? t.heading : tr(t.heading)}: ${record.current.learner}, ${record.course}`, lines, (await portalTheme(env))?.primary ?? branding.primaryColor, actor.locale)
+  const theme = await portalTheme(env)
+  let logo
+  if (theme?.logo) {
+    const object = await env.FILES.get(`sha256/${theme.logo.sha256}`)
+    insist(object, 'file_missing', 503)
+    const image = new Uint8Array(await object.arrayBuffer())
+    insist(image.length === theme.logo.size && await imageDigest(image) === theme.logo.sha256, 'file_integrity', 503)
+    logo = brandImage(image)
+  }
+  const bytes = certificatePdf(`${t.id ? t.heading : tr(t.heading)}: ${record.current.learner}, ${record.course}`, lines, theme?.primary ?? branding.primaryColor, actor.locale, logo)
   return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="certificate-${record.current.number}.pdf"`, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } })
 }
