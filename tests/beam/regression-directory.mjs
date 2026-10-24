@@ -271,14 +271,14 @@ export async function portalThemeCheck(f) {
   try {
     const page = await document.getPage(1), operators = await page.getOperatorList()
     assert.ok(operators.fnArray.includes(85), 'downloaded certificate contains a decoded employer image')
-  } finally { await document.destroy() }
+  } finally { await document.loadingTask.destroy() }
   if (process.argv.includes('--browser')) {
-    await f.assign(await f.course('Pending portal learning'))
-    await portalThemeBrowserCheck(f, settings)
+    const pending = await f.assign(await f.course('Pending portal learning'))
+    await portalThemeBrowserCheck(f, settings, pending)
   }
 }
 
-async function portalThemeBrowserCheck(f, settings) {
+async function portalThemeBrowserCheck(f, settings, pending) {
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
   const { mkdir } = await import('node:fs/promises')
   const { join } = await import('node:path')
@@ -303,12 +303,15 @@ async function portalThemeBrowserCheck(f, settings) {
         await page.getByLabel('Primary color', { exact: true }).fill('#eeeeee')
         await page.getByRole('button', { name: 'Save theme', exact: true }).click()
         await page.getByRole('alert').waitFor()
-        assert.match(await page.getByRole('alert').innerText(), /contrast/)
+        assert.match(await page.getByRole('alert').innerText(), /primary and white/);
+        await page.screenshot({ path: join(directory, `${width}-portal-contrast.png`), fullPage: true })
         await page.getByLabel('Primary color', { exact: true }).fill(settings.primary)
+        const { syntheticImage } = await import('./fixtures.mjs')
+        for (const label of ['Logo', 'Favicon']) await page.getByLabel(label, { exact: true }).setInputFiles({ name: 'synthetic-beam-1.png', mimeType: 'image/png', buffer: syntheticImage })
         await page.getByRole('button', { name: 'Save theme', exact: true }).click()
         await page.getByRole('status').waitFor()
         await visit('learner', '/app/learning')
-        await visit('manager', '/app/manage')
+        await visit('manager', `/app/manage?status=open&select=${pending}`)
         const actions = page.locator('summary[data-tooltip]').first()
         await actions.focus()
         assert.equal(await actions.evaluate(element => getComputedStyle(element, '::after').opacity), '1')
@@ -320,6 +323,7 @@ async function portalThemeBrowserCheck(f, settings) {
         await page.screenshot({ path: join(directory, `${width}-portal-hover-tooltip.png`), fullPage: true })
         await visit(null, '/signin')
         assert.equal(await page.locator('h1').innerText(), settings.signinHeading)
+        assert.equal(await page.getByRole('button').first().evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(23, 63, 95)')
       } finally { await context.close() }
     }
   } finally { await browser.close() }
