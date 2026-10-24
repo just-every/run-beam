@@ -3,7 +3,8 @@ import { createMailSender } from './modules/mail/index.mjs'
 
 export function operatorMail(env) {
  if (env.RER_DEMO === '1' || env.AUTH_LOCAL === 'true') {
-  return createMailSender({ provider: 'development', mode: 'development' })
+  const sender = createMailSender({ provider: 'development', mode: 'development' })
+  return { async send(message) { return sender.send(await themeMail(env, message)) } }
  }
  if (!env.MAIL_PROVIDER || env.MAIL_PROVIDER === 'development') return undefined
  return {
