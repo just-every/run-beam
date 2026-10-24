@@ -38,7 +38,7 @@ export default withDemo({
   },
   async fetch(request, env, execution) {
     const imported = await beamImportDoor(request, runtimeBindings(env))
-    if (imported) return imported
+    if (imported) return themeDocument(runtimeBindings(env), imported)
     // Authorization is exclusively Beam's scoped agent door. Never allow a
     // co-present human cookie to turn a bearer request into a form/auth action.
     if (request.headers.has('authorization') && !new URL(request.url).pathname.startsWith('/api/beam/')) {
@@ -54,7 +54,7 @@ export default withDemo({
     const state = await setupStateResponse(request, runtimeBindings(env))
     if (state) return state
     const lobby = await lobbyResponse(request, runtimeBindings(env), identity)
-    if (lobby) return lobby
+    if (lobby) return themeDocument(runtimeBindings(env), lobby)
     const beam = await beamResponse(request, env)
     if (beam) return request.headers.has('authorization') && beam.status >= 400 ? rejectedResponse(request, beam) : themeDocument(runtimeBindings(env), beam)
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))

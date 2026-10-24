@@ -46,7 +46,7 @@ export function brandImage(bytes: Uint8Array): BrandImage {
   for (const part of chunks) { compressed.set(part, offset); offset += part.length }
   const stride = width * channels, expected = (stride + 1) * height
   let raw: Uint8Array
-  try { raw = inflateSync(compressed, { maxOutputLength: expected }) } catch { insist(false, 'theme_image_type') }
+  try { raw = inflateSync(compressed, { maxOutputLength: expected + 65536 }) } catch { insist(false, 'theme_image_type') }
   insist(raw.length === expected, 'theme_image_type')
   const decoded = new Uint8Array(stride * height), rgb = new Uint8Array(width * height * 3)
   const paeth = (a: number, b: number, c: number) => { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); return pa <= pb && pa <= pc ? a : pb <= pc ? b : c }
@@ -63,6 +63,8 @@ export function brandImage(bytes: Uint8Array): BrandImage {
       if (kind === 3) { const index = decoded[at]; insist(palette && index * 3 + 2 < palette.length, 'theme_image_type'); colors = [...palette.subarray(index * 3, index * 3 + 3)]; opacity = alpha?.[index] ?? 255 }
       else if (kind === 0 || kind === 4) { colors = [decoded[at], decoded[at], decoded[at]]; opacity = kind === 4 ? decoded[at + 1] : 255 }
       else { colors = [...decoded.subarray(at, at + 3)]; opacity = kind === 6 ? decoded[at + 3] : 255 }
+      if (kind === 0 && alpha?.length === 2 && decoded[at] === (alpha[0] * 256 + alpha[1])) opacity = 0
+      if (kind === 2 && alpha?.length === 6 && colors.every((value, index) => value === alpha![index * 2] * 256 + alpha![index * 2 + 1])) opacity = 0
       for (let channel = 0; channel < 3; channel++) rgb[pixel + channel] = Math.round((colors[channel] * opacity + 255 * (255 - opacity)) / 255)
     }
   }
