@@ -300,7 +300,9 @@
 .sec-side#move-in .sec-grid { grid-template-columns: 444px minmax(0, 1fr); gap: 72px; }
 .mi-run { margin-top: 36px; font-size: 13.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3d4356; }
 .mi-cmd { margin-top: 12px; padding: 13px 18px; border: 1px solid #d6dff8; border-radius: 10px; background: #eef2fe; overflow-x: auto; }
-.mi-cmd code { font-family: var(--font-mono); font-size: 14px; color: var(--ink); white-space: nowrap; }
+.mi-cmd code { font-family: var(--font-mono); font-size: 14px; color: var(--ink); white-space: normal; }
+.mi-cmd .nw { white-space: nowrap; }
+.mi-cmd .mi-alt { display: block; margin-top: 6px; color: #5b6275; }
 .mi-art { position: relative; padding: 0 0 230px; }
 .mi-import { width: 600px; padding: 26px 30px 24px; }
 .mi-head { display: flex; align-items: center; gap: 26px; }
@@ -491,8 +493,7 @@
   .cp-kv-wide div { flex-wrap: wrap; }
 
   .mi-cmd { padding: 12px 14px; }
-  .mi-cmd code { font-size: 12.5px; white-space: normal; }
-  .mi-cmd .nw { white-space: nowrap; }
+  .mi-cmd code { font-size: 13px; }
   .mi-import { padding: 16px; }
   .mi-head { gap: 14px; }
   .mi-head .disc, .mi-scorm .disc { --d: 48px; }

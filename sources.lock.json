@@ -279,7 +279,7 @@
       "executable": false
     },
     "docs/getting-started.md": {
-      "sha256": "e9171d1ee57334898388baa87ae4ca740eeac2a9984332ea28d3810b18756906",
+      "sha256": "ac1530b91470aa44bb7fe4e2aa6f802129cfe58ac7508dd40fd155aed5218097",
       "executable": false
     },
     "docs/learning.md": {
@@ -3899,7 +3899,7 @@
       "executable": false
     },
     "src/site/landing/copy.ts": {
-      "sha256": "23722cb842caf22947189986447fe5f1ee862317d393d3e41f14d5548232abfc",
+      "sha256": "00147f223b836110262810c644a42069051213fc230afa1fd290e92f87dc806e",
       "executable": false
     },
     "src/site/landing/hero.ts": {
@@ -3951,7 +3951,7 @@
       "executable": false
     },
     "src/site/landing/sections/move-in.ts": {
-      "sha256": "fe19b35ad725b9f4507a1938f2ac51a67e36125d1e2e6613a950bd09f8efc399",
+      "sha256": "fd898cb228e8d6a3be4bd9e931dbd1533d6e73e9d10dbb34deed5c82e7d8d8a6",
       "executable": false
     },
     "src/site/landing/sections/practical.ts": {
@@ -3987,7 +3987,7 @@
       "executable": false
     },
     "src/site/styles/sections.css": {
-      "sha256": "305df7376f8127ee757345692e0fb5559ee757a7ed34db275a8f720d1ebe7372",
+      "sha256": "96f4ee2db056e6673fdd85619864fa6774bbb94376d6862b25495da8bf217f56",
       "executable": false
     },
     "tests/beam/access-browser.mjs": {

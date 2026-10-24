@@ -26,7 +26,7 @@ export const sections = {
   redraft: { eyebrow: 'Rev 6 · Tue Oct 20 – Fri Oct 23', heading: 'Redrafted only where it changed.', body: 'One lesson and one question move to rev 6. Everyone keeps their progress.' },
   interlude: { tag: ['Door 9 · both wheels', 'chocked first · rev 6'], art: 'The Joliet cross-dock from the truck yard: three white reefer trailers backed into doors 7, 8 and 9, every wheel chocked, and at door 9 a worker in a hi-vis vest kneeling to set the second chock.' },
   compliance: { eyebrow: 'Compliance · Mon Nov 2 · 7:00 am', heading: ['California and Illinois,', 'on one page.'], body: 'TalentLMS history counts as current, labeled. Renewals and each state’s cycle schedule themselves.' },
-  moveIn: { eyebrow: 'Moving in · Tue Sep 29', heading: ['2,406 completions.', 'All carried over.'], body: 'Beam reads your TalentLMS export, credits current training and plays your SCORM files as they are.', run: 'Run it yourself', command: 'npx -y @runeditrun/rer dev just-every/run-beam' },
+  moveIn: { eyebrow: 'Moving in · Tue Sep 29', heading: ['2,406 completions.', 'All carried over.'], body: 'Beam reads your TalentLMS export, credits current training and plays your SCORM files as they are.', run: 'Run it yourself', command: 'curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-beam', alternative: 'Already have Node 22 or later? npx -y @runeditrun/rer dev just-every/run-beam' },
 }
 
 export const closing = {

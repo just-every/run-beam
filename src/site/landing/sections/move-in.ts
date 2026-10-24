@@ -7,6 +7,11 @@ import { disc, lines, section, steps } from '../parts'
 import { moveIn, rafael } from '../records'
 
 const check = (label = 'checked') => glyph('check', { size: 20, stroke: 2.6, label })
+// The start line and its alternative wrap only between words, keeping the installer's `install.sh | sh` together.
+const words = (line: string) => line.split(/(\S*install\.sh \| sh|\S+)/).map(part => {
+  const pipe = /^(.*\/)(install\.sh \| sh)$/.exec(part)
+  return pipe ? h`<span class="nw">${pipe[1]}</span><wbr><span class="nw">${pipe[2]}</span>` : part.trim() ? h`<span class="nw">${part}</span>` : part
+})
 
 export function moveInSection(): Html {
   const copy = sections.moveIn
@@ -18,8 +23,6 @@ export function moveInSection(): Html {
 <article class="card mi-scorm" aria-label="A SCORM 1.2 package playing"><header class="mi-head">${disc('file', 'marigold')}<p class="mi-title">cold-room-ppe.zip · SCORM 1.2</p></header>
 <dl class="mi-rows mi-rows-tight"><div><dt>${rafael.name} · Thu Oct 22</dt><dd>passed · 92 ${check('passed')}</dd></div><div><dt>Time</dt><dd>18 min</dd></div><div><dt>Resumed</dt><dd>${steps('tablet → phone')} ${check('resumed')}</dd></div></dl></article>
 </div>`
-  // The one start line breaks only before the repository at phone width.
-  const [start, repo] = copy.command.split(/ (?=just-every\/)/)
-  const extra = h`<p class="mi-run">${copy.run}</p><div class="mi-cmd" role="group" aria-label="Start Beam on your computer"><code><span class="nw">${start}</span> <span class="nw">${repo}</span></code></div>`
+  const extra = h`<p class="mi-run">${copy.run}</p><div class="mi-cmd" role="group" aria-label="Start Beam on your computer"><code>${words(copy.command)}</code><code class="mi-alt"># ${words(copy.alternative)}</code></div>`
   return section({ id: 'move-in', tone: 'white', eyebrow: copy.eyebrow, heading: lines(...copy.heading), body: copy.body, layout: 'side', art, extra })
 }
