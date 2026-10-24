@@ -58,6 +58,10 @@ export async function directoryCheck(f) {
   assert.deepEqual([back.rehired, back.created], [[ids.learner], []])
   assert.equal((await api('owner', `records/${ids.learner}`)).assignments.length, before)
   assert.equal((await api('owner', `directory/${ids.learner}`)).person.hireDate, '2026-10-05')
+  // Rehire never revives the terminated session; later journeys need a fresh ordinary sign-in.
+  await api('learner', 'me', undefined, 401)
+  cookies.learner = await h.signIn('learner@example.test')
+  assert.equal((await api('learner', 'me')).id, ids.learner)
 
   // Conflicts: E300's row carries the manager's email, and a new id carries the learner's: nothing changes, both wait.
   const held = await roster([['E300', 'Rosa Diaz', 'Rosa', 'manager@example.test', '', '', 'active', '', '', 'Front of house', '', '', '', ''], ['E900', 'Lee Learner', '', 'lee.learner@example.test', '', '', 'active', '', '', '', '', '', '', '']])

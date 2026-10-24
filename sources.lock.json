@@ -4424,7 +4424,7 @@
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
-      "sha256": "2f226f57daf552ac994fd86ec2c7b0395d7786d1b279597fe423ff34e154df3a",
+      "sha256": "903928e311741dd8dc3be10d71c79849603c698411d80727b31382127d6f0252",
       "executable": false
     },
     "tests/beam/regression-discussions.mjs": {
