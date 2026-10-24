@@ -129,3 +129,23 @@ A proposed replacement must additionally repeat the relevant import-custody
 journeys (BEAM-15) and retained command journey (BEAM-16); its exact candidate
 requires the full branch Verify before landing. Future identity, mail, native
 client, provider and importer clauses inherit this qualification as they ship.
+
+## Hosted delivery
+
+`packaging.json` declares Beam's frozen installation, build, verification, recovery,
+D1 migration sources and R2 files. After a real build, run `pnpm delivery:spec`
+to refresh the committed deployment specification and `pnpm check:deployment-spec`
+to check freshness. Package with
+`node scripts/delivery/base/cli.mjs package --config packaging.json --output rer-package`
+or generate the delivery artifact with
+`node scripts/delivery/base/cli.mjs artifact --config packaging.json`.
+Generated package and artifact directories are disposable. Managed delivery is
+dispatch only and uses the pinned trusted workflow.
+
+Hosted mail supports Resend, SendGrid, Cloudflare and the RER managed relay.
+Assisted setup requests the selected provider, verified sender and private API
+credential; Cloudflare also needs its account ID. RER assigns MAIL_PROVIDER,
+MAIL_FROM and MAIL_RELAY_URL and provisions the private MAIL_API_KEY. Relay
+URLs must use HTTPS without credentials, queries or fragments. Local development
+and demo runs send no external mail. Keep the existing installation
+identity so existing archives and import records remain addressable.

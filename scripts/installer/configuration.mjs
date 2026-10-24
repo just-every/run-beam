@@ -17,7 +17,7 @@ export function configurationIssues(env) {
   }
   if (env.AUTH_LOCAL !== undefined && !['true', 'false'].includes(env.AUTH_LOCAL)) issue('AUTH_LOCAL', 'Use true for a local runtime or false for a hosted installation.')
   if (local || env.RER_DEMO === '1') return issues // These runtimes intentionally use Base development mail.
-  if (!['resend', 'sendgrid', 'cloudflare'].includes(env.MAIL_PROVIDER)) issue('MAIL_PROVIDER', 'Select resend, sendgrid or cloudflare for hosted sign-in mail.')
+  if (!['resend', 'sendgrid', 'cloudflare', 'rer'].includes(env.MAIL_PROVIDER)) issue('MAIL_PROVIDER', 'Select resend, sendgrid, cloudflare or rer for hosted sign-in mail.')
   if (typeof env.MAIL_FROM !== 'string' || !env.MAIL_FROM.trim()) issue('MAIL_FROM', 'Set a single sender mailbox verified with the selected mail provider.')
   else {
     // Use the same address validation as a real send, without constructing or sending a message.
@@ -27,6 +27,12 @@ export function configurationIssues(env) {
     } catch { issue('MAIL_FROM', 'Set a single valid sender mailbox verified with the selected mail provider.') }
   }
   if (typeof env.MAIL_API_KEY !== 'string' || !env.MAIL_API_KEY.trim() || env.MAIL_API_KEY.length > 4096 || /[\s\x00-\x1f\x7f]/.test(env.MAIL_API_KEY)) issue('MAIL_API_KEY', 'Set the selected provider API credential in the installation secret store; use a nonempty value without whitespace, at most 4096 characters.')
+  if (env.MAIL_PROVIDER === 'rer') {
+    try {
+      const url = new URL(env.MAIL_RELAY_URL)
+      if (url.protocol !== 'https:' || url.username || url.password || env.MAIL_RELAY_URL.includes('?') || env.MAIL_RELAY_URL.includes('#') || url.href !== env.MAIL_RELAY_URL) throw Error()
+    } catch { issue('MAIL_RELAY_URL', 'Set the exact assigned HTTPS managed mail relay URL, without credentials, a query or a fragment.') }
+  }
   if (env.MAIL_PROVIDER === 'cloudflare' && (typeof env.MAIL_ACCOUNT_ID !== 'string' || !/^[a-f0-9]{32}$/i.test(env.MAIL_ACCOUNT_ID))) issue('MAIL_ACCOUNT_ID', 'Set the Cloudflare mail account id to its 32 hexadecimal characters.')
   return issues
 }

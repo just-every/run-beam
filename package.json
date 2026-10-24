@@ -1,6 +1,6 @@
 {
   "name": "@learning/beam",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -32,7 +32,9 @@
     "test:journey": "node tests/beam/journey.mjs",
     "test:site": "node --test tests/site/site.test.mjs",
     "diagnose:configuration": "node scripts/diagnose-configuration.mjs",
-    "test:legacy-restore": "node tests/beam/legacy-restore.mjs"
+    "test:legacy-restore": "node tests/beam/legacy-restore.mjs",
+    "delivery:spec": "node scripts/build-deployment-spec.mjs",
+    "check:deployment-spec": "node scripts/build-deployment-spec.mjs --check"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.41",

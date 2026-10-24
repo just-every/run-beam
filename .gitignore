@@ -14,3 +14,6 @@ test-results/
 exports/
 .rer/demo/
 .rer/demo-host/
+
+rer-package/
+delivery-artifact/

@@ -87,7 +87,9 @@
           "migrations/core/0102_beam_announcement_audiences.sql",
           "migrations/core/0103_beam_notification_recipients.sql",
           "migrations/core/0104_beam_evidence_notifications.sql",
-          "migrations/core/0105_beam_announcement_reply_scope.sql"
+          "migrations/core/0105_beam_announcement_reply_scope.sql",
+          "scripts/build-deployment-spec.mjs",
+          "packaging.json"
         ]
       }
     },
@@ -175,6 +177,78 @@
           {
             "path": "SEED-COMMAND-CONTRACT.md",
             "originPath": "SEED-COMMAND-CONTRACT.md"
+          }
+        ]
+      }
+    },
+    {
+      "id": "learning/beam-delivery",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "scripts/delivery/base/setup-manifest.mjs",
+          "scripts/delivery/base/payloads.mjs",
+          "scripts/delivery/base/sql-statements.mjs",
+          "scripts/delivery/base/capabilities.mjs",
+          "scripts/delivery/base/generators/validation.mjs"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "path": "modules/delivery-producer",
+          "paths": [
+            "setup-manifest.mjs",
+            "payloads.mjs",
+            "sql-statements.mjs",
+            "capabilities.mjs",
+            "generators/validation.mjs"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "scripts/delivery/base/setup-manifest.mjs",
+            "originPath": "setup-manifest.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/payloads.mjs",
+            "originPath": "payloads.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/sql-statements.mjs",
+            "originPath": "sql-statements.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/capabilities.mjs",
+            "originPath": "capabilities.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/generators/validation.mjs",
+            "originPath": "generators/validation.mjs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "learning/beam-mail",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/mail.server.mjs"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "path": "foundation/template/src",
+          "paths": [
+            "mail.server.mjs"
+          ]
+        },
+        "mappings": [
+          {
+            "path": "src/mail.server.mjs",
+            "originPath": "mail.server.mjs"
           }
         ]
       }

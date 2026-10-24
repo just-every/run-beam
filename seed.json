@@ -1,7 +1,7 @@
 {
   "id": "beam",
   "name": "Beam",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "maturity": "first-release-local",
   "category": "learning",
   "spine": {
@@ -105,5 +105,8 @@
       "portability",
       "import-kit"
     ]
-  }
+  },
+  "replaces": [
+    "TalentLMS"
+  ]
 }

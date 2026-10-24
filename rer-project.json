@@ -3,5 +3,25 @@
   "projectId": "learning/beam",
   "name": "Beam",
   "sourceRepository": "https://github.com/just-every/run-beam",
-  "license": "MIT"
+  "license": "MIT",
+  "deployment": {
+    "target": "cloudflare-workers",
+    "artifactFile": "rer-worker-artifact.json"
+  },
+  "operations": {
+    "setup": "pnpm install --frozen-lockfile && pnpm exec rer install",
+    "build": "pnpm run build",
+    "verify": "pnpm run verify && pnpm exec rer check --profile first-party && pnpm check:deployment-spec",
+    "artifact": "node scripts/delivery/base/cli.mjs artifact --config packaging.json",
+    "recovery": "Follow OPERATIONS.md and RUN-LOCALLY.md: pause writes and scheduled work, retain the exact source and private configuration, run rer export, restore with rer import into fresh empty D1 and R2 resources, and re-export to compare records and file bytes. Require fresh native owner sign-in before routing traffic. Preserve all applied migration names and bytes."
+  },
+  "verification": {
+    "migrationDirectories": [
+      "migrations/core"
+    ]
+  },
+  "setup": {
+    "path": "rer-setup.json",
+    "sha256": "c2d368e3abef0e342c610a60a763dd235fec29828f0d7c05244405e1cfb688f5"
+  }
 }
