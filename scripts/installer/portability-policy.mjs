@@ -19,7 +19,7 @@ const endedSession = row => {
 
 export default {
   product: 'learning/beam',
-  excludeTables: ['beam_lti_tokens'],
+  excludeTables: ['beam_lti_tokens', 'beam_frontline_credentials', 'beam_frontline_policy'],
   buckets: { files: { prefix: 'sha256/' } },
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   exportRow(table, row) {

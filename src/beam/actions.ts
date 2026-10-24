@@ -1,3 +1,4 @@
+import { configureFrontline, issueFrontline, unlockFrontline } from './frontline-auth'
 import { withdrawSourceDrafts } from './erasure-source-drafts'
 import { withdrawProposalSnapshots } from './erasure-proposals'
 import { withdrawRuleSnapshots } from './erasure-snapshots'
@@ -134,6 +135,9 @@ export const actions: Record<string, Handler> = {
   'business.configure': (env, actor, input) => configureBusiness(env, actor, input),
   'person.invite': (env, actor, input, request) => invitePerson(env, request, actor, input),
   'person.roles': (env, actor, input) => setRoles(env, actor, input),
+  'frontline.policy': (env, actor, input) => configureFrontline(env, actor, input),
+  'frontline.issue': (env, actor, input) => issueFrontline(env, actor, input),
+  'frontline.unlock': (env, actor, input) => unlockFrontline(env, actor, input),
   'person.access': (env, actor, input, request) => setAccess(env, request, actor, input),
   'person.directory': synced((env, actor, input, request) => editDirectory(env, request, actor, input)),
   'person.field': (env, actor, input) => saveDirectoryField(env, actor, input),

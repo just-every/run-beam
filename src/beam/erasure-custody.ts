@@ -31,6 +31,7 @@ const add = (category: Category, entries: Record<string, string>, keep = false) 
 }
 add('practice', { sequence_answers: `assignment_id IN (${assignments})`, sequence_state: `assignment_id IN (${assignments})`, practice_runs: 'learner_id=?1' })
 add('personal', {
+  frontline_credentials: 'member_id=?1',
   webhook_attempts: 'delivery_id IN (SELECT id FROM beam_webhook_deliveries WHERE event_id IN (SELECT id FROM beam_webhook_events WHERE learner_id=?1))',
   webhook_deliveries: 'event_id IN (SELECT id FROM beam_webhook_events WHERE learner_id=?1)', webhook_events: 'learner_id=?1',
   automation_attempts: 'execution_id IN (SELECT id FROM beam_automation_executions WHERE learner_id=?1)', automation_executions: 'learner_id=?1',

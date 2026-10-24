@@ -26,6 +26,11 @@ export async function archiveCheck(f) {
   const { api, h, cookies, ids, course, assign, lessons } = f
   await api('owner', 'source.ocr.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
   const ocrCipher = (await h.db.prepare('SELECT key_cipher FROM beam_source_ocr_config WHERE singleton=1').first()).key_cipher
+  await api('owner', 'person.directory', { member: ids.learner, employeeId: 'synthetic-beam-1' })
+  const frontline = await api('owner', 'frontline.issue', { member: ids.learner, username: 'synthetic-beam-1' })
+  await api('owner', 'frontline.policy', { enabled: true })
+  cookies.learner = await h.signIn('learner@example.test')
+  const verifier = await h.db.prepare('SELECT hash,salt FROM beam_frontline_credentials WHERE member_id=?').bind(ids.learner).first()
   const app = await api('owner', 'app.issue', { name: 'Payroll report sync', audience: 'reports.read', expiresInDays: 30 })
   const bearer = (worker, token) => worker.fetch('/api/beam/v1/report', { headers: { authorization: `Bearer ${token}` } })
   assert.equal((await bearer(h, app.token)).status, 200)
@@ -45,6 +50,7 @@ export async function archiveCheck(f) {
     const archive = join(scratch, 'withheld.rer'), legacy = join(scratch, 'legacy.rer')
     await exportArchive(await createPortability({ db: h.db, buckets: { files: h.files }, policy }), archive)
     const text = await readFile(archive, 'utf8')
+    assert.ok(!text.includes(verifier.hash) && !text.includes(verifier.salt) && !text.includes(frontline.initialSecret), 'frontline authentication secrets never travel in an installation archive')
     assert.ok(verifiers.every(value => !text.includes(value)), 'OPS-007: the archive carries no verifier hash')
     const rows = []
     for await (const record of fileRecords(archive, readArchive)) if (record.kind === 'part') rows.push(...record.items.filter(item => item.kind === 'row'))
@@ -67,6 +73,7 @@ export async function archiveCheck(f) {
         const owner = await t.signIn('owner@example.test')
         // First-run confirmation belongs to the installation, not the archive.
         await t.raw('/setup', { cookie: owner, form: new URLSearchParams({ confirm: 'yes' }) })
+        assert.equal((await t.raw('/auth/frontline', { body: { username: frontline.username, secret: frontline.initialSecret, newPassword: 'synthetic-beam-2-password' } })).status, 403, 'restored installs require explicit fresh authentication provisioning')
         const ocr = await t.api('source-ocr', owner)
         assert.deepEqual([ocr.enabled, ocr.hasKey], [false, false], 'an archive cannot reactivate OCR or restore its provider credential')
         const restored = (await t.api('app-credentials', owner)).find(item => item.id === app.id)

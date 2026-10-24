@@ -67,7 +67,7 @@ export async function personDirectory(env: Bindings, actor: Actor, memberId: str
   const fields = await directoryFields(env)
   const custom = JSON.parse(person.custom_json) as Record<string, string>
   const manager = person.manager_id ? await one<{ id: string; name: string; employee_id: string | null }>(env, 'SELECT id, name, employee_id FROM beam_members WHERE id = ?', person.manager_id) : null
-  const account = person.operator_id ? await one<{ email: string; status: string }>(env, 'SELECT lower(email) AS email, status FROM oa_operators WHERE id = ?', person.operator_id) : null
+  const account = person.operator_id ? await one<{ email: string; status: string }>(env, "SELECT lower(email) AS email, status FROM oa_operators WHERE id = ? AND email NOT LIKE '%@frontline.invalid'", person.operator_id) : null
   const record: Row = {
     id: person.id, employeeId: person.employee_id, name: person.name, preferredName: person.preferred_name, email: person.email, mobile: person.mobile, language: person.language,
     employment: person.employment, manager: manager && { id: manager.id, name: manager.name, employeeId: manager.employee_id }, jobRole: person.job_role, department: person.department,

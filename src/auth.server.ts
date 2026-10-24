@@ -1,3 +1,4 @@
+import { frontlineResponse } from './beam/frontline-auth'
 import { createDependencies } from './modules/dependencies/index.mjs'
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
 import { firstRunResponse } from './base/setup'
@@ -71,7 +72,7 @@ const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePoli
   && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.operator_id = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.id, Date.now()).first())
 
 export function operatorAuth(env: Bindings, scheduledPolicies?: () => ScheduledPolicy[], scheduledGuard?: RolePolicy) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), scheduledPolicies, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
@@ -87,6 +88,8 @@ async function configuredAuthResponse(request: Request, original: Bindings): Pro
   const linked = await createDependencies({ db: env.DB, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, origin: env.AUTH_ORIGIN, name: branding.name, provider: env.IDENTITY_PROVIDER, local: env.AUTH_LOCAL === 'true', auth: operatorAuth(env), claimOwner: token => createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:()=>request.headers.get('CF-Connecting-IP')??''})(new Request(env.AUTH_ORIGIN+'/auth/owner-claim',{method:'POST',headers:{Host:new URL(env.AUTH_ORIGIN).host,Origin:env.AUTH_ORIGIN,'Content-Type':'application/json'},body:JSON.stringify({token})})) }).handle(request)
   if (linked) return linked
  }
+ const frontline = await frontlineResponse(env, request)
+ if (frontline) return frontline
  // A signed owner claim (a hosted demo's front) when its keys are configured; a missing part fails closed.
  if (url.pathname === '/auth/owner-claim' && env.RER_OWNER_CLAIM_PUBLIC_KEYS) {
   const signed = await createOwnerClaimHandler({ db: env.DB, authConfig: authConfig(env), clientIp: req => req.headers.get('CF-Connecting-IP') ?? '', issuer: env.RER_OWNER_CLAIM_ISSUER ?? '', installationId: env.RER_OWNER_CLAIM_INSTALLATION_ID ?? '', appOrigin: env.RER_OWNER_CLAIM_APP_ORIGIN ?? env.AUTH_ORIGIN, expectedEmail: env.OWNER_EMAIL, publicKeys: JSON.parse(env.RER_OWNER_CLAIM_PUBLIC_KEYS) })(request)

@@ -406,3 +406,32 @@ grants existing temporary coverage and runs that assignment's existing controlle
 escalation. It retains original dates and assessment evidence. A full calendar or
 unknown return date remains visible for the substitute to resolve during paid
 work. No automatic slot, exception, completion or backdated evidence is created.
+
+## Frontline web credentials (ORG-011, partial)
+
+The human owner enables the JSON-only web method with `frontline.policy` and
+`{ enabled: true }`; it starts disabled. The owner provisions a person who has
+an employee id using `frontline.issue` with `member`, `username` and
+`mode: password` or `pin`. It returns one initial secret once, expiring after
+seven days. A current team manager may reset an already-provisioned teammate
+through the same action; every reset ends existing sessions and audits actor,
+subject, method and expiry without secrets. `frontline.unlock` clears lockout
+within the same scope. Owner and current unit administrators keep workplace
+recovery. This conservative provisioning default awaits ct.
+
+Post JSON to `/auth/frontline` with exact Origin, `username` and `secret`.
+First use also requires `newPassword`: at least fifteen characters for a password
+or six numeric digits for a PIN. The initial secret is consumed atomically.
+The returned Base cookie signs the learner into the ordinary learning doors;
+there is no new sign-in screen yet. Five failed guesses lock the person for
+fifteen minutes; thirty requests per ten-minute network window are allowed.
+Password material uses salted PBKDF2-SHA-256 with 100,000 iterations, the Worker
+WebCrypto limit. Method disabling ends local password sessions; reset, access
+removal and termination invalidate earlier sessions. Rehire never restores the
+old credential. Accounts without email use a non-deliverable internal key and
+never receive magic-link mail. Archives exclude credential rows and method
+activation; learning exports use their existing explicit inventory.
+
+People and sign-in UI, sheets and QR codes, configurable expiry, independent
+method switches, device throttling, SMS, shared tablets, native apps and HRIS
+enrollment remain gaps; this is not the complete ORG-011 journey.
