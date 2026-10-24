@@ -308,7 +308,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "4174ef05dce3f77746bcf01ad594047e4768b3b0fe634ddcd95a60fe67a9ca0b",
+      "sha256": "8ac79052544ae7c749d8d23a9ca3077ca4ad243f10a336a7b0e8600d6bff0fab",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "4c320ba319d35825169cc73416b741f973b8dba306009d3d5d39f8c6f8e2cffe",
+      "sha256": "9da0c2a549e8503832aeebfdb296a6909dc87ec4c002323103ee1e45d2a2e7d4",
       "executable": false
     },
     "base-copies.json": {
@@ -328,7 +328,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6823a492dbbdf2dfaf93e0741e5c0d799329ec867fcadd40e88e469544b79176",
+      "sha256": "6104d0ec3d634089e4f758bf14d19b55c2ab605e3a91af5adec7054297ea8208",
       "executable": false
     },
     "DEMO.md": {
@@ -2032,7 +2032,7 @@
       "executable": false
     },
     "src/beam/roster-batch.ts": {
-      "sha256": "96e49e3b46b48623ffc553a3db21fafae789ff765af8ac81143f35f00d00d672",
+      "sha256": "2dd826c255751af9e71dd786c037691da55db5aa473a65f21f4f2f6fb74493b5",
       "executable": false
     },
     "src/beam/scope.ts": {
@@ -4364,7 +4364,7 @@
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {
-      "sha256": "4071130a2a34a3517f80c0807876c33fb07389303a3d3628f88c739a602c0fc5",
+      "sha256": "92d23bb7b673662f14079ef88e9c055be36e7d4bbf5bbddda19f14779869211c",
       "executable": false
     },
     "tests/beam/regression-attendance.mjs": {
@@ -4424,7 +4424,7 @@
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
-      "sha256": "903928e311741dd8dc3be10d71c79849603c698411d80727b31382127d6f0252",
+      "sha256": "38fad24e7a4b79ab29d830edb4d3f66e69584954afaf184ef124357b7052c23e",
       "executable": false
     },
     "tests/beam/regression-discussions.mjs": {
@@ -4520,7 +4520,7 @@
       "executable": false
     },
     "tests/beam/regression-roster.mjs": {
-      "sha256": "ce54b6d65576c91afaf7890412e6a36d6f4eedf0e9313ecca4eb04de01c84b14",
+      "sha256": "07dfdd96adb07d87480321cb348af079c97b721962c22bbaefc62daa5cdb68a9",
       "executable": false
     },
     "tests/beam/regression-seats.mjs": {

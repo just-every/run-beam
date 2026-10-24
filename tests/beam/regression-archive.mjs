@@ -54,6 +54,7 @@ export async function archiveCheck(f) {
     assert.ok(verifiers.every(value => !text.includes(value)), 'OPS-007: the archive carries no verifier hash')
     const rows = []
     for await (const record of fileRecords(archive, readArchive)) if (record.kind === 'part') rows.push(...record.items.filter(item => item.kind === 'row'))
+    assert.ok(!rows.some(item => ['beam_frontline_credentials', 'beam_frontline_policy'].includes(item.table)), 'archives omit both frontline credential rows and method activation')
     const row = (table, id) => rows.find(item => item.table === table && item.row.id === id).row
     const credential = row('beam_app_credentials', app.id)
     assert.deepEqual([credential.secret_sha256, credential.issued_by, credential.audience, credential.expires_at, credential.revoked_at], [WITHHELD, ids.owner, 'reports.read', app.expiresAt, null], 'OPS-007: the credential keeps its lineage without its hash')

@@ -141,6 +141,9 @@ export async function previewBatch(env: Bindings, actor: Actor, input: Input) {
   if (existing) {
     const batch = await requireBatch(env, actor, existing)
     insist(batch.state === 'preview', 'batch_applied', 409)
+    if (await one(env, 'SELECT 1 FROM beam_roster_feed_receipts WHERE batch_id=?', existing)) {
+      insist(!input.flag('invite'), 'feed_invitations_forbidden', 409)
+    }
     headers = JSON.parse(batch.headers_json); previous = JSON.parse(batch.mapping_json); filename = batch.filename
     lines = (await rowsOf(env, existing)).filter(row => row.line !== null).map(row => JSON.parse(row.cells_json))
   } else {

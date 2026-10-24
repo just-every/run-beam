@@ -87,9 +87,9 @@ export async function rosterCheck(f) {
 
 // Saved employer mappings produce ordinary, owner-reviewed roster batches without unattended writes.
 export async function rosterFeedCheck(f) {
-  const { api, h } = f
-  const headers = ['Employee', 'Name', 'Site', 'Employment']
-  const mapping = ['employeeId', 'name', 'location', 'employment']
+  const { api, h, ids } = f
+  const headers = ['Employee', 'Name', 'Site', 'Employment', 'Email']
+  const mapping = ['employeeId', 'name', 'location', 'employment', 'email']
   const settings = { name: 'Paylocity roster', headers, mapping, intervalMinutes: 60, terminationLimit: 25 }
   await api('manager', 'roster-feed.create', settings, 403)
   await api('owner', 'roster-feed.create', { ...settings, automatic: true }, 409)
@@ -97,13 +97,22 @@ export async function rosterFeedCheck(f) {
   await api('manager', 'roster-feeds', undefined, 403)
   const upload = rows => file('synthetic-beam-roster.csv', [headers, ...rows].map(row => row.join(',')).join('\n'), 'text/csv')
   const person = async () => (await api('owner', 'people')).members.find(row => row.employeeId === 'synthetic-beam-7')
+  // A real learning administrator can review their own ordinary batches, but never this owner's feed.
+  const unit = (await api('owner', 'unit.create', { name: 'Roster administrators' })).id
+  await api('owner', 'admin.grant', { unit, member: ids.other })
   const originalMailCount = h.mails.length
-  const firstFile = upload([['synthetic-beam-7', 'Frontline colleague', 'Austin', 'active']])
+  const firstFile = upload([['synthetic-beam-7', 'Frontline colleague', 'Austin', 'active', 'synthetic-beam-7@example.test']])
   await api('manager', 'roster-feed.receive', { feed, file: firstFile }, 403)
   const first = await api('owner', 'roster-feed.receive', { feed, file: firstFile })
   assert.deepEqual([first.state, first.reason, await person(), h.mails.length], ['held', 'review_required', undefined, originalMailCount])
   const duplicate = await api('owner', 'roster-feed.receive', { feed, file: firstFile })
   assert.deepEqual([duplicate.id, duplicate.batch, duplicate.replayed], [first.id, first.batch, true])
+  await api('manager', 'people.batch.apply', { batch: first.batch }, 403)
+  await api('other', 'people.batch.apply', { batch: first.batch }, 404)
+  await api('other', 'people.batch.preview', { batch: first.batch }, 404)
+  assert.equal(await person(), undefined)
+  await api('owner', 'people.batch.preview', { batch: first.batch, invite: true }, 409)
+  assert.deepEqual([await person(), h.mails.length], [undefined, originalMailCount])
   await api('owner', 'people.batch.apply', { batch: first.batch })
   const member = (await person()).id
   const xlsx = await api('owner', 'roster-feed.receive', { feed, file: file('synthetic-beam-roster.xlsx', workbook([['Roster', [headers, ['synthetic-beam-7', 'Frontline colleague', 'Austin', 'active']]]])) })

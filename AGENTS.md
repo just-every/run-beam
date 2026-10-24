@@ -417,7 +417,7 @@ the configured initial lifetime (seven days by default). A current team manager 
 through the same action; every reset ends existing sessions and audits actor,
 subject, method and expiry without secrets. `frontline.unlock` clears lockout
 within the same scope. Owner and current unit administrators keep workplace
-recovery. This conservative provisioning default awaits ct.
+recovery. ct approved this provisioning boundary as adopted, 24 October.
 
 Post JSON to `/auth/frontline` with exact Origin, `username` and `secret`.
 First use also requires `newPassword`: at least fifteen characters for a password
@@ -461,5 +461,5 @@ the last schema-valid arrival is overdue by the configured interval. A renamed
 column does not clear staleness. Schema changes, ambiguous or invalid rows and
 termination percentages above the limit have distinct hold reasons. This is
 manual preparation, without an SFTP service, cloud watcher, scheduled apply,
-AUTO-002 lifecycle enrollment or a configuration screen. Owner-only explicit
-review is the conservative default pending ct.
+AUTO-002 lifecycle enrollment or a configuration screen. ct approved owner-only explicit
+review for every file as adopted, 24 October; no invitations, unattended provider calls or automatic application. A feed preview cannot be changed to enable invitations.
