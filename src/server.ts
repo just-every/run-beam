@@ -1,3 +1,4 @@
+import { themeAsset, themeDocument } from './beam/portal-theme'
 import { runWebhooks } from './beam/webhooks'
 import { runRenewals } from './beam/renewals'
 import { runEscalations } from './beam/escalations'
@@ -43,17 +44,19 @@ export default withDemo({
     if (request.headers.has('authorization') && !new URL(request.url).pathname.startsWith('/api/beam/')) {
       return rejectedResponse(request, Response.json({ error: 'agent_scope_forbidden' }, { status: 403, headers: { 'cache-control': 'no-store' } }))
     }
+    const themedAsset = await themeAsset(runtimeBindings(env), request)
+    if (themedAsset) return themedAsset
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
     const auth = await authResponse(request, env)
-    if (auth) return auth
+    if (auth) return themeDocument(runtimeBindings(env), auth, new URL(request.url).pathname === '/signin')
     // The installed variant: the Lobby at / and the public claim state it reads.
     const state = await setupStateResponse(request, runtimeBindings(env))
     if (state) return state
     const lobby = await lobbyResponse(request, runtimeBindings(env), identity)
     if (lobby) return lobby
     const beam = await beamResponse(request, env)
-    if (beam) return request.headers.has('authorization') && beam.status >= 400 ? rejectedResponse(request, beam) : beam
+    if (beam) return request.headers.has('authorization') && beam.status >= 400 ? rejectedResponse(request, beam) : themeDocument(runtimeBindings(env), beam)
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

@@ -1,3 +1,4 @@
+import { themeSettings } from './portal-theme'
 import { rosterFeeds } from './connect/roster-feeds'
 import { sourceOcrConfig, sourceOcrPreview } from './source-ocr'
 import { erasureSettings } from './erasure-policy'
@@ -76,6 +77,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  theme: themeSettings,
   'roster-feeds': rosterFeeds,
   'source-ocr': sourceOcrConfig, 'source-ocr-preview': (env, actor, _request, id) => sourceOcrPreview(env, actor, id),
   'erasure-settings': erasureSettings, erasure: (env, actor, _request, id) => erasureReport(env, actor, id),

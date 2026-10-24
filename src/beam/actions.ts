@@ -1,3 +1,4 @@
+import { saveTheme } from './portal-theme'
 import { createRosterFeed, receiveRosterFeed } from './connect/roster-feeds'
 import { configureFrontline, issueFrontline, unlockFrontline } from './frontline-auth'
 import { withdrawSourceDrafts } from './erasure-source-drafts'
@@ -104,6 +105,7 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'theme.save': saveTheme,
   'roster-feed.create': createRosterFeed, 'roster-feed.receive': receiveRosterFeed,
   'source.ocr.close': closeSourceOcr,
   'source.ocr.configure': configureSourceOcr, 'source.ocr.run': runSourceOcr,
