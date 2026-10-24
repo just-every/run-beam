@@ -1450,7 +1450,7 @@
       "executable": false
     },
     "src/beam/actor.ts": {
-      "sha256": "e5addcdc1e7bc3d8547c73354dbcd76a84b4791dd7baeec0431c40ad5be7091a",
+      "sha256": "51dc3b3237576fc660817d56ff8eace00666793782c99926231250f763802938",
       "executable": false
     },
     "src/beam/agent-credentials.ts": {
@@ -1694,7 +1694,7 @@
       "executable": false
     },
     "src/beam/frontline-auth.ts": {
-      "sha256": "b0f9b8877d335d8a6101394175b0ac4919709c12b946758eecf65855a38cb514",
+      "sha256": "495b63841bf1adabc0a7bbcf661d2b193dbf2399c45636dd08626eb3a04842e4",
       "executable": false
     },
     "src/beam/history.ts": {
@@ -4410,7 +4410,7 @@
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
-      "sha256": "a944daf23453a054761b76a9a48845d26e3566dda382ba3b1e6f80ffb4c2eefd",
+      "sha256": "1f770f7c016e32c7e8d9e41610ff0d5d5573fff375512019b501a78e0abcbd79",
       "executable": false
     },
     "tests/beam/regression-discussions.mjs": {

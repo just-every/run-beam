@@ -33,7 +33,7 @@ async function target(env: Bindings, actor: Actor, member: string) {
     `SELECT m.*,o.role,${recovery} AS recovery FROM beam_members m LEFT JOIN oa_operators o ON o.id=m.operator_id WHERE m.id=? AND m.erased_at IS NULL AND m.erasure_pending=0`, now(), member)
   insist(row, 'person_not_found', 404)
   insist(actor.owner || !!await one(env, 'SELECT 1 FROM beam_team_members WHERE member_id=? AND team_id IN (SELECT value FROM json_each(?))', member, JSON.stringify(actor.managedTeams)), 'outside_your_team', 403)
-  insist(row.role !== 'owner' && !row.recovery, 'workplace_recovery_required', 403)
+  insist(row.role !== 'owner' && row.role !== 'admin' && !row.recovery, 'workplace_recovery_required', 403)
   insist(row.employment !== 'terminated', 'person_inactive', 409)
   return row
 }
@@ -94,7 +94,7 @@ export async function frontlineResponse(env: Bindings, request: Request): Promis
        WHERE lower(m.username)=? AND m.erased_at IS NULL AND m.erasure_pending=0`, now(), username)
     // Equal-cost verification also for unknown usernames. Public failures disclose no account details.
     const valid = same(await digest(secret, row?.salt || 'synthetic-beam-1'), row?.hash || '0'.repeat(64))
-    insist(row && row.status === 'active' && row.employment !== 'terminated' && row.role !== 'owner' && !row.recovery, 'invalid_credentials', 401)
+    insist(row && row.status === 'active' && row.employment !== 'terminated' && row.role !== 'owner' && row.role !== 'admin' && !row.recovery, 'invalid_credentials', 401)
     insist(row.locked_until <= now(), 'invalid_credentials', 401)
     if (!valid) {
       await env.DB.prepare('UPDATE beam_frontline_credentials SET failures=failures+1,locked_until=CASE WHEN failures+1>=5 THEN ? ELSE locked_until END WHERE member_id=? AND revision=?').bind(now() + 900000, row.member_id, row.revision).run()
@@ -113,7 +113,7 @@ export async function frontlineResponse(env: Bindings, request: Request): Promis
       row.salt = salt
     }
     const result = await operatorAuth(env).admitVerifiedPassword(request, row.operator_id, { returnTo: '/app/learning' })
-    const current = await one(env, `SELECT 1 FROM beam_frontline_credentials c JOIN beam_frontline_policy p ON p.singleton=1 JOIN beam_members m ON m.id=c.member_id JOIN oa_operators o ON o.id=m.operator_id WHERE c.member_id=? AND c.revision=? AND c.salt=? AND p.enabled=1 AND p.revision=? AND m.employment<>'terminated' AND m.erased_at IS NULL AND m.erasure_pending=0 AND c.locked_until<=? AND o.role<>'owner' AND o.status='active' AND NOT ${recovery}`, row.member_id, row.revision, row.salt, policy.revision, now(), now())
+    const current = await one(env, `SELECT 1 FROM beam_frontline_credentials c JOIN beam_frontline_policy p ON p.singleton=1 JOIN beam_members m ON m.id=c.member_id JOIN oa_operators o ON o.id=m.operator_id WHERE c.member_id=? AND c.revision=? AND c.salt=? AND p.enabled=1 AND p.revision=? AND m.employment<>'terminated' AND m.erased_at IS NULL AND m.erasure_pending=0 AND c.locked_until<=? AND o.role='member' AND o.status='active' AND NOT ${recovery}`, row.member_id, row.revision, row.salt, policy.revision, now(), now())
     if (!current) { await operatorAuth(env).signOut(new Request(request.url, { method: 'POST', headers: { origin: env.AUTH_ORIGIN, cookie: result.cookie.split(';')[0] } })); insist(false, 'invalid_credentials', 401) }
     await env.DB.prepare('UPDATE beam_frontline_credentials SET failures=0,locked_until=0 WHERE member_id=? AND revision=?').bind(row.member_id, row.revision).run()
     return answer({ returnTo: result.returnTo }, 200, result.cookie)
