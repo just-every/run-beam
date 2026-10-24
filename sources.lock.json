@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "c54908751715ace2bb0d17934a3d46e180e118433ac2929666c07454b67016e6",
+  "manifest": "4d60f0c3a42246cb5aa69f9ef5a9225b20a9f2c2f27bd2624ef16741daa6a95b",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",

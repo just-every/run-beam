@@ -57,7 +57,9 @@ export async function issueFrontline(env: Bindings, actor: Actor, input: Input) 
   const mode = input.text('mode', { optional: true }) || 'password'
   insist(mode === 'password' || mode === 'pin', 'invalid_method')
   const policy = await one<{ initial_days: number }>(env, 'SELECT initial_days FROM beam_frontline_policy WHERE singleton=1')
-  const secret = random(), salt = random(), hash = await digest(secret, salt), expiresAt = now() + (policy?.initial_days ?? 7) * 86400000
+  // Preparation time belongs to the initial-secret lifetime.
+  const expiresAt = now() + (policy?.initial_days ?? 7) * 86400000
+  const secret = random(), salt = random(), hash = await digest(secret, salt)
   const operator = person.operator_id || newId()
   const statements = []
   if (!person.operator_id) {
@@ -109,8 +111,9 @@ export async function frontlineResponse(env: Bindings, request: Request): Promis
       await env.DB.prepare('UPDATE beam_frontline_credentials SET failures=failures+1,locked_until=CASE WHEN failures+1>=5 THEN ? ELSE locked_until END WHERE member_id=? AND revision=?').bind(now() + 900000, row.member_id, row.revision).run()
       return answer({ error: 'invalid_credentials' }, 401)
     }
-    if (row.initial_expires !== null) {
-      insist(row.initial_expires > now(), 'invalid_credentials', 401)
+    const initialExpires = row.initial_expires
+    if (initialExpires !== null) {
+      insist(initialExpires > now(), 'invalid_credentials', 401)
       const password = input.json('newPassword')
       insist(typeof password === 'string' && password.length <= 256, 'new_password_required')
       insist(row.mode === 'pin' ? /^\d{6,}$/.test(password) : password.length >= 15, 'weak_password')
@@ -123,7 +126,8 @@ export async function frontlineResponse(env: Bindings, request: Request): Promis
     }
     const result = await operatorAuth(env).admitVerifiedPassword(request, row.operator_id, { returnTo: '/app/learning' })
     const current = await one(env, `SELECT 1 FROM beam_frontline_credentials c JOIN beam_frontline_policy p ON p.singleton=1 JOIN beam_members m ON m.id=c.member_id JOIN oa_operators o ON o.id=m.operator_id WHERE c.member_id=? AND c.revision=? AND c.salt=? AND p.enabled=1 AND p.revision=? AND ((c.mode='password' AND p.password_enabled=1) OR (c.mode='pin' AND p.pin_enabled=1)) AND m.employment<>'terminated' AND m.erased_at IS NULL AND m.erasure_pending=0 AND c.locked_until<=? AND o.role='member' AND o.status='active' AND NOT ${recovery}`, row.member_id, row.revision, row.salt, policy.revision, now(), now())
-    if (!current) { await operatorAuth(env).signOut(new Request(request.url, { method: 'POST', headers: { origin: env.AUTH_ORIGIN, cookie: result.cookie.split(';')[0] } })); insist(false, 'invalid_credentials', 401) }
+    // Base session preparation must not carry a first use past its deadline.
+    if (!current || initialExpires !== null && initialExpires <= now()) { await operatorAuth(env).signOut(new Request(request.url, { method: 'POST', headers: { origin: env.AUTH_ORIGIN, cookie: result.cookie.split(';')[0] } })); insist(false, 'invalid_credentials', 401) }
     await env.DB.prepare('UPDATE beam_frontline_credentials SET failures=0,locked_until=0 WHERE member_id=? AND revision=?').bind(row.member_id, row.revision).run()
     return answer({ returnTo: result.returnTo }, 200, result.cookie)
   } catch (error) {

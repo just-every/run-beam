@@ -91,6 +91,7 @@
           "migrations/core/0106_beam_frontline_auth.sql",
           "migrations/core/0107_beam_frontline_methods.sql",
           "migrations/core/0108_beam_roster_feed_previews.sql",
+          "migrations/core/0109_beam_portal_theme.sql",
           "scripts/build-deployment-spec.mjs",
           "packaging.json"
         ]

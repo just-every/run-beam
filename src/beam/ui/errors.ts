@@ -1,5 +1,10 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  theme_contrast_primary: 'primary and white fail contrast. Choose a primary color with a contrast ratio of at least 4.5:1 against white.',
+  theme_contrast_accent: 'accent and white fail contrast. Choose an accent color with a contrast ratio of at least 4.5:1 against white.',
+  invalid_theme_color: 'enter each color as a six-digit hexadecimal value, such as #243e67.',
+  theme_image_type: 'upload a PNG, JPEG or WebP image. Active image formats are refused.',
+  invalid_sender_name: 'use a plain sender name without line breaks, quotes or angle brackets.',
   package_invalid_manifest: 'the package manifest is invalid. Correct the named problem in the source package and upload it again.',
   package_unsupported_feature: 'this package uses a feature Beam cannot play. The unsupported feature is named below; use a supported export before assigning it.',
   package_invalid_zip: 'the ZIP is damaged or exceeds the supported package limits. Re-export the original package and try again.',
