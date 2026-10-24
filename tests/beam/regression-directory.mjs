@@ -261,7 +261,7 @@ export async function portalThemeCheck(f) {
   assert.ok(mail.html.includes('#173f5f') && mail.html.includes('/beam-theme/logo'))
   assert.ok(mail.text.includes(`/app/learn/${assignment}`))
   await f.lessons(assignment)
-  const certificate = (await api('learner', 'records/me')).completions.find(value => value.course === c.id).certificate
+  const certificate = (await api('learner', `records/${f.ids.learner}`)).completions.find(value => value.course === c.id).certificate
   const pdf = await h.raw(`/app/certificates/${certificate}.pdf`, { cookie: cookies.learner })
   assert.equal(pdf.status, 200)
   const pdfBytes = Buffer.from(await pdf.arrayBuffer())
