@@ -8,7 +8,7 @@ export const LEARNING_INVENTORY = {
   beam_erasure_tombstones: 'digest, job_id, erased_at',
   beam_gusto_language_mappings: 'id, member_id, employee_id, employee_uuid, company_uuid, field_id, environment, version, enabled, consented_by, consented_at, last_attempt_at, last_synced_at, last_outcome, last_failure',
   beam_locale_glossaries: 'id, course_id, locale, terms_json, created_by, created_at, approved_by, approved_at',
-  beam_course_locales: 'id, course_id, base_revision_id, locale, glossary_id, draft_json, version, state, prepared_by, prepared_at, submitted_by, submitted_at, approved_by, approved_at, revision_id',
+  beam_course_locales: 'id, course_id, base_revision_id, locale, glossary_id, draft_json, subtitles_json, version, state, prepared_by, prepared_at, submitted_by, submitted_at, approved_by, approved_at, revision_id',
   beam_locale_maintenance: 'id, locale_id, cause, source_id, new_version_id, base_revision_id, event_key, created_at',
   beam_renewal_rules: 'id, course_id, basis, lead_days, grace_days, state, created_by, created_at, previewed_at, enabled_by, enabled_at, notice_enabled, notice_cost_cents, notice_version, notice_consent_by, notice_consent_at, notice_activated_at',
   beam_renewal_cycles: 'completion_id, rule_id, assignment_id, expires_at, due_date, timezone, created_at',

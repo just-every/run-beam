@@ -1,3 +1,6 @@
+import { configureModel, closeModelRun } from './model-account'
+import { runLocaleModel } from './model-locale'
+import { runCourseModel } from './model-course'
 import { saveTheme } from './portal-theme'
 import { createRosterFeed, receiveRosterFeed } from './connect/roster-feeds'
 import { configureFrontline, issueFrontline, unlockFrontline } from './frontline-auth'
@@ -105,6 +108,7 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'model.configure': configureModel, 'model.close': closeModelRun, 'locale.model.run': runLocaleModel, 'course.model.run': runCourseModel,
   'theme.save': saveTheme,
   'roster-feed.create': createRosterFeed, 'roster-feed.receive': receiveRosterFeed,
   'source.ocr.close': closeSourceOcr,
@@ -256,7 +260,7 @@ export const actions: Record<string, Handler> = {
   'gusto.language.pull': pullGustoLanguage,
   'glossary.save': saveLocaleGlossary,
   'glossary.approve': approveLocaleGlossary,
-  'locale.prepare': prepareCourseLocale,
+  'locale.prepare': (env, actor, input) => prepareCourseLocale(env, actor, input),
   'locale.edit': editCourseLocale,
   'locale.submit': submitCourseLocale,
   'locale.approve': approveCourseLocale,

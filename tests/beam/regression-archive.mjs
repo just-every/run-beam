@@ -25,6 +25,8 @@ export const migrations = async () => migrationReplay(plan, policy)
 export async function archiveCheck(f) {
   const { api, h, cookies, ids, course, assign, lessons } = f
   await api('owner', 'source.ocr.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
+  await api('owner', 'model.configure', { operation: 'enable', apiKey: 'synthetic-beam-2', maxCostCents: 1000, consent: true })
+  const modelCipher = (await h.db.prepare('SELECT key_cipher FROM beam_model_config WHERE singleton=1').first()).key_cipher
   const ocrCipher = (await h.db.prepare('SELECT key_cipher FROM beam_source_ocr_config WHERE singleton=1').first()).key_cipher
   await api('owner', 'person.directory', { member: ids.learner, employeeId: 'synthetic-beam-1' })
   const frontline = await api('owner', 'frontline.issue', { member: ids.learner, username: 'synthetic-beam-1' })
@@ -43,7 +45,7 @@ export async function archiveCheck(f) {
   const share = await api('owner', 'dashboard.link', { dashboard: dashboard.id, viewer: ids.owner, expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString() })
   const key = new URL(share.url, h.origin).searchParams.get('key')
   await api('owner', `dashboards/${dashboard.id}?key=${key}`)
-  const verifiers = [sha(app.token.split('.')[2]), sha(link.id), sha(key), ocrCipher]
+  const verifiers = [sha(app.token.split('.')[2]), sha(link.id), sha(key), ocrCipher, modelCipher]
 
   const scratch = await mkdtemp(join(tmpdir(), 'beam-archive-'))
   try {
@@ -75,6 +77,8 @@ export async function archiveCheck(f) {
         // First-run confirmation belongs to the installation, not the archive.
         await t.raw('/setup', { cookie: owner, form: new URLSearchParams({ confirm: 'yes' }) })
         assert.equal((await t.raw('/auth/frontline', { body: { username: frontline.username, secret: frontline.initialSecret, newPassword: 'synthetic-beam-2-password' } })).status, 403, 'restored installs require explicit fresh authentication provisioning')
+        const model = await t.api('model-account', owner)
+        assert.deepEqual([model.enabled, model.hasKey], [false, false], 'archives cannot restore model custody or spending consent')
         const ocr = await t.api('source-ocr', owner)
         assert.deepEqual([ocr.enabled, ocr.hasKey], [false, false], 'an archive cannot reactivate OCR or restore its provider credential')
         const restored = (await t.api('app-credentials', owner)).find(item => item.id === app.id)

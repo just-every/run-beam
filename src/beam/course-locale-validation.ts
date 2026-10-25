@@ -16,6 +16,9 @@ export async function localeBaseDraft(env: Bindings, revision: string): Promise<
     shuffle: a?.shuffle === 1, feedback: a?.feedback ?? 'attempt', assessor: a?.practical_instructions ? null : a?.assessor_id ?? null, survey: source.survey,
   }
 }
+function tableStructure(table: NonNullable<NonNullable<Draft['lessons'][number]['blocks']>[number]['table']>): unknown {
+  return table.map(row => row.map(({ text, tables, ...cell }) => ({ ...cell, ...(tables ? { tables: tables.map(nested => ({ table: tableStructure(nested.table) })) } : {}) })))
+}
 function structure(draft: Draft) {
   return {
     sequence: draft.sequence ? { workStart: draft.sequence.workStart, workEnd: draft.sequence.workEnd, workDays: draft.sequence.workDays, days: draft.sequence.days.map(day => ({ lesson: day.lesson, branches: day.choices.map(choice => choice.next) })) } : null,
@@ -24,8 +27,8 @@ function structure(draft: Draft) {
     feedback: draft.feedback, assessor: draft.assessor, practical: draft.practical?.assessor ?? null,
     lessons: draft.lessons.map(lesson => ({ id: lesson.id, sources: lesson.sources,
       blocks: (lesson.blocks ?? []).map(block => {
-        const { text, choices, feedback, ...fixed } = block
-        return { ...fixed, ...(choices ? { choiceCount: choices.length } : {}) }
+        const { text, choices, feedback, table, ...fixed } = block
+        return { ...fixed, ...(table ? { table: tableStructure(table) } : {}), ...(choices ? { choiceCount: choices.length } : {}) }
       }) })),
     questions: draft.questions.map(q => {
       const question = q as any, { prompt, choices, blanks, items, pairs, guidance, ...fixed } = question

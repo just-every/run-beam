@@ -1,4 +1,7 @@
 import { captionFile } from './caption-file'
+import { modelAccountPage } from './ui/model-account'
+import { localeModelPage } from './ui/model-locale'
+import { courseModelPage } from './ui/model-course'
 import { sourceOcrPage, sourceOcrConsentPage } from './ui/source-ocr'
 import { erasurePage } from './ui/erasure'
 import { sourcePreparationPage } from './ui/source-preparation'
@@ -290,6 +293,9 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/dashboards\/([\w-]+)\.csv$/))) return dashboardCsvResponse(env, actor, match[1], url)
   if (path === '/app/learning') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
+  if (path === '/app/model-account') return modelAccountPage(env, actor, url)
+  const modelCourse = path.match(/^\/app\/courses\/([^/]+)\/(generate|translate)$/)
+  if (modelCourse) return modelCourse[2] === 'generate' ? courseModelPage(env, actor, modelCourse[1], url) : localeModelPage(env, actor, modelCourse[1], url)
   if (path === '/app/people') return peoplePage(env, actor, request, url)
   if (path === '/app/erasure') return erasurePage(env, actor, url)
   if (path === '/app/sources/ocr') return sourceOcrPage(env, actor, url)

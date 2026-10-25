@@ -85,7 +85,7 @@ add('assessment', { history_credit_people: `member_id=?1 OR history_id IN (SELEC
 // These columns record authorship/decisions, not ownership of the affected person's learning.
 // Their documents and member IDs survive; callers must disclose that authored material is not fully erased.
 const authored: Record<string, string> = {
-  source_ocr_config: 'updated_by', source_ocr_runs: 'approved_by',
+  model_config: 'updated_by', model_runs: 'approved_by', source_ocr_config: 'updated_by', source_ocr_runs: 'approved_by',
   access_extensions: 'extended_by', access_rules: 'set_by', accommodations: 'granted_by', acknowledgments: 'requested_by',
   admin_grants: 'granted_by revoked_by', agent_proposals: 'prepared_by decided_by withdrawn_by', announcements: 'sender_id', app_credentials: 'issued_by revoked_by',
   assessment_revisions: 'assessor_id', assignment_moves: 'moved_by', assignment_resets: 'reset_by', assignments: 'assigned_by', attachments: 'uploaded_by',

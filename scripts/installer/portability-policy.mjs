@@ -23,7 +23,7 @@ export default {
   buckets: { files: { prefix: 'sha256/' } },
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   exportRow(table, row) {
-    if (table === 'beam_source_ocr_config') return { ...row, key_cipher: null, enabled: 0, version: row.key_cipher || row.enabled ? row.version + 1 : row.version }
+    if (table === 'beam_source_ocr_config' || table === 'beam_model_config') return { ...row, key_cipher: null, enabled: 0, version: row.key_cipher || row.enabled ? row.version + 1 : row.version }
     if (table === 'beam_package_sessions') return { ...endedSession(row), id: packageSession(row.id), ...(row.initial_json.includes('cmi5Asset') ? { initial_json: '{}' } : {}) }
     if (table === 'beam_cmi5_sessions') return { ...row, session_id: packageSession(row.session_id), fetch_hash: WITHHELD, auth_hash: null, lifecycle: 'restored', busy: 0, active_registration: null }
     if (table === 'beam_cmi5_statements') return { ...row, session_id: packageSession(row.session_id) }

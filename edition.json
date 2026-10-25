@@ -93,7 +93,8 @@
           "migrations/core/0108_beam_roster_feed_previews.sql",
           "migrations/core/0109_beam_portal_theme.sql",
           "scripts/build-deployment-spec.mjs",
-          "packaging.json"
+          "packaging.json",
+          "migrations/core/0110_beam_model_preparation.sql"
         ]
       }
     },

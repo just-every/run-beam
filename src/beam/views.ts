@@ -1,5 +1,9 @@
 import { themeSettings } from './portal-theme'
 import { rosterFeeds } from './connect/roster-feeds'
+import { courseModelPreview } from './model-course'
+import { modelAccount } from './model-account'
+import { localeModelPreview } from './model-locale'
+import { Input } from './input'
 import { sourceOcrConfig, sourceOcrPreview } from './source-ocr'
 import { erasureSettings } from './erasure-policy'
 import { erasureReport } from './erasure'
@@ -79,6 +83,9 @@ type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promi
 export const views: Record<string, View> = {
   theme: themeSettings,
   'roster-feeds': rosterFeeds,
+  'course-model-preview': (env, actor, request, id) => courseModelPreview(env, actor, id, Input.of({ inputs: new URL(request.url).searchParams.getAll('inputs') })),
+  'model-account': modelAccount,
+  'locale-model-preview': (env, actor, request, id) => { const u = new URL(request.url); return localeModelPreview(env, actor, Input.of({ course:id, baseRevision:u.searchParams.get('baseRevision'), locale:u.searchParams.get('locale'), glossary:u.searchParams.get('glossary') })) },
   'source-ocr': sourceOcrConfig, 'source-ocr-preview': (env, actor, _request, id) => sourceOcrPreview(env, actor, id),
   'erasure-settings': erasureSettings, erasure: (env, actor, _request, id) => erasureReport(env, actor, id),
   webhooks: webhookView,
@@ -171,6 +178,8 @@ export const views: Record<string, View> = {
 const ROUTES: [RegExp, string][] = [
   [/^theme$/, 'theme'],
   [/^roster-feeds$/, 'roster-feeds'],
+  [/^courses\/([\w-]+)\/model-preview$/, 'course-model-preview'],
+  [/^model-account$/, 'model-account'], [/^course-locales\/([\w-]+)\/model-preview$/, 'locale-model-preview'],
   [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
   [/^erasure-settings$/, 'erasure-settings'], [/^erasure\/([\w-]+)$/, 'erasure'],
   [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'], [/^xapi$/, 'xapi'],

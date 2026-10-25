@@ -1,5 +1,15 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  model_disabled: 'the owner must enable the AI preparation account in Settings before approving this request.',
+  model_provider_denied: 'the provider refused this request. Its outcome and USD reservation are retained; check your account before approving a new request.',
+  model_request_failed: 'the request did not finish. Its billing may be unknown. Inspect the paid request history before approving another request.',
+  model_approval_mismatch: 'the selected material or approved amount changed. Review the current request and approve it again.',
+  model_approval_used_or_active: 'this approval was already used or an identical request is still pending. Inspect the request history.',
+  model_approval_expired: 'this approval expired or belongs to a different session. Review the request again.',
+  locale_subtitle_fields_changed: 'include every original subtitle cue exactly once. Review the current caption fields.',
+  model_translation_invalid: 'the provider did not return every translation field exactly once. No language draft was published.',
+  model_consent_required: 'confirm the exact selected material and disclosed USD reservation before sending it.',
+  model_input_limit: 'the selected text exceeds the supported request size. Prepare a smaller course or selection.',
   theme_contrast_primary: 'primary and white fail contrast. Choose a primary color with a contrast ratio of at least 4.5:1 against white.',
   theme_contrast_accent: 'accent and white fail contrast. Choose an accent color with a contrast ratio of at least 4.5:1 against white.',
   invalid_theme_color: 'enter each color as a six-digit hexadecimal value, such as #243e67.',
