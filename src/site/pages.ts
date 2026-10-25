@@ -2,6 +2,7 @@
 // page at /run; the docs at /docs and /docs/<slug>, rendered from docs/*.md; /contract; and the not-found page. Every
 // page is static, works without script and links to no instance-only route. The installed Beam serves the Lobby at /.
 import { contractPageHtml } from '../base/contract-page'
+import { hostingPageHtml } from '../base/hosting-page'
 import { runPageHtml, siteNotFoundHtml, type SiteBuild, type SiteContext } from '../base/run-site'
 import { identity } from '../identity'
 import { docsArticle, docsDescription, docsIndex, docsPages } from './docs/pages'
@@ -29,13 +30,14 @@ function withBand(html: string): string {
 // Base's shared pages (src/base, copied unchanged) print British "licence"; Beam is a US product, so they say "license".
 const usSpelling = (html: string) => html.replaceAll(`${run.licence} licence<`, `${run.licence} license<`)
 
-export function sitePages({ styles, contract }: SiteContext): SiteBuild {
+export function sitePages({ styles, contract, hosting }: SiteContext): SiteBuild {
   return {
     pages: [
       { path: '/', html: siteDocument({ title: meta.title, description: meta.description, styles, body: landing(), path: '/' }) },
       { path: '/run', html: withBand(usSpelling(runPageHtml(site, run, contract))) },
       ...(contract ? [{ path: '/contract', html: usSpelling(contractPageHtml(site, run, contract)) }] : []),
       { path: '/docs', html: siteDocument({ title: 'Docs · Beam', description: docsDescription, styles, body: docsIndex(), path: '/docs' }) },
+      { path: '/docs/hosting', html: withBand(usSpelling(hostingPageHtml(site, run, hosting ?? null, contract))) },
       ...docsPages.map(page => ({ path: `/docs/${page.slug}`, html: siteDocument({ title: `${page.title} · Beam docs`, description: page.summary, styles, body: docsArticle(page.slug), path: `/docs/${page.slug}` }) })),
       { path: '/404', html: withBand(usSpelling(siteNotFoundHtml(site, run, contract))) },
     ],
