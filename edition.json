@@ -115,7 +115,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
+          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
           "path": ".",
           "paths": [
             "foundation/runtime",
@@ -139,7 +139,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
+          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
           "path": "modules/import-kit",
           "paths": [
             "src",
@@ -162,7 +162,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
+          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
           "path": "export",
           "paths": [
             "HOMEPAGE-VARIANTS.md",
@@ -200,7 +200,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
           "path": "modules/delivery-producer",
           "paths": [
             "setup-manifest.mjs",
@@ -244,7 +244,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
           "path": "foundation/template/src",
           "paths": [
             "mail.server.mjs"

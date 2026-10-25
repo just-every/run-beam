@@ -1,0 +1,20 @@
+{
+  "key": "24662b164b6c94b927f00792ae224277bc92d0cc0243d02c5d9e1320b1ed7504",
+  "origin": {
+    "repository": "https://github.com/runeditrun/base.git",
+    "revision": "631bb343db00777d8db98a91f1964e127d219d62",
+    "path": "foundation/template/src",
+    "paths": [
+      "mail.server.mjs"
+    ],
+    "excludeSnapshots": false
+  },
+  "digest": "5dd60d3dc15a74a8efb9effd08be49458f63e7e455ae86565f34f11e1cc5ab67",
+  "files": {
+    "mail.server.mjs": {
+      "data": "aW1wb3J0IHsgY3JlYXRlTWFpbFNlbmRlciB9IGZyb20gJy4vbW9kdWxlcy9tYWlsL2luZGV4Lm1qcycKCmV4cG9ydCBmdW5jdGlvbiBvcGVyYXRvck1haWwoZW52KSB7CiBpZiAoZW52LlJFUl9ERU1PID09PSAnMScgfHwgZW52LkFVVEhfTE9DQUwgPT09ICd0cnVlJykgewogIHJldHVybiBjcmVhdGVNYWlsU2VuZGVyKHsgcHJvdmlkZXI6ICdkZXZlbG9wbWVudCcsIG1vZGU6ICdkZXZlbG9wbWVudCcgfSkKIH0KIGlmICghZW52Lk1BSUxfUFJPVklERVIgfHwgZW52Lk1BSUxfUFJPVklERVIgPT09ICdkZXZlbG9wbWVudCcpIHJldHVybiB1bmRlZmluZWQKIHJldHVybiB7CiAgYXN5bmMgc2VuZChtZXNzYWdlKSB7CiAgIHJldHVybiBjcmVhdGVNYWlsU2VuZGVyKHsgcHJvdmlkZXI6IGVudi5NQUlMX1BST1ZJREVSLCBtb2RlOiAncHJvZHVjdGlvbicsIGFwaUtleTogZW52Lk1BSUxfQVBJX0tFWSwgLi4uKGVudi5NQUlMX1BST1ZJREVSID09PSAnY2xvdWRmbGFyZScgPyB7IGFjY291bnRJZDogZW52Lk1BSUxfQUNDT1VOVF9JRCB9IDoge30pIH0pLnNlbmQobWVzc2FnZSkKICB9LAogfQp9Cg==",
+      "executable": false
+    }
+  },
+  "dependencies": []
+}
