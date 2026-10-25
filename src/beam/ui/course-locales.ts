@@ -1,6 +1,6 @@
 import { collectLocaleSubtitles, localeSubtitleTextFields } from '../locale-subtitles'
 import { localeTextFields } from '../course-locale-text'
-// Editable externally prepared translations; no simulated AI generation or automatic language approval.
+// Editable translations share the same explicit human language approval.
 import type { Bindings } from '../../auth.server'
 import type { Actor } from '../actor'
 import { localeView } from '../course-locales'
@@ -16,7 +16,7 @@ export async function courseLocaleCards(env: Bindings, actor: Actor, course: str
   const approved = view.glossaries.filter(glossary => glossary.approved_at)
   const subtitleOriginals = new Map(await Promise.all(view.translations.map(async item => [item.id, await collectLocaleSubtitles(env, actor, course, item.base_revision_id)] as const)))
   const originals = new Map(await Promise.all(view.translations.map(async item => [item.id, await localeBaseDraft(env, item.base_revision_id)] as const)))
-  return h`${card('Course languages', h`<p>Prepare an alternate language from the exact published revision. Paste an externally prepared translation, review the glossary, and correct the draft before approval. Beam does not generate translations. The owner is the human language reviewer under the current conservative policy.</p>
+  return h`${card('Course languages', h`<p>Prepare an alternate language from the exact published revision using AI or an imported translation. Review the approved glossary, correct text and timed captions, then submit the draft for human language approval.</p>
 <details><summary>Published source structure for translation</summary><div class="lesson-body"><label>Published translation structure<textarea readonly rows="14">${JSON.stringify(template, null, 2)}</textarea></label></div></details>
 <details><summary>Import glossary terms</summary>${form('glossary.save', back, [hidden('course', course), select('Language', 'locale', [{ value: 'es-US', label: 'US Spanish' }, { value: 'en-US', label: 'US English' }]), area('Glossary JSON: source and target terms', 'terms', '[{"source":"","target":""}]')], 'Save glossary for review')}</details>
 ${view.glossaries.map(glossary => h`<section><h3>${glossary.locale} glossary</h3><dl>${glossary.terms.map((term: { source: string; target: string }) => h`<dt>${term.source}</dt><dd>${term.target}</dd>`)}</dl><p>${glossary.approved_at ? 'Approved for language review' : 'Awaiting owner review'}</p>${view.ownerReviews && !glossary.approved_at ? form('glossary.approve', back, [hidden('glossary', glossary.id), h`<label><input type="checkbox" name="confirm" value="yes" required> I reviewed and approve these terms.</label>`], 'Approve glossary') : ''}</section>`)}

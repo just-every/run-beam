@@ -5,7 +5,7 @@ export async function courseLocaleBrowser(f, pages) {
   const { mkdir } = await import('node:fs/promises'), { join } = await import('node:path')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence, { recursive: true })
-  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic', '--ignore-certificate-errors'] })
   try {
     for (const width of [1440, 390]) {
       for (const [name, role, path, heading] of pages) {
@@ -15,6 +15,12 @@ export async function courseLocaleBrowser(f, pages) {
         await page.goto(f.h.origin + path)
         await page.getByRole('heading', { name: heading, exact: true }).first().scrollIntoViewIfNeeded()
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits ${width}`)
+        if (name === 'lesson') {
+          await page.waitForFunction(() => { const media = document.querySelector('video'); return media?.readyState >= 2 && media.textTracks[0]?.cues?.length > 0 })
+          await page.locator('video').evaluate(media => { media.textTracks[0].mode = 'showing'; media.currentTime = 0.2 })
+          await page.waitForFunction(() => document.querySelector('video')?.textTracks[0]?.activeCues?.length > 0)
+          assert.match(await page.locator('video').evaluate(media => media.textTracks[0].activeCues[0].text), /herramientas limpias/)
+        }
         const iconOnly = await page.locator('button, a, [role="button"]').evaluateAll(nodes => nodes.filter(node => !node.textContent.trim() && !node.querySelector('img')).map(node => ({ label: node.getAttribute('aria-label'), tip: node.getAttribute('data-tooltip') })))
         assert.ok(iconOnly.every(control => control.label && control.tip), 'Icon-only controls carry a visible tooltip')
         await page.screenshot({ path: join(evidence, `${width}-locale-${name}.png`) })
@@ -28,7 +34,7 @@ export async function courseLocaleBrowser(f, pages) {
 // The author corrects a mistranslation in normal text fields, without editing transport data.
 export async function correctLocaleText(f, course, translation, body) {
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
-  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic', '--ignore-certificate-errors'] })
   try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ignoreHTTPSErrors: true })
     await context.addCookies(f.cookies.author.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))
@@ -47,7 +53,7 @@ export async function correctLocaleText(f, course, translation, body) {
 // Executes a paid-request form with the same human session used by the qualification journey.
 export async function approveModelInBrowser(f, path, action) {
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
-  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic', '--ignore-certificate-errors'] })
   try {
     const context = await browser.newContext({ viewport: { width: 390, height: 900 }, ignoreHTTPSErrors: true })
     await context.addCookies(f.cookies.owner.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))

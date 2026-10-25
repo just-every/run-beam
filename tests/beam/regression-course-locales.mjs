@@ -32,6 +32,7 @@ export async function courseLocaleCheck({ live = false } = {}) {
     const translation = structuredClone(before.template)
     Object.assign(translation, { title: 'Herramientas seguras', summary: 'Procedimiento de seguridad.' })
     Object.assign(translation.lessons[0], { title: 'Herramientas limpias', body: 'Usa herramientas sucias antes de trabajar.' })
+    translation.lessons[0].blocks[0].text = 'Vídeo de seguridad'
     translation.lessons[0].blocks[1].text = 'Lista de herramientas'
     translation.lessons[0].blocks[1].table[0][0].text = 'Estado'
     translation.lessons[0].blocks[1].table[1][0].text = 'Solo herramientas limpias'

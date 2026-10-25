@@ -310,7 +310,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "94922d517da4f9c2bab64fd808787d6087028e1babea1f2b29effeab839ebd02",
+      "sha256": "d327f387b95956f13b1abf4e5cce8e15a9928756aa446771abacf5c5e8041c2f",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -330,7 +330,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1d5bd0d7a5d15ed8cbc0b7b76603815fc01e350b1cdc93e0638edd872833e693",
+      "sha256": "cace9fc053adc1e89ec6c4d1589b5f6925146d465d85b0eaf6d1ef5779344dd7",
       "executable": false
     },
     "DEMO.md": {
@@ -2242,7 +2242,7 @@
       "executable": false
     },
     "src/beam/ui/course-locales.ts": {
-      "sha256": "1c3f2c6d4335b485cf56f5985c90431497eed8b2f6e5e84c6355e90e6d05335d",
+      "sha256": "93c5509dad7db3fa9ef821e64ec131aaaf88aa0d0f9171a66ce2ac4721c5d6b3",
       "executable": false
     },
     "src/beam/ui/coverage.ts": {
@@ -2358,7 +2358,7 @@
       "executable": false
     },
     "src/beam/ui/model-account.ts": {
-      "sha256": "1f21d7f430bb81371cf01b29dab746c4e192fca812c9d8a21386467707d6a88f",
+      "sha256": "13f401424f63a6adc8d12aed7f5e427061457e207a86c831b9961ba3370c210f",
       "executable": false
     },
     "src/beam/ui/model-course.ts": {
@@ -4470,11 +4470,11 @@
       "executable": false
     },
     "tests/beam/regression-course-locale-browser.mjs": {
-      "sha256": "5b3dba35160318d577bd8090603138b4a8b82e0c7936b39eaac5656dedb1f965",
+      "sha256": "10e9da2ff1163e40e9f3890e493abec469fcdf29bc3ad019015c6c6d02c5cf40",
       "executable": false
     },
     "tests/beam/regression-course-locales.mjs": {
-      "sha256": "3c30e9e9e1ade2279afde07c8cd1bdab1ef9cb66d70376637b5da599a7b9868b",
+      "sha256": "9c4c922a509ccfbc9d93790f941996fd081c6b1793628c840c503dd309a9df97",
       "executable": false
     },
     "tests/beam/regression-credit-renewals.mjs": {
