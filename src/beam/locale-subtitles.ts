@@ -46,7 +46,7 @@ export function parseLocaleSubtitleTrack(bytes: Uint8Array, trackIndex = 0) {
 export async function collectLocaleSubtitles(env: Bindings, actor: Actor, course: string, baseRevision: string) {
   await requireCourseRole(env, actor, course, 'author')
   insist(await one(env, `SELECT 1 FROM beam_courses c JOIN beam_course_revisions r ON r.course_id=c.id
-    WHERE c.id=? AND r.id=? AND r.state IN ('published','superseded') AND c.retired_at IS NULL
+    WHERE c.id=? AND r.id=? AND r.state IN ('published','superseded')
     AND NOT EXISTS(SELECT 1 FROM beam_course_locales l WHERE l.revision_id=r.id)`, course, baseRevision), 'locale_base_changed', 409)
   insist(!await one(env, `SELECT 1 FROM beam_lesson_revisions l,json_each(l.source_version_ids) cite
     LEFT JOIN beam_source_versions v ON v.id=cite.value LEFT JOIN beam_sources s ON s.id=v.source_id

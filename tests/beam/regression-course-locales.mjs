@@ -70,6 +70,7 @@ export async function courseLocaleCheck({ live = false } = {}) {
     assert.equal(edge.calls.length, 1, 'Consumed approval never repeats paid work')
     assert.equal((await api('author', `courses/${course.id}`)).publishedRevision, baseRevision)
     const generatedView = (await localeView(course.id)).translations.find(row => row.id === generated.id)
+    assert.ok(generatedView.draft.lessons[0].body.toLowerCase().includes('herramientas limpias'), 'The generated lesson uses the approved glossary term')
     assert.notEqual(generatedView.draft.lessons[0].body, before.template.lessons[0].body, 'Real translated text enters the editable draft')
     assert.notEqual(generatedView.draft.lessons[0].blocks[1].table[0][0].text, before.template.lessons[0].blocks[1].table[0][0].text, 'Table text participates in model translation')
     assert.equal(generatedView.draft.lessons[0].blocks[1].table[0][0].header, true)

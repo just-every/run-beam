@@ -298,7 +298,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "84a936a92e2be5cdcac18d4e0ccaa157c4f9c4edbdcff17d9d205f6b90cfb887",
+      "sha256": "f4624e6e50b53a3dbdf71e390f69f3156b932cb1996c7b6eed45b56bc924f8fe",
       "executable": false
     },
     ".gitignore": {
@@ -1786,7 +1786,7 @@
       "executable": false
     },
     "src/beam/locale-subtitles.ts": {
-      "sha256": "1d49d54b024611eb083c363931e4c7033803c8971c5fac52756fb188f59dd9c0",
+      "sha256": "b06d4028eb99de033777c5b79d25a7ae131aca800554f1d500d2fe93f8fd7569",
       "executable": false
     },
     "src/beam/lti-jwt.ts": {
@@ -2242,7 +2242,7 @@
       "executable": false
     },
     "src/beam/ui/course-locales.ts": {
-      "sha256": "3c8b651dc2519d3733fdab4b26a33a6cacf71f005431d6142b4fa09fd262503f",
+      "sha256": "1c3f2c6d4335b485cf56f5985c90431497eed8b2f6e5e84c6355e90e6d05335d",
       "executable": false
     },
     "src/beam/ui/coverage.ts": {
@@ -4409,6 +4409,10 @@
       "sha256": "38836a5d3b480860b3d52b3875c3da78a71bc7e7b863facc93646456e83af3af",
       "executable": false
     },
+    "tests/beam/model-browser.mjs": {
+      "sha256": "c0b4863a97d2fb79b9ec344cd353ad5806ce78f6908596fecf64948915b97937",
+      "executable": false
+    },
     "tests/beam/model-edge.mjs": {
       "sha256": "a254313ce4f79285e6ff1a8122ccfb6d24d81bb498e0a639cf4798c4fd0823fd",
       "executable": false
@@ -4470,7 +4474,7 @@
       "executable": false
     },
     "tests/beam/regression-course-locales.mjs": {
-      "sha256": "e665882c0e22444daa08d1e4f2966d10eb3a890a3214b33fe2cba36dfa9ec2f2",
+      "sha256": "3c30e9e9e1ade2279afde07c8cd1bdab1ef9cb66d70376637b5da599a7b9868b",
       "executable": false
     },
     "tests/beam/regression-credit-renewals.mjs": {
