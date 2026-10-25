@@ -906,7 +906,7 @@
       "executable": false
     },
     "public/beam.css": {
-      "sha256": "4741d825674e658f16b0ba9ef55ce574e7a4d3b199e56b1d64aad7bfddcb9f8b",
+      "sha256": "9d2df398ea67260f49b80679136c675f72f9bdc780a48476683463d48b50d59a",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -2358,11 +2358,11 @@
       "executable": false
     },
     "src/beam/ui/model-account.ts": {
-      "sha256": "9fa906d1f4cb9cf64fbdae9486578f7153775783da8d1510349803e3ca474655",
+      "sha256": "1f21d7f430bb81371cf01b29dab746c4e192fca812c9d8a21386467707d6a88f",
       "executable": false
     },
     "src/beam/ui/model-course.ts": {
-      "sha256": "7143728dc1fcab388e0db8384eb1af8a31481a584221b5120b902e3cfb0bf228",
+      "sha256": "735eb91715898c8fbacd6420b6cb592c611e8dd9971333aec7675c82e6f331d8",
       "executable": false
     },
     "src/beam/ui/model-locale.ts": {

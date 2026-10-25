@@ -6,7 +6,7 @@ export const modelUsd = (cents: number) => `USD ${(cents / 100).toFixed(2)}`
 export async function modelAccountPage(env: Bindings, actor: Actor, url: URL) {
   const view = await modelAccount(env, actor), back = '/app/model-account'
   const consent = h`<label class="check"><input type="checkbox" name="consent" value="yes" required> I authorize sealed server custody of my employer's OpenAI key for course drafting and translation. Each exact request still needs my approval.</label>`
-  return page('AI preparation account', actor, h`${backLink('/app/business', 'Settings')}<h1>AI preparation account</h1>
+  return page('AI preparation account', actor, h`<div class="model-account">${backLink('/app/business', 'Settings')}<h1>AI preparation account</h1>
     ${card('Account and limits', h`<p>${view.enabled ? 'Enabled' : 'Disabled'} · OpenAI · ${view.model}. ${view.hasKey ? 'A sealed key is held.' : 'No key is held.'}</p>
     <p>Conservative reservation per request: ${modelUsd(view.estimateCents)}. This covers the full model context and bounded output at declared rates, including long-context and cache-write pricing. Your provider bills your employer account directly.</p>
     ${form('model.configure', back, [hidden('operation', 'enable'), field(view.hasKey ? 'Replacement OpenAI API key (blank keeps the held key)' : 'OpenAI API key', 'apiKey', { type: 'password', required: !view.hasKey }), field('Maximum approved estimate per request (USD cents)', 'maxCostCents', { type: 'number', value: view.maxCostCents }), consent], 'Enable preparation account')}
