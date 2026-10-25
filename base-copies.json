@@ -1740,25 +1740,6 @@
         "src/modules/operator-auth/signin/index.d.mts": "100644",
         "src/modules/operator-auth/signin/index.mjs": "100644",
         "src/modules/operator-auth/signin/one-click.mjs": "100644"
-      },
-      "adapted": {
-        "src/modules/operator-auth/conformance/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-        "src/modules/operator-auth/docs/vite-spa.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
-        "src/modules/operator-auth/representation.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
-      },
-      "acknowledged": {
-        "src/modules/operator-auth/conformance/README.md": {
-          "sha256": "142c2ef58f58a2f7a6c9dafcf0530cf74502aceac060a9dd0a44367bde8f3653",
-          "mode": "100644"
-        },
-        "src/modules/operator-auth/docs/vite-spa.md": {
-          "sha256": "0c9cb19046087f55390368e9983be52a24ce8804cda0a621c7f74d12b90288b6",
-          "mode": "100644"
-        },
-        "src/modules/operator-auth/representation.mjs": {
-          "sha256": "4dc602fe73ce6fa83ade350ca4bd8a1b86dfa96e743598eb7379d2382de8445f",
-          "mode": "100644"
-        }
       }
     },
     {

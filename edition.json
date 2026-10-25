@@ -147,18 +147,6 @@
           {
             "path": "src/modules/mail/README.md",
             "originPath": "modules/mail/README.md"
-          },
-          {
-            "path": "src/modules/operator-auth/conformance/README.md",
-            "originPath": "modules/operator-auth/conformance/README.md"
-          },
-          {
-            "path": "src/modules/operator-auth/docs/vite-spa.md",
-            "originPath": "modules/operator-auth/docs/vite-spa.md"
-          },
-          {
-            "path": "src/modules/operator-auth/representation.mjs",
-            "originPath": "modules/operator-auth/representation.mjs"
           }
         ]
       }

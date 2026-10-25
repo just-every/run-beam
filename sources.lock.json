@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "86581d79718a9fd9e830f27afe3876fd47b6778d305213c1d3970d392e6bec89",
+  "manifest": "25a2ba50ac4b9c40430ee4b68346ad05caee574147d338f3182e40a93a49b2e0",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -147,18 +147,6 @@
           {
             "path": "src/modules/mail/README.md",
             "originPath": "modules/mail/README.md"
-          },
-          {
-            "path": "src/modules/operator-auth/conformance/README.md",
-            "originPath": "modules/operator-auth/conformance/README.md"
-          },
-          {
-            "path": "src/modules/operator-auth/docs/vite-spa.md",
-            "originPath": "modules/operator-auth/docs/vite-spa.md"
-          },
-          {
-            "path": "src/modules/operator-auth/representation.mjs",
-            "originPath": "modules/operator-auth/representation.mjs"
           }
         ]
       },
@@ -366,7 +354,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "97a76249d2e07f7662a9a3bdbe96ef9f11b20fedab7896343d9895a7c8754b4c",
+      "sha256": "66b6694d42eb3955857f5186ecdc6f1c114d63bdf73bcbfe2174c86c1179bca4",
       "executable": false
     },
     "CLAUDE.md": {
@@ -454,7 +442,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "86581d79718a9fd9e830f27afe3876fd47b6778d305213c1d3970d392e6bec89",
+      "sha256": "25a2ba50ac4b9c40430ee4b68346ad05caee574147d338f3182e40a93a49b2e0",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -3930,7 +3918,7 @@
       "executable": false
     },
     "src/modules/operator-auth/conformance/README.md": {
-      "sha256": "142c2ef58f58a2f7a6c9dafcf0530cf74502aceac060a9dd0a44367bde8f3653",
+      "sha256": "e8701354df0890f30629c6f4d965ba2503f6a4ef9cc696f37f93038608d7cd26",
       "executable": false
     },
     "src/modules/operator-auth/crypto.mjs": {
@@ -3994,7 +3982,7 @@
       "executable": false
     },
     "src/modules/operator-auth/docs/vite-spa.md": {
-      "sha256": "0c9cb19046087f55390368e9983be52a24ce8804cda0a621c7f74d12b90288b6",
+      "sha256": "37e2d7aab9fd1987c7c381c7c0a91724109e2e1a6c0af7f4fbbb528e2b603f3b",
       "executable": false
     },
     "src/modules/operator-auth/errors.mjs": {
@@ -4150,7 +4138,7 @@
       "executable": false
     },
     "src/modules/operator-auth/representation.mjs": {
-      "sha256": "4dc602fe73ce6fa83ade350ca4bd8a1b86dfa96e743598eb7379d2382de8445f",
+      "sha256": "206c3ae542e00687c2ee6c09a2e3466827c7eb58a97d10779cbeca1af945dcb3",
       "executable": false
     },
     "src/modules/operator-auth/routes.mjs": {
