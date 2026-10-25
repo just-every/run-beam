@@ -192,11 +192,7 @@
       "source": {
         "kind": "local",
         "paths": [
-          "scripts/delivery/base/setup-manifest.mjs",
-          "scripts/delivery/base/payloads.mjs",
-          "scripts/delivery/base/sql-statements.mjs",
-          "scripts/delivery/base/capabilities.mjs",
-          "scripts/delivery/base/generators/validation.mjs"
+          "scripts/delivery/base/setup-manifest.mjs"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -232,7 +228,13 @@
             "originPath": "generators/validation.mjs"
           }
         ]
-      }
+      },
+      "mappings": [
+        {
+          "path": "scripts/delivery/base/setup-manifest.mjs",
+          "originPath": "setup-manifest.mjs"
+        }
+      ]
     },
     {
       "id": "learning/beam-mail",

@@ -1,7 +1,7 @@
 {
   "version": "0.1.1",
   "previousVersion": "0.1.0",
-  "publicReleaseNotes": "Prepare Beam for hosted installation with a digest-bound setup manifest, a deployment specification, dispatch-only Managed delivery and configurable hosted mail. Existing training records retain their existing project identity.",
+  "publicReleaseNotes": "Prepare Beam for hosted installation with a digest-bound setup manifest, a current deployment specification, dispatch-only Managed delivery and configurable hosted mail. Refresh Base and rer to 0.2.80 while preserving existing training records and project identity.",
   "migrations": [
     "migrations/core/0017_owner_signin.sql",
     "migrations/core/0018_import_kit_erasure_progress.sql",
@@ -90,7 +90,12 @@
     "migrations/core/0102_beam_announcement_audiences.sql",
     "migrations/core/0103_beam_notification_recipients.sql",
     "migrations/core/0104_beam_evidence_notifications.sql",
-    "migrations/core/0105_beam_announcement_reply_scope.sql"
+    "migrations/core/0105_beam_announcement_reply_scope.sql",
+    "migrations/core/0106_beam_frontline_auth.sql",
+    "migrations/core/0107_beam_frontline_methods.sql",
+    "migrations/core/0108_beam_roster_feed_previews.sql",
+    "migrations/core/0109_beam_portal_theme.sql",
+    "migrations/core/0110_beam_model_preparation.sql"
   ],
   "breaking": false,
   "agentUpdateInstructions": "Use the hosted setup fields for the selected mail provider. Preserve the existing project identity and applied migration bytes; follow OPERATIONS.md for recovery."
