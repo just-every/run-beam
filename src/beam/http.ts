@@ -1,3 +1,4 @@
+import { enterprisePortalResponse } from './enterprise-portals'
 import { captionFile } from './caption-file'
 import { modelAccountPage } from './ui/model-account'
 import { localeModelPage } from './ui/model-locale'
@@ -108,6 +109,8 @@ export async function beamResponse(request: Request, original: Bindings): Promis
 async function beamDoorResponse(request: Request, original: Bindings): Promise<Response | null> {
   const env = runtimeBindings(original)
   const url = new URL(request.url)
+  const enterprise = await enterprisePortalResponse(env, request)
+  if (enterprise) return enterprise
   // These fixed modules contain installed application code only. Opaque PDF
   // frames cannot carry a human cookie on their CORS module requests.
   if (url.pathname === PDF_LIBRARY_PATH || url.pathname === PDF_BOOTSTRAP_PATH) {

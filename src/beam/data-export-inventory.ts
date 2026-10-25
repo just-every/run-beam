@@ -1,5 +1,9 @@
 // OPS-002: explicit columns keep later auth/provider fields out of learning interchange.
 export const LEARNING_INVENTORY = {
+  beam_enterprise_portals: 'id, kind, name, consent_text, theme_json, created_by, created_at',
+  beam_portal_shares: 'portal_id, revision_id, shared_by, shared_at, revoked_at',
+  beam_portal_identities: 'id, portal_id, display_name, invited_by, invited_at, consent_at, revoked_at',
+  beam_portal_enrollments: 'id, portal_id, identity_id, revision_id, enrolled_by, enrolled_at',
   beam_erasure_policy: 'singleton, assessment_days, justification, version, changed_at',
   beam_erasure_holds: 'id, kind, subject_id, justification, placed_by, placed_at, released_at, released_by',
   beam_erasure_jobs: 'id, kind, subject_id, requested_by, requested_at, phase, state, retention_json, report_json, failure',

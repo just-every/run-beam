@@ -94,7 +94,8 @@
           "migrations/core/0109_beam_portal_theme.sql",
           "scripts/build-deployment-spec.mjs",
           "packaging.json",
-          "migrations/core/0110_beam_model_preparation.sql"
+          "migrations/core/0110_beam_model_preparation.sql",
+          "migrations/core/0111_beam_enterprise_portals.sql"
         ]
       }
     },

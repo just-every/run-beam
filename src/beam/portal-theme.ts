@@ -23,12 +23,10 @@ function color(input: Input, name: string) {
   insist(ratio >= 4.5, `theme_contrast_${name}`, 400, { pair: `${name} and white`, ratio, minimum: 4.5 })
   return value
 }
-export async function saveTheme(env: Bindings, actor: Actor, input: Input) {
-  requireOwner(actor)
+export async function readThemeInput(env: Bindings, input: Input, previous: PortalTheme | null): Promise<Omit<PortalTheme, 'version'>> {
   const primary = color(input, 'primary'), accent = color(input, 'accent')
   const signinHeading = input.text('signinHeading', { max: 120 }), signinText = input.text('signinText', { max: 500, optional: true }), senderName = input.text('senderName', { max: 100 })
   insist(!/[\r\n<>"\\\x00-\x1f\x7f]/.test(senderName), 'invalid_sender_name')
-  const previous = await portalTheme(env)
   const image = async (name: 'logo' | 'favicon') => {
     const file = await input.file(name, { optional: true, maxBytes: 256000 })
     if (!file) return previous?.[name] ?? null
@@ -38,6 +36,11 @@ export async function saveTheme(env: Bindings, actor: Actor, input: Input) {
     return store(env, file)
   }
   const logo = await image('logo'), favicon = await image('favicon')
+  return { primary, accent, signinHeading, signinText, senderName, logo, favicon }
+}
+export async function saveTheme(env: Bindings, actor: Actor, input: Input) {
+  requireOwner(actor)
+  const { primary, accent, signinHeading, signinText, senderName, logo, favicon } = await readThemeInput(env, input, await portalTheme(env))
   await commit(env, [stmt(env, `INSERT INTO beam_portal_theme VALUES(1,?,?,?,?,?,?,?,1,?,?) ON CONFLICT(singleton) DO UPDATE SET primary_color=excluded.primary_color,accent_color=excluded.accent_color,signin_heading=excluded.signin_heading,signin_text=excluded.signin_text,sender_name=excluded.sender_name,logo_json=excluded.logo_json,favicon_json=excluded.favicon_json,version=version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at`, primary, accent, signinHeading, signinText, senderName, JSON.stringify(logo), JSON.stringify(favicon), actor.id, now())], { actor, action: 'theme.save', subject: 'employee-portal', detail: { primary, accent } })
   return portalTheme(env)
 }
