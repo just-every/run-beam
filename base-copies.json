@@ -263,6 +263,15 @@
       },
       "modes": {
         "scripts/delivery/base/capabilities.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/delivery/base/capabilities.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/delivery/base/capabilities.mjs": {
+          "sha256": "c09cbfd74f1497b038676e1f886eb8f7b05dc67741dd7ed08ac348ef92a11934",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -340,6 +349,15 @@
       },
       "modes": {
         "scripts/delivery/base/generators/validation.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/delivery/base/generators/validation.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/delivery/base/generators/validation.mjs": {
+          "sha256": "19cf5f081c2b22a63efd40f881f0566d5898ab34d83899aaaf10ce8368876e3a",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -406,6 +424,15 @@
       },
       "modes": {
         "scripts/delivery/base/payloads.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/delivery/base/payloads.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/delivery/base/payloads.mjs": {
+          "sha256": "7d45913a406dee21619f407aec32fbcf4b1c078ac0fd759868ff8eb6fe8ed914",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -458,6 +485,15 @@
       },
       "modes": {
         "scripts/delivery/base/sql-statements.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/delivery/base/sql-statements.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/delivery/base/sql-statements.mjs": {
+          "sha256": "afc15f607f3afc9a954aa024aaae5a0c76917ed1b7c84d425a525f2ebc370c93",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -497,6 +533,25 @@
         "scripts/edition-authoring/release.mjs": "100644",
         "scripts/edition-authoring/sources.mjs": "100644",
         "scripts/edition-authoring/updates.mjs": "100644"
+      },
+      "adapted": {
+        "scripts/edition-authoring/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "scripts/edition-authoring/adopt.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "scripts/edition-authoring/lock.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "scripts/edition-authoring/README.md": {
+          "sha256": "d1940f73de19a29bd07ee4aafb48cd8828cc64d5f8f33dd7e0e14ae396dd52e5",
+          "mode": "100644"
+        },
+        "scripts/edition-authoring/adopt.mjs": {
+          "sha256": "5371f1877e82035acdb668e1e50508130a3c224b2dfe88768cf39aeadcf48490",
+          "mode": "100644"
+        },
+        "scripts/edition-authoring/lock.mjs": {
+          "sha256": "4c719411ecbe7133e7beee0b69c46b385e0388435e4958769a08d22ce240401f",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -574,6 +629,15 @@
       },
       "modes": {
         "src/base/contract-style.ts": "100644"
+      },
+      "adapted": {
+        "src/base/contract-style.ts": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/base/contract-style.ts": {
+          "sha256": "0781e2fdd20ea2e75efbdf21de4cd40505c500ff06ee86bfa50f0754009c6635",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -1295,6 +1359,20 @@
         "src/modules/import-kit/src/storage/schema.ts": "100644",
         "src/modules/import-kit/src/storage/sqlite.ts": "100644",
         "src/modules/import-kit/src/types.ts": "100644"
+      },
+      "adapted": {
+        "src/modules/import-kit/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/import-kit/src/d1/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/import-kit/README.md": {
+          "sha256": "d3d4c882ed3cdd6a0f8b17a1e2a36c67f0a6adf5b758a14e67d3ad3c3dbc45a9",
+          "mode": "100644"
+        },
+        "src/modules/import-kit/src/d1/README.md": {
+          "sha256": "880dd02972fa0eba3122550bc12a620bde9a017727bb75a009ff9970385a5fea",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -1434,6 +1512,15 @@
         "src/modules/mail/src/sendgrid-email/index.d.mts": "100644",
         "src/modules/mail/src/sendgrid-email/index.mjs": "100644",
         "src/modules/mail/src/unsubscribe/index.mjs": "100644"
+      },
+      "adapted": {
+        "src/modules/mail/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/mail/README.md": {
+          "sha256": "d551371533cff8c966d239d65636e8c7776b202750777b16b56a0086e24dc77e",
+          "mode": "100644"
+        }
       }
     },
     {
@@ -1653,6 +1740,25 @@
         "src/modules/operator-auth/signin/index.d.mts": "100644",
         "src/modules/operator-auth/signin/index.mjs": "100644",
         "src/modules/operator-auth/signin/one-click.mjs": "100644"
+      },
+      "adapted": {
+        "src/modules/operator-auth/conformance/README.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/operator-auth/docs/vite-spa.md": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
+        "src/modules/operator-auth/representation.mjs": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/modules/operator-auth/conformance/README.md": {
+          "sha256": "142c2ef58f58a2f7a6c9dafcf0530cf74502aceac060a9dd0a44367bde8f3653",
+          "mode": "100644"
+        },
+        "src/modules/operator-auth/docs/vite-spa.md": {
+          "sha256": "0c9cb19046087f55390368e9983be52a24ce8804cda0a621c7f74d12b90288b6",
+          "mode": "100644"
+        },
+        "src/modules/operator-auth/representation.mjs": {
+          "sha256": "4dc602fe73ce6fa83ade350ca4bd8a1b86dfa96e743598eb7379d2382de8445f",
+          "mode": "100644"
+        }
       }
     },
     {

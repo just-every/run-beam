@@ -288,7 +288,7 @@ The recorded 9 October 2026 checks of this guard implementation, on Node 26.8.1 
 
 The historical twenty distinct 10 MiB original-custody lifecycle report recorded
 exact bytes through undo. It does **not** prove every twenty-file maximum-content
-CSV import fits. A representative valid twenty-table CSV shape (105 rows/table, two fields,
+CSV import fits. A representative valid twenty-table CSV shape (105 rows per table, two fields,
 10 MiB/file, cells <=100,000 characters) requires 910,382,498 canonical plan
 content bytes: originals alone contribute 279,620,320 base64 bytes, and parsed
 source is retained both in the source and entries before effects are counted.
@@ -446,7 +446,7 @@ separately. `readD1ImportFieldMatches(fields, context)` provides read-only disco
 for optional references as `{ fieldMatches, snapshot }`. Carry `snapshot` in
 `related.snapshot` and preserve the selector set when using a scoped redaction
 adapter, whose snapshot depends on those selectors. Mark references that may be
-absent as `optional: true`. The snapshot fences discovery against custody/native
+absent as `optional: true`. The snapshot fences discovery against custody and native
 changes before publication and cancels incomplete private preparations even when
 fields are empty. Erasure rechecks every supplied selector; a snapshot never
 permits a required path to match nothing.

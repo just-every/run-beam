@@ -35,7 +35,7 @@ without a theme its CSP adds only `img-src 'self'`. Every other resource rule
 above still applies, and mail stays image-free.
 
 The Base conformance registration is executable at
-[`../tests/conformance.test.ts`](https://github.com/runeditrun/base/blob/main/modules/operator-auth/tests/conformance.test.ts), and its D1/Worker
+[`../tests/conformance.test.ts`](https://github.com/runeditrun/base/blob/main/modules/operator-auth/tests/conformance.test.ts), and its D1 and Worker
 adapter lives in this directory's `tests/worker.mjs` and `tests/runtime.mjs`.
 An adopting seed should map these methods to its actual Hono/Worker dispatcher
 and native private API, then import and call the exported registration from its
@@ -70,7 +70,7 @@ The optional seam is enabled by setting `adapter.oidcIssuer` to one exact HTTPS
 issuer and implementing `runtime.admitVerifiedIdentity`. It must call the real
 trusted core seam with the issuer included in `externalIssuers`; the conformance
 case starts from a fresh owner with no prior external identity binding. It makes
-no claim that a changed issuer/subject can bind by matching email. Do not route
+no claim that a changed issuer and subject can bind by matching email. Do not route
 request-body identity data to this seam in the application.
 
 The test sender returns only the IF-056 result shape. `accepted` is API

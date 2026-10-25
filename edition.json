@@ -115,7 +115,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
           "path": ".",
           "paths": [
             "foundation/runtime",
@@ -126,7 +126,41 @@
             "edition-authoring",
             "modules/d1-transport"
           ]
-        }
+        },
+        "mappings": [
+          {
+            "path": "scripts/edition-authoring/README.md",
+            "originPath": "edition-authoring/README.md"
+          },
+          {
+            "path": "scripts/edition-authoring/adopt.mjs",
+            "originPath": "edition-authoring/adopt.mjs"
+          },
+          {
+            "path": "scripts/edition-authoring/lock.mjs",
+            "originPath": "edition-authoring/lock.mjs"
+          },
+          {
+            "path": "src/base/contract-style.ts",
+            "originPath": "foundation/runtime/contract-style.ts"
+          },
+          {
+            "path": "src/modules/mail/README.md",
+            "originPath": "modules/mail/README.md"
+          },
+          {
+            "path": "src/modules/operator-auth/conformance/README.md",
+            "originPath": "modules/operator-auth/conformance/README.md"
+          },
+          {
+            "path": "src/modules/operator-auth/docs/vite-spa.md",
+            "originPath": "modules/operator-auth/docs/vite-spa.md"
+          },
+          {
+            "path": "src/modules/operator-auth/representation.mjs",
+            "originPath": "modules/operator-auth/representation.mjs"
+          }
+        ]
       }
     },
     {
@@ -139,7 +173,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
           "path": "modules/import-kit",
           "paths": [
             "src",
@@ -147,7 +181,17 @@
             "README.md",
             "CONTRACT.md"
           ]
-        }
+        },
+        "mappings": [
+          {
+            "path": "src/modules/import-kit/README.md",
+            "originPath": "README.md"
+          },
+          {
+            "path": "src/modules/import-kit/src/d1/README.md",
+            "originPath": "src/d1/README.md"
+          }
+        ]
       }
     },
     {
@@ -192,11 +236,15 @@
       "source": {
         "kind": "local",
         "paths": [
-          "scripts/delivery/base/setup-manifest.mjs"
+          "scripts/delivery/base/setup-manifest.mjs",
+          "scripts/delivery/base/capabilities.mjs",
+          "scripts/delivery/base/generators/validation.mjs",
+          "scripts/delivery/base/payloads.mjs",
+          "scripts/delivery/base/sql-statements.mjs"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+          "revision": "11f94fec479228d71ba6d7dd6ea7796c0d42c544",
           "path": "modules/delivery-producer",
           "paths": [
             "setup-manifest.mjs",
@@ -210,6 +258,22 @@
           {
             "path": "scripts/delivery/base/setup-manifest.mjs",
             "originPath": "setup-manifest.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/capabilities.mjs",
+            "originPath": "capabilities.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/generators/validation.mjs",
+            "originPath": "generators/validation.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/payloads.mjs",
+            "originPath": "payloads.mjs"
+          },
+          {
+            "path": "scripts/delivery/base/sql-statements.mjs",
+            "originPath": "sql-statements.mjs"
           }
         ]
       }

@@ -758,7 +758,7 @@ public invocation. This is local D1 SQL/custody evidence: a 200 MiB source and
 its complete plan have substantial Node/runtime memory costs. It does not
 establish hosted Worker memory, CPU, multipart upload or product parser limits.
 Nor does it establish capacity for twenty maximum-content CSVs: a valid example
-with 105 rows/table, two fields and 10 MiB/file requires 910,382,498 plan content
+with 105 rows per table, two fields and 10 MiB per file requires 910,382,498 plan content
 bytes. The kit cap is an additional preview/storage bound; retain the product's
 separate table/field/file/row/cell limits and never strip custody or parsed data to
 make admission pass.
@@ -1179,7 +1179,7 @@ hashed source/target index and ordered value chunks are bound to the current job
 plan fingerprint, principal, destination, namespace, action, fence and generation.
 Related retained plan snapshots contribute their entire privacy membership. The
 complete index is verified before any value bytes are accepted. Every bounded
-write checks current authority, the originally observed custody/native revisions,
+write checks current authority, the originally observed custody and native revisions,
 and tombstones; inserted columns are read back exactly before the next write.
 All statements, readbacks, cleanup and return reads are admitted against the one
 request SQL budget before a private write. Every stage batch has at most 2 MiB
