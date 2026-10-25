@@ -210,31 +210,9 @@
           {
             "path": "scripts/delivery/base/setup-manifest.mjs",
             "originPath": "setup-manifest.mjs"
-          },
-          {
-            "path": "scripts/delivery/base/payloads.mjs",
-            "originPath": "payloads.mjs"
-          },
-          {
-            "path": "scripts/delivery/base/sql-statements.mjs",
-            "originPath": "sql-statements.mjs"
-          },
-          {
-            "path": "scripts/delivery/base/capabilities.mjs",
-            "originPath": "capabilities.mjs"
-          },
-          {
-            "path": "scripts/delivery/base/generators/validation.mjs",
-            "originPath": "generators/validation.mjs"
           }
         ]
-      },
-      "mappings": [
-        {
-          "path": "scripts/delivery/base/setup-manifest.mjs",
-          "originPath": "setup-manifest.mjs"
-        }
-      ]
+      }
     },
     {
       "id": "learning/beam-mail",
