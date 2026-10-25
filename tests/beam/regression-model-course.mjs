@@ -33,6 +33,8 @@ export async function modelCourseCheck({ live = false } = {}) {
     } else proposed = await api('owner', 'course.model.run', { ...request, consent: true })
     assert.equal(edge.calls.length, 1)
     const view = await api('author', `courses/${course.id}`), proposal = view.proposals.find(row => row.id === proposed.id)
+    assert.equal(proposal.model, edge.calls[0].model, 'The draft shows its actual model')
+    assert.ok(proposal.modelEstimateCents > 0 && proposal.modelUsageEstimateCents > 0, 'The draft shows reserved and usage USD estimates')
     assert.equal(view.publishedRevision, null)
     assert.equal(view.draft.lessons.length, 0)
     assert.ok(proposal.passages.length > 0 && proposal.passages.every(passage => passage.sourceVersion === source.versionId && JSON.parse(edge.calls[0].input[0].content[0].text).passages.some(original => original.sourceVersion === passage.sourceVersion && original.text.includes(passage.quote))))
