@@ -263,8 +263,8 @@ node scripts/edition-authoring/cli.mjs refresh-base FULL_40_HEX_COMMIT --base /a
 ```
 
 `adapt-base <file> [--record <file>]` only accepts an existing regular recorded
-file. It keeps local bytes and mode unchanged, and adds `adapted: {"./local-path":
-"ORIGINAL_FULL_BASE_COMMIT"}` and `acknowledged: {"./local-path":
+file. It keeps local bytes and mode unchanged, and adds `adapted: {"local/path":
+"ORIGINAL_FULL_BASE_COMMIT"}` and `acknowledged: {"local/path":
 {"sha256": "SHA256_OF_LOCAL_BYTES", "mode": "100644"}}` to that copy (`100755`
 for an executable file). The existing `files` digest and
 `modes` entry remain the Base baseline at this per-file commit, even when the
