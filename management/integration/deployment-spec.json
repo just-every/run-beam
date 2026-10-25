@@ -634,6 +634,36 @@
       "name": "0105_beam_announcement_reply_scope.sql",
       "sha256": "b506b55f7b7d26e1fa6aa621ac4eaf5fd35f03e2fe502c84616fb890f7261801",
       "sql": "-- Keep private replies within the management boundary captured at send time.\n-- Older snapshots with no captured boundary fail closed for non-owner senders.\nALTER TABLE beam_announcement_recipients ADD COLUMN authority_teams TEXT;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0106_beam_frontline_auth.sql",
+      "sha256": "89783053972df368490a931211b6ae08ad7fabc01fe8485dbb10c9066d5ebf2e",
+      "sql": "-- ORG-011 credentials are separate from portable learning evidence.\nCREATE TABLE beam_frontline_policy(singleton INTEGER PRIMARY KEY CHECK(singleton=1),enabled INTEGER NOT NULL DEFAULT 0,revision INTEGER NOT NULL DEFAULT 1);\nCREATE TABLE beam_frontline_credentials(\n member_id TEXT PRIMARY KEY REFERENCES beam_members(id),salt TEXT NOT NULL,hash TEXT NOT NULL,\n initial_expires INTEGER,mode TEXT NOT NULL CHECK(mode IN ('password','pin')),\n failures INTEGER NOT NULL DEFAULT 0,locked_until INTEGER NOT NULL DEFAULT 0,revision INTEGER NOT NULL DEFAULT 1\n);\nCREATE UNIQUE INDEX beam_username_folded ON beam_members(lower(username)) WHERE username IS NOT NULL;\n-- Employment termination is terminal for existing sessions, including after rehire.\nCREATE TRIGGER beam_frontline_leaver AFTER UPDATE OF employment ON beam_members\n WHEN NEW.employment='terminated' AND OLD.employment<>'terminated'\n BEGIN\n UPDATE oa_sessions SET revoked_at=COALESCE(revoked_at,unixepoch()*1000) WHERE operator_id=NEW.operator_id;\n DELETE FROM beam_frontline_credentials WHERE member_id=NEW.id;\n END;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0107_beam_frontline_methods.sql",
+      "sha256": "ae3c50864c1a9edde59e3a687f859d0076e2efc1278713e621daea18fbaeb9bc",
+      "sql": "-- Independent local methods preserve the existing global kill switch.\nALTER TABLE beam_frontline_policy ADD COLUMN password_enabled INTEGER NOT NULL DEFAULT 1 CHECK(password_enabled IN (0,1));\nALTER TABLE beam_frontline_policy ADD COLUMN pin_enabled INTEGER NOT NULL DEFAULT 1 CHECK(pin_enabled IN (0,1));\nALTER TABLE beam_frontline_policy ADD COLUMN initial_days INTEGER NOT NULL DEFAULT 7 CHECK(initial_days BETWEEN 1 AND 30);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0108_beam_roster_feed_previews.sql",
+      "sha256": "9fbf8ce46c2b2b15473ff57f0d789e4a29ff16117e6aa9f190fc4894af477f54",
+      "sql": "-- Feed preparation is write-free until the owner applies the ordinary roster preview.\nCREATE TABLE beam_roster_feeds (\n id TEXT PRIMARY KEY, name TEXT NOT NULL, headers_json TEXT NOT NULL, mapping_json TEXT NOT NULL,\n interval_minutes INTEGER NOT NULL CHECK(interval_minutes BETWEEN 15 AND 1440),\n termination_limit INTEGER NOT NULL CHECK(termination_limit BETWEEN 1 AND 100),\n created_at INTEGER NOT NULL, last_received_at INTEGER\n);\nCREATE TABLE beam_roster_feed_receipts (\n id TEXT PRIMARY KEY, feed_id TEXT NOT NULL REFERENCES beam_roster_feeds(id), digest TEXT NOT NULL,\n state TEXT NOT NULL, reason TEXT, batch_id TEXT REFERENCES beam_roster_batches(id), received_at INTEGER NOT NULL,\n UNIQUE(feed_id,digest)\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0109_beam_portal_theme.sql",
+      "sha256": "dff493dbd513fd13168f86f6775a846062c65a1d2bb722eebe500ed84a468a08",
+      "sql": "-- Owner-managed presentation only; hostname activation remains outside this table.\nCREATE TABLE beam_portal_theme (\n  singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n  primary_color TEXT NOT NULL,\n  accent_color TEXT NOT NULL,\n  signin_heading TEXT NOT NULL,\n  signin_text TEXT NOT NULL,\n  sender_name TEXT NOT NULL,\n  logo_json TEXT,\n  favicon_json TEXT,\n  version INTEGER NOT NULL,\n  updated_by TEXT NOT NULL,\n  updated_at INTEGER NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0110_beam_model_preparation.sql",
+      "sha256": "affe22598dbf6628b500df0ac376e05d0f171a4bad1e140ae551e2f5deb92411",
+      "sql": "-- Paid preparation never grants publication authority.\nCREATE TABLE beam_model_config (\n singleton INTEGER PRIMARY KEY CHECK(singleton=1), enabled INTEGER NOT NULL DEFAULT 0,\n key_cipher TEXT, version INTEGER NOT NULL, max_cost_cents INTEGER NOT NULL,\n updated_by TEXT NOT NULL REFERENCES beam_members(id), updated_at INTEGER NOT NULL\n);\nCREATE TABLE beam_model_runs (\n id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('locale','course')),\n course_id TEXT NOT NULL REFERENCES beam_courses(id), digest TEXT NOT NULL, model TEXT NOT NULL,\n state TEXT NOT NULL CHECK(state IN ('running','completed','failed')),\n approved_by TEXT NOT NULL REFERENCES beam_members(id), approved_at INTEGER NOT NULL,\n config_version INTEGER NOT NULL, estimate_cents INTEGER NOT NULL, max_cost_cents INTEGER NOT NULL,\n completed_at INTEGER, failure TEXT, usage_json TEXT, provider_response_id TEXT, result_id TEXT\n);\nCREATE TABLE beam_model_run_sources (\n run_id TEXT NOT NULL REFERENCES beam_model_runs(id), source_version_id TEXT NOT NULL REFERENCES beam_source_versions(id),\n PRIMARY KEY(run_id,source_version_id)\n);\nCREATE UNIQUE INDEX beam_model_active ON beam_model_runs(kind,course_id,digest) WHERE state='running';\nALTER TABLE beam_course_locales ADD COLUMN subtitles_json TEXT NOT NULL DEFAULT '{}';\nCREATE TRIGGER beam_restore_disables_model AFTER UPDATE OF import_job ON rer_portability_state\nWHEN NEW.import_job IS NOT OLD.import_job BEGIN\n UPDATE beam_model_config SET enabled=0,key_cipher=NULL,version=version+1;\nEND;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
