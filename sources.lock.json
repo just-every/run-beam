@@ -1138,7 +1138,7 @@
       "executable": false
     },
     "public/site/theme.css": {
-      "sha256": "d08402fc4b128ad0d7cfee84a942ab50a804cfc543597348a44e990ceedaddf9",
+      "sha256": "607d9111232f1f9c26c1e5914b08a65fdbda3cf1386f24c39af254608cc53160",
       "executable": false
     },
     "README.md": {
@@ -4374,7 +4374,7 @@
       "executable": false
     },
     "src/site/run.ts": {
-      "sha256": "d2004c33e719dbe850ce416bf0b6fc296718a69de5f25460555b0ccb897d220b",
+      "sha256": "f8b99fdf9ee7a7d1492f4776d1ae54ba34d48406a3b8f273fe2ee041ab0e9896",
       "executable": false
     },
     "src/site/shell.ts": {

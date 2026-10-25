@@ -83,24 +83,17 @@
   --rer-wordmark-tracking: -.01em;
 }
 
-/* Base's Run page and its siblings in the site's look: the pale ground, the display headline, white step cards with a
-   hairline, navy numerals and command cards. Scoped by Base's own markup; the landing and docs never use these. */
+/* Base's Run page and its siblings in the site's look: the pale ground and display headline.
+   Scoped by Base's own markup; the landing and docs never use these. */
 body:has(> main > .intro), body:has(> main > .hero) { background: var(--pale); }
 header.bar .brand { font-weight: 800; letter-spacing: -.01em; }
 header.bar .brand img { width: 34px; height: 40px; }
 main > .intro h1, main > .hero h1 { font-weight: 800; letter-spacing: -.03em; line-height: 1.02; }
 main > .intro h1 { font-size: 66px; }
-ol.steps > li.step { border: 1px solid var(--line); border-radius: 16px; background: var(--white); box-shadow: var(--shadow-card); backdrop-filter: none; }
-ol.steps .step h2 { font-family: var(--font-body); font-weight: 700; letter-spacing: -.015em; }
-ol.steps .num { font-family: var(--font-body); font-weight: 700; }
 /* The band is the horizon at its own proportions (1536 x 540; the phone crop 800 x 584), its sky fading into the page. */
 body:has(> .art) { --art: calc(100vw * 540 / 1536); }
 body > .art picture { display: block; height: 100%; }
 body > .art img { -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%); mask-image: linear-gradient(180deg, transparent, #000 14%); }
-@media (min-width: 761px) and (max-width: 900px) {
-  ol.steps .code pre { padding: 46px 18px 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
-  ol.steps .copy { top: 8px; right: 8px; transform: none; }
-}
 @media (max-width: 760px) {
   main > .intro h1 { font-size: 44px; }
   body:has(> .art) { --art: calc(100vw * 584 / 800); }
