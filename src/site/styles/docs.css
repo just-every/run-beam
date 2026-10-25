@@ -4,12 +4,12 @@
 .docs-layout { max-width: 1280px; margin: 0 auto; padding: 56px 40px 88px; display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 56px; align-items: start; }
 .docs-nav { position: sticky; top: 24px; padding: 20px 18px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); box-shadow: var(--shadow-soft); }
 .docs-nav-home a { display: block; padding: 7px 10px; border-radius: 8px; font-weight: 600; text-decoration: none; color: var(--ink); }
-.docs-nav-title { margin: 18px 10px 6px; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--eyebrow); }
+.docs-nav-title { margin: 18px 10px 6px; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--eyebrow); }
 .docs-nav li a { display: block; padding: 7px 10px; border-radius: 8px; color: #2b3045; font-size: 15.5px; line-height: 1.35; text-decoration: none; }
 .docs-nav a:hover { background: var(--pale); }
 .docs-nav a[aria-current="page"] { background: #dfe6fc; color: var(--ink); font-weight: 600; box-shadow: inset 3px 0 0 var(--eyebrow); }
 .docs-main { min-width: 0; max-width: 800px; }
-.docs-main > .eyebrow { margin-bottom: 12px; }
+.docs-main > .eyebrow { margin-bottom: 12px; font-size: 14px; }
 .docs-main h1 { font-family: var(--font-display); font-weight: 800; font-size: 56px; line-height: 1.05; letter-spacing: -.03em; color: var(--ink); text-wrap: balance; }
 .docs-lede { margin-top: 18px; color: var(--body); font-size: 20px; line-height: 1.55; }
 .docs-lede code, .docs-body code { padding: 1px 6px; border-radius: 6px; background: #e3e9fc; font-family: var(--font-mono); font-size: .86em; overflow-wrap: anywhere; }
@@ -23,7 +23,7 @@
 .docs-card-go { position: absolute; right: 18px; top: 20px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--white); }
 .docs-card-go .gl { width: 16px; height: 16px; }
 .docs-toc { margin-top: 30px; padding: 18px 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
-.docs-toc p { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--eyebrow); }
+.docs-toc p { font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--eyebrow); }
 .docs-toc ul { margin-top: 8px; columns: 2; column-gap: 28px; }
 .docs-toc li { break-inside: avoid; padding: 3px 0; font-size: 15.5px; }
 .docs-toc a { color: var(--ink); text-decoration: none; }
