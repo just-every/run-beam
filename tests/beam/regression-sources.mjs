@@ -432,6 +432,9 @@ export async function multimediaBrowserCheck(f, media) {
   try {
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })
+      // Provider playback is outside this native-media journey. Keep admitted
+      // embed frames while refusing their external network requests at the edge.
+      await context.route(url => url.origin !== f.h.origin, route => route.abort('blockedbyclient'))
       const page = await context.newPage()
       async function as(role) {
         await context.clearCookies()

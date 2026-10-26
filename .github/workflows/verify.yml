@@ -30,11 +30,12 @@ jobs:
       - run: node tests/beam/dev-personas.mjs
   verify:
     runs-on: ubuntu-24.04
-    # The complete wall is split with durability and package custody below so every push job finishes within 15 minutes.
+    # The complete wall is split across the focused jobs below to fit the 15-minute job limit.
     timeout-minutes: 15
     env:
       CI: 'true'
-      BEAM_REGRESSION_EXCLUDE: 'OPS-003,OPS-007,AUTO-004,PACK-003-custody'
+      # The learning-and-source-browser job runs these authoring API checks with their browser checks.
+      BEAM_REGRESSION_EXCLUDE: 'OPS-003,OPS-007,AUTO-004,PACK-003-custody,AUTHOR-001,AUTHOR-002'
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4

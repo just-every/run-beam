@@ -301,7 +301,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "3629fc9a894ce0eb9376d3bb8f3a9257ee5ed05e052e1075e999aec59d1047c6",
+      "sha256": "12b4533a0a108a142b867b3d9f369e64417bde0799079d8a8502d2818adce8b4",
       "executable": false
     },
     ".gitignore": {
@@ -4653,7 +4653,7 @@
       "executable": false
     },
     "tests/beam/regression-sources.mjs": {
-      "sha256": "4c9e979a3bcdcc9d408795849e661f642cc450fc1c037dce9d44fcea17cc9f88",
+      "sha256": "59429de147f98a5d252f87ada9c14f5b53e98743dabfa0d9d35a547e10165bf4",
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {
