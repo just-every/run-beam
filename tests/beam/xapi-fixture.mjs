@@ -14,9 +14,10 @@ function parseBody(bytes, contentType) {
   const first = parts.shift().split('\r\n\r\n').slice(1).join('\r\n\r\n').slice(0, -2)
   return { statements: [JSON.parse(Buffer.from(first, 'latin1').toString())].flat(), attachments: parts.map(part => { const split = part.indexOf('\r\n\r\n'); return { sha256: part.slice(0, split).match(/X-Experience-API-Hash: ([^\r]+)/i)[1], contentType: part.slice(0, split).match(/Content-Type: ([^\r]+)/i)[1], bytes: Buffer.from(part.slice(split + 4, -2), 'latin1') } }) }
 }
-export async function xapiFixture({ liveEndpoint } = {}) {
+export async function xapiFixture({ liveEndpoint, outboundService } = {}) {
   const records = new Map(), edge = { writes: 0, refuse: false, tamper: false }
   const f = await fixture({ ownerName: 'Avery Patel', businessName: 'Sierra Lakes Produce', names: { author: 'Jordan Brooks', reviewer: 'Morgan Lee', learner: 'Elena Gomez', assessor: 'Priya Shah', other: 'Chris Adams', manager: 'Tom Okafor' }, bindings: { BEAM_XAPI_HOSTS: 'synthetic-beam-1.example.test', ...(liveEndpoint ? { BEAM_XAPI_LOCAL_SANDBOX: 'true' } : {}) }, outboundService: async request => {
+    if (outboundService) { const response = await outboundService(request.clone()); if (response) return response }
     const url = new URL(request.url), endpoint = liveEndpoint || lrsEndpoint
     if (!request.url.startsWith(endpoint)) return null
     assert.ok(request.headers.get('authorization') === `Basic ${Buffer.from('synthetic-beam-1:synthetic-beam-2').toString('base64')}`, 'LRS authorization differs')

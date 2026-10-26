@@ -32,7 +32,11 @@ export async function tutorBrowser(f,pages) {
      assert.ok(body.includes('Estimates are not invoices.') && body.includes('Conservative reservation per request: USD'),'Rendered costs explain estimate limits')
     }
     if(name==='answer') await page.getByText('These exact passages may not cover your circumstances. Ask the responsible expert if unsure.',{exact:true}).waitFor()
-    if(name==='ask') assert.ok((await page.locator('body').innerText()).includes('sending them to OpenAI'))
+    if(name==='ask') {
+     const notice = await page.locator('body').innerText()
+     assert.ok(notice.includes('sending them to OpenAI') && notice.includes('This question may contain information I supply.'))
+    }
+    if(['unsupported','partial','conflicting','handoff-disclosure'].includes(name)) await page.getByText('The permitted material does not establish an answer. Ask the responsible expert.',{exact:true}).waitFor()
     if(name==='handoff-disclosure') assert.ok((await page.locator('body').innerText()).includes('course cohort and its responsible experts'))
     await page.screenshot({path:`${evidence}/${width}-tutor-${name}.png`,fullPage:true})
     const complete = page.getByText('Complete outbound request',{exact:true})

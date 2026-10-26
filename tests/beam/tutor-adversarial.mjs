@@ -14,6 +14,7 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
   assert.ok(!JSON.stringify(result).includes('synthetic-beam-95'),'Provider-written prose never becomes an answer')
   assert.ok(!result.result || result.result.status==='unanswered')
   assert.deepEqual(result.result?.citations ?? [],[])
+  if(status===200) assert.equal(result.result.uncertainty,'The permitted material does not establish an answer. Ask the responsible expert.','Unsafe or incomplete support states uncertainty and the expert route')
   return {q,preview}
  }
  const visibleSource = async source => {
@@ -23,8 +24,11 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
   await f.publish(reference.revision);return {reference,assignment:await f.assign(reference)}
  }
  const before = (await api('learner','./records/me')).completions
- const proveAnswer = async (question,sourceVersion=source.versionId) => {
-  setChoose(data=>({status:'answered',passages:[data.passages.find(p=>p.sourceVersion===sourceVersion && p.text.startsWith('Use clean tools')).id],uncertainty:'The material is limited.'}))
+ const proveAnswer = async (question,sourceVersion=source.versionId,parts=1) => {
+  setChoose(data=>{
+   const passage = data.passages.find(p=>p.sourceVersion===sourceVersion && p.text.startsWith('Use clean tools')).id
+   return {status:'answered',passages:[passage],support:Array.from({length:parts},(_,part)=>({part,passages:[passage]})),uncertainty:'The material is limited.'}
+  })
   const q = await ask(question), preview = await api('owner',`tutor/${q.id}/preview`)
   await api('owner','tutor.run',{...preview,question:q.id,consent:true})
   const answer = (await api('learner',`tutor/${q.id}`)).result
@@ -34,6 +38,8 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
  }
  const paraphrase = await proveAnswer('How should I prepare my equipment?')
  await proveAnswer('Which implements are suitable?')
+ const conjunctive = await proveAnswer('How should I prepare my equipment and where should I put dirty implements?',source.versionId,2)
+ await screens([['conjunctive-paraphrase','learner',`/app/tutor/${conjunctive.q.id}`,'Source-grounded answer']])
  await screens([['paraphrase','learner',`/app/tutor/${paraphrase.q.id}`,'Source-grounded answer']])
  const compatible = await api('author','source.create',{title:'Additional compatible procedure',reviewer:f.ids.reviewer,licence:'owned',licenceEvidence:'Employer-owned',provenance:'Compatible guidance',file:file('synthetic-beam-102.txt','Use clean tools before work. Inspect handles for damage.')})
  await visibleSource(compatible)
@@ -42,7 +48,7 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
  await screens([['compatible','learner',`/app/tutor/${compatibleAnswer.q.id}`,'Source-grounded answer']])
  await api('owner','tutor.source',{course:c.id,source:compatible.versionId,enabled:false})
 
- const answered = passage => ({status:'answered',passages:[passage],uncertainty:'synthetic-beam-95'})
+ const answered = passage => ({status:'answered',passages:[passage],support:[{part:0,passages:[passage]}],uncertainty:'synthetic-beam-95'})
  await execute('What tools should I use before work?',data=>answered(data.passages.find(p=>p.text.includes('break room closes')).id))
  await execute('What tools should I use before work?',()=>answered('synthetic-beam-96'),502)
  await execute('What tools should I use before work?',data=>answered(data.passages.find(p=>p.text.includes('UNTRUSTED INSTRUCTION')).id),502)

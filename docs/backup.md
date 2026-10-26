@@ -1,4 +1,4 @@
-Everything Beam holds can be exported to one archive you keep, and restored into a fresh copy of Beam.
+Beam exports durable learning records to an archive you keep and restores them into a fresh copy. Private tutor questions and answered caches are deliberately excluded.
 
 ## Export
 
@@ -9,7 +9,7 @@ rer dev --stop
 rer export --output exports/beam.rer
 ```
 
-The archive holds every Beam record (your business, people and teams, sources and every version, courses and revisions, paths, assignments, progress, attempts, decisions, completions, certificates, imported history and the audit trail) and every stored file. It never holds sign-in accounts, sessions or private settings. Keep it somewhere safe: it contains your staff's names, email addresses and records.
+The archive holds durable Beam records (your business, people and teams, sources and every version, courses and revisions, paths, assignments, progress, attempts, decisions, completions, certificates, imported history and the audit trail) and every stored file. It excludes tutor questions and answers, sign-in accounts, sessions, authentication secrets and private settings. Tutor source grants restore disabled and require a fresh owner grant; model and OCR connections require fresh provisioning and consent. Keep it somewhere safe: it contains your staff's names, email addresses and records.
 
 Save archives in the `exports` folder or anywhere outside the Beam folder. Beam refuses to write one where it would be served to visitors.
 

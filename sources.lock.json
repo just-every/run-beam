@@ -314,7 +314,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "2581757cc5ce336143ae6229b501450afd11e1dc290098983b727fb3bc439316",
+      "sha256": "8dd92c3a29ff9b9eff1e1c4f1493ee11b7021e2801d56b5a1feee2a8ad58f37c",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -334,7 +334,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "20a05aad44e44b28d57ef72ed5e04c5dda13c68c4f6e353f12ec8ca9a059080d",
+      "sha256": "e7ee6cbdae77e4260160c487e289f09192badb141f36a2893532ab6144155c24",
       "executable": false
     },
     "DEMO.md": {
@@ -362,7 +362,7 @@
       "executable": false
     },
     "docs/backup.md": {
-      "sha256": "bd1c91acb8d27c064d6e1d0173b416fcacf33fad09f92c7dffddd1d30ea87a28",
+      "sha256": "b8b713e0bcde2f42d808e1275f7a31cc70ce77977270553ce3c4db9d79cd4063",
       "executable": false
     },
     "docs/courses.md": {
@@ -1166,7 +1166,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "23ed0acaca3847b791323841fc5fe152c5e29174ad80bf4601c5bb3aef831002",
+      "sha256": "b3ac916e23e69c344fc153a15cddf11bed0271072e98f5e241897325e0690b98",
       "executable": false
     },
     "release-history/0.1.0.json": {
@@ -2198,11 +2198,11 @@
       "executable": false
     },
     "src/beam/tutor-support.ts": {
-      "sha256": "4e25ad4237346116643c9f88f34a9765ffd090e74e941f04dcd3c3aeaf6a543c",
+      "sha256": "19cfeecfcc356aad3e7b38e38bd5b329af8d32ac629359882fefffa1e0f08985",
       "executable": false
     },
     "src/beam/tutor.ts": {
-      "sha256": "64ed6f7a85b51c65af3fd481710a9d06bfbed22f57e077f534099b37599002d5",
+      "sha256": "e9d841923011d5a3ba1a7d7166a30d98ead252eb398ab2bc76c4c45e4f183541",
       "executable": false
     },
     "src/beam/ui/access.ts": {
@@ -4482,7 +4482,7 @@
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {
-      "sha256": "2afbf9f8c8c9873cdf7979076ac3d0386770f610fd0a965828b44afb716650ec",
+      "sha256": "1d568f43d9c945826f706180cf1dedbc5bd4a13a8381a3db9a7bc5513d182ae2",
       "executable": false
     },
     "tests/beam/regression-attendance.mjs": {
@@ -4554,7 +4554,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "5d824972097405eb04ce49d7837fdecbca03444ecbcf347b5c57dfa09050d3fd",
+      "sha256": "fece0c54c29b3542a278de50345016b3552e5088c184dad3dd5ccbe9734c136b",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
@@ -4678,7 +4678,7 @@
       "executable": false
     },
     "tests/beam/regression-tutor.mjs": {
-      "sha256": "11f5c2ec0ebd063e6912f896fa3a90f05e2324dafb67918d653143594b54489b",
+      "sha256": "3351be183d450806dd171654c608daf25de3277e2e473f229ce2ae643fc5f8eb",
       "executable": false
     },
     "tests/beam/regression-upkeep.mjs": {
@@ -4702,7 +4702,7 @@
       "executable": false
     },
     "tests/beam/regressions.mjs": {
-      "sha256": "6e9897b5fecd116fc645b5560f1082d947c3e983ac453204e8ff80122fc57488",
+      "sha256": "8fd6bcfe88bb3e5958e8792a8dc88e4e04040e5d5605d985850bad9b60679560",
       "executable": false
     },
     "tests/beam/restore.mjs": {
@@ -4738,11 +4738,11 @@
       "executable": false
     },
     "tests/beam/tutor-adversarial.mjs": {
-      "sha256": "4c0ee6845c8114290e6365b0cf5653bd88bc760093158cc958e772b89a95600f",
+      "sha256": "3882d6cb96749f2e302b3d15c89006db6ebe1946070896b41094a6535f0fbdbf",
       "executable": false
     },
     "tests/beam/tutor-browser.mjs": {
-      "sha256": "d00aaad4ba5cc734cb35906306799cb65974359996efad2a612ba57b9ea874ab",
+      "sha256": "555156b3a4c2e779cb66c3e9b373946a279a80f8d9b6603e98fa6bb2ca1c3641",
       "executable": false
     },
     "tests/beam/tutor-privacy.mjs": {
@@ -4758,7 +4758,7 @@
       "executable": false
     },
     "tests/beam/xapi-fixture.mjs": {
-      "sha256": "193391ddba71e2db759396c0d6ca21022491d68f545f77d7a251ddea3c766c05",
+      "sha256": "caa26891ca3746862d2ad2cec64798fc8282868c5a34c6c18c52df98c44a9131",
       "executable": false
     },
     "tests/beam/xapi-lrs.mjs": {

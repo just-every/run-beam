@@ -13,7 +13,7 @@ export async function tutorCheck({ live = false } = {}) {
   if(choose) return choose(data)
   const unsupported = /replacement interval|ignore all/i.test(data.question)
   const passage = /published lesson/i.test(data.question) ? data.passages.find(p=>p.lesson) : data.passages.find(p=>p.sourceVersion && /Use clean tools before work/.test(p.text))
-  return { status: unsupported || !passage ? 'unanswered' : 'answered', passages: unsupported || !passage ? [] : [passage.id], uncertainty: 'The document does not specify all circumstances.' }
+  return { status: unsupported || !passage ? 'unanswered' : 'answered', passages: unsupported || !passage ? [] : [passage.id], support: unsupported || !passage ? [] : [{part:0,passages:[passage.id]}], uncertainty: 'The document does not specify all circumstances.' }
  },{live})
  const f = await fixture({clock:Date.parse('2026-10-26T12:00:00Z'),businessName:'Sierra Lakes Produce',ownerName:'Morgan Hayes',names:{learner:'Riley Morgan',reviewer:'Sam Taylor'},outboundService:async request => { const response = await edge.outboundService(request); if(response && duringRequest) await duringRequest(); return response }})
  const {api,h,ids,cookies} = f
@@ -54,6 +54,7 @@ export async function tutorCheck({ live = false } = {}) {
   }
   assert.equal(preparations(),callsAtStart,'Configuration, grants, questions, pages and previews do not call the provider')
   const disclosure = await (await h.raw(`/app/tutor?assignment=${assignment}`,{cookie:cookies.learner})).text()
+  assert.ok(disclosure.includes('This question may contain information I supply.'),'Consent discloses learner-supplied information in the question itself')
   assert.ok(disclosure.includes('owner reviews the exact question') && disclosure.includes('OpenAI') && disclosure.includes('does not post to the cohort'))
   const exactPreview = await api('owner',`tutor/${first.id}/preview`)
   await approve(first.id)
@@ -90,6 +91,7 @@ export async function tutorCheck({ live = false } = {}) {
   const unansweredCallCount = edge.calls.length
   const unanswered = await api('learner',`tutor/${unsupported.id}`)
   assert.equal(unanswered.result.status,'unanswered'); assert.deepEqual(unanswered.result.citations,[])
+  assert.equal(unanswered.result.uncertainty,'The permitted material does not establish an answer. Ask the responsible expert.')
   assert.equal(unanswered.thread,null,'A paid response never posts the learner question')
   await api('owner','tutor.handoff',{question:unsupported.id},409)
   const handoffNotice = await (await h.raw(`/app/tutor/${unsupported.id}`,{cookie:cookies.learner})).text()
@@ -98,6 +100,9 @@ export async function tutorCheck({ live = false } = {}) {
   if(browser) await tutorForm(f,'learner',`/app/tutor/${unsupported.id}`,'tutor.handoff')
   else await api('learner','tutor.handoff',{question:unsupported.id})
   const handed = await api('learner',`tutor/${unsupported.id}`)
+  const posted = (await api('learner',`discussions/${c.id}`)).threads.find(thread=>thread.id===handed.thread)
+  assert.ok(posted,'The explicit handoff creates the named cohort thread')
+  assert.equal(posted.posts[0].body,'What is the tool replacement interval?','Expert handoff preserves the exact consented question body')
   assert.ok((await api('reviewer','discussion-notices')).waiting.some(t=>t.id===handed.thread))
   const reply = await api('reviewer','discussion.reply',{thread:handed.thread,body:'The approved procedure does not specify a replacement interval. Ask your supervisor before replacing tools.'})
   await api('reviewer','discussion.resolve',{thread:handed.thread,answer:reply.post})
