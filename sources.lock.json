@@ -2385,7 +2385,7 @@
       "executable": false
     },
     "src/beam/ui/model-account.ts": {
-      "sha256": "7beac81c2ac58f2a8232405f0e887968ef3c01b6c7fae3795c955b40bb8ca159",
+      "sha256": "11d6042a368469d8b6d1de69512a3d5daa1ab7a39925a52c05db0e184251bb5d",
       "executable": false
     },
     "src/beam/ui/model-course.ts": {
@@ -2469,7 +2469,7 @@
       "executable": false
     },
     "src/beam/ui/tutor.ts": {
-      "sha256": "65ace6835021ce3708e7964c08a1e752294008d3ae69eb7f3cb72cda93b63810",
+      "sha256": "d94125e7edde59938f664559231ac564550753671853da615202b40aeb27bbff",
       "executable": false
     },
     "src/beam/ui/units.ts": {
@@ -4665,7 +4665,7 @@
       "executable": false
     },
     "tests/beam/regression-tutor.mjs": {
-      "sha256": "1570145d4d110eb03bbd4c83146f9c8fad97d6edda7438d32842e8fefff976ad",
+      "sha256": "c642354ab752310f16633b20c0ef8fc194d546d13088995331dd89285fdb54c0",
       "executable": false
     },
     "tests/beam/regression-upkeep.mjs": {
