@@ -17,7 +17,7 @@ const hash = (value: unknown) => sha256Hex(new TextEncoder().encode(JSON.stringi
 function human(actor: Actor) { insist(!actor.agent && !actor.app && !actor.viewAs, 'human_required', 403) }
 async function activeAssignment(env: Bindings, learner: string, id: string) {
  const assignment = await one(env, `SELECT a.*,r.title,r.number FROM beam_assignments a JOIN beam_course_revisions r ON r.id=a.course_revision_id
- JOIN beam_members m ON m.id=a.learner_id JOIN oa_operators o ON o.id=m.operator_id WHERE a.id=? AND a.learner_id=? AND a.status!='cancelled' AND o.status='active' AND m.erased_at IS NULL AND m.erasure_pending=0`, id, learner)
+ JOIN beam_members m ON m.id=a.learner_id JOIN oa_operators o ON o.id=m.operator_id WHERE a.id=? AND a.learner_id=? AND a.status IN ('open','completed') AND o.status='active' AND m.erased_at IS NULL AND m.erasure_pending=0`, id, learner)
  insist(assignment, 'not_found', 404); requireAccess(assignment)
  return assignment
 }
