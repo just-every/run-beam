@@ -1349,7 +1349,7 @@
       "executable": false
     },
     "scripts/installer/portability-policy.mjs": {
-      "sha256": "07430eea92f4ed1cd535a1e6174d911c14a237fe3a3a8619eb73c47cb6aa74c8",
+      "sha256": "de056e23100471c989863a845ddbce6804313c59529f91ec22ea9c1d7ca4b7c2",
       "executable": false
     },
     "scripts/installer/seed.mjs": {
