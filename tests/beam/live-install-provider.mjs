@@ -73,6 +73,8 @@ try {
   assert.equal((await api(`courses/${course.id}`)).proposals.length, 0, 'nothing is simulated before a provider is connected')
 
   // Connect the real account through the owner door, request one draft, inspect it, revoke the key.
+  const policy = (await api('automation-controls')).policy
+  await api('automation.policy', { ...policy, dailySpendLimitCents: 100000 })
   await api('model.configure', { operation: 'enable', apiKey: process.env.BEAM_MODEL_KEY, maxCostCents: 1000, consent: true })
   const connected = await api('model-account')
   assert.equal(connected.hasKey, true)

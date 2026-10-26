@@ -48,6 +48,7 @@ export async function courseLocaleCheck({ live = false } = {}) {
     await api('author', 'model.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true }, 403)
     const key = live ? process.env.BEAM_MODEL_KEY : 'synthetic-beam-1'
     assert.ok(key, 'Held preparation key injected through the approved env door')
+    await api('owner', 'automation.policy', { ...(await api('owner', 'automation-controls')).policy, version: (await api('owner', 'automation-controls')).policy.version, dailySpendLimitCents: 100000 })
     await api('owner', 'model.configure', { operation: 'enable', apiKey: key, maxCostCents: 1000, consent: true })
     const parameters = new URLSearchParams({ baseRevision, locale: 'es-US', glossary: glossary.id })
     const previewPath = `course-locales/${course.id}/model-preview?${parameters}`

@@ -1,5 +1,9 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  tutor_rights_required: 'confirm that the recorded content rights permit cohort sharing and paid tutor processing.',
+  model_daily_budget_exceeded: 'the daily estimated USD ceiling is zero or exhausted. Review the ceiling in Automation settings. Failed and unknown requests stay reserved.',
+  model_owner_session_ended: 'the owner session ended during this request. Sign in again and inspect the retained request history.',
+  model_reservation_missing: 'the paid reservation could not be confirmed. Inspect the request history before approving another request.',
   tutor_consent_required: 'confirm that the owner may review your question and exact permitted passages before a paid request.',
   tutor_invalid_citation: 'the model selected an unsafe or unavailable passage. No answer was saved; ask the responsible expert.',
   tutor_invalid_result: 'the model returned an unsupported result. No answer was saved; ask the responsible expert.',
