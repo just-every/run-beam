@@ -96,7 +96,8 @@
           "packaging.json",
           "migrations/core/0110_beam_model_preparation.sql",
           "migrations/core/0111_beam_enterprise_portals.sql",
-          "migrations/core/0112_beam_portal_claims.sql"
+          "migrations/core/0112_beam_portal_claims.sql",
+          "migrations/core/0113_beam_tutor.sql"
         ]
       }
     },
