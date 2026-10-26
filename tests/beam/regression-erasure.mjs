@@ -171,6 +171,7 @@ export async function erasureCheck() {
     }
     assert.ok(report.outcomes.native.some(row => row.table === 'beam_sequence_answers' && row.removed > 0))
     assert.ok(report.providers.some(row => row.state === 'failed'), 'provider deletion remains visibly unresolved')
+    assert.ok(report.providers.some(row=>row.connection_id==='model:openai' && row.state==='failed' && row.failure==='model_provider_erasure_api_required'),'Erasing the native answered cache never claims model-provider deletion')
     assert.ok(report.providers.some(row=>row.connection_id===external.connection && row.state==='failed' && row.failure==='connected_lrs_erasure_api_required'))
     assert.ok(f.lrs.records.has(externalStatement.id), 'external statements are not falsely reported erased')
     assert.equal(f.lrs.edge.writes,1,'erasure never fabricates an LRS destructive API or sends a replacement statement')

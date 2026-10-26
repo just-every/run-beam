@@ -314,7 +314,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "8dd92c3a29ff9b9eff1e1c4f1493ee11b7021e2801d56b5a1feee2a8ad58f37c",
+      "sha256": "523ba15f735960a38917004a4e18e12f1e02292699211862068ac8cb261ea53b",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -334,7 +334,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e7ee6cbdae77e4260160c487e289f09192badb141f36a2893532ab6144155c24",
+      "sha256": "1ffd56474022fc3d2b3c897665a495a13705b2d1be0a7340bee810a75c3c1511",
       "executable": false
     },
     "DEMO.md": {
@@ -4554,7 +4554,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "fece0c54c29b3542a278de50345016b3552e5088c184dad3dd5ccbe9734c136b",
+      "sha256": "d1edf77396e15463bc633743ba1bbbfe384968cb62c4c510765c5a7dc12862d5",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
@@ -4743,6 +4743,10 @@
     },
     "tests/beam/tutor-browser.mjs": {
       "sha256": "555156b3a4c2e779cb66c3e9b373946a279a80f8d9b6603e98fa6bb2ca1c3641",
+      "executable": false
+    },
+    "tests/beam/tutor-custody.mjs": {
+      "sha256": "f831cff2bef28a4b683c3472c13361285eb4086de79e7e15a80d380b231a0c30",
       "executable": false
     },
     "tests/beam/tutor-privacy.mjs": {
