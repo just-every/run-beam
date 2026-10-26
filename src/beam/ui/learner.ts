@@ -93,6 +93,7 @@ export async function learnOverview(env: Bindings, actor: Actor, id: string, url
   const names = await memberNames(env)
   const zone = (await business(env))!.timezone
   const a = view.assignment
+  const tutor = a.learner === actor.id && !actor.viewAs ? card('Learning questions', h`<p>Find exact company passages or ask the responsible expert. Questions never count toward completion.</p><a href="/app/tutor?assignment=${id}">Ask a learning question</a>`) : ''
   const launchable = a.status === 'open' && view.access.state === 'open'
   const resume = view.resumeLesson ? `/app/learn/${id}/lessons/${view.resumeLesson}` : null
   // Practice is private to the learner: a read-only view (ORG-012) does not list it.
@@ -130,7 +131,7 @@ ${view.blocked ? h`<p class="flash">${t(actor, 'Complete the prerequisite course
 ${resetNotice}${exceptionNotice(view, a, zone, actor.locale)}${a.status === 'open' ? accessBanner(view.access, zone, actor.locale) : ''}
 ${launchable && !view.blocked && resume ? h`<p><a class="button" href="${resume}">${view.lessons.some(lesson => lesson.completed) ? t(actor, 'Resume') : t(actor, 'Start')}</a></p>` : ''}
 ${completion}${view.microlearning ? card('Five-day microlearning', h`<p>Short, source-cited modules spaced through your work window. Formative replies never replace the required assessment.</p><p><a href="/app/learn/${id}/sequence">Open five-day sequence</a></p>`) : ''}${learnerXapi(view.xapiActivities, id, launchable && !view.blocked && a.learner === actor.id && !actor.viewAs)}${learnerPackages(view.packages, id, launchable && !view.blocked && a.learner === actor.id && !actor.viewAs)}${view.externalTools.length ? card(t(actor, 'External learning tools'), h`${view.externalTools.map(tool => h`<div><h3>${tool.title}</h3><p>${tool.passed ? t(actor, 'Required grade received') : t(actor, 'Required grade: {percent}%', { percent: localeNumber(actor, tool.passPercent) })}. ${t(actor, 'Native lessons and assessment are still required.')}</p>${launchable && !view.blocked && a.learner === actor.id && !actor.viewAs ? h`<form method="post" action="/app/lti/launch">${hidden('assignment', id)}${hidden('resource', tool.resource)}<button type="submit">${t(actor, 'Open {title}', { title: tool.title })}</button></form>` : ''}</div>`)}${launchable && !view.blocked && a.learner === actor.id && !actor.viewAs ? form('lti.reconcile', `/app/learn/${id}`, [hidden('assignment', id)], t(actor, 'Check external results'), { secondary: true }) : ''}`) : ''}
-<div class="${view.lessons.length ? 'split' : 'stack'}">${lessons}<div class="stack">${moved}${feedbackCard}${quiz}${surveyCard(id, view, actor)}${practical}${attendance}${practiceCard}${attempts}${history}${access}${blockers}${manage}${exceptions}</div></div>`
+<div class="${view.lessons.length ? 'split' : 'stack'}">${lessons}<div class="stack">${moved}${feedbackCard}${quiz}${surveyCard(id, view, actor)}${practical}${attendance}${practiceCard}${tutor}${attempts}${history}${access}${blockers}${manage}${exceptions}</div></div>`
   const response = page(a.courseTitle, actor, body, { current: '/app/learning', url })
   const targets = new Set<string>()
   if (a.learner === actor.id && launchable && !view.blocked && !actor.viewAs) for (const activity of view.xapiActivities) {

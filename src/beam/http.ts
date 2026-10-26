@@ -1,3 +1,4 @@
+import { tutorPage, tutorDownload } from './ui/tutor'
 import { enterprisePortalResponse } from './enterprise-portals'
 import { captionFile } from './caption-file'
 import { modelAccountPage } from './ui/model-account'
@@ -296,6 +297,9 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/dashboards\/([\w-]+)\.csv$/))) return dashboardCsvResponse(env, actor, match[1], url)
   if (path === '/app/learning') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
+  if (path === '/app/tutor') return tutorPage(env,actor,url)
+  const tutorMatch = path.match(/^\/app\/tutor\/([\w-]+)(\/citation)?$/)
+  if (tutorMatch) return tutorMatch[2] ? tutorDownload(env,actor,tutorMatch[1],url) : tutorPage(env,actor,url,tutorMatch[1])
   if (path === '/app/model-account') return modelAccountPage(env, actor, url)
   const modelCourse = path.match(/^\/app\/courses\/([^/]+)\/(generate|translate)$/)
   if (modelCourse) return modelCourse[2] === 'generate' ? courseModelPage(env, actor, modelCourse[1], url) : localeModelPage(env, actor, modelCourse[1], url)

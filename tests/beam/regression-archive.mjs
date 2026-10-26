@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { file } from './harness.mjs'
 import { portalNotice } from './regression-portals.mjs'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -46,7 +47,11 @@ export async function archiveCheck(f) {
   await h.api(`portal/${portal.id}/claim`, portalCookie, { identity: portalIdentity.id })
   await h.api(`portal/${portal.id}/consent`, portalCookie, { accept: true, noticeVersion: 1 })
   await api('owner', 'portal.admin', { portal: portal.id, identity: portalIdentity.id })
-  await lessons(await assign(c))
+  const tutorSource = await api('author','source.create',{title:'Tutor archive source',licence:'owned',licenceEvidence:'Synthetic employer policy',provenance:'Archive qualification',reviewer:ids.reviewer,file:file('synthetic-beam-8.txt','Use clean tools.')})
+  await api('owner','tutor.source',{course:c.id,source:tutorSource.versionId,enabled:true})
+  const tutorAssignment = await assign(c)
+  const tutor = await api('learner','tutor.ask',{assignment:tutorAssignment,question:'How should I prepare?',consent:true})
+  await lessons(tutorAssignment)
   const certificate = (await api('learner', 'records/me')).completions.find(row => row.course === c.id).certificate
   const link = await api('learner', 'certificate.link', { certificate })
   assert.equal((await h.fetch(link.path)).status, 200)
@@ -66,6 +71,8 @@ export async function archiveCheck(f) {
     const rows = []
     for await (const record of fileRecords(archive, readArchive)) if (record.kind === 'part') rows.push(...record.items.filter(item => item.kind === 'row'))
     assert.ok(!rows.some(item => ['beam_frontline_credentials', 'beam_frontline_policy'].includes(item.table)), 'archives omit both frontline credential rows and method activation')
+    assert.ok(!rows.some(item=>item.table==='beam_tutor_questions'),'Private tutor question caches never travel in archives')
+    assert.ok(rows.filter(item=>item.table==='beam_tutor_grants').every(item=>item.row.enabled===0),'Archived tutor source grants are disabled')
     const row = (table, id) => rows.find(item => item.table === table && item.row.id === id).row
     const portalRow = row('beam_portal_identities', portalIdentity.id)
     assert.deepEqual([portalRow.operator_id, portalRow.invited_operator_id, portalRow.bound_at, portalRow.consent_at, typeof portalRow.revoked_at], [null, null, null, null, 'number'])
@@ -90,6 +97,7 @@ export async function archiveCheck(f) {
         // First-run confirmation belongs to the installation, not the archive.
         await t.raw('/setup', { cookie: owner, form: new URLSearchParams({ confirm: 'yes' }) })
         assert.equal((await t.raw('/auth/frontline', { body: { username: frontline.username, secret: frontline.initialSecret, newPassword: 'synthetic-beam-2-password' } })).status, 403, 'restored installs require explicit fresh authentication provisioning')
+        await t.api(`tutor/${tutor.id}`,owner,undefined,404)
         const model = await t.api('model-account', owner)
         assert.deepEqual([model.enabled, model.hasKey], [false, false], 'archives cannot restore model custody or spending consent')
         const ocr = await t.api('source-ocr', owner)

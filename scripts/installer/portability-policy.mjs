@@ -19,11 +19,12 @@ const endedSession = row => {
 
 export default {
   product: 'learning/beam',
-  excludeTables: ['beam_lti_tokens', 'beam_frontline_credentials', 'beam_frontline_policy'],
+  excludeTables: ['beam_tutor_questions', 'beam_lti_tokens', 'beam_frontline_credentials', 'beam_frontline_policy'],
   buckets: { files: { prefix: 'sha256/' } },
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   exportRow(table, row) {
     // Restored portal accounts require a new account binding, consent and owner grant.
+    if (table === 'beam_tutor_grants') return { ...row, enabled: 0, version: row.enabled ? row.version + 1 : row.version }
     if (table === 'beam_portal_identities') return { ...row, operator_id: null, invited_operator_id: null, bound_at: null, consent_at: null, revoked_at: row.revoked_at ?? Date.now() }
     if (table === 'beam_portal_consent_events') return { ...row, operator_id: null }
     if (table === 'beam_portal_administrators') return { ...row, revoked_at: row.revoked_at ?? Date.now() }

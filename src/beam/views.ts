@@ -1,3 +1,4 @@
+import { tutorQuestion, tutorPreview, tutorList, tutorCitation } from './tutor'
 import { listPortals } from './enterprise-portals'
 import { themeSettings } from './portal-theme'
 import { rosterFeeds } from './connect/roster-feeds'
@@ -86,6 +87,10 @@ export const views: Record<string, View> = {
   theme: themeSettings,
   'roster-feeds': rosterFeeds,
   'course-model-preview': (env, actor, request, id) => courseModelPreview(env, actor, id, Input.of({ inputs: new URL(request.url).searchParams.getAll('inputs') })),
+  'tutor-question': (env,actor,_request,id) => tutorQuestion(env,actor,id),
+  'tutor-preview': (env,actor,_request,id) => tutorPreview(env,actor,id),
+  'tutor-list': (env,actor,request) => tutorList(env,actor,new URL(request.url).searchParams.get('assignment') ?? undefined),
+  'tutor-citation': (env,actor,request,id) => tutorCitation(env,actor,id,new URL(request.url).searchParams.get('passage') ?? ''),
   'model-account': modelAccount,
   'locale-model-preview': (env, actor, request, id) => { const u = new URL(request.url); return localeModelPreview(env, actor, Input.of({ course:id, baseRevision:u.searchParams.get('baseRevision'), locale:u.searchParams.get('locale'), glossary:u.searchParams.get('glossary') })) },
   'source-ocr': sourceOcrConfig, 'source-ocr-preview': (env, actor, _request, id) => sourceOcrPreview(env, actor, id),
@@ -182,6 +187,7 @@ const ROUTES: [RegExp, string][] = [
   [/^theme$/, 'theme'],
   [/^roster-feeds$/, 'roster-feeds'],
   [/^courses\/([\w-]+)\/model-preview$/, 'course-model-preview'],
+  [/^tutor$/, 'tutor-list'], [/^tutor\/([\w-]+)$/, 'tutor-question'], [/^tutor\/([\w-]+)\/preview$/, 'tutor-preview'], [/^tutor\/([\w-]+)\/citation$/, 'tutor-citation'],
   [/^model-account$/, 'model-account'], [/^course-locales\/([\w-]+)\/model-preview$/, 'locale-model-preview'],
   [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
   [/^erasure-settings$/, 'erasure-settings'], [/^erasure\/([\w-]+)$/, 'erasure'],

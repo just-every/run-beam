@@ -39,6 +39,7 @@ export async function erasureCheck() {
     await api('owner', 'erasure.policy', { assessmentDays: 0, justification: 'Keep only explicitly held learning evidence.', consent: true })
     await api('owner', 'erasure.preview', { kind: 'person', subject: ids.owner }, 409)
     const c = await f.course('Held observed equipment check', true), assigned = await f.assign(c)
+    await api('learner','tutor.ask',{assignment:assigned,question:'A private workplace question',consent:true})
     await f.lessons(assigned)
     const evidence = await api('learner', 'practical.submit', { assignment: assigned, evidence: 'Observed pressure check.', file: file('synthetic-beam-1.txt', 'Observed equipment evidence') })
     await api('assessor', 'practical.decide', { attempt: evidence.id, decision: 'accepted', note: 'Observed and accepted.' })
@@ -193,6 +194,7 @@ export async function erasureCheck() {
 
     } finally { await target.close() }
     const exported = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
+    assert.equal(exported.records.beam_tutor_questions.rows.filter(row=>row.learner_id===ids.learner).length,0,'Tutor questions are practice data erased even with an assessment hold')
     assert.equal(exported.records.beam_sequence_answers.rows.filter(row => row.assignment_id === practice).length, 0)
     assert.ok(exported.records.beam_completions.rows.some(row => row.id === completion.id), 'held assessment remains')
     assert.ok(exported.records.beam_attempts.rows.some(row => row.id === evidence.id))

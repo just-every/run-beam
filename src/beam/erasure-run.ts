@@ -55,6 +55,8 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
       if (cursor >= selectors.targets.length) { phase = 'native'; cursor = 0 }
     } else if (phase === 'native') {
       const native = job.kind === 'person' ? await personEraseStatements(env, job.subject_id, retention.retain, selectors.values) : [
+        stmt(env, `DELETE FROM beam_tutor_questions WHERE assignment_id IN (SELECT id FROM beam_assignments WHERE course_id IN (SELECT course_id FROM beam_tutor_grants WHERE source_version_id IN (SELECT id FROM beam_source_versions WHERE source_id=?)))`, job.subject_id),
+        stmt(env, `UPDATE beam_tutor_grants SET enabled=0,version=version+1 WHERE source_version_id IN (SELECT id FROM beam_source_versions WHERE source_id=?)`, job.subject_id),
         stmt(env, "UPDATE beam_source_ocr_runs SET state='failed',failure='source_erased',result_json=NULL WHERE source_version_id IN (SELECT id FROM beam_source_versions WHERE source_id=?)", job.subject_id),
         stmt(env, "UPDATE beam_source_versions SET filename='Erased original',provenance='erased by owner' WHERE source_id=?", job.subject_id),
         stmt(env, "UPDATE beam_sources SET title='Erased source',licence_evidence='erased by owner',erased_at=? WHERE id=?", now(), job.subject_id),
@@ -87,7 +89,7 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
       if (!await one(env, "SELECT 1 FROM beam_erasure_files WHERE job_id=? AND state='pending'", id)) phase = 'providers'
     } else if (phase === 'providers') {
       // xAPI has no standard destructive statement deletion API. Do not pretend voiding is erasure.
-      await stmt(env, "UPDATE beam_erasure_providers SET state='failed',failure=CASE WHEN connection_id LIKE 'mail:%' THEN 'mail_provider_erasure_api_required' WHEN connection_id='ocr:openai' THEN 'ocr_provider_erasure_api_required' ELSE 'connected_lrs_erasure_api_required' END WHERE job_id=? AND state='pending'", id).run()
+      await stmt(env, "UPDATE beam_erasure_providers SET state='failed',failure=CASE WHEN connection_id LIKE 'mail:%' THEN 'mail_provider_erasure_api_required' WHEN connection_id='model:openai' THEN 'model_provider_erasure_api_required' WHEN connection_id='ocr:openai' THEN 'ocr_provider_erasure_api_required' ELSE 'connected_lrs_erasure_api_required' END WHERE job_id=? AND state='pending'", id).run()
       phase = 'complete'
     }
     await stmt(env, 'UPDATE beam_erasure_jobs SET phase=?,state=?,cursor=?,continuation=?,report_json=?,selectors_json=CASE WHEN ? THEN ? ELSE selectors_json END,lease_until=NULL WHERE id=? AND version=?', phase, phase === 'complete' ? 'complete' : 'pending', cursor, continuation, JSON.stringify(outcomes), phase === 'complete' ? 1 : 0, '{}', id, job.version + 1).run()
