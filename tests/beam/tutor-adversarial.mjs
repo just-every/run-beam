@@ -23,6 +23,25 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
   await f.publish(reference.revision);return {reference,assignment:await f.assign(reference)}
  }
  const before = (await api('learner','./records/me')).completions
+ const proveAnswer = async (question,sourceVersion=source.versionId) => {
+  setChoose(data=>({status:'answered',passages:[data.passages.find(p=>p.sourceVersion===sourceVersion && p.text.startsWith('Use clean tools')).id],uncertainty:'The material is limited.'}))
+  const q = await ask(question), preview = await api('owner',`tutor/${q.id}/preview`)
+  await api('owner','tutor.run',{...preview,question:q.id,consent:true})
+  const answer = (await api('learner',`tutor/${q.id}`)).result
+  assert.equal(answer.status,'answered',question)
+  assert.equal(answer.citations[0].text,preview.payload.passages.find(p=>p.id===answer.citations[0].id).text)
+  return {q,answer}
+ }
+ const paraphrase = await proveAnswer('How should I prepare my equipment?')
+ await proveAnswer('Which implements are suitable?')
+ await screens([['paraphrase','learner',`/app/tutor/${paraphrase.q.id}`,'Source-grounded answer']])
+ const compatible = await api('author','source.create',{title:'Additional compatible procedure',reviewer:f.ids.reviewer,licence:'owned',licenceEvidence:'Employer-owned',provenance:'Compatible guidance',file:file('synthetic-beam-102.txt','Use clean tools before work. Inspect handles for damage.')})
+ await visibleSource(compatible)
+ await api('owner','tutor.source',{course:c.id,source:compatible.versionId,enabled:true,rightsConfirmed:true})
+ const compatibleAnswer = await proveAnswer('What tools should I use before work?')
+ await screens([['compatible','learner',`/app/tutor/${compatibleAnswer.q.id}`,'Source-grounded answer']])
+ await api('owner','tutor.source',{course:c.id,source:compatible.versionId,enabled:false})
+
  const answered = passage => ({status:'answered',passages:[passage],uncertainty:'synthetic-beam-95'})
  await execute('What tools should I use before work?',data=>answered(data.passages.find(p=>p.text.includes('break room closes')).id))
  await execute('What tools should I use before work?',()=>answered('synthetic-beam-96'),502)
@@ -46,6 +65,29 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
  await api('learner',`tutor/${inFlight.id}/citation?passage=${passage.id}`,undefined,404)
  assert.equal((await h.raw(`/app/tutor/${inFlight.id}/citation?passage=${passage.id}`,{cookie:cookies.learner})).status,404)
  await api('owner','tutor.source',{course:c.id,source:source.versionId,enabled:true,rightsConfirmed:true})
+ const sessionQuestion = await ask('What tools should I use before work?'), sessionPreview = await api('owner',`tutor/${sessionQuestion.id}/preview`)
+ const originalOwnerCookie = cookies.owner
+ cookies.owner = await h.signIn('owner@example.test')
+ const beforeReplacement = edge.calls.length
+ await api('owner','tutor.run',{...sessionPreview,question:sessionQuestion.id,consent:true},409)
+ assert.equal(edge.calls.length,beforeReplacement,'A different current owner session cannot consume approval')
+ cookies.owner = originalOwnerCookie
+ setChoose(data=>answered(data.passages.find(p=>p.sourceVersion===source.versionId && p.text.startsWith('Use clean tools')).id))
+ setDuring(async()=>{setDuring(null);assert.equal((await h.raw('/auth/signout',{cookie:originalOwnerCookie,body:{}})).status,204)})
+ await api('owner','tutor.run',{...sessionPreview,question:sessionQuestion.id,consent:true},502)
+ cookies.owner = await h.signIn('owner@example.test')
+ assert.equal((await api('learner',`tutor/${sessionQuestion.id}`)).result,null,'Revoked owner session cannot store a paid answer')
+ console.log('PASS tutor current owner session replacement and revocation')
+ const expiry = await proveAnswer('How should I prepare my equipment?')
+ // Advance only the fixture clock; enrollment and its access rule stay unchanged.
+ console.log('Tutor advancing pinned clock')
+ await h.setClock(Date.parse('2026-10-27T12:00:01Z'))
+ console.log('Tutor pinned clock advanced')
+ for(const role of ['owner','learner']) await api(role,`tutor/${expiry.q.id}`,undefined,403)
+ await api('learner',`tutor/${expiry.q.id}/citation?passage=${expiry.answer.citations[0].id}`,undefined,403)
+ assert.equal((await h.raw(`/app/tutor/${expiry.q.id}`,{cookie:cookies.learner})).status,403)
+ assert.equal((await h.raw(`/app/tutor/${expiry.q.id}/citation?passage=${expiry.answer.citations[0].id}`,{cookie:cookies.learner})).status,403)
+ await h.setClock(Date.parse('2026-10-26T12:00:00Z'))
  // Pending erasure is a real public request, not a flag written into the database.
  const erased = await api('author','source.create',{title:'Withdrawn company addendum',reviewer:f.ids.reviewer,licence:'owned',licenceEvidence:'Employer-owned',provenance:'Obsolete addendum',file:file('synthetic-beam-98.txt','Use clean tools before work at the annex.')})
  const visibility = await visibleSource(erased)
@@ -66,6 +108,7 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
  assert.equal(edge.calls.length,callsBefore)
  await f.assign(visibility.reference)
  assert.deepEqual((await api('learner',`tutor/${stored.id}`)).result.citations,[],'Restored source visibility cannot revive an earlier cache')
+ const validBeforeErasure = await proveAnswer('How should I prepare my equipment?',erased.versionId)
  const pending = await ask('What tools should I use before work at the annex?'), erasurePreview = await api('owner',`tutor/${pending.id}/preview`)
  await api('owner','erasure.policy',{assessmentDays:0,justification:'Employer-approved erasure qualification',consent:true})
  setChoose(data=>answered(data.passages.find(p=>p.sourceVersion===erased.versionId).id))
@@ -76,12 +119,17 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
  })
  await api('owner','tutor.run',{...erasurePreview,question:pending.id,consent:true},502)
  assert.equal((await api('learner',`tutor/${pending.id}`)).result,null,'Pending source erasure fences an in-flight response')
+ assert.deepEqual((await api('learner',`tutor/${validBeforeErasure.q.id}`)).result.citations,[],'Pending erasure fences a previously valid stored answer')
+ await api('learner',`tutor/${validBeforeErasure.q.id}/citation?passage=${validBeforeErasure.answer.citations[0].id}`,undefined,404)
+ assert.equal((await h.raw(`/app/tutor/${validBeforeErasure.q.id}/citation?passage=${validBeforeErasure.answer.citations[0].id}`,{cookie:cookies.learner})).status,404)
  const erasedPassage = erasurePreview.payload.passages.find(p=>p.sourceVersion===erased.versionId)
  await api('learner',`tutor/${pending.id}/citation?passage=${erasedPassage.id}`,undefined,404)
  assert.equal((await h.raw(`/app/tutor/${pending.id}/citation?passage=${erasedPassage.id}`,{cookie:cookies.learner})).status,404)
  assert.deepEqual((await api('learner','./records/me')).completions,before,'Adversarial tutor requests never create completion evidence')
+ console.log('PASS tutor stored answer privacy boundaries')
  const audit = (await api('owner','audit')).events.filter(e=>/^(tutor|model)\./.test(e.action))
  const serialized = JSON.stringify(audit)
+ for(const cookie of [originalOwnerCookie,...Object.values(cookies)]) for(const pair of cookie.split('; ')) assert.ok(!serialized.includes(pair.slice(pair.indexOf('=')+1)),'Audit excludes current and revoked session secrets')
  assertNoCanaries(audit,canaries)
  for(const wire of edge.calls) {
   const data = JSON.parse(wire.input[0].content[0].text)
@@ -89,6 +137,6 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
   for(const passage of data.passages) assert.ok(!serialized.includes(passage.text),'No tutor audit event contains a passage body')
  }
  const failed = audit.filter(e=>e.action==='model.failed')
- assert.ok(failed.length>=4 && failed.every(e=>e.detail.run && e.detail.digest && e.detail.failure && e.detail.billing==='unknown'),'Failures retain value-free decision and reservation lineage')
+ assert.ok(failed.length>=4 && failed.every(e=>e.detail.run && e.detail.digest && e.detail.failure && e.detail.provider==='openai' && e.detail.billing==='unknown'),'Failures retain value-free decision and reservation lineage')
  setChoose(null)
 }

@@ -138,6 +138,45 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=PACK-003-custody,LEARN-008,AUTHOR-007
+  tutor-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Reclaim unused hosted-runner SDKs
+        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
+        run: |
+          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
+      # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
+      - name: Use the official Ubuntu HTTPS archive for browser dependencies
+        run: |
+          # Current runner images use mirror+file: indirection in ubuntu.sources.
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$source" ]; then
+              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|http://archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
+            fi
+          done
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
+      - run: pnpm exec rer build
+      - name: Tutor custody and responsive screens
+        run: BEAM_TUTOR_BROWSER=1 BEAM_EVIDENCE_DIR="$RUNNER_TEMP/beam-tutor-pages" node tests/beam/regressions.mjs --only=LEARN-008
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beam-tutor-pages
+          path: ${{ runner.temp }}/beam-tutor-pages/*.png
   learning-and-source-browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 15

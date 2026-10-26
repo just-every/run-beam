@@ -41,7 +41,7 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
     if (!Number.isSafeInteger(clock)) throw new Error('Invalid test clock')
     modules[0].contents = `Date.now = () => ${clock};\n` + await readFile(modules[0].path, 'utf8')
   }
-  const options = convertV4MiniflareOptions({
+  const options = () => convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
     modules,
     compatibilityDate: config.compatibility_date, compatibilityFlags: config.compatibility_flags,
@@ -62,7 +62,7 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
       return Response.json({ id: `test-receipt-${mails.length}` })
     },
   })
-  const mf = new Miniflare({ ...options, resourcePersistencePath: join(directory, 'state') })
+  const mf = new Miniflare({ ...options(), resourcePersistencePath: join(directory, 'state') })
   const close = async () => { await mf.dispose(); await rm(directory, { recursive: true, force: true }) }
   try {
     await mf.ready
@@ -90,5 +90,11 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   /** The Worker's D1, for checks that move an assignment's clock (AUTO-009), and its D1 and R2 together for the
    * installation archive `rer export` writes (BEAM-16); everything else goes through the doors. */
   const db = await mf.getD1Database('DB'), files = await mf.getR2Bucket('FILES')
-  return { origin, vars, mails, edge, fetch, linkFor, close, db, files, scheduled: () => mf.getWorker().then(worker => worker.scheduled({ cron: '0 8 * * *', scheduledTime: Date.now() })) }
+  const setClock = async value => {
+    if (clock === undefined || !Number.isSafeInteger(value)) throw new Error('A pinned test clock is required')
+    modules[0].contents = `Date.now = () => ${value};\n` + await readFile(modules[0].path, 'utf8')
+    await mf.setOptions({ ...options(), resourcePersistencePath: join(directory, 'state') })
+    await mf.ready
+  }
+  return { origin, vars, mails, edge, fetch, linkFor, close, db, files, setClock, scheduled: () => mf.getWorker().then(worker => worker.scheduled({ cron: '0 8 * * *', scheduledTime: Date.now() })) }
 }

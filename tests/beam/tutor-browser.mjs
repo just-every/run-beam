@@ -5,7 +5,7 @@ export async function tutorBrowser(f,pages) {
  const evidence = process.env.BEAM_EVIDENCE_DIR
  assert.ok(evidence,'Browser evidence must be outside the product checkout')
  await mkdir(evidence,{recursive:true})
- const browser = await chromium.launch({...(process.env.BEAM_BROWSER_EXECUTABLE ? {executablePath:process.env.BEAM_BROWSER_EXECUTABLE} : {}),headless:true,args:['--use-mock-keychain','--password-store=basic','--ignore-certificate-errors']})
+ const browser = await chromium.launch({...(process.env.BEAM_BROWSER_EXECUTABLE ? {executablePath:process.env.BEAM_BROWSER_EXECUTABLE} : {}),headless:true,args:['--no-sandbox','--use-mock-keychain','--password-store=basic','--ignore-certificate-errors']})
  try {
   for(const width of [1440,390]) for(const [name,role,path,heading] of pages) {
    const context = await browser.newContext({viewport:{width,height:900},ignoreHTTPSErrors:true})
@@ -26,6 +26,14 @@ export async function tutorBrowser(f,pages) {
      const tip = await control.getAttribute('data-tooltip')
      assert.ok(tip.split(/\s+/).length>=2,'Tooltip describes the control')
     }
+    if(path==='/app/model-account') {
+     const costs = await f.api('owner','costs'), body = await page.locator('body').innerText()
+     assert.ok(body.includes(`${(costs.model?.unknownBillingRequests ?? 0)} failed or pending requests retain USD ${((costs.model?.unknownBillingReservedCents ?? 0)/100).toFixed(2)} with unknown billing`),'Rendered unknown billing matches retained reservations')
+     assert.ok(body.includes('Estimates are not invoices.') && body.includes('Conservative reservation per request: USD'),'Rendered costs explain estimate limits')
+    }
+    if(name==='answer') await page.getByText('These exact passages may not cover your circumstances. Ask the responsible expert if unsure.',{exact:true}).waitFor()
+    if(name==='ask') assert.ok((await page.locator('body').innerText()).includes('sending them to OpenAI'))
+    if(name==='handoff-disclosure') assert.ok((await page.locator('body').innerText()).includes('course cohort and its responsible experts'))
     await page.screenshot({path:`${evidence}/${width}-tutor-${name}.png`,fullPage:true})
     const complete = page.getByText('Complete outbound request',{exact:true})
     if(await complete.count()) {
@@ -44,7 +52,7 @@ export async function tutorBrowser(f,pages) {
 
 export async function tutorForm(f,role,path,action,fields={},width=390) {
  const {chromium}=await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
- const browser=await chromium.launch({...(process.env.BEAM_BROWSER_EXECUTABLE ? {executablePath:process.env.BEAM_BROWSER_EXECUTABLE} : {}),headless:true,args:['--use-mock-keychain','--password-store=basic','--ignore-certificate-errors']})
+ const browser=await chromium.launch({...(process.env.BEAM_BROWSER_EXECUTABLE ? {executablePath:process.env.BEAM_BROWSER_EXECUTABLE} : {}),headless:true,args:['--no-sandbox','--use-mock-keychain','--password-store=basic','--ignore-certificate-errors']})
  try {
   const context=await browser.newContext({viewport:{width,height:900},ignoreHTTPSErrors:true})
   await context.addCookies(f.cookies[role].split('; ').map(pair=>({name:pair.slice(0,pair.indexOf('=')),value:pair.slice(pair.indexOf('=')+1),url:f.h.origin})))

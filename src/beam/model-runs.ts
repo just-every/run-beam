@@ -49,7 +49,7 @@ export async function executeModel<T>(env: Bindings, actor: Actor, input: Input,
   const key = await openSecret(env, config.key_cipher, 'model:openai')
   const business = await requireBusiness(env), at = now(), day = localDate(at, business.timezone), window = providerBudgetWindow(day, business.timezone)
   insist(approval.expiresAt > at, 'model_approval_expired', 409)
-  const lineage = { ...context, run: approval.id, model: MODEL, configVersion: config.version,
+  const lineage = { ...context, run: approval.id, provider: 'openai', model: MODEL, configVersion: config.version,
     estimateCents: MODEL_ESTIMATE_CENTS, maxCostCents: config.max_cost_cents, reservationDay: day, timezone: business.timezone }
   let reserved: D1Result[]
   try {
