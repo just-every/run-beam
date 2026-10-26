@@ -23,7 +23,7 @@ async function freePort() {
   return port
 }
 
-export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService } = {}) {
+export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService, clock } = {}) {
   // OPS-007: run the identical public-door qualification against an unchanged historical producer or the candidate.
   const workerRoot = checkout || root
   const directory = await mkdtemp(join(tmpdir(), 'beam-worker-'))
@@ -35,9 +35,15 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret(), ...bindings }
   // `edge.refuse` makes the provider refuse every message, as Resend does a message it will not accept.
   const mails = [], edge = { refuse: false, attempts: [], webhooks: [], webhookStatus: 204 }
+  const modules = [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) }))
+  // Only test callers can freeze the worker clock. Provider timers remain real.
+  if (clock !== undefined) {
+    if (!Number.isSafeInteger(clock)) throw new Error('Invalid test clock')
+    modules[0].contents = `Date.now = () => ${clock};\n` + await readFile(modules[0].path, 'utf8')
+  }
   const options = convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
-    modules: [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) })),
+    modules,
     compatibilityDate: config.compatibility_date, compatibilityFlags: config.compatibility_flags,
     assets: { directory: join(workerRoot, 'dist/client'), routerConfig: { has_user_worker: true } },
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },

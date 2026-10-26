@@ -882,7 +882,7 @@
       "executable": false
     },
     "migrations/core/0114_beam_tutor_consent.sql": {
-      "sha256": "80b837e61d77d29b1d2fefee0b8fd6cd6c08fb1a0ea371b07cdd9ce9f3fadc76",
+      "sha256": "e6546cbe1aa85d5168b592f9b2375770b742eb4ad950cd06983b132eba04ff01",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -2202,7 +2202,7 @@
       "executable": false
     },
     "src/beam/tutor.ts": {
-      "sha256": "07eda958dc2724ac004c06dda240c5e0cc19618a935698af3f312e2dc7782dcd",
+      "sha256": "19126260499839ebff4831708f0a3228508e7ce91946d2a39d502db7aee37cd4",
       "executable": false
     },
     "src/beam/ui/access.ts": {
@@ -2478,7 +2478,7 @@
       "executable": false
     },
     "src/beam/ui/tutor.ts": {
-      "sha256": "59117b0f354469bce29214e7e650587a1abdd049592dab7163f628255ab055fd",
+      "sha256": "63a1e09c97e1b6caf981c4bf12ec35663e2fc552ba0cf1e72edfbdf361b8d452",
       "executable": false
     },
     "src/beam/ui/units.ts": {
@@ -4610,7 +4610,7 @@
       "executable": false
     },
     "tests/beam/regression-model-budget.mjs": {
-      "sha256": "811d34dd1353e17314f46c0de8aa220b6226e186b5cca57eb86221fe1e733653",
+      "sha256": "bcb6cf88278bce977b95ed9cfca38da129d3d51f03e0925d2452622d8c75dd79",
       "executable": false
     },
     "tests/beam/regression-model-course.mjs": {
@@ -4678,7 +4678,7 @@
       "executable": false
     },
     "tests/beam/regression-tutor.mjs": {
-      "sha256": "cc65b3fd6572d83d444942f2abd4de991d107ca6d0eebeff52291a4e8faf28e9",
+      "sha256": "ea45a52872cf379ab7d093fedd91e5b8e21b8ae3fc40c68966d43a81cc878874",
       "executable": false
     },
     "tests/beam/regression-upkeep.mjs": {
@@ -4738,7 +4738,7 @@
       "executable": false
     },
     "tests/beam/tutor-adversarial.mjs": {
-      "sha256": "be5c6125b2d2ed938b61b111d2a7db3558af51ed7055019523875f88c7702354",
+      "sha256": "8db052fc0b26459d8b262b83564251160235e0292f27c434d7d74ef3bca92282",
       "executable": false
     },
     "tests/beam/tutor-browser.mjs": {
@@ -4746,7 +4746,7 @@
       "executable": false
     },
     "tests/beam/tutor-privacy.mjs": {
-      "sha256": "7bb5c2ca67822ceada1dd04c2352b0a6cfeb9df6d2411f1a308e907949954ab2",
+      "sha256": "ae11e5c7d08ec7d17836f2896593de67d1447208ede88604dc3dbabcdffeb1ad",
       "executable": false
     },
     "tests/beam/xapi-activity.mjs": {
@@ -4774,7 +4774,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "1ad7a2abdb63a61b4796a54915c54af55ea4ce25d88a2ccca29e01a720fcae89",
+      "sha256": "777b703fe1caada2883692f6126faa4c945494e3f01f403546ca7dba7b0019ad",
       "executable": false
     },
     "tests/site/site.test.mjs": {

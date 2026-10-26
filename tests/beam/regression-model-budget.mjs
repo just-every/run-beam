@@ -13,7 +13,7 @@ async function expiredApproval(approval, secret) {
   const [iv, cipher] = approval.split('.').map(part => Buffer.from(part, 'base64'))
   const additionalData = enc.encode('model:approval')
   const payload = JSON.parse(new TextDecoder().decode(await webcrypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData }, key, cipher)))
-  payload.expiresAt = Date.now() - 1
+  payload.expiresAt = 0
   const nextIv = webcrypto.getRandomValues(new Uint8Array(12))
   const sealed = await webcrypto.subtle.encrypt({ name: 'AES-GCM', iv: nextIv, additionalData }, key, enc.encode(JSON.stringify(payload)))
   return `${Buffer.from(nextIv).toString('base64')}.${Buffer.from(sealed).toString('base64')}`
@@ -26,7 +26,7 @@ export async function modelBudgetCheck() {
     lessons: [{ title: 'Clean tools', body: 'Use clean tools.', passages: [data.passages[0].id] }],
     questions: [{ prompt: 'Which tools?', choices: ['Clean', 'Dirty'], correct: 0, passages: [data.passages[0].id] }], missing: [], refusedInstructions: [] }))
   let mode = 'success', attempts = 0, release, entered
-  const f = await fixture({ businessName:'Sierra Lakes Produce',ownerName:'Morgan Hayes',names:{learner:'Riley Morgan',reviewer:'Sam Taylor'},outboundService: async request => {
+  const f = await fixture({ clock:Date.parse('2026-10-26T12:00:00Z'),businessName:'Sierra Lakes Produce',ownerName:'Morgan Hayes',names:{learner:'Riley Morgan',reviewer:'Sam Taylor'},outboundService: async request => {
     if (request.url !== 'https://api.openai.com/v1/responses') return null
     attempts++
     if (mode === 'deny') return Response.json({ error: 'synthetic-beam-2' }, { status: 403 })

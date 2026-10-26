@@ -20,7 +20,7 @@ const schema = { type: 'object', additionalProperties: false, required: ['status
 const hash = (value: unknown) => sha256Hex(new TextEncoder().encode(JSON.stringify(value)))
 function human(actor: Actor) { insist(!actor.agent && !actor.app && !actor.viewAs, 'human_required', 403) }
 async function activeAssignment(env: Bindings, learner: string, id: string) {
- const assignment = await one(env, `SELECT a.*,r.title,r.number FROM beam_assignments a JOIN beam_course_revisions r ON r.id=a.course_revision_id
+ const assignment = await one(env, `SELECT a.*,r.title,r.number,o.version AS learner_access_version FROM beam_assignments a JOIN beam_course_revisions r ON r.id=a.course_revision_id
  JOIN beam_members m ON m.id=a.learner_id JOIN oa_operators o ON o.id=m.operator_id WHERE a.id=? AND a.learner_id=? AND a.status IN ('open','completed') AND o.status='active' AND m.erased_at IS NULL AND m.erasure_pending=0`, id, learner)
  insist(assignment, 'not_found', 404); requireAccess(assignment)
  return assignment
@@ -50,17 +50,27 @@ async function questionFor(env: Bindings, actor: Actor, id: string) {
  const assignment = await activeAssignment(env, question.learner_id, question.assignment_id)
  return { question, assignment }
 }
-async function tutorAuthority(env: Bindings, course: string) {
+const sourceVisibility = `SELECT visible.id,visible.access_opens_at,visible.access_closes_at FROM beam_assignments visible
+ JOIN beam_lesson_revisions l ON l.course_revision_id=visible.course_revision_id
+ JOIN json_each(l.source_version_ids) cited ON cited.value=g.source_version_id
+ WHERE visible.learner_id=? AND visible.status IN ('open','completed')
+ AND (visible.access_opens_at IS NULL OR visible.access_opens_at<=?) AND (visible.access_closes_at IS NULL OR visible.access_closes_at>?)
+ GROUP BY visible.id ORDER BY visible.id`
+async function tutorAuthority(env: Bindings, course: string, learner: string) {
  return all(env, `SELECT g.source_version_id,g.version,g.enabled,g.rights_confirmed,s.erased_at,
- EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind='source' AND e.subject_id=s.id AND e.state!='complete') AS erasure_pending
- FROM beam_tutor_grants g JOIN beam_source_versions v ON v.id=g.source_version_id JOIN beam_sources s ON s.id=v.source_id WHERE g.course_id=? ORDER BY g.source_version_id`, course)
+ EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind='source' AND e.subject_id=s.id AND e.state!='complete') AS erasure_pending,
+ (SELECT json_group_array(json_object('assignment',id,'opens',access_opens_at,'closes',access_closes_at)) FROM (${sourceVisibility})) AS visible_assignments
+ FROM beam_tutor_grants g JOIN beam_source_versions v ON v.id=g.source_version_id JOIN beam_sources s ON s.id=v.source_id WHERE g.course_id=? ORDER BY g.source_version_id`, learner, now(), now(), course)
 }
+const accessStamp = (assignment: Row) => ({ assignment: assignment.id, learnerVersion: assignment.learner_access_version, opens: assignment.access_opens_at, closes: assignment.access_closes_at })
 async function context(env: Bindings, actor: Actor, id: string) {
  modelOwner(actor)
  const { question, assignment } = await questionFor(env, actor, id)
  insist(question.consent_version === TUTOR_CONSENT_VERSION, 'tutor_consent_required', 409)
  const grants = await all(env, `SELECT g.source_version_id,g.version FROM beam_tutor_grants g JOIN beam_source_versions v ON v.id=g.source_version_id JOIN beam_sources s ON s.id=v.source_id
- WHERE g.course_id=? AND g.enabled=1 AND g.rights_confirmed=1 AND s.erased_at IS NULL AND NOT EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.subject_id=s.id AND e.kind='source' AND e.state!='complete') ORDER BY g.source_version_id`, assignment.course_id)
+ WHERE g.course_id=? AND g.enabled=1 AND g.rights_confirmed=1 AND s.erased_at IS NULL AND NOT EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.subject_id=s.id AND e.kind='source' AND e.state!='complete')
+ AND EXISTS(${sourceVisibility})
+ ORDER BY g.source_version_id`, assignment.course_id, question.learner_id, now(), now())
  insist(grants.length <= 4, 'tutor_source_limit', 422)
  const passages: Row[] = []
  const lessons = await all(env, 'SELECT * FROM beam_lesson_revisions WHERE course_revision_id=? ORDER BY position', assignment.course_revision_id)
@@ -76,8 +86,8 @@ async function context(env: Bindings, actor: Actor, id: string) {
  const data = { question: question.question, revision: assignment.course_revision_id, passages }
  insist(JSON.stringify(data).length <= 150000, 'tutor_source_limit', 422)
  const request = { instructions, data, schema }, outbound = modelRequestBody(request)
- const authority = await tutorAuthority(env, assignment.course_id)
- const digest = await hash({ id, outbound, authority, grants, consentVersion: question.consent_version, consentAt: question.created_at, instructionVersion: INSTRUCTION_VERSION, schemaVersion: SCHEMA_VERSION })
+ const authority = await tutorAuthority(env, assignment.course_id, question.learner_id)
+ const digest = await hash({ id, outbound, authority, access: accessStamp(assignment), grants, consentVersion: question.consent_version, consentAt: question.created_at, instructionVersion: INSTRUCTION_VERSION, schemaVersion: SCHEMA_VERSION })
  return { question, assignment, grants, passages, data, digest, request, outbound, authority }
 }
 function modelContext(selected: Awaited<ReturnType<typeof context>>, id: string) {
@@ -106,7 +116,7 @@ export async function runTutor(env: Bindings, actor: Actor, input: Input) {
   insist((await context(env, actor, id)).digest === selected.digest, 'tutor_authority_changed', 409)
   // Only exact admitted text is displayed; model-written text cannot become company policy.
   const result = { status: output.status, uncertainty: output.status === 'answered' ? 'These exact passages may not cover your circumstances. Ask the responsible expert if unsure.' : 'The permitted material does not establish an answer. Ask the responsible expert.', citations, revision: selected.assignment.course_revision_id,
-   grants: selected.grants, authority: selected.authority, digest: selected.digest }
+   grants: selected.grants, authority: selected.authority, access: accessStamp(selected.assignment), digest: selected.digest }
   await commit(env, [stmt(env, 'UPDATE beam_tutor_questions SET result_json=? WHERE id=? AND result_json IS NULL', JSON.stringify(result), id)], { actor, action: 'tutor.answer', subject: id, detail: { run: runId, status: result.status, revision: result.revision, digest: result.digest, grants: result.grants, consentVersion: selected.question.consent_version, consentAt: selected.question.created_at } })
   return { id }
  }, async () => { insist((await context(env, actor, id)).digest === selected.digest, 'tutor_authority_changed', 409) })
@@ -115,13 +125,13 @@ export async function tutorQuestion(env: Bindings, actor: Actor, id: string) {
  const { question, assignment } = await questionFor(env, actor, id)
  let result = question.result_json ? JSON.parse(question.result_json) : null
  if (result) {
-  const current = await tutorAuthority(env, assignment.course_id)
-  const stillAllowed = result.revision === assignment.course_revision_id && JSON.stringify(result.authority) === JSON.stringify(current)
+  const current = await tutorAuthority(env, assignment.course_id, question.learner_id)
+  const stillAllowed = result.revision === assignment.course_revision_id && JSON.stringify(result.access) === JSON.stringify(accessStamp(assignment)) && JSON.stringify(result.authority) === JSON.stringify(current)
   const erased = current.some(g => g.erased_at || g.erasure_pending)
   if (!stillAllowed || erased) result = { status: 'unanswered', uncertainty: 'Source access changed. Submit a new question or ask the responsible expert.', citations: [], revision: assignment.course_revision_id }
  }
  const lesson = await one(env, 'SELECT id FROM beam_lesson_revisions WHERE course_revision_id=? ORDER BY position LIMIT 1', assignment.course_revision_id)
- return { id, learner: question.learner_id, question: question.question, assignment: assignment.id, course: assignment.course_id, revision: assignment.course_revision_id, revisionNumber: assignment.number, title: assignment.title, result, thread: question.thread_id, lesson: lesson?.id }
+ return { id, learner: question.learner_id, question: question.question, assignment: assignment.id, course: assignment.course_id, revision: assignment.course_revision_id, revisionNumber: assignment.number, title: assignment.title, result: result ? { status: result.status, uncertainty: result.uncertainty, citations: result.citations, revision: result.revision } : null, thread: question.thread_id, lesson: lesson?.id }
 }
 export async function tutorCitation(env: Bindings, actor: Actor, id: string, passage: string) {
  const view = await tutorQuestion(env, actor, id), citation = view.result?.citations.find((item: Row) => item.id === passage)
