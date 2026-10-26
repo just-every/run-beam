@@ -1,5 +1,11 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  tutor_consent_required: 'confirm that the owner may review your question and exact permitted passages before a paid request.',
+  tutor_invalid_citation: 'the model selected an unsafe or unavailable passage. No answer was saved; ask the responsible expert.',
+  tutor_invalid_result: 'the model returned an unsupported result. No answer was saved; ask the responsible expert.',
+  tutor_source_limit: 'the permitted material is too large for one request. Ask the owner to share a smaller source selection.',
+  tutor_authority_changed: 'enrollment or source access changed during the request. No answer is available.',
+  tutor_already_answered: 'this question already has a result. Open it or submit a new question.',
   model_disabled: 'the owner must enable the AI preparation account in Settings before approving this request.',
   model_provider_denied: 'the provider refused this request. Its outcome and USD reservation are retained; check your account before approving a new request.',
   model_request_failed: 'the request did not finish. Its billing may be unknown. Inspect the paid request history before approving another request.',

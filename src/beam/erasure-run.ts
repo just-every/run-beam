@@ -55,6 +55,8 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
       if (cursor >= selectors.targets.length) { phase = 'native'; cursor = 0 }
     } else if (phase === 'native') {
       const native = job.kind === 'person' ? await personEraseStatements(env, job.subject_id, retention.retain, selectors.values) : [
+        stmt(env, `DELETE FROM beam_tutor_questions WHERE assignment_id IN (SELECT id FROM beam_assignments WHERE course_id IN (SELECT course_id FROM beam_tutor_grants WHERE source_version_id IN (SELECT id FROM beam_source_versions WHERE source_id=?)))`, job.subject_id),
+        stmt(env, `UPDATE beam_tutor_grants SET enabled=0,version=version+1 WHERE source_version_id IN (SELECT id FROM beam_source_versions WHERE source_id=?)`, job.subject_id),
         stmt(env, "UPDATE beam_source_ocr_runs SET state='failed',failure='source_erased',result_json=NULL WHERE source_version_id IN (SELECT id FROM beam_source_versions WHERE source_id=?)", job.subject_id),
         stmt(env, "UPDATE beam_source_versions SET filename='Erased original',provenance='erased by owner' WHERE source_id=?", job.subject_id),
         stmt(env, "UPDATE beam_sources SET title='Erased source',licence_evidence='erased by owner',erased_at=? WHERE id=?", now(), job.subject_id),

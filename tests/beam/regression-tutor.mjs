@@ -6,7 +6,7 @@ import { modelEdge } from './model-edge.mjs'
 export async function tutorCheck({ live = false } = {}) {
  const edge = modelEdge(data => {
   const unsupported = /replacement interval|ignore all/i.test(data.question)
-  const passage = data.passages.find(p=>p.sourceVersion && /Use clean tools before work/.test(p.text))
+  const passage = /published lesson/i.test(data.question) ? data.passages.find(p=>p.lesson) : data.passages.find(p=>p.sourceVersion && /Use clean tools before work/.test(p.text))
   return { status: unsupported || !passage ? 'unanswered' : 'answered', passages: unsupported || !passage ? [] : [passage.id], uncertainty: 'The document does not specify all circumstances.' }
  },{live})
  const f = await fixture({businessName:'Sierra Lakes Produce',names:{learner:'Riley Morgan',reviewer:'Sam Taylor'},outboundService:edge.outboundService})
@@ -49,6 +49,11 @@ export async function tutorCheck({ live = false } = {}) {
   const download = `/app/tutor/${first.id}/citation?${query}`
   assert.equal((await h.raw(download,{cookie:cookies.learner})).status,200)
   await screens([['answer','learner',`/app/tutor/${first.id}`,'Source-grounded answer'],['citation','learner',`/app/tutor/${first.id}?${query}`,'Exact cited passage']])
+  const published = await ask('According to the published lesson, what should I do before beginning work?')
+  await approve(published.id)
+  const lessonAnswer = (await api('learner',`tutor/${published.id}`)).result
+  assert.equal(lessonAnswer.status,'answered')
+  assert.ok(lessonAnswer.citations.some(p=>p.lesson && p.revision===c.revision && p.text==='Inspect tools before beginning work.'))
   const unsupported = await ask('What is the tool replacement interval?')
   await approve(unsupported.id)
   const unanswered = await api('learner',`tutor/${unsupported.id}`)
@@ -74,6 +79,8 @@ export async function tutorCheck({ live = false } = {}) {
   await api('learner',`tutor/${first.id}/citation?${query}`,undefined,404)
   assert.equal((await h.raw(download,{cookie:cookies.learner})).status,404)
   assert.equal((await h.raw(`/app/tutor/${first.id}?${query}`,{cookie:cookies.learner})).status,404)
+  const withoutSource = await api('owner',`tutor/${stale.id}/preview`)
+  assert.ok(withoutSource.payload.passages.every(p=>p.sourceVersion!==source.versionId))
   await api('owner','tutor.source',{course:c.id,source:source.versionId,enabled:true})
   assert.deepEqual((await api('learner',`tutor/${first.id}`)).result.citations,[],'Regrant never revives cached answers')
   const fresh = await api('owner',`tutor/${stale.id}/preview`)
