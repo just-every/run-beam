@@ -48,7 +48,7 @@ export async function archiveCheck(f) {
   await h.api(`portal/${portal.id}/consent`, portalCookie, { accept: true, noticeVersion: 1 })
   await api('owner', 'portal.admin', { portal: portal.id, identity: portalIdentity.id })
   const tutorSource = await api('author','source.create',{title:'Tutor archive source',licence:'owned',licenceEvidence:'Synthetic employer policy',provenance:'Archive qualification',reviewer:ids.reviewer,file:file('synthetic-beam-8.txt','Use clean tools.')})
-  await api('owner','tutor.source',{course:c.id,source:tutorSource.versionId,enabled:true})
+  await api('owner','tutor.source',{course:c.id,source:tutorSource.versionId,enabled:true,rightsConfirmed:true})
   const tutorAssignment = await assign(c)
   const tutor = await api('learner','tutor.ask',{assignment:tutorAssignment,question:'How should I prepare?',consent:true})
   await lessons(tutorAssignment)

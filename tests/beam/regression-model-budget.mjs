@@ -3,6 +3,7 @@ import { webcrypto } from 'node:crypto'
 import { fixture } from './regression-fixture.mjs'
 import { file } from './harness.mjs'
 import { modelEdge } from './model-edge.mjs'
+import { tutorBrowser } from './tutor-browser.mjs'
 
 // Move only the synthetic approval's expiry, with the fixture's ephemeral key.
 // Every reservation and permission decision still goes through the HTTP doors.
@@ -25,7 +26,7 @@ export async function modelBudgetCheck() {
     lessons: [{ title: 'Clean tools', body: 'Use clean tools.', passages: [data.passages[0].id] }],
     questions: [{ prompt: 'Which tools?', choices: ['Clean', 'Dirty'], correct: 0, passages: [data.passages[0].id] }], missing: [], refusedInstructions: [] }))
   let mode = 'success', attempts = 0, release, entered
-  const f = await fixture({ outboundService: async request => {
+  const f = await fixture({ businessName:'Sierra Lakes Produce',ownerName:'Morgan Hayes',names:{learner:'Riley Morgan',reviewer:'Sam Taylor'},outboundService: async request => {
     if (request.url !== 'https://api.openai.com/v1/responses') return null
     attempts++
     if (mode === 'deny') return Response.json({ error: 'synthetic-beam-2' }, { status: 403 })
@@ -37,6 +38,7 @@ export async function modelBudgetCheck() {
     return edge.outboundService(request)
   } })
   const { api, h, ids, request, cookies } = f
+  const screens = async label => { if(process.env.BEAM_TUTOR_BROWSER==='1') await tutorBrowser(f,[[`${label}-account`,'owner','/app/model-account','AI preparation account'],[`${label}-costs`,'owner','/app/business','Business settings'],[`${label}-policy`,'owner','/app/automation','Automation']]) }
   try {
     const source = await api('author', 'source.create', { title: 'Owned tool procedure', reviewer: ids.reviewer,
       licence: 'owned', licenceEvidence: 'Employer authored', provenance: 'Synthetic qualification',
@@ -58,6 +60,7 @@ export async function modelBudgetCheck() {
     assert.equal((await run(held)).data.error, 'model_daily_budget_exceeded')
     assert.equal(attempts, 0, 'an enabled account never overrides the zero installation ceiling')
     assert.equal((await api('owner', 'model-account')).requests, 0)
+    await screens('zero-budget')
 
     const competing = await preview('Concurrent qualification')
     await policy(estimate * 2 - 1)
@@ -130,6 +133,7 @@ export async function modelBudgetCheck() {
     assert.equal((await api('owner', 'automation-controls')).budget.estimatedReservedCents, costs.estimatedReservedCents)
     assert.equal(costs.estimatedRemainingCents, 0)
     assert.equal(costs.model.invoice, false)
+    await screens('exhausted-budget')
     const beforeReads = attempts
     for (const page of ['/app/model-account', '/app/business']) {
       const response = await h.raw(page, { cookie: cookies.owner })

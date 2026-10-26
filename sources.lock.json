@@ -2478,7 +2478,7 @@
       "executable": false
     },
     "src/beam/ui/tutor.ts": {
-      "sha256": "b2b5296c08dd1f15c8c94ecc6d5aa90d1633e1ad972e7b10688f285f53bc72d3",
+      "sha256": "59117b0f354469bce29214e7e650587a1abdd049592dab7163f628255ab055fd",
       "executable": false
     },
     "src/beam/ui/units.ts": {
@@ -4482,7 +4482,7 @@
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {
-      "sha256": "5a28bafd44a5ab4e49b1531cc95792a174c14ce04e5816c61b389a0a2d2af0ae",
+      "sha256": "2afbf9f8c8c9873cdf7979076ac3d0386770f610fd0a965828b44afb716650ec",
       "executable": false
     },
     "tests/beam/regression-attendance.mjs": {
@@ -4610,7 +4610,7 @@
       "executable": false
     },
     "tests/beam/regression-model-budget.mjs": {
-      "sha256": "647d9c5617a710f3447c501174a90fa7a2551617ff2c7db6eef898c2c6fa69c2",
+      "sha256": "811d34dd1353e17314f46c0de8aa220b6226e186b5cca57eb86221fe1e733653",
       "executable": false
     },
     "tests/beam/regression-model-course.mjs": {
@@ -4678,7 +4678,7 @@
       "executable": false
     },
     "tests/beam/regression-tutor.mjs": {
-      "sha256": "5240605ddeec81e6fbf88094b191291f8321355e5f7cac56236cd42eb2191c0b",
+      "sha256": "cc65b3fd6572d83d444942f2abd4de991d107ca6d0eebeff52291a4e8faf28e9",
       "executable": false
     },
     "tests/beam/regression-upkeep.mjs": {
@@ -4738,11 +4738,15 @@
       "executable": false
     },
     "tests/beam/tutor-adversarial.mjs": {
-      "sha256": "37a8a3aaa7cb936c946bdadaba8bad84b27b9d0a6efee888a124de6b4bac29f7",
+      "sha256": "be5c6125b2d2ed938b61b111d2a7db3558af51ed7055019523875f88c7702354",
+      "executable": false
+    },
+    "tests/beam/tutor-browser.mjs": {
+      "sha256": "137a66ebd2c89b444924faa0b20d95e98429f5b7ed23803b392d9cf8f1cb9722",
       "executable": false
     },
     "tests/beam/tutor-privacy.mjs": {
-      "sha256": "4f2c40b73fb52bd5f609c4699f1b136c6f8a943db8da4acc96c530c21852ccff",
+      "sha256": "7bb5c2ca67822ceada1dd04c2352b0a6cfeb9df6d2411f1a308e907949954ab2",
       "executable": false
     },
     "tests/beam/xapi-activity.mjs": {

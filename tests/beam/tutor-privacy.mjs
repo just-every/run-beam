@@ -3,9 +3,9 @@ import { file } from './harness.mjs'
 
 export async function loadTutorCanaries(f, c) {
  const {api,ids} = f
- const canaries = ['synthetic-beam-restricted-91','synthetic-beam-private-92','synthetic-beam-anonymous-93','synthetic-beam-practice-94']
+ const canaries = ['synthetic-beam-91','synthetic-beam-92','synthetic-beam-93','synthetic-beam-94']
  await api('author','source.create',{title:'Restricted personnel instructions',reviewer:ids.reviewer,licence:'owned',licenceEvidence:'Employer-owned',provenance:'Private personnel office',file:file('synthetic-beam-91.txt',canaries[0])})
- const otherAssignment = (await api('manager','assignment.create',{course:c.id,learners:[ids.other],dueDate:'2030-10-01',dueTime:'17:00',timezone:'UTC'})).created[0]
+ const otherAssignment = (await api('owner','assignment.create',{course:c.id,learners:[ids.other],dueDate:'2030-10-01',dueTime:'17:00',timezone:'UTC'})).created[0]
  await api('other','tutor.ask',{assignment:otherAssignment,question:canaries[1],consent:true})
  const propose = async (role,kind,payload) => {
   const p = await api(role,'agent.propose',{kind,title:'Tutor privacy qualification',reasons:['Verify context exclusion'],payload})

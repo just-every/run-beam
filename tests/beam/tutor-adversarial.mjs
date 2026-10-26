@@ -15,9 +15,9 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
   assert.deepEqual(result.result?.citations ?? [],[])
   return {q,preview}
  }
- const answered = passage => ({status:'answered',passages:[passage],uncertainty:'synthetic-beam-provider-prose-95'})
+ const answered = passage => ({status:'answered',passages:[passage],uncertainty:'synthetic-beam-95'})
  await execute('What tools should I use before work?',data=>answered(data.passages.find(p=>p.text.includes('break room closes')).id))
- await execute('What tools should I use before work?',()=>answered('synthetic-beam-unknown-96'),502)
+ await execute('What tools should I use before work?',()=>answered('synthetic-beam-96'),502)
  await execute('What tools should I use before work?',data=>answered(data.passages.find(p=>p.text.includes('UNTRUSTED INSTRUCTION')).id),502)
  const partial = await execute('What tools should I use before work and what replacement interval applies?',data=>answered(data.passages.find(p=>p.text.startsWith('Use clean tools')).id))
  await api('learner','tutor.handoff',{question:partial.q.id})
