@@ -312,7 +312,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c825b1d2ff57009696e8c9aecb1703890471085a5606cd1f02a15f6e10d7cb45",
+      "sha256": "01250a9bc3c2b1f1e0dbffd4e13bdaaa41b3223a28daf59d2e9891773b3dba20",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -332,7 +332,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "baaf4c32ec0ca669b5682a8eb350643bf63f1ebcdf7b0c29057c2fa0949607d8",
+      "sha256": "0f5bf36ccc34c382d414806ae8731ce11780619f3ff9e4eaeff1b7bb109d0686",
       "executable": false
     },
     "DEMO.md": {
@@ -4369,6 +4369,10 @@
     },
     "tests/beam/live-hris-language.mjs": {
       "sha256": "47d8925237c95d07a38829e242106290a1acd656e9234bd3a146b70065339440",
+      "executable": false
+    },
+    "tests/beam/live-install-provider.mjs": {
+      "sha256": "c28bae8f501e8da77ed0aafd39907d682d8befa0a789878be4d0a4924723646a",
       "executable": false
     },
     "tests/beam/live-language-mail.mjs": {
