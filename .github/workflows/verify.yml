@@ -34,8 +34,8 @@ jobs:
     timeout-minutes: 15
     env:
       CI: 'true'
-      # The learning-and-source-browser job runs these authoring API checks with their browser checks.
-      BEAM_REGRESSION_EXCLUDE: 'OPS-003,OPS-007,AUTO-004,PACK-003-custody,AUTHOR-001,AUTHOR-002'
+      # Focused jobs below run authoring APIs, model preparation and tutor checks.
+      BEAM_REGRESSION_EXCLUDE: 'OPS-003,OPS-007,AUTO-004,PACK-003-custody,AUTHOR-001,AUTHOR-002,LEARN-008,AUTHOR-007'
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -137,7 +137,7 @@ jobs:
           node-version: '22.20.0'
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
-      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=PACK-003-custody
+      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=PACK-003-custody,LEARN-008,AUTHOR-007
   learning-and-source-browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
