@@ -5,7 +5,7 @@ import type { Input } from './input'
 import { openSecret, sealSecret } from './integration-secrets'
 import { modelConfiguration, modelOwner } from './model-account'
 import { callModel, MODEL, MODEL_ESTIMATE_CENTS, type ModelRequest } from './model-provider'
-export type ModelContext = { kind: 'course' | 'locale'; course: string; digest: string; sources?: string[]; scope?: 'tutor' }
+export type ModelContext = { kind: 'course' | 'locale'; course: string; digest: string; sources?: string[]; scope?: 'tutor'; resultId?: string }
 export async function modelPreview(env: Bindings, actor: Actor, context: ModelContext) {
   modelOwner(actor)
   const config = await modelConfiguration(env)
@@ -24,14 +24,14 @@ export async function executeModel<T>(env: Bindings, actor: Actor, input: Input,
   insist(approval.owner === actor.id && approval.session === actor.sessionId && approval.expiresAt > now(), 'model_approval_expired', 409)
   const config = await modelConfiguration(env)
   insist(config?.enabled && config.key_cipher && config.version === approval.configVersion, 'model_disabled', 409)
-  insist(context.scope === approval.scope && context.kind === approval.kind && context.course === approval.course && context.digest === approval.digest &&
+  insist(context.resultId === approval.resultId && context.scope === approval.scope && context.kind === approval.kind && context.course === approval.course && context.digest === approval.digest &&
     JSON.stringify(context.sources ?? []) === JSON.stringify(approval.sources ?? []) && approval.model === MODEL &&
     approval.estimateCents === MODEL_ESTIMATE_CENTS && approval.maxCostCents === config.max_cost_cents &&
     input.integer('estimateCents') === approval.estimateCents && input.integer('maxCostCents') === approval.maxCostCents, 'model_approval_mismatch', 409)
   insist(JSON.stringify(request.data).length <= 150_000, 'model_input_limit', 422)
   const key = await openSecret(env, config.key_cipher, 'model:openai')
-  try { await commit(env, [stmt(env, `INSERT INTO beam_model_runs(id,kind,course_id,digest,model,state,approved_by,approved_at,config_version,estimate_cents,max_cost_cents,purpose)
-    VALUES(?,?,?,?,?,'running',?,?,?,?,?,?)`, approval.id, context.kind, context.course, context.digest, MODEL, actor.id, now(), config.version, MODEL_ESTIMATE_CENTS, config.max_cost_cents, context.scope ?? 'preparation'),
+  try { await commit(env, [stmt(env, `INSERT INTO beam_model_runs(id,kind,course_id,digest,model,state,approved_by,approved_at,config_version,estimate_cents,max_cost_cents,purpose,result_id)
+    VALUES(?,?,?,?,?,'running',?,?,?,?,?,?,?)`, approval.id, context.kind, context.course, context.digest, MODEL, actor.id, now(), config.version, MODEL_ESTIMATE_CENTS, config.max_cost_cents, context.scope ?? 'preparation', context.resultId ?? null),
     ...[...new Set(context.sources ?? [])].map(source => stmt(env, 'INSERT INTO beam_model_run_sources VALUES(?,?)', approval.id, source))],
     { actor, action: 'model.approve', subject: context.course, detail: { run: approval.id, kind: context.kind, digest: context.digest, model: MODEL, estimateCents: MODEL_ESTIMATE_CENTS, maxCostCents: config.max_cost_cents } }) }
   catch { throw new BeamError('model_approval_used_or_active', 409) }

@@ -1697,7 +1697,7 @@
       "executable": false
     },
     "src/beam/erasure-run.ts": {
-      "sha256": "edd1e046673714d29c4c56f4de18b4489e7e8a2d314fdade296a38a83c88a897",
+      "sha256": "1ff0293d44ad37402b0971a6c8b5e578f3bbd3d77d4b97667060b504b42a52de",
       "executable": false
     },
     "src/beam/erasure-snapshots.ts": {
@@ -1709,7 +1709,7 @@
       "executable": false
     },
     "src/beam/erasure.ts": {
-      "sha256": "cb0895915293e69c51c1ab1132baaa82e4353563eaedb58cc8874878932ea6c1",
+      "sha256": "2618e98f610ee0ddfff709fba3ec4c8203d204317275446e70de4e32ab73fde9",
       "executable": false
     },
     "src/beam/error-feeds.ts": {
@@ -1865,7 +1865,7 @@
       "executable": false
     },
     "src/beam/model-runs.ts": {
-      "sha256": "db6e60d2ec4a918fc2b8e5a25783c66181fe841f510c0b98849eb78a21683fa4",
+      "sha256": "699852cc8d53cb8811421f6b96e26ceafb81a87b716ff575b0b0138a8b7745a0",
       "executable": false
     },
     "src/beam/movein/browser.ts": {
@@ -2193,7 +2193,7 @@
       "executable": false
     },
     "src/beam/tutor.ts": {
-      "sha256": "8d538df14102aa31007c66f478951cab84aace5d3b2c7237072b7545487fa1a7",
+      "sha256": "9fd3d889b06386dc988e5cf43867d5de44fc7154be543457cd51b21fc9326c79",
       "executable": false
     },
     "src/beam/ui/access.ts": {
@@ -2469,7 +2469,7 @@
       "executable": false
     },
     "src/beam/ui/tutor.ts": {
-      "sha256": "c0fdc19c7d7c6b55047a7b39f9e519df0f076b1afed69a6488b2e55d1bb4efbb",
+      "sha256": "65ace6835021ce3708e7964c08a1e752294008d3ae69eb7f3cb72cda93b63810",
       "executable": false
     },
     "src/beam/ui/units.ts": {
@@ -4473,7 +4473,7 @@
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {
-      "sha256": "adaef13e0a369509abad919039a4cb714c4094da484a96909f3b3edddd72208a",
+      "sha256": "5a28bafd44a5ab4e49b1531cc95792a174c14ce04e5816c61b389a0a2d2af0ae",
       "executable": false
     },
     "tests/beam/regression-attendance.mjs": {
@@ -4545,7 +4545,7 @@
       "executable": false
     },
     "tests/beam/regression-erasure.mjs": {
-      "sha256": "d65b188a6133bdae9565c388ae57c15177cb0f31e96205665385ec150379c96b",
+      "sha256": "5d824972097405eb04ce49d7837fdecbca03444ecbcf347b5c57dfa09050d3fd",
       "executable": false
     },
     "tests/beam/regression-estate.mjs": {
@@ -4665,7 +4665,7 @@
       "executable": false
     },
     "tests/beam/regression-tutor.mjs": {
-      "sha256": "55adf4525fc49b3e3969d1260fd0bb17bdfb4062f1fbae9e129471c3519e35d1",
+      "sha256": "1570145d4d110eb03bbd4c83146f9c8fad97d6edda7438d32842e8fefff976ad",
       "executable": false
     },
     "tests/beam/regression-upkeep.mjs": {

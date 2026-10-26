@@ -33,6 +33,7 @@ export async function erasurePreview(env: Bindings, actor: Actor, input: Input) 
     if (count!.count) imports.push({ table: row.name, count: count!.count })
   }
   const providers = person ? await all(env, 'SELECT connection_id,actor_name FROM beam_xapi_actors WHERE learner_id=? ORDER BY connection_id', subject) : []
+  if (person && await one(env, 'SELECT 1 FROM beam_tutor_questions q JOIN beam_model_runs r ON r.result_id=q.id WHERE q.learner_id=? LIMIT 1', subject)) providers.push({ connection_id: 'model:openai', actor_name: subject })
   if (source && await one(env, 'SELECT 1 FROM beam_model_run_sources r JOIN beam_source_versions v ON v.id=r.source_version_id WHERE v.source_id=? LIMIT 1', subject)) providers.push({ connection_id: 'model:openai', actor_name: subject })
   if (source && await one(env, 'SELECT 1 FROM beam_source_ocr_runs r JOIN beam_source_versions v ON v.id=r.source_version_id WHERE v.source_id=? LIMIT 1', subject)) providers.push({ connection_id: 'ocr:openai', actor_name: subject })
   if (person?.email) providers.push({ connection_id: `mail:${env.MAIL_PROVIDER}`, actor_name: await identityDigest(env, person.email) })

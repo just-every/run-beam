@@ -89,7 +89,7 @@ export async function resumeErasure(env: Bindings, actor: Actor, input: Input) {
       if (!await one(env, "SELECT 1 FROM beam_erasure_files WHERE job_id=? AND state='pending'", id)) phase = 'providers'
     } else if (phase === 'providers') {
       // xAPI has no standard destructive statement deletion API. Do not pretend voiding is erasure.
-      await stmt(env, "UPDATE beam_erasure_providers SET state='failed',failure=CASE WHEN connection_id LIKE 'mail:%' THEN 'mail_provider_erasure_api_required' WHEN connection_id='ocr:openai' THEN 'ocr_provider_erasure_api_required' ELSE 'connected_lrs_erasure_api_required' END WHERE job_id=? AND state='pending'", id).run()
+      await stmt(env, "UPDATE beam_erasure_providers SET state='failed',failure=CASE WHEN connection_id LIKE 'mail:%' THEN 'mail_provider_erasure_api_required' WHEN connection_id='model:openai' THEN 'model_provider_erasure_api_required' WHEN connection_id='ocr:openai' THEN 'ocr_provider_erasure_api_required' ELSE 'connected_lrs_erasure_api_required' END WHERE job_id=? AND state='pending'", id).run()
       phase = 'complete'
     }
     await stmt(env, 'UPDATE beam_erasure_jobs SET phase=?,state=?,cursor=?,continuation=?,report_json=?,selectors_json=CASE WHEN ? THEN ? ELSE selectors_json END,lease_until=NULL WHERE id=? AND version=?', phase, phase === 'complete' ? 'complete' : 'pending', cursor, continuation, JSON.stringify(outcomes), phase === 'complete' ? 1 : 0, '{}', id, job.version + 1).run()

@@ -70,12 +70,12 @@ async function context(env: Bindings, actor: Actor, id: string) {
 export async function tutorPreview(env: Bindings, actor: Actor, id: string) {
  const selected = await context(env, actor, id)
  insist(!selected.question.result_json, 'tutor_already_answered', 409)
- return { ...await modelPreview(env, actor, { kind: 'course', scope: 'tutor', course: selected.assignment.course_id, digest: selected.digest, sources: selected.grants.map(g => g.source_version_id) }), question: id, payload: selected.data }
+ return { ...await modelPreview(env, actor, { kind: 'course', scope: 'tutor', resultId: id, course: selected.assignment.course_id, digest: selected.digest, sources: selected.grants.map(g => g.source_version_id) }), question: id, payload: selected.data }
 }
 export async function runTutor(env: Bindings, actor: Actor, input: Input) {
  const id = input.text('question'), selected = await context(env, actor, id)
  insist(!selected.question.result_json, 'tutor_already_answered', 409)
- return executeModel(env, actor, input, { kind: 'course', scope: 'tutor', course: selected.assignment.course_id, digest: selected.digest, sources: selected.grants.map(g => g.source_version_id) }, { instructions, data: selected.data, schema }, async value => {
+ return executeModel(env, actor, input, { kind: 'course', scope: 'tutor', resultId: id, course: selected.assignment.course_id, digest: selected.digest, sources: selected.grants.map(g => g.source_version_id) }, { instructions, data: selected.data, schema }, async value => {
   const output = value as Row
   insist(output && ['answered','unanswered'].includes(output.status) && Array.isArray(output.passages) && output.passages.length <= 4 && new Set(output.passages).size === output.passages.length && typeof output.uncertainty === 'string' && output.uncertainty.length <= 500, 'tutor_invalid_result', 502)
   insist(output.status === 'answered' ? output.passages.length > 0 : output.passages.length === 0, 'tutor_invalid_result', 502)
@@ -102,7 +102,7 @@ export async function tutorQuestion(env: Bindings, actor: Actor, id: string) {
   if (!stillAllowed || erased) result = { status: 'unanswered', uncertainty: 'Source access changed. Submit a new question or ask the responsible expert.', citations: [], revision: assignment.course_revision_id }
  }
  const lesson = await one(env, 'SELECT id FROM beam_lesson_revisions WHERE course_revision_id=? ORDER BY position LIMIT 1', assignment.course_revision_id)
- return { id, question: question.question, assignment: assignment.id, course: assignment.course_id, revision: assignment.course_revision_id, revisionNumber: assignment.number, title: assignment.title, result, thread: question.thread_id, lesson: lesson?.id }
+ return { id, learner: question.learner_id, question: question.question, assignment: assignment.id, course: assignment.course_id, revision: assignment.course_revision_id, revisionNumber: assignment.number, title: assignment.title, result, thread: question.thread_id, lesson: lesson?.id }
 }
 export async function tutorCitation(env: Bindings, actor: Actor, id: string, passage: string) {
  const view = await tutorQuestion(env, actor, id), citation = view.result?.citations.find((item: Row) => item.id === passage)
@@ -111,7 +111,7 @@ export async function tutorCitation(env: Bindings, actor: Actor, id: string, pas
 }
 export async function tutorHandoff(env: Bindings, actor: Actor, input: Input) {
  const view = await tutorQuestion(env, actor, input.text('question'))
- insist(!actor.owner && !view.thread && view.lesson, 'tutor_handoff_unavailable', 409)
+ insist(actor.id === view.learner && !view.thread && view.lesson, 'tutor_handoff_unavailable', 409)
  const result = await askQuestion(env, actor, Input.of({ course: view.course, lesson: view.lesson, kind: 'question', title: view.question.slice(0,200), body: view.question }))
  await commit(env, [stmt(env, 'UPDATE beam_tutor_questions SET thread_id=? WHERE id=?', result.id, view.id)], { actor, action: 'tutor.handoff', subject: view.id, detail: { thread: result.id } })
  return { id: view.id }
