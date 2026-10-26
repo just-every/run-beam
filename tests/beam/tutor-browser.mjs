@@ -27,21 +27,35 @@ export async function tutorBrowser(f,pages) {
      assert.ok(tip.split(/\s+/).length>=2,'Tooltip describes the control')
     }
     await page.screenshot({path:`${evidence}/${width}-tutor-${name}.png`,fullPage:true})
+    const complete = page.getByText('Complete outbound request',{exact:true})
+    if(await complete.count()) {
+     await complete.click()
+     const shown = JSON.parse(await complete.locator('..').locator('pre').innerText())
+     const id = path.split('/').at(-1).split('?')[0]
+     assert.deepEqual(shown,(await f.api('owner',`tutor/${id}/preview`)).outbound,'The owner can inspect the complete actual request')
+     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`Complete request fits ${width}`)
+     await page.screenshot({path:`${evidence}/${width}-tutor-${name}-wire.png`,fullPage:true})
+    }
    } finally {await context.close()}
   }
  } finally {await browser.close()}
  console.log('PASS tutor browser proof at 1440 and 390',pages.map(p=>p[0]).join(', '))
 }
 
-export async function tutorForm(f,role,path,action,fields={}) {
+export async function tutorForm(f,role,path,action,fields={},width=390) {
  const {chromium}=await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
  const browser=await chromium.launch({...(process.env.BEAM_BROWSER_EXECUTABLE ? {executablePath:process.env.BEAM_BROWSER_EXECUTABLE} : {}),headless:true,args:['--use-mock-keychain','--password-store=basic','--ignore-certificate-errors']})
  try {
-  const context=await browser.newContext({viewport:{width:390,height:900},ignoreHTTPSErrors:true})
+  const context=await browser.newContext({viewport:{width,height:900},ignoreHTTPSErrors:true})
   await context.addCookies(f.cookies[role].split('; ').map(pair=>({name:pair.slice(0,pair.indexOf('=')),value:pair.slice(pair.indexOf('=')+1),url:f.h.origin})))
   const page=await context.newPage();await page.goto(f.h.origin+path)
-  const form=page.locator(`form[action="/app/do/${action}"]`)
-  for(const [name,value] of Object.entries(fields)) await form.locator(`[name="${name}"]`).fill(value)
+  let form=page.locator(`form[action="/app/do/${action}"]`)
+  if(action==='tutor.source') form=form.filter({has:page.locator('input[name="rightsConfirmed"]')})
+  for(const [name,value] of Object.entries(fields)) {
+   const control = form.locator(`[name="${name}"]`)
+   if(await control.evaluate(el=>el.tagName==='SELECT')) await control.selectOption(value)
+   else await control.fill(value)
+  }
   if(await form.getByRole('checkbox').count()) await form.getByRole('checkbox').check()
   await Promise.all([page.waitForNavigation({waitUntil:'load',timeout:110000}),form.getByRole('button').click({timeout:110000})])
   const result=new URL(page.url());assert.equal(result.searchParams.get('error'),null,'The real tutor form succeeds')

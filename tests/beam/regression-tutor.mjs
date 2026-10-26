@@ -31,7 +31,8 @@ export async function tutorCheck({ live = false } = {}) {
   await screens([['learner','learner',`/app/learn/${assignment}`,'Preparing safe tools'],['ask','learner',`/app/tutor?assignment=${assignment}`,'Learning questions'],['account','owner','/app/model-account','AI preparation account'],['zero-budget','owner','/app/business','Business settings']])
   await api('learner','tutor.source',{course:c.id,source:source.versionId,enabled:true,rightsConfirmed:true},403)
   await api('owner','tutor.source',{course:c.id,source:source.versionId,enabled:true},409)
-  await api('owner','tutor.source',{course:c.id,source:source.versionId,enabled:true,rightsConfirmed:true})
+  if(browser) await tutorForm(f,'owner','/app/tutor','tutor.source',{course:c.id,source:source.versionId},1440)
+  else await api('owner','tutor.source',{course:c.id,source:source.versionId,enabled:true,rightsConfirmed:true})
   await screens([['sources','owner','/app/tutor','Company source permissions']])
   const policy = (await api('owner','automation-controls')).policy
   await api('owner','automation.policy',{...policy,dailySpendLimitCents:100000})
