@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
 
+export const portalNotice = {
+  operatorName: 'Synthetic training operator', purpose: 'Customer and partner training',
+  collectedData: 'Verified identity, lesson progress, assessment attempts and earned evidence.',
+  reportingRecipients: 'Only this portal administrator and the human owner.',
+  providers: 'The installation hosting and authentication services. Optional messaging needs separate consent.',
+  retentionAndHolds: 'Withdrawal restricts records; erasure follows the separately justified OPS-003 policy and holds. No legal retention is claimed.',
+  certificateEffects: 'Withdrawal preserves earned evidence and revokes optional public verification links. Downloaded copies cannot be recalled.',
+  withdrawal: 'Use your authenticated portal consent control, including after admission is closed. Other portals are unchanged; renewed consent never restores administrator grants.',
+}
+
 // Public HTTP proof of preparation boundaries; no simulated external learning.
 export async function enterprisePortalsCheck(f) {
   const { api, h, cookies, ids, course } = f
@@ -13,6 +23,10 @@ export async function enterprisePortalsCheck(f) {
   assert.equal((await api('owner', 'portals')).portals.length, 3)
   await api('manager', 'portals', undefined, 403)
   await create('employee', 409)
+  for (const p of [employee, customer]) await api('owner', 'portal.notice', { portal: p.id, version: 0, ...portalNotice })
+  await api('manager', 'portal.notice', { portal: customer.id, version: 1, ...portalNotice }, 403)
+  await api('owner', 'portal.notice', { portal: customer.id, version: 0, ...portalNotice }, 409)
+  await api('owner', 'portal.notice', { portal: customer.id, version: 1, ...portalNotice, retentionAndHolds: '' }, 400)
   const c = await course('Explicitly shared induction')
   for (const p of [employee, customer, partner]) await api('owner', 'portal.share', { portal: p.id, revision: c.revision, confirm: true })
   const unpublished = await api('author', 'course.create', { title: 'Private draft', reviewer: ids.reviewer })
@@ -25,6 +39,8 @@ export async function enterprisePortalsCheck(f) {
   const refused = await api('owner', 'portal.invite', { portal: customer.id, email: 'synthetic-beam-4@example.test', name: 'Unlinked employee', sendInvitation: true }, 409)
   assert.equal(refused.error, 'employee_identity_link_required')
   assert.equal(h.mails.length, sent)
+  await api('owner', 'portal.invite', { portal: customer.id, email: 'learner@example.test', name: 'Employee collision', sendInvitation: true }, 409)
+  assert.equal((await api('learner', 'me')).id, ids.learner)
   const external = await invite(customer, 'synthetic-beam-1@example.test', 'Customer learner')
   const externalCookie = await h.signIn('synthetic-beam-1@example.test', { requested: true })
   const other = await invite(partner, 'synthetic-beam-2@example.test', 'Partner learner')
@@ -38,14 +54,51 @@ export async function enterprisePortalsCheck(f) {
     assert.equal(response.headers.get('cache-control'), 'no-store')
     return JSON.parse(text)
   }
+  assert.equal(external.state, 'claim_required')
+  await call(customer, 'consent', externalCookie, undefined, 404)
+  await call(customer, 'catalog', externalCookie, undefined, 404)
+  await call(customer, 'claim', partnerCookie, { identity: external.id }, 404)
+  await call(partner, 'claim', externalCookie, { identity: external.id }, 404)
+  await call(customer, 'claim', cookies.owner, { identity: external.id }, 404)
+  const invitation = await h.raw(`/api/beam/portal/${customer.id}/claim?identity=${external.id}`, { cookie: externalCookie })
+  assert.equal(invitation.status, 200)
+  assert.equal((await invitation.json()).state, 'claim_required')
+  await call(customer, 'consent', externalCookie, undefined, 404)
+  await call(customer, 'claim', externalCookie, { identity: external.id })
+  await call(customer, 'claim', externalCookie, { identity: external.id })
+  await call(partner, 'claim', partnerCookie, { identity: other.id })
+  await call(partner, 'claim', externalCookie, { identity: separate.id })
+  // Account changes preserve the stable binding; a reused delivery address is another identity.
+  const changed = await h.raw('/auth/email', { cookie: externalCookie, body: { email: 'synthetic-beam-5@example.test' } })
+  assert.equal(changed.status, 200)
+  const reused = await invite(customer, 'synthetic-beam-1@example.test', 'Reused address')
+  const reusedCookie = await h.signIn('synthetic-beam-1@example.test', { requested: true })
+  assert.notEqual(reused.id, external.id)
+  await call(customer, 'claim', reusedCookie, { identity: external.id }, 404)
+  await call(customer, 'consent', reusedCookie, undefined, 404)
+  await call(customer, 'claim', externalCookie, { identity: reused.id }, 404)
+  const collision = await invite(customer, 'synthetic-beam-6@example.test', 'Later employee')
+  const collisionCookie = await h.signIn('synthetic-beam-6@example.test', { requested: true })
+  await api('owner', 'people.import', { file: file('portal-collision.csv', 'Employee ID,Name,Email\r\nsynthetic-beam-6,Later employee,synthetic-beam-6@example.test\r\n', 'text/csv') })
+  await call(customer, 'claim', collisionCookie, { identity: collision.id }, 409)
+  await call(customer, 'consent', collisionCookie, undefined, 404)
   await call(customer, 'catalog', externalCookie, undefined, 403)
   const consent = await call(customer, 'consent', externalCookie)
   assert.equal(consent.accepted, false)
+  assert.deepEqual(consent.notice, portalNotice)
+  assert.equal(consent.noticeVersion, 1)
   assert.equal(consent.consentText, 'Explicit customer training consent')
   await call(customer, 'consent', externalCookie, { accept: false }, 400)
-  await call(customer, 'consent', externalCookie, { accept: true })
+  await call(customer, 'consent', cookies.owner, { accept: true, noticeVersion: 1 }, 404)
+  await call(customer, 'consent', externalCookie, { accept: true, noticeVersion: 2 }, 409)
+  const accepted = await call(customer, 'consent', externalCookie, { accept: true, noticeVersion: 1 })
+  const account = await (await h.raw('/auth/session', { cookie: externalCookie })).json()
+  assert.deepEqual([accepted.decision.identity, accepted.decision.account, accepted.decision.noticeVersion, accepted.decision.action], [external.id, account.operator.id, 1, 'accept'])
+  assert.equal(typeof accepted.decision.at, 'number')
   await call(partner, 'catalog', externalCookie, undefined, 403)
-  await call(partner, 'consent', partnerCookie, { accept: true })
+  await call(partner, 'consent', partnerCookie, { accept: true, noticeVersion: 1 }, 409)
+  await api('owner', 'portal.notice', { portal: partner.id, version: 0, ...portalNotice })
+  await call(partner, 'consent', partnerCookie, { accept: true, noticeVersion: 1 })
   await call(customer, 'catalog', partnerCookie, undefined, 404)
   const catalog = await call(customer, 'catalog', externalCookie)
   assert.deepEqual(catalog.courses.map(row => row.revision), [c.revision])
@@ -97,22 +150,56 @@ export async function enterprisePortalsCheck(f) {
   assert.ok(exported.records.beam_portal_enrollments.rows.some(row => row.id === enrolled.id))
   assert.ok(exported.records.beam_portal_identities.rows.every(row => !('operator_id' in row)))
   assert.equal(exported.records.beam_portal_administrators, undefined)
+  await call(partner, 'consent', externalCookie, { accept: true, noticeVersion: 1 })
   await call(customer, 'consent', externalCookie, { withdraw: true })
   await call(customer, 'catalog', externalCookie, undefined, 403)
   assert.deepEqual((await call(customer, 'roster', cookies.owner)).identities, [])
   assert.deepEqual((await call(customer, 'report', cookies.owner)).enrollments, [])
-  await call(customer, 'consent', externalCookie, { accept: true })
+  await call(customer, 'consent', externalCookie, { accept: true, noticeVersion: 1 })
+  assert.equal((await call(partner, 'consent', externalCookie)).accepted, true)
+  assert.deepEqual((await call(customer, 'report', cookies.owner)).enrollments.map(row => row.id), [enrolled.id])
   await call(customer, 'roster', externalCookie, undefined, 403)
   await api('owner', 'portal.admin', { portal: customer.id, identity: external.id })
   await api('owner', 'portal.admin', { portal: customer.id, identity: external.id, revoke: true })
   await call(customer, 'roster', externalCookie, undefined, 403)
+  // A grant racing withdrawal cannot survive renewed consent.
+  await api('owner', 'portal.admin', { portal: customer.id, identity: external.id })
+  const raced = await Promise.all([
+    h.raw(`/api/beam/portal/${customer.id}/consent`, { cookie: externalCookie, body: { withdraw: true } }),
+    h.raw('/api/beam/portal.admin', { cookie: cookies.owner, body: { portal: customer.id, identity: external.id } }),
+  ])
+  assert.equal(raced[0].status, 200)
+  assert.ok([200, 404].includes(raced[1].status))
+  await Promise.all(raced.map(response => response.arrayBuffer()))
+  await call(customer, 'consent', externalCookie, { accept: true, noticeVersion: 1 })
+  await call(customer, 'roster', externalCookie, undefined, 403)
+  // A revised disclosure closes prior consent and requires this exact version.
+  await api('owner', 'portal.admin', { portal: customer.id, identity: external.id })
+  await api('owner', 'portal.notice', { portal: customer.id, version: 1, ...portalNotice, purpose: 'Updated customer training' })
+  await call(customer, 'catalog', externalCookie, undefined, 403)
+  await call(customer, 'consent', externalCookie, { accept: true, noticeVersion: 1 }, 409)
+  await call(customer, 'consent', externalCookie, { accept: true, noticeVersion: 2 })
+  await call(customer, 'roster', externalCookie, undefined, 403)
+  assert.equal((await call(partner, 'consent', externalCookie)).noticeVersion, 1)
   await api('owner', 'portal.share', { portal: customer.id, revision: c.revision, confirm: true, revoke: true })
   assert.deepEqual((await call(customer, 'catalog', externalCookie)).courses, [])
   await call(customer, 'enroll', cookies.owner, { identity: external.id, revision: c.revision }, 404)
   assert.deepEqual((await call(customer, 'report', cookies.owner)).enrollments, [])
   await api('owner', 'portal.revoke', { portal: customer.id, identity: external.id })
   await call(customer, 'catalog', externalCookie, undefined, 404)
-  await call(customer, 'consent', externalCookie, { accept: true }, 404)
+  assert.equal((await call(customer, 'consent', externalCookie)).accessClosed, true)
+  await call(customer, 'consent', externalCookie, { withdraw: true })
+  assert.equal((await call(customer, 'consent', externalCookie)).accepted, false)
+  await call(customer, 'consent', externalCookie, { accept: true, noticeVersion: 2 }, 404)
   assert.equal((await api('learner', 'me')).id, ids.learner)
+  const records = (await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()).records
+  const events = records.beam_portal_consent_events.rows
+  assert.ok(events.some(row => row.identity_id === external.id && row.notice_version === 2 && row.action === 'accept'))
+  assert.ok(events.some(row => row.identity_id === external.id && row.action === 'withdraw'))
+  assert.ok(events.every(row => !('operator_id' in row)))
+  const audit = await api('owner', 'audit')
+  assert.ok(audit.events.some(row => row.action === 'portal.identity.bind' && row.detail.identity === external.id && row.detail.outcome === 'bound'))
+  assert.ok(audit.events.some(row => row.action === 'portal.identity.collision' && row.detail.identity === collision.id && row.detail.outcome === 'refused'))
+  assert.ok(audit.events.some(row => row.action === 'portal.consent.withdraw' && row.detail.identity === external.id))
   assert.ok(!(await api('owner', 'people')).members.some(row => row.name === 'Customer learner'))
 }
