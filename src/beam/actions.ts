@@ -1,3 +1,4 @@
+import { savePortalNotice, createPortal, saveEnterpriseTheme, sharePortalRevision, invitePortalIdentity, grantPortalAdministrator, revokePortalIdentity } from './enterprise-portals'
 import { configureModel, closeModelRun } from './model-account'
 import { runLocaleModel } from './model-locale'
 import { runCourseModel } from './model-course'
@@ -108,6 +109,7 @@ const synced = (handler: Handler): Handler => async (env, actor, input, request)
 }
 
 export const actions: Record<string, Handler> = {
+  'portal.notice': savePortalNotice, 'portal.create': createPortal, 'portal.theme': saveEnterpriseTheme, 'portal.share': sharePortalRevision, 'portal.invite': invitePortalIdentity, 'portal.admin': grantPortalAdministrator, 'portal.revoke': revokePortalIdentity,
   'model.configure': configureModel, 'model.close': closeModelRun, 'locale.model.run': runLocaleModel, 'course.model.run': runCourseModel,
   'theme.save': saveTheme,
   'roster-feed.create': createRosterFeed, 'roster-feed.receive': receiveRosterFeed,

@@ -23,6 +23,10 @@ export default {
   buckets: { files: { prefix: 'sha256/' } },
   requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'],
   exportRow(table, row) {
+    // Restored portal accounts require a new account binding, consent and owner grant.
+    if (table === 'beam_portal_identities') return { ...row, operator_id: null, invited_operator_id: null, bound_at: null, consent_at: null, revoked_at: row.revoked_at ?? Date.now() }
+    if (table === 'beam_portal_consent_events') return { ...row, operator_id: null }
+    if (table === 'beam_portal_administrators') return { ...row, revoked_at: row.revoked_at ?? Date.now() }
     if (table === 'beam_source_ocr_config' || table === 'beam_model_config') return { ...row, key_cipher: null, enabled: 0, version: row.key_cipher || row.enabled ? row.version + 1 : row.version }
     if (table === 'beam_package_sessions') return { ...endedSession(row), id: packageSession(row.id), ...(row.initial_json.includes('cmi5Asset') ? { initial_json: '{}' } : {}) }
     if (table === 'beam_cmi5_sessions') return { ...row, session_id: packageSession(row.session_id), fetch_hash: WITHHELD, auth_hash: null, lifecycle: 'restored', busy: 0, active_registration: null }

@@ -1,3 +1,4 @@
+import { listPortals } from './enterprise-portals'
 import { themeSettings } from './portal-theme'
 import { rosterFeeds } from './connect/roster-feeds'
 import { courseModelPreview } from './model-course'
@@ -81,6 +82,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  portals: listPortals,
   theme: themeSettings,
   'roster-feeds': rosterFeeds,
   'course-model-preview': (env, actor, request, id) => courseModelPreview(env, actor, id, Input.of({ inputs: new URL(request.url).searchParams.getAll('inputs') })),
@@ -176,6 +178,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
+  [/^portals$/, 'portals'],
   [/^theme$/, 'theme'],
   [/^roster-feeds$/, 'roster-feeds'],
   [/^courses\/([\w-]+)\/model-preview$/, 'course-model-preview'],

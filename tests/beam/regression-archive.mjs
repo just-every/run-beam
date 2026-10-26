@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { portalNotice } from './regression-portals.mjs'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { mkdtemp, readdir, readFile, realpath, rm } from 'node:fs/promises'
@@ -37,6 +38,14 @@ export async function archiveCheck(f) {
   const bearer = (worker, token) => worker.fetch('/api/beam/v1/report', { headers: { authorization: `Bearer ${token}` } })
   assert.equal((await bearer(h, app.token)).status, 200)
   const c = await course('Archive certificate course')
+  await api('owner', 'theme.save', { primary: '#173f5f', accent: '#325f8b', signinHeading: 'Training', signinText: 'Welcome', senderName: 'Training' })
+  const portal = await api('owner', 'portal.create', { kind: 'partner', name: 'Archive partner', consentText: 'Partner training', confirm: true })
+  await api('owner', 'portal.notice', { portal: portal.id, version: 0, ...portalNotice })
+  const portalIdentity = await api('owner', 'portal.invite', { portal: portal.id, email: 'synthetic-beam-3@example.test', name: 'Partner learner', sendInvitation: true })
+  const portalCookie = await h.signIn('synthetic-beam-3@example.test', { requested: true })
+  await h.api(`portal/${portal.id}/claim`, portalCookie, { identity: portalIdentity.id })
+  await h.api(`portal/${portal.id}/consent`, portalCookie, { accept: true, noticeVersion: 1 })
+  await api('owner', 'portal.admin', { portal: portal.id, identity: portalIdentity.id })
   await lessons(await assign(c))
   const certificate = (await api('learner', 'records/me')).completions.find(row => row.course === c.id).certificate
   const link = await api('learner', 'certificate.link', { certificate })
@@ -58,6 +67,10 @@ export async function archiveCheck(f) {
     for await (const record of fileRecords(archive, readArchive)) if (record.kind === 'part') rows.push(...record.items.filter(item => item.kind === 'row'))
     assert.ok(!rows.some(item => ['beam_frontline_credentials', 'beam_frontline_policy'].includes(item.table)), 'archives omit both frontline credential rows and method activation')
     const row = (table, id) => rows.find(item => item.table === table && item.row.id === id).row
+    const portalRow = row('beam_portal_identities', portalIdentity.id)
+    assert.deepEqual([portalRow.operator_id, portalRow.invited_operator_id, portalRow.bound_at, portalRow.consent_at, typeof portalRow.revoked_at], [null, null, null, null, 'number'])
+    assert.ok(rows.filter(item => item.table === 'beam_portal_consent_events').every(item => item.row.operator_id === null))
+    assert.equal(typeof rows.find(item => item.table === 'beam_portal_administrators' && item.row.identity_id === portalIdentity.id).row.revoked_at, 'number')
     const credential = row('beam_app_credentials', app.id)
     assert.deepEqual([credential.secret_sha256, credential.issued_by, credential.audience, credential.expires_at, credential.revoked_at], [WITHHELD, ids.owner, 'reports.read', app.expiresAt, null], 'OPS-007: the credential keeps its lineage without its hash')
     assert.deepEqual([row('beam_certificate_links', link.link).token_hash, row('beam_certificate_links', link.link).created_by], [`${WITHHELD}:${link.link}`, ids.learner])
@@ -91,6 +104,20 @@ export async function archiveCheck(f) {
         assert.deepEqual([links.length, links[0].revokedAt, typeof links[0].restoredAt], [1, null, 'number'])
         assert.ok((await (await t.raw(`/app/dashboards/${dashboard.id}`, { cookie: owner })).text()).includes('restored from an archive: no longer works, create a new link'))
         if (!withheld) continue
+        const portalRoster = await t.api(`portal/${portal.id}/roster`, owner)
+        assert.deepEqual(portalRoster.identities, [], 'restored portal identities cannot retain consent or account bindings')
+        const freshInvitation = await t.api('portal.invite', owner, { portal: portal.id, email: 'synthetic-beam-3@example.test', name: 'Fresh portal admission', sendInvitation: true })
+        assert.notEqual(freshInvitation.id, portalIdentity.id)
+        const freshCookie = await t.signIn('synthetic-beam-3@example.test', { requested: true })
+        await t.api(`portal/${portal.id}/claim`, freshCookie, { identity: portalIdentity.id }, 404)
+        await t.api(`portal/${portal.id}/consent`, freshCookie, undefined, 404)
+        await t.api(`portal/${portal.id}/claim`, freshCookie, { identity: freshInvitation.id })
+        await t.api(`portal/${portal.id}/roster`, freshCookie, undefined, 403)
+        await t.api(`portal/${portal.id}/consent`, freshCookie, { accept: true, noticeVersion: 1 })
+        await t.api(`portal/${portal.id}/roster`, freshCookie, undefined, 403)
+        assert.deepEqual((await t.api(`portal/${portal.id}/report`, owner)).enrollments, [])
+        await t.api('portal.admin', owner, { portal: portal.id, identity: freshInvitation.id })
+        assert.deepEqual((await t.api(`portal/${portal.id}/roster`, freshCookie)).identities.map(row => row.id), [freshInvitation.id])
         // Reissue: the owner rotates the credential and creates a new report link; both work, the old token still does not.
         const rotated = await t.api('app.rotate', owner, { credential: app.id })
         assert.equal((await bearer(t, rotated.token)).status, 200, 'OPS-007: the rotated credential works')
