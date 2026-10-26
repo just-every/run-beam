@@ -4738,7 +4738,7 @@
       "executable": false
     },
     "tests/beam/tutor-adversarial.mjs": {
-      "sha256": "8db052fc0b26459d8b262b83564251160235e0292f27c434d7d74ef3bca92282",
+      "sha256": "49463d5dc1a348ee59e3db9e16768cc97222b01cf936ab0bbcbd6f2ab03944d3",
       "executable": false
     },
     "tests/beam/tutor-browser.mjs": {

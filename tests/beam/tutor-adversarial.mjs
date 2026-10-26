@@ -22,7 +22,7 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
   reference.revision = (await api('author','course.submit',{course:reference.id,draftVersion:draft.draftVersion})).id
   await f.publish(reference.revision);return {reference,assignment:await f.assign(reference)}
  }
- const before = (await api('learner','records/me')).completions
+ const before = (await api('learner','./records/me')).completions
  const answered = passage => ({status:'answered',passages:[passage],uncertainty:'synthetic-beam-95'})
  await execute('What tools should I use before work?',data=>answered(data.passages.find(p=>p.text.includes('break room closes')).id))
  await execute('What tools should I use before work?',()=>answered('synthetic-beam-96'),502)
@@ -79,7 +79,7 @@ export async function tutorAdversarial({f,c,source,assignment,ask,edge,setChoose
  const erasedPassage = erasurePreview.payload.passages.find(p=>p.sourceVersion===erased.versionId)
  await api('learner',`tutor/${pending.id}/citation?passage=${erasedPassage.id}`,undefined,404)
  assert.equal((await h.raw(`/app/tutor/${pending.id}/citation?passage=${erasedPassage.id}`,{cookie:cookies.learner})).status,404)
- assert.deepEqual((await api('learner','records/me')).completions,before,'Adversarial tutor requests never create completion evidence')
+ assert.deepEqual((await api('learner','./records/me')).completions,before,'Adversarial tutor requests never create completion evidence')
  const audit = (await api('owner','audit')).events.filter(e=>/^(tutor|model)\./.test(e.action))
  const serialized = JSON.stringify(audit)
  assertNoCanaries(audit,canaries)
