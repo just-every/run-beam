@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   dev-personas:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CI: 'true'
@@ -29,7 +29,7 @@ jobs:
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       - run: node tests/beam/dev-personas.mjs
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The complete wall is split with durability and package custody below so every push job finishes within 15 minutes.
     timeout-minutes: 15
     env:
@@ -72,7 +72,7 @@ jobs:
           name: beam-pages
           path: test-results/*.png
   durability:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CI: 'true'
@@ -94,7 +94,7 @@ jobs:
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=OPS-007,AUTO-004
   erasure-custody:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CI: 'true'
@@ -116,7 +116,7 @@ jobs:
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=OPS-003
   package-custody:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CI: 'true'
@@ -138,7 +138,7 @@ jobs:
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=PACK-003-custody
   learning-and-source-browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CI: 'true'
@@ -179,7 +179,7 @@ jobs:
           name: beam-learning-and-source-pages
           path: test-results/*.png
   source:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
