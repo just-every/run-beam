@@ -68,6 +68,19 @@ resource ownership, migrations, receipt and health checks are defined there.
 Local validation does not prove hosted acceptance, provider delivery or remote
 health.
 
+## Provider connections on a local install (OPS-006)
+
+A fresh checkout runs the whole native learning journey with no provider account: setup, dev, a published course
+completed by a learner, build, `rer deploy --dry-run`, `rer export` and `rer import` into a second fresh clone
+(`BEAM_TEST_CHECKOUT=1 pnpm run test:journey`, nightly and on release tags). Features that need a provider never
+simulate one. Before the owner connects a model account, a draft request is refused (409, `model_disabled`) and the
+generation page says the owner must enable the AI preparation account in Settings; no draft, answer or cost is created.
+After the owner connects their own key through Settings, one approved request returns a real provider answer with its
+actual model, response id and USD estimate; revoking removes the sealed key. A hosted install without its mail credential
+is reported by `pnpm run diagnose:configuration` with the setting named (`MAIL_API_KEY`) and the action to take, and
+`rer deploy --dry-run` without it refuses with the same setting named. `tests/beam/live-install-provider.mjs` is the
+held-key qualification of this sequence in a fresh clone; it runs outside push Verify.
+
 ## Offline configuration diagnostics (OPS-007)
 
 Before starting a hosted installation, put its authentication/mail settings in a

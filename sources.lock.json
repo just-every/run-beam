@@ -884,7 +884,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "a9a531f4cf80ed8b3b1e3e60e68bbce04e5c66f6316b9ce13ce627ec16c0fb82",
+      "sha256": "18b7eec2687e3f6b7fd6786d84ff1e2e486ac5827860a0d660201a70797ec4bc",
       "executable": false
     },
     "package.json": {
@@ -4356,7 +4356,7 @@
       "executable": false
     },
     "tests/beam/journey.mjs": {
-      "sha256": "c13d0ab91168d66bfa6142f25470aa834b54c9c73e360c2d684ba75c5958a474",
+      "sha256": "81899fbad92b315811eea37c00be9a4596d941a94843017cba9223d072840ef4",
       "executable": false
     },
     "tests/beam/legacy-archive-data.mjs": {
