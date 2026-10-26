@@ -483,3 +483,7 @@ summary[data-tooltip] { position: relative; }
 summary[data-tooltip]::after { content: attr(data-tooltip); position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 30; width: max-content; padding: 6px 10px; border-radius: 6px; background: var(--ink); color: var(--white); font: 500 13px/1.4 var(--font-body); opacity: 0; visibility: hidden; pointer-events: none; }
 summary[data-tooltip]:hover::after { opacity: 1; visibility: visible; transition: opacity 0s .3s, visibility 0s .3s; }
 summary[data-tooltip]:focus-visible::after { opacity: 1; visibility: visible; transition: none; }
+
+/* Complete tutor payload review stays readable under the application CSP. */
+.tutor-digest { overflow-wrap: anywhere; }
+.tutor-request { max-width: 100%; margin: 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.5; }

@@ -33,8 +33,8 @@ export async function tutorBrowser(f,pages) {
      const shown = JSON.parse(await complete.locator('..').locator('pre').innerText())
      const id = path.split('/').at(-1).split('?')[0]
      assert.deepEqual(shown,(await f.api('owner',`tutor/${id}/preview`)).outbound,'The owner can inspect the complete actual request')
-     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`Complete request fits ${width}`)
      await page.screenshot({path:`${evidence}/${width}-tutor-${name}-wire.png`,fullPage:true})
+     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`Complete request fits ${width}`)
     }
    } finally {await context.close()}
   }
