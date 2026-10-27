@@ -94,7 +94,10 @@ version cannot accept a newly published notice; the learner must review it again
 The consent page also supports withdrawal without an owner decision, and remains
 reachable after ordinary admission is closed.
 
-`/portal/PORTAL/catalog` lists that identity's enrolled learning. Its links open
+`/portal/PORTAL/catalog` lists that identity's currently available enrolled learning.
+Retired or archived courses, unshared revisions and revisions outside approved states
+offer no active learning link. Reinstatement can resume retained progress when
+sharing and consent still authorize the original revision. Its links open
 native text lessons, record reads, and download the learner's own lesson progress.
 Withdrawing consent closes those pages and downloads. Fresh consent resumes the
 same revision-bound progress and leaves the former administrator grant revoked.
