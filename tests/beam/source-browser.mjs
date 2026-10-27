@@ -13,7 +13,7 @@ export async function sourceBrowserCheck(f) {
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence, { recursive: true })
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
   try {
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true })

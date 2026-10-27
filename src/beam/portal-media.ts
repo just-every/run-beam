@@ -44,7 +44,7 @@ export async function portalMedia(env: Bindings, request: Request, portal: strin
     insist(source, 'portal_media_not_found', 404)
     response = await serve(env, source, { download: query.has('download') })
   }
-  // File I/O must not turn an admission closed during the read into a successful response.
+  // File reads must not turn an admission closed during the read into a successful response.
   insist(await one(env, portalAdmission, ...args), 'portal_enrollment_not_found', 404)
   response.headers.set('cache-control', 'no-store')
   response.headers.set('referrer-policy', 'no-referrer')
