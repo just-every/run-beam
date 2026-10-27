@@ -12,7 +12,7 @@ const admission = `SELECT e.* FROM beam_portal_enrollments e
  JOIN beam_courses c ON c.id=r.course_id
  WHERE e.portal_id=?1 AND e.id=?2 AND i.id=?3 AND i.operator_id=?4
  AND i.revoked_at IS NULL AND i.consent_at IS NOT NULL AND i.consent_version=p.notice_version
- AND s.revoked_at IS NULL AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL`
+ AND s.revoked_at IS NULL AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL`
 
 export async function portalLearning(env: Bindings, request: Request, portal: string, identity: string, account: string, download: boolean) {
   insist(!download || request.method !== 'POST', 'method_not_allowed', 405)

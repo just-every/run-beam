@@ -2,7 +2,8 @@
 
 ORG-008 is partial. The JSON preparation APIs keep external portal identities,
 consent, administrator grants and enrollment plans apart from employee membership.
-They do not deliver external lessons or assessments and never record completion.
+Enrolled learners can read native text lessons and record isolated lesson progress.
+External assessments and earned completion are not implemented.
 No portal page or hostname activation is available yet.
 
 The human owner first configures the existing Settings theme. POST
@@ -17,8 +18,9 @@ delivery remains unbuilt.
 
 The human owner explicitly shares a published revision by POSTing
 `/api/beam/portal.share` with `portal`, `revision` and `confirm: true`.
-Adding `revoke: true` removes catalog admission and new enrollment. Sharing
-exposes only revision title, number and identifier. It never exposes sources,
+Adding `revoke: true` removes catalog admission and new enrollment. The catalog
+exposes only revision title, number and identifier. Enrolled learners can separately
+read the approved native text lessons described below. It never exposes sources,
 draft material, employee records or answers. Enrollment keeps this exact revision;
 a later publication does not silently move an enrollment.
 
@@ -66,8 +68,8 @@ administrators cannot grant themselves authority, invite accounts, share courses
 or administer other portals. They can GET the portal's `roster` and `report`
 doors and POST to its `enroll` door with `identity` and `revision`. Both values
 must belong to that portal and current consent and sharing are required. Repeating
-the same enrollment returns the existing plan. Reports contain enrollment plans,
-never inferred progress or completion. Learners may GET their portal's `catalog`
+the same enrollment returns the existing plan. Reports contain enrollments with explicit `lessonsRead` and `totalLessons` counts,
+never inferred assessment results or completion. Learners may GET their portal's `catalog`
 after consent. Unknown portal doors and downloads are refused.
 
 The owner POSTs `/api/beam/portal.revoke` with `portal` and `identity` to end
@@ -80,9 +82,45 @@ and consent decision records remain; receipt account bindings are removed. Rebin
 restoration never silently reactivates them. Owner learning exports include
 portal and enrollment records without external identity account bindings or administrator grants.
 
+
+## Native text lessons and progress
+
+After consent and enrollment, the learner's catalog lists their own `enrollments`.
+GET `/api/beam/portal/PORTAL/learning?enrollment=ENROLLMENT` returns the exact
+approved revision, native text lesson titles and bodies, recorded read times,
+`lessonsRead` and the first unread `resumeLesson`. It excludes source references,
+source files, draft content, assessment answers and employee records. Lessons
+with structured blocks return `available: false` and no body until portal media
+delivery is qualified. This API is not a rendered portal or a complete learning flow.
+
+POST the same `learning` door with `enrollment` and `lesson` to record a native
+text lesson as read. Only its enrolled learner can do this, independently of any
+administrator grant. Reads of another identity's enrollment, a different portal
+or an unshared revision are refused. The write transaction checks current account
+binding, consent version, sharing and course availability again. Duplicate reads
+preserve the original timestamp and append no duplicate audit decision. All-lesson
+progress creates no employee assignment, completion, assessment result or certificate.
+
+Later publication does not replace the enrollment's immutable revision, even when
+that revision becomes superseded. An owner may explicitly share an approved
+superseded revision. Enrollment in a later revision has independent progress.
+Withdrawal closes learning, progress writes, personal downloads and ordinary
+administrator reporting. Renewed consent resumes the same identity's retained
+progress on the original revision, while administrator grants stay revoked.
+Unsharing or retiring the course closes learning without deleting progress.
+
+GET `/api/beam/portal/PORTAL/progress.json?enrollment=ENROLLMENT` downloads the
+learner's own revision-bound lesson read receipt. The receipt omits lesson bodies,
+source references, other identities and all authority. It is not a certificate.
+The owner learning export and installation archive retain these isolated progress
+rows. Both protected and legacy restores keep old identities disconnected; a fresh
+invitation and enrollment cannot inherit their progress or read the old receipt.
+External-identity erasure, retention decisions and provider propagation remain
+unqualified under OPS-003.
+
 CT approved the identity and consent policy with riders on 26 October 2026.
 The implemented API portion does not prove the complete policy or legal compliance. Full external
-learning, portal UI, erasure workflows, branded downloads,
+learning, rendered portals, structured media, erasure workflows, branded downloads,
 completion evidence and browser isolation proof remain owed. OPS-003 inherits
 the external identity retention and erasure obligation; ORG-009 retains hostname
 activation. This preparation feature must not be described as a finished portal.

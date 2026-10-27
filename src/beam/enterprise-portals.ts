@@ -32,7 +32,7 @@ export async function sharePortalRevision(env: Bindings, actor: Actor, input: In
   const id = input.text('portal'), revision = input.text('revision')
   await portal(env, id)
   insist(input.flag('confirm'), 'portal_share_confirmation_required')
-  insist(await one(env, "SELECT 1 FROM beam_course_revisions r JOIN beam_courses c ON c.id=r.course_id WHERE r.id=? AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL", revision), 'published_revision_required', 409)
+  insist(await one(env, "SELECT 1 FROM beam_course_revisions r JOIN beam_courses c ON c.id=r.course_id WHERE r.id=? AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL", revision), 'published_revision_required', 409)
   const revoked = input.flag('revoke')
   await commit(env, [stmt(env, `INSERT INTO beam_portal_shares VALUES(?,?,?,?,?) ON CONFLICT(portal_id,revision_id) DO UPDATE SET shared_by=excluded.shared_by,shared_at=excluded.shared_at,revoked_at=excluded.revoked_at`, id, revision, actor.id, now(), revoked ? now() : null)], { actor, action: revoked ? 'portal.unshare' : 'portal.share', subject: id, detail: { revision } })
   return { portal: id, revision, revoked }
@@ -171,13 +171,13 @@ export async function enterprisePortalResponse(env: Bindings, request: Request):
       insist(admin, 'portal_administrator_required', 403)
       const input = await Input.from(request), learner = input.text('identity'), revision = input.text('revision')
       insist(await one(env, 'SELECT 1 FROM beam_portal_identities WHERE portal_id=? AND id=? AND consent_at IS NOT NULL AND revoked_at IS NULL AND operator_id IS NOT NULL', id, learner), 'portal_identity_not_found', 404)
-      insist(await one(env, "SELECT 1 FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revision_id=? AND s.revoked_at IS NULL AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL", id, revision), 'portal_revision_not_found', 404)
+      insist(await one(env, "SELECT 1 FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revision_id=? AND s.revoked_at IS NULL AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL", id, revision), 'portal_revision_not_found', 404)
       const enrollment = newId(), principal = owner ? (await currentActor(env, request))?.id : identity!.id
       insist(principal, 'portal_actor_unavailable', 403)
       await commit(env, [stmt(env, `INSERT OR IGNORE INTO beam_portal_enrollments(id,portal_id,identity_id,revision_id,enrolled_by,enrolled_at)
         SELECT ?,i.portal_id,i.id,s.revision_id,?,? FROM beam_portal_identities i
         JOIN beam_portal_shares s ON s.portal_id=i.portal_id AND s.revision_id=? AND s.revoked_at IS NULL
-        JOIN beam_course_revisions r ON r.id=s.revision_id AND r.state='published'
+        JOIN beam_course_revisions r ON r.id=s.revision_id AND r.state IN ('published','superseded')
         JOIN beam_courses c ON c.id=r.course_id AND c.retired_at IS NULL AND c.archived_at IS NULL
         WHERE i.portal_id=? AND i.id=? AND i.consent_at IS NOT NULL AND i.revoked_at IS NULL AND i.operator_id IS NOT NULL
         AND (?=1 OR EXISTS(SELECT 1 FROM beam_portal_administrators a JOIN beam_portal_identities admin ON admin.portal_id=a.portal_id AND admin.id=a.identity_id WHERE a.portal_id=i.portal_id AND a.identity_id=? AND a.revoked_at IS NULL AND admin.revoked_at IS NULL AND admin.consent_at IS NOT NULL AND admin.operator_id=?))`, enrollment, principal, now(), revision, id, learner, owner ? 1 : 0, identity?.id ?? '', session.operator.id)], { actor: principal, action: 'portal.enroll', subject: id, detail: { identity: learner, revision } })
@@ -187,7 +187,7 @@ export async function enterprisePortalResponse(env: Bindings, request: Request):
     }
     insist(['GET', 'HEAD'].includes(request.method), 'method_not_allowed', 405)
     let data: unknown
-    if (door === 'catalog') data = { portal: id, name: p.name, kind: p.kind, state: 'preparation', theme: JSON.parse(p.theme_json), courses: await all(env, "SELECT r.id AS revision,r.title,r.number FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revoked_at IS NULL AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL ORDER BY r.title,r.number", id), enrollments: identity ? await all(env, 'SELECT e.id,e.revision_id AS revision FROM beam_portal_enrollments e JOIN beam_portal_shares s ON s.portal_id=e.portal_id AND s.revision_id=e.revision_id WHERE e.portal_id=? AND e.identity_id=? AND s.revoked_at IS NULL ORDER BY e.id', id, identity.id) : [] }
+    if (door === 'catalog') data = { portal: id, name: p.name, kind: p.kind, state: 'preparation', theme: JSON.parse(p.theme_json), courses: await all(env, "SELECT r.id AS revision,r.title,r.number FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revoked_at IS NULL AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL ORDER BY r.title,r.number", id), enrollments: identity ? await all(env, 'SELECT e.id,e.revision_id AS revision FROM beam_portal_enrollments e JOIN beam_portal_shares s ON s.portal_id=e.portal_id AND s.revision_id=e.revision_id WHERE e.portal_id=? AND e.identity_id=? AND s.revoked_at IS NULL ORDER BY e.id', id, identity.id) : [] }
     else {
       insist(admin, 'portal_administrator_required', 403)
       data = door === 'roster' ? { identities: await all(env, 'SELECT id,display_name AS name,consent_at AS consentAt FROM beam_portal_identities WHERE portal_id=? AND revoked_at IS NULL AND consent_at IS NOT NULL AND operator_id IS NOT NULL ORDER BY id', id) } : { enrollments: await all(env, 'SELECT e.id,e.identity_id AS identity,e.revision_id AS revision,e.enrolled_at AS enrolledAt,(SELECT COUNT(*) FROM beam_portal_lesson_progress progress WHERE progress.enrollment_id=e.id) AS lessonsRead,(SELECT COUNT(*) FROM beam_lesson_revisions l WHERE l.course_revision_id=e.revision_id) AS totalLessons FROM beam_portal_enrollments e JOIN beam_portal_identities i ON i.id=e.identity_id AND i.portal_id=e.portal_id JOIN beam_portal_shares s ON s.portal_id=e.portal_id AND s.revision_id=e.revision_id WHERE e.portal_id=? AND i.revoked_at IS NULL AND i.consent_at IS NOT NULL AND s.revoked_at IS NULL ORDER BY e.id', id) }

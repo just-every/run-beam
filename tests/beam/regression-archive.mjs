@@ -123,7 +123,6 @@ export async function archiveCheck(f) {
         const links = (await t.api(`certificates/${certificate}`, owner)).links
         assert.deepEqual([links.length, links[0].revokedAt, typeof links[0].restoredAt], [1, null, 'number'])
         assert.ok((await (await t.raw(`/app/dashboards/${dashboard.id}`, { cookie: owner })).text()).includes('restored from an archive: no longer works, create a new link'))
-        if (!withheld) continue
         const portalRoster = await t.api(`portal/${portal.id}/roster`, owner)
         assert.deepEqual(portalRoster.identities, [], 'restored portal identities cannot retain consent or account bindings')
         const freshInvitation = await t.api('portal.invite', owner, { portal: portal.id, email: 'synthetic-beam-3@example.test', name: 'Fresh portal admission', sendInvitation: true })
@@ -147,6 +146,7 @@ export async function archiveCheck(f) {
         assert.deepEqual(restoredProgress.map(row => [row.enrollment_id, row.lesson_revision_id]), [[portalEnrollment.id, portalLesson]])
         await t.api('portal.admin', owner, { portal: portal.id, identity: freshInvitation.id })
         assert.deepEqual((await t.api(`portal/${portal.id}/roster`, freshCookie)).identities.map(row => row.id), [freshInvitation.id])
+        if (!withheld) continue
         // Reissue: the owner rotates the credential and creates a new report link; both work, the old token still does not.
         const rotated = await t.api('app.rotate', owner, { credential: app.id })
         assert.equal((await bearer(t, rotated.token)).status, 200, 'OPS-007: the rotated credential works')
