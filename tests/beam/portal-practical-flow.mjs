@@ -70,9 +70,9 @@ export async function portalPracticalFlow(f) {
   await call(door, undefined, 404, foreign.cookie)
   await h.api(`portal/${foreignPortal.id}/${door}`, learner.cookie, undefined, 404)
   await h.api(`portal/${foreignPortal.id}/${reviewDoor}`, cookies.owner, undefined, 404)
-  for (const cookie of [administrator.cookie, cookies.assessor]) {
+  for (const [cookie, status] of [[administrator.cookie, 403], [cookies.assessor, 404]]) {
     const response = await h.raw(`/api/beam/portal/${portal.id}/${reviewDoor}`, { cookie })
-    assert.ok([403, 404].includes(response.status), 'Portal administrators and ordinary native assessors acquire no private review access')
+    assert.equal(response.status, status, 'Portal administrators and ordinary native assessors acquire no private review access')
     assert.ok(!(await response.text()).includes(first.evidence))
   }
   await call(`practical-review?enrollment=${wrongEnrollment.id}`, undefined, 403, cookies.owner)

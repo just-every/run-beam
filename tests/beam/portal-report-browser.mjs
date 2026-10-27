@@ -34,7 +34,7 @@ export async function portalReportBrowser(f, data) {
       await page.setViewportSize({ width, height: 1000 })
       await learnerPage.setViewportSize({ width, height: 1000 })
       assert.equal((await page.goto(`${f.h.origin}${base}/report`)).status(), 200)
-      await page.getByRole('heading', { name: 'Portal learning report', exact: true }).waitFor()
+      await page.getByRole('heading', { name: 'Portal learning report', exact: true, level: 2 }).waitFor()
       const completedRow = page.locator('li.row').filter({ hasText: learnerName })
       assert.ok((await completedRow.innerText()).includes('Completed'))
       assert.ok((await completedRow.innerText()).includes('Lessons read: 2 of 2'))
@@ -53,7 +53,7 @@ export async function portalReportBrowser(f, data) {
       assert.ok(csv.includes(`"'${data.adminName.replaceAll('"', '""')}"`))
       await page.getByRole('link', { name: 'Consenting learners', exact: true }).click()
       await page.locator(`a[href="${base}/report"]`).click()
-      await page.getByRole('heading', { name: 'Portal learning report', exact: true }).waitFor()
+      await page.getByRole('heading', { name: 'Portal learning report', exact: true, level: 2 }).waitFor()
 
       await learnerPage.goto(`${f.h.origin}${base}/consent`)
       await form(learnerPage, 'Withdraw consent')
