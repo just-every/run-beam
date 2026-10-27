@@ -4463,7 +4463,7 @@
       "executable": false
     },
     "tests/beam/harness.mjs": {
-      "sha256": "099291cd716ddce3d09703f72a3407bf7f2d53901fc7853e08f6e66a98f5e772",
+      "sha256": "8d8a5eb0be48597291bda00d45570d6b413c413e1be2b7862effa678d61145f1",
       "executable": false
     },
     "tests/beam/import-flows.mjs": {
@@ -4919,7 +4919,7 @@
       "executable": false
     },
     "tests/runtime.mjs": {
-      "sha256": "9ea3674b45f7550d0a1b077e95cb9302a047a6e6dea64c2ad3390990de4b0978",
+      "sha256": "309b61c538553b48d61f9225c729e13f633312ffd95a87f0451c37466f64de14",
       "executable": false
     },
     "tests/site/site.test.mjs": {

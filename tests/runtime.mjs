@@ -138,12 +138,14 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   }
   /** The Worker's D1, for checks that move an assignment's clock (AUTO-009), and its D1 and R2 together for the
    * installation archive `rer export` writes (BEAM-16); everything else goes through the doors. */
-  const db = await mf.getD1Database('DB'), files = await mf.getR2Bucket('FILES')
+  let db = await mf.getD1Database('DB'), files = await mf.getR2Bucket('FILES')
   const setClock = async value => {
     if (clock === undefined || !Number.isSafeInteger(value)) throw new Error('A pinned test clock is required')
     mainModule.contents = `Date.now = () => ${value};\n` + await readFile(mainModule.path, 'utf8')
     await mf.setOptions({ ...options(), resourcePersistencePath: join(directory, 'state') })
     await mf.ready
+    db = await mf.getD1Database('DB')
+    files = await mf.getR2Bucket('FILES')
   }
-  return { origin, vars, mails, edge, fetch, linkFor, close, db, files, setClock, scheduled: () => mf.getWorker().then(worker => worker.scheduled({ cron: '0 8 * * *', scheduledTime: Date.now() })) }
+  return { origin, vars, mails, edge, fetch, linkFor, close, get db() { return db }, get files() { return files }, setClock, scheduled: () => mf.getWorker().then(worker => worker.scheduled({ cron: '0 8 * * *', scheduledTime: Date.now() })) }
 }
