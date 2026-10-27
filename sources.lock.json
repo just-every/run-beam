@@ -319,7 +319,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "547e2a1fc693de957d339c43159c6051e80fcaefb5634cb84d6651047e6f423e",
+      "sha256": "c81c9efa3d6f2ac413240f7f927d718252ff08caff4b3105f1d77caa1291d5ba",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -379,7 +379,7 @@
       "executable": false
     },
     "docs/enterprise-portals.md": {
-      "sha256": "5b6d7ae4e980ca7a98292f1833b5b60b8eb50f53266a6389233189ed5518469e",
+      "sha256": "d079db6dea8f23f9ea9ce76dcdec106c22d0d3c4bc005e3c64442234e78981e9",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -1711,7 +1711,7 @@
       "executable": false
     },
     "src/beam/enterprise-portals.ts": {
-      "sha256": "aacd4325a0fcd85c6c9a870d0aa9433391a63ada06caf25f2286bd94c7430e3a",
+      "sha256": "c3e13268610aece349d7444af70e5dbd07239043b54a989a04e8ccbc1b154821",
       "executable": false
     },
     "src/beam/erasure-custody.ts": {
@@ -2507,7 +2507,7 @@
       "executable": false
     },
     "src/beam/ui/portal-learning-pages.ts": {
-      "sha256": "738e511eec7e5394a955f4385d43407d452ac4afed1dc3c60570e5c6e0bbf120",
+      "sha256": "308d4ce08e0ae46cd737a6795db31a600e3e917e7f819d350b11f0a7be97d524",
       "executable": false
     },
     "src/beam/ui/portal-practical.ts": {
@@ -4571,7 +4571,7 @@
       "executable": false
     },
     "tests/beam/native-portal-browser.mjs": {
-      "sha256": "a392e05f2a4585d8f2371d62a5a9c8c9d9a5563921b8dd1c255d0fc307c0864c",
+      "sha256": "b3b94e2d1e05dbd785b56f7e9a68d779acdbdab4d01ca8b4631af3af6d969721",
       "executable": false
     },
     "tests/beam/package-browser.mjs": {
@@ -4791,7 +4791,7 @@
       "executable": false
     },
     "tests/beam/regression-portals.mjs": {
-      "sha256": "63a6d6ab4da89f5e702b68a5f8e0f673134030c1913efa67f278e0277906b399",
+      "sha256": "76d7b249d270db14897fd51be2104fcabfbb938f3412bfd66069d45b210fe10c",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
