@@ -168,11 +168,16 @@ identity so existing archives and import records remain addressable.
 The human owner opens Settings, then Service health, at
 `/app/business/health`; the equivalent read is `GET /api/beam/operations`.
 Managers, learning administrators, preparation credentials and signed-out
-callers cannot read these installation-wide observations. This conservative
-authority floor awaits CT approval; broader delegated diagnostic scope remains
-target work. Reads neither contact external providers nor retry jobs.
+callers cannot read these installation-wide observations. CT approved this
+aggregate diagnostic scope on 23 October 2026 for the current human owner only;
+there is no delegated or agent access. Each successful page or JSON read appends
+a value-free access audit event identifying the actor and door, never the
+diagnostic values. Reads neither contact external providers nor retry jobs.
 
-The page distinguishes retained job states from successful provider attempts,
+The page distinguishes known unsuccessful attempts, unknown outcomes and
+recorded provider successes. An interrupted webhook may have been accepted by
+the receiver; an unknown outcome never counts as a known unsuccessful attempt.
+It also distinguishes retained job states from successful provider attempts,
 and roster receipt freshness from the last applied reviewed batch. A held
 preview is not a successful synchronization. Source-version usage is logical
 bytes, not physical storage or a provider quota. Empty history is unknown
@@ -197,5 +202,4 @@ retained history, a 20-person cohort, ten concurrent learners, synthetic owned
 mixed media and package resume. It prints the exact candidate SHA and workload
 receipt. Run it outside push Verify. It does not establish production media
 sizes, sustained hosted throughput, provider quota exhaustion or actual billing;
-OPS-008 remains partial until those named gaps and diagnostic authority are
-qualified.
+OPS-008 remains partial until those named qualification gaps are closed.
