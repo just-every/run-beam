@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
+import { sourceUploadCustodyCheck } from './erasure-source-drafts.mjs'
 import { file } from './harness.mjs'
 
 export async function sourceErasureBrowserCheck(f, page, width, directory) {
+  await sourceUploadCustodyCheck({page,width,directory})
+  await page.context().addCookies(f.cookies.owner.split('; ').map(cookie=>{const at=cookie.indexOf('=');return{name:cookie.slice(0,at),value:cookie.slice(at+1),url:f.h.origin}}))
   const source=await f.api('author','source.create',{title:'Obsolete packing station draft',reviewer:f.ids.reviewer,licence:'owned',licenceEvidence:'Employer-authored procedure',provenance:'Unpublished packing instructions',file:file('synthetic-beam-33.txt','# Set up the packing station\nCheck the clean tray before packing.')})
   const course=await f.api('author','course.create',{title:'Packing station preparation',reviewer:f.ids.reviewer})
   const base=await f.api('author','course.lesson',{course:course.id,draftVersion:course.draftVersion,title:'Keep the work area clear',body:'This separately authored lesson remains available.',sources:[]})
