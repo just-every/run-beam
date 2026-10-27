@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "f8c59993a8f2d41f58c98445537fd7fd4670abc0d430fe41db6b8bcb39a93bba",
+  "manifest": "6b735e66d82519cbc480556c64d78a74d748e1ff509b90e5229f69981e8b7679",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -101,7 +101,9 @@
           "migrations/core/0114_beam_tutor_consent.sql",
           "migrations/core/0115_beam_portal_learning.sql",
           "migrations/core/0116_beam_portal_assessments.sql",
-          "migrations/core/0117_beam_portal_timing.sql"
+          "migrations/core/0117_beam_portal_timing.sql",
+          "migrations/core/0119_beam_portal_quiz_review.sql",
+          "migrations/core/0118_beam_portal_practical.sql"
         ]
       },
       "baseline": null
@@ -421,7 +423,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "f8c59993a8f2d41f58c98445537fd7fd4670abc0d430fe41db6b8bcb39a93bba",
+      "sha256": "6b735e66d82519cbc480556c64d78a74d748e1ff509b90e5229f69981e8b7679",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -902,6 +904,14 @@
     },
     "migrations/core/0117_beam_portal_timing.sql": {
       "sha256": "45dd77472e4c483d451513f57d6057f553c0eca48c21a8e0fdc27b5dce554516",
+      "executable": false
+    },
+    "migrations/core/0118_beam_portal_practical.sql": {
+      "sha256": "74330c063a652f39b6f7a86de329d855c178bd12c3692c789639477c9f7b5c93",
+      "executable": false
+    },
+    "migrations/core/0119_beam_portal_quiz_review.sql": {
+      "sha256": "eb2a07e7c781ac09e29425d0caec329791fd79a2007d0d3c89d92548327ad955",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1669,7 +1679,7 @@
       "executable": false
     },
     "src/beam/data-export-inventory.ts": {
-      "sha256": "9ad85b48a82f403f4059ece164124193348b997cfe498482bcabbafae04177b0",
+      "sha256": "605216b5f2c7bcf5e0c6530366c0d4b9d1bb87407396907094058ef4c2589204",
       "executable": false
     },
     "src/beam/data-export.ts": {
@@ -2053,11 +2063,11 @@
       "executable": false
     },
     "src/beam/portal-assessment.ts": {
-      "sha256": "985897e970b45279d42e9c5a32b059c1dd68e4dc4d7c2ec4ef26e30b0375306c",
+      "sha256": "d63f94aaca735e30cf0b3001aad4cd29901ffa1d00cde358907d6c7bee10f5bd",
       "executable": false
     },
     "src/beam/portal-completion.ts": {
-      "sha256": "b3fcbf250dc248e324bc7569f39542daceb32845a7d717f7faaba9bfcef8e598",
+      "sha256": "fbf3792866276e47a33b6fe5cf400c5b2b1d0f9cc70ae6d761a0819c62c82ae8",
       "executable": false
     },
     "src/beam/portal-learning.ts": {
@@ -2068,12 +2078,24 @@
       "sha256": "c7c9a614dfdf7f6d69df1787d1bf78052411659458f94ad84f894c6576784964",
       "executable": false
     },
+    "src/beam/portal-practical.ts": {
+      "sha256": "5c2ba307ea26d86115dbc81f04962505e24fda4248f9212bad12127a85f3711b",
+      "executable": false
+    },
+    "src/beam/portal-quiz-review.ts": {
+      "sha256": "c1ba6dc67bc105badad6b0d56dad8cdc03e8f26e3124edf8c7dae3f8e8e70deb",
+      "executable": false
+    },
+    "src/beam/portal-report.ts": {
+      "sha256": "c0bbfb501054373229e5f70b33d609958e97b412fd214f814f428c9bd6ba2fb0",
+      "executable": false
+    },
     "src/beam/portal-theme.ts": {
       "sha256": "e57f70b86355b515eb1d026d2d64a9a4f211530fa92a11f08100ef1451ea18b9",
       "executable": false
     },
     "src/beam/portal-timing.ts": {
-      "sha256": "20865206b75ca759559d05883ddafc965fc93ab7464aecb33a0c7c934b99228d",
+      "sha256": "ae55ae95839fbfe380c2da851b2ead1062ac39a0715317fbe25823700d3e6ce3",
       "executable": false
     },
     "src/beam/practice.ts": {
@@ -2472,8 +2494,24 @@
       "sha256": "fc9943d821de0bafcf85f1bc3daf57344af9ce54d2cf9f73ee9c878360a7e1b7",
       "executable": false
     },
+    "src/beam/ui/portal-assessment.ts": {
+      "sha256": "61ebc6a203b61db0dea4fe47654dde0b88788e005f1ccd13606cbf692005016a",
+      "executable": false
+    },
     "src/beam/ui/portal-learning-pages.ts": {
       "sha256": "738e511eec7e5394a955f4385d43407d452ac4afed1dc3c60570e5c6e0bbf120",
+      "executable": false
+    },
+    "src/beam/ui/portal-practical.ts": {
+      "sha256": "6f5770b78f7a7227c882cd7cdcf86485f2f4f37ec367f9757b6fe232fc720f81",
+      "executable": false
+    },
+    "src/beam/ui/portal-quiz-review.ts": {
+      "sha256": "9ef69468e679977da1497c1b9c6ce4a12f264bef49cee990b8f52e67e52e7c57",
+      "executable": false
+    },
+    "src/beam/ui/portal-report.ts": {
+      "sha256": "41d9cb6c37fdbba11f9def5f401347b95fb9f899253aa8fcabfabeb9d5c6a9b5",
       "executable": false
     },
     "src/beam/ui/portal-theme.ts": {
@@ -4529,11 +4567,27 @@
       "executable": false
     },
     "tests/beam/portal-media-browser.mjs": {
-      "sha256": "f589c2cc8b573ba2c5ac05607a849477d82e359e6d5b6f7f1061304dc3466096",
+      "sha256": "d670145f8832166452370d3c962fc1672d590aa6844171261a256013ec464222",
       "executable": false
     },
     "tests/beam/portal-media-flow.mjs": {
-      "sha256": "c8c9d59146364fe8e2a95a05b360ee4f90de61ccc19238a5bde8d00974eb29c6",
+      "sha256": "e4bba2f414372cd63ac116e96631dd7571e39eeb4b0072307c5ec116274bb28c",
+      "executable": false
+    },
+    "tests/beam/portal-practical-browser.mjs": {
+      "sha256": "904ad84fcc77e593c36d5eebcf619a4faad361bafe20c52e92b9a527931d940b",
+      "executable": false
+    },
+    "tests/beam/portal-practical-flow.mjs": {
+      "sha256": "fd4ac32e755e9ffb8cd5690a6f26e007cbb574bfe1ef67b58fca8dbb342d1ee3",
+      "executable": false
+    },
+    "tests/beam/portal-report-browser.mjs": {
+      "sha256": "656d09b031c0cfe78d42b852b744a9ee513dabc7214894f711b219c4eb439bda",
+      "executable": false
+    },
+    "tests/beam/portal-report-flow.mjs": {
+      "sha256": "a8525a530ebfd838a5bbee8e052dac10b11c5e9bb909444fd4c62dd24856cc5d",
       "executable": false
     },
     "tests/beam/portal-theme-browser.mjs": {
@@ -4546,6 +4600,10 @@
     },
     "tests/beam/portal-timing-flow.mjs": {
       "sha256": "bb983a66af68aa93c644644e9f6acd379881dee26b800be0ed25f7b44750a9df",
+      "executable": false
+    },
+    "tests/beam/portal-written-flow.mjs": {
+      "sha256": "d2c68a1fa0ec55099a4f0596bda388ce50ee9e3c4b3fc520f5243bdeee7da17d",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {

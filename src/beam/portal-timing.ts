@@ -14,18 +14,18 @@ async function finish(context: PortalQuizContext, session: Row, reason: 'submitt
   const responses = score(draw(session.number), answers), result = tally(responses, assessment.pass_percent), id = newId()
   const closedAt = reason === 'expired' ? session.deadline : at
   await env.DB.batch([
-    stmt(env, `INSERT INTO beam_portal_attempts
-      SELECT ?5,e.id,?6,?7,?8,?9,?10,?11,?12,?13,?14 FROM (${portalAdmission}) e
+    stmt(env, `INSERT INTO beam_portal_attempts(id,enrollment_id,assessment_revision_id,number,submitted_at,score,max_score,percent,passed,scoring_rule,responses_json,state)
+      SELECT ?5,e.id,?6,?7,?8,?9,?10,?11,?12,?13,?14,?19 FROM (${portalAdmission}) e
       WHERE EXISTS(SELECT 1 FROM beam_portal_quiz_sessions session WHERE session.id=?15 AND session.enrollment_id=e.id
         AND session.version=?16 AND session.closed_at IS NULL AND (CASE WHEN ?17='expired' THEN session.deadline<=?18 ELSE session.deadline>?18 END))
       AND (SELECT COUNT(*) FROM beam_portal_attempts WHERE enrollment_id=e.id)=?7-1
-      AND NOT EXISTS(SELECT 1 FROM beam_portal_attempts WHERE enrollment_id=e.id AND passed=1)
+      AND NOT EXISTS(SELECT 1 FROM beam_portal_attempts WHERE enrollment_id=e.id AND (passed=1 OR state='awaiting_review'))
       ON CONFLICT(enrollment_id,number) DO NOTHING`, ...args, id, assessment.id, session.number, closedAt,
-      result.points, result.max, result.percent, result.passed ? 1 : 0, SCORING_RULE, JSON.stringify(responses), session.id, session.version, reason, at),
+      result.points, result.max, result.percent, result.passed ? 1 : 0, SCORING_RULE, JSON.stringify(responses), session.id, session.version, reason, at, result.pending ? 'awaiting_review' : 'scored'),
     stmt(env, `UPDATE beam_portal_quiz_sessions SET closed_at=?,close_reason=?,attempt_id=? WHERE id=? AND closed_at IS NULL
       AND EXISTS(SELECT 1 FROM beam_portal_attempts WHERE id=?)`, closedAt, reason, id, session.id, id),
     stmt(env, `INSERT INTO beam_audit(at,actor,action,subject,detail) SELECT ?,?,'portal.quiz.submit',?,? WHERE changes()=1`,
-      at, account, args[0], JSON.stringify({ identity: args[2], enrollment: args[1], revision, assessmentRevision: assessment.id, number: session.number, attempt: id, outcome: result.passed ? 'passed' : 'failed', closeReason: reason })),
+      at, account, args[0], JSON.stringify({ identity: args[2], enrollment: args[1], revision, assessmentRevision: assessment.id, number: session.number, attempt: id, outcome: result.pending ? 'awaiting_review' : result.passed ? 'passed' : 'failed', closeReason: reason })),
   ])
   insist(await one(env, portalAdmission, ...args), 'portal_enrollment_not_found', 404)
   insist(await one(env, 'SELECT 1 FROM beam_portal_attempts WHERE enrollment_id=? AND number=?', args[1], session.number), 'portal_attempt_changed', 409)
@@ -52,7 +52,7 @@ export async function portalTimedQuiz(context: PortalQuizContext, input: Input |
         stmt(env, `INSERT INTO beam_portal_quiz_sessions(id,enrollment_id,assessment_revision_id,number,started_at,deadline)
           SELECT ?5,e.id,?6,?7,?8,?9 FROM (${portalAdmission}) e WHERE ?7<=?10
           AND (SELECT COUNT(*) FROM beam_portal_attempts WHERE enrollment_id=e.id)=?7-1
-          AND NOT EXISTS(SELECT 1 FROM beam_portal_attempts WHERE enrollment_id=e.id AND passed=1)
+          AND NOT EXISTS(SELECT 1 FROM beam_portal_attempts WHERE enrollment_id=e.id AND (passed=1 OR state='awaiting_review'))
           AND NOT EXISTS(SELECT 1 FROM beam_portal_quiz_sessions WHERE enrollment_id=e.id AND closed_at IS NULL)
           AND NOT EXISTS(SELECT 1 FROM beam_lesson_revisions l WHERE l.course_revision_id=e.revision_id
             AND NOT EXISTS(SELECT 1 FROM beam_portal_lesson_progress p WHERE p.enrollment_id=e.id AND p.lesson_revision_id=l.id))

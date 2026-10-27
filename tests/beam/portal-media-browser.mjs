@@ -22,6 +22,10 @@ export async function portalMediaBrowser(f, { portal, cookie, enrollment, lesson
     }
     await page.goto(`${f.h.origin}${base}/learning?enrollment=${enrollment.id}`)
     await page.getByRole('heading', { name: 'Partner station induction', exact: true }).waitFor()
+    await page.locator('.portal-logo').evaluate(image => image.decode())
+    assert.equal(await page.locator('.portal-logo').getAttribute('src'), `/app/portal/${portal.id}/logo`)
+    assert.equal(await page.locator('link[rel=icon]').getAttribute('href'), `/app/portal/${portal.id}/favicon`)
+    assert.equal(await page.locator('link[href="/beam-theme.css"]').count(), 0)
     await page.getByRole('img', { name: 'image station guide', exact: true }).evaluate(image => image.decode())
     await page.getByRole('img', { name: 'Approved extracted station image', exact: true }).evaluate(image => image.decode())
     assert.deepEqual(await page.locator('table tr').allTextContents(), ['ToolCondition', 'ProbeClean'])

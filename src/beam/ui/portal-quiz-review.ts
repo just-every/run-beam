@@ -1,0 +1,5 @@
+import { card, h, hidden, type Html } from './html'
+
+export function portalWrittenReviewFragment(base: string, id: string, url: URL, data: Record<string, any>): Html {
+  return h`<h1>Assess written answers</h1>${data.attempts.map((attempt: any) => card(`Attempt ${attempt.number}`, h`${attempt.state === 'awaiting_review' ? h`<form method="post" action="${url.pathname + url.search}">${hidden('enrollment', data.enrollment)}${hidden('attempt', attempt.id)}${attempt.responses.map((answer: any) => h`<h3>${answer.prompt}</h3><p>${answer.selected.join(', ')}</p>${answer.points === null ? h`<p>${answer.guidance}</p><label>Points, maximum ${answer.weight}<input type="number" name="points_${answer.question}" min="0" max="${answer.weight}" required></label>` : h`<p>${answer.points} of ${answer.weight} points</p>`}`)}<label>Review note<textarea name="note" required></textarea></label><button type="submit">Record written review</button></form>` : h`<p>${attempt.percent}% · ${attempt.passed ? 'Passed' : 'Not passed'}</p><p>${attempt.note}</p>`}`))}`
+}

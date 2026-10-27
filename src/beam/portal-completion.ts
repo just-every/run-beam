@@ -1,6 +1,7 @@
 // Qualification is bounded to native lessons and automatic assessments.
 import type { Bindings } from '../auth.server'
 import { all, insist, one } from './core'
+import { portalPracticalAccepted } from './portal-practical'
 import { portalUnsupportedBlocks } from './portal-media'
 import { portalAdmission } from './portal-admission'
 import { tryComplete } from './learning'
@@ -20,8 +21,8 @@ export const portalQualification = `SELECT e.* FROM (${portalAdmission}) e
  AND NOT EXISTS(SELECT 1 FROM beam_revision_sequences WHERE course_revision_id=e.revision_id)
  AND NOT EXISTS(SELECT 1 FROM beam_lti_resources WHERE course_id=revision.course_id)
  AND NOT EXISTS(SELECT 1 FROM beam_assessment_revisions a WHERE a.course_revision_id=e.revision_id AND
-   (a.practical_instructions IS NOT NULL
-   OR EXISTS(SELECT 1 FROM json_each(a.questions_json) q WHERE json_extract(q.value,'$.kind')='text')
+   (a.practical_instructions IS NOT NULL AND NOT (${portalPracticalAccepted})
+
    OR (json_array_length(a.questions_json)>0 AND NOT EXISTS(SELECT 1 FROM beam_portal_attempts t WHERE t.enrollment_id=e.id AND t.assessment_revision_id=a.id AND t.passed=1))))`
 
 export async function portalCompletionCandidate(env: Bindings, actor: PortalLearner, enrollment: string) {
@@ -31,8 +32,9 @@ export async function portalCompletionCandidate(env: Bindings, actor: PortalLear
   const assessment = await one(env, 'SELECT id FROM beam_assessment_revisions WHERE course_revision_id=?', revision!.id)
   const attempt = assessment ? await one(env, 'SELECT id FROM beam_portal_attempts WHERE enrollment_id=? AND assessment_revision_id=? AND passed=1 ORDER BY number LIMIT 1', enrollment, assessment.id) : null
   const lessons = await all(env, 'SELECT lesson_revision_id AS lesson,completed_at AS completedAt FROM beam_portal_lesson_progress WHERE enrollment_id=? ORDER BY lesson_revision_id', enrollment)
+  const practical = assessment ? await one(env, `SELECT s.id AS submission,d.id AS decision,d.assessor_id AS assessor FROM beam_portal_practical_submissions s JOIN beam_portal_practical_decisions d ON d.submission_id=s.id WHERE s.enrollment_id=? AND s.assessment_revision_id=? AND d.decision='accepted' ORDER BY s.number LIMIT 1`, enrollment, assessment.id) : null
   return { portalEnrollment: enrollment, revision: revision!.id, assessmentRevision: assessment?.id ?? null, attempt: attempt?.id ?? null,
-    method: assessment ? 'assessed' : 'lessons', evidence: { lessons, quizAttempt: attempt?.id ?? null } }
+    method: assessment ? 'assessed' : 'lessons', evidence: { lessons, quizAttempt: attempt?.id ?? null, ...(practical ? { practical } : {}) } }
 }
 export type PortalCompletionCandidate = NonNullable<Awaited<ReturnType<typeof portalCompletionCandidate>>>
 

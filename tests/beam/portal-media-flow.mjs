@@ -6,6 +6,7 @@ import { sourceProcedureDocx } from './source-fixtures.mjs'
 // Loaded by the existing public portal flow; no alternate application or employee authority.
 export async function portalMediaFlow(f, portal, foreignPortal) {
   const { api, h, cookies, ids } = f
+  await api('owner', 'portal.theme', { portal: portal.id, primary: '#19334d', accent: '#235238', signinHeading: 'Partner learning', signinText: 'Welcome', senderName: 'Partner training', logo: file('synthetic-beam-33.png', syntheticImage), favicon: file('synthetic-beam-34.png', syntheticImage) })
   const invitation = await api('owner', 'portal.invite', { portal: portal.id, email: 'synthetic-beam-21@example.test', name: 'Partner media learner', sendInvitation: true })
   const cookie = await h.signIn('synthetic-beam-21@example.test', { requested: true })
   const call = (door, body, status = 200, as = cookie) => h.api(`portal/${portal.id}/${door}`, as, body, status)
@@ -74,6 +75,9 @@ export async function portalMediaFlow(f, portal, foreignPortal) {
   }
   await api('author', 'source.version', { source: sources[0].id, provenance: 'Later original', file: file('synthetic-beam-29.png', Buffer.concat([syntheticImage, Buffer.from('new revision')])) })
   assert.deepEqual(Buffer.from(await (await h.raw(paths[0], { cookie })).arrayBuffer()), syntheticImage, 'Delivery remains bound to the published source version')
+  await h.files.put(`sha256/${sources[0].sha256}`, Buffer.from('corrupt media object'))
+  assert.equal((await h.raw(paths[0], { cookie })).status, 503, 'Corrupt original bytes are refused')
+  await h.files.put(`sha256/${sources[0].sha256}`, syntheticImage)
   await call('completion', { enrollment: enrollment.id }, 409)
   await call('learning', { enrollment: enrollment.id, lesson: approved.id })
   assert.equal((await call(`completion?enrollment=${enrollment.id}`)).qualified, true)
