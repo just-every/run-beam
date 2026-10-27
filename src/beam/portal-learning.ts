@@ -43,7 +43,7 @@ export async function portalLearning(env: Bindings, request: Request, portal: st
     resumeLesson: lessons.find(row => row.completedAt === null)?.id ?? null,
     lessonsRead: lessons.filter(row => row.completedAt !== null).length,
     // Reading every lesson is progress, never a course completion or assessment result.
-    completion: await one(env, 'SELECT id,revision_id AS revision,assessment_revision_id AS assessmentRevision,completed_at AS completedAt,certificate_number AS number FROM beam_portal_completions WHERE enrollment_id=?', enrollment), scope: 'Native text lesson progress; completion requires a separate qualified evidence decision.' }
+    completion: await one(env, 'SELECT id,revision_id AS revision,assessment_revision_id AS assessmentRevision,completed_at AS completedAt,certificate_number AS number FROM beam_portal_completions WHERE enrollment_id=?', enrollment), scope: 'Native lesson progress; completion requires a separate qualified evidence decision.' }
   const headers = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff',
     ...download ? { 'content-disposition': 'attachment; filename="beam-portal-progress.json"', 'content-security-policy': "sandbox; default-src 'none'" } : {} }
   return request.method === 'HEAD' ? new Response(null, { headers }) : Response.json(data, { headers })

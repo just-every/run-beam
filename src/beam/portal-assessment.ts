@@ -24,6 +24,8 @@ export async function portalAssessment(env: Bindings, request: Request, portal: 
   const lessonsComplete = lessons.length > 0 && lessons.every(lesson => lesson.completed_at !== null)
   const attempts = () => all(env, `SELECT id,assessment_revision_id AS assessmentRevision,number,submitted_at AS submittedAt,
     score,max_score AS maxScore,percent,passed,state,scoring_rule AS scoringRule${download ? ',responses_json AS responses' : ''}
+    ,(SELECT json_object('startedAt',started_at,'deadline',deadline,'closedAt',closed_at,'closeReason',close_reason)
+      FROM beam_portal_quiz_sessions WHERE attempt_id=beam_portal_attempts.id) AS timing
     FROM beam_portal_attempts WHERE enrollment_id=? ORDER BY number`, enrollment)
   let recorded = await attempts()
   const draw = (number: number) => drawQuestions(bank, { draw: assessment!.draw_count, shuffle: assessment!.shuffle === 1 }, `${enrollment}:${number}`)
@@ -66,7 +68,7 @@ export async function portalAssessment(env: Bindings, request: Request, portal: 
   const receiptResponses = (value: string) => (JSON.parse(value) as ReturnType<typeof score>).map(response => feedbackShown ? response : { question: response.question, selected: response.selected, weight: response.weight })
   const data = { pending, feedback: feedbackShown ? 'shown' : 'withheld', portal, enrollment, revision: enrolled.revision_id, assessmentRevision: assessment?.id ?? null,
     available, lessonsComplete, session, timeLimitMinutes: assessment?.time_limit_minutes ?? null, passPercent: assessment?.pass_percent ?? null, nextNumber, attemptsLeft, passed,
-    attempts: recorded.map(attempt => ({ ...attempt, ...download ? { responses: receiptResponses(attempt.responses) } : {} })),
+    attempts: recorded.map(attempt => ({ ...attempt, timing: attempt.timing ? JSON.parse(attempt.timing) : null, ...download ? { responses: receiptResponses(attempt.responses) } : {} })),
     questions: !download && available && lessonsComplete && !passed && !pending && attemptsLeft > 0 && (!assessment!.time_limit_minutes || session) ? draw(session?.number ?? nextNumber).map(presentQuestion) : [],
     completion: await one(env, 'SELECT id,revision_id AS revision,assessment_revision_id AS assessmentRevision,completed_at AS completedAt,certificate_number AS number FROM beam_portal_completions WHERE enrollment_id=?', enrollment), scope: 'Automatically scored quizzes, with server-enforced timed sessions when required. Passing is distinct from earned course completion.' }
   const headers = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff',
