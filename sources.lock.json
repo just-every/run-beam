@@ -885,6 +885,10 @@
       "sha256": "e6546cbe1aa85d5168b592f9b2375770b742eb4ad950cd06983b132eba04ff01",
       "executable": false
     },
+    "migrations/core/0115_beam_portal_learning.sql": {
+      "sha256": "72cd19ca19d4e9e056617b8ceb30549780145b7ada7d1d8197cbc8a906f99d65",
+      "executable": false
+    },
     "migrations/core/0115_beam_source_upload_custody.sql": {
       "sha256": "949d0cd3b0a2a294ebb23f70aa1e8ac7280c50e4573b5acb6008e454fe70e562",
       "executable": false
@@ -1654,7 +1658,7 @@
       "executable": false
     },
     "src/beam/data-export-inventory.ts": {
-      "sha256": "3425fa036caac656060aaba371ab677e039807b034a5d6cde0a9143342504e27",
+      "sha256": "2dec1d0a0b561b1b650b641cb9e3c973b861a660d13bd9f116923c885fa60d17",
       "executable": false
     },
     "src/beam/data-export.ts": {
@@ -1686,7 +1690,7 @@
       "executable": false
     },
     "src/beam/enterprise-portals.ts": {
-      "sha256": "5efa62018997aedfcd079178de3e18d39f241e3800bc83eb2e64db5237e93c49",
+      "sha256": "aacd4325a0fcd85c6c9a870d0aa9433391a63ada06caf25f2286bd94c7430e3a",
       "executable": false
     },
     "src/beam/erasure-custody.ts": {
@@ -2031,6 +2035,10 @@
     },
     "src/beam/plans.ts": {
       "sha256": "e06d454fceba805ffa354c442d3a7bd9d714ebf3c4760bf1e66c0e80243e6b5c",
+      "executable": false
+    },
+    "src/beam/portal-learning.ts": {
+      "sha256": "b847cbd9b28bf4eb2fd02cdb35e355e64444d776da9323a1061ef9a5d5d13a3d",
       "executable": false
     },
     "src/beam/portal-theme.ts": {
@@ -4502,7 +4510,7 @@
       "executable": false
     },
     "tests/beam/regression-archive.mjs": {
-      "sha256": "1d568f43d9c945826f706180cf1dedbc5bd4a13a8381a3db9a7bc5513d182ae2",
+      "sha256": "8bc716e4a1deac00b31f097dcbe5f2707b0ef31e89c9be8938fc02d4acf2d659",
       "executable": false
     },
     "tests/beam/regression-attendance.mjs": {
@@ -4654,7 +4662,7 @@
       "executable": false
     },
     "tests/beam/regression-portals.mjs": {
-      "sha256": "4b00941e1a82d5cbe0e54f3d5d7360989fda89eba06a8041b5798ee51d9a8d22",
+      "sha256": "5ace9d6c9c67ac4c2d41da3ec817f80c1f45bce9d963dc38439638cf0c8bda77",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {

@@ -1,4 +1,11 @@
+import { buildPortalReport, portalReportCsv } from './portal-report'
+import { portalPractical } from './portal-practical'
+import { portalQuizReview } from './portal-quiz-review'
+import { portalMedia } from './portal-media'
+import { portalCompletion } from './portal-completion'
+import { portalAssessment } from './portal-assessment'
 // ORG-008 preparation boundary. These rows never confer employee authority or completion.
+import { portalLearning } from './portal-learning'
 import { operatorAuth, type Bindings } from '../auth.server'
 import { currentActor, requireOwner, type Actor } from './actor'
 import { all, BeamError, commit, insist, newId, now, one, stmt } from './core'
@@ -33,7 +40,7 @@ export async function sharePortalRevision(env: Bindings, actor: Actor, input: In
   const id = input.text('portal'), revision = input.text('revision')
   await portal(env, id)
   insist(input.flag('confirm'), 'portal_share_confirmation_required')
-  insist(await one(env, "SELECT 1 FROM beam_course_revisions r JOIN beam_courses c ON c.id=r.course_id WHERE r.id=? AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL", revision), 'published_revision_required', 409)
+  insist(await one(env, "SELECT 1 FROM beam_course_revisions r JOIN beam_courses c ON c.id=r.course_id WHERE r.id=? AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL", revision), 'published_revision_required', 409)
   const revoked = input.flag('revoke')
   await commit(env, [stmt(env, `INSERT INTO beam_portal_shares VALUES(?,?,?,?,?) ON CONFLICT(portal_id,revision_id) DO UPDATE SET shared_by=excluded.shared_by,shared_at=excluded.shared_at,revoked_at=excluded.revoked_at`, id, revision, actor.id, now(), revoked ? now() : null)], { actor, action: revoked ? 'portal.unshare' : 'portal.share', subject: id, detail: { revision } })
   return { portal: id, revision, revoked }
@@ -126,7 +133,7 @@ async function enterprisePortalApiResponse(env: Bindings, request: Request): Pro
     insist(session, 'authentication_required', 401)
     insist(session.kind !== 'dev' && session.kind !== 'review', 'verified_human_session_required', 403)
     const owner = session.operator.role === 'owner'
-    const match = path.match(/^\/api\/beam\/portal\/([\w-]+)\/(claim|consent|catalog|roster|enroll|report|report\.csv|theme\.css|logo|favicon)$/)
+    const match = path.match(/^\/api\/beam\/portal\/([\w-]+)\/(claim|consent|catalog|roster|enroll|report|report\.csv|theme\.css|logo|favicon|media|learning|progress\.json|assessment|assessment-review|practical|practical-review|assessment\.json|completion|certificate\.pdf)$/)
     insist(match, 'portal_door_not_found', 404)
     const [, id, door] = match, p = await portal(env, id)
     // Consent remains reachable after owner revocation; ordinary doors remain closed.
@@ -199,20 +206,38 @@ async function enterprisePortalApiResponse(env: Bindings, request: Request): Pro
         accessClosed: !!identity.revoked_at })
     }
     insist(owner || identity && !identity.revoked_at, 'portal_not_found', 404)
-    insist(owner || identity?.consent_at, 'portal_consent_required', 403)
+    insist(owner || identity?.consent_at && identity.consent_version === p.notice_version, 'portal_consent_required', 403)
+    if (door === 'practical' || door === 'practical-review') return await portalPractical(env, request, { portal: id, identity: identity?.id, account: session.operator.id, owner }, door)
+    if (door === 'assessment-review') return await portalQuizReview(env, request, id, session.operator.id, owner)
+    if (door === 'completion' || door === 'certificate.pdf') {
+      insist(identity, 'portal_identity_not_found', 404)
+      return await portalCompletion(env, request, { portal: id, identity: identity.id, account: session.operator.id }, door === 'certificate.pdf')
+    }
+    if (door === 'assessment' || door === 'assessment.json') {
+      insist(identity, 'portal_identity_not_found', 404)
+      return await portalAssessment(env, request, id, identity.id, session.operator.id, door === 'assessment.json')
+    }
+    if (door === 'media') {
+      insist(identity, 'portal_identity_not_found', 404)
+      return await portalMedia(env, request, id, identity.id, session.operator.id)
+    }
+    if (door === 'learning' || door === 'progress.json') {
+      insist(identity, 'portal_identity_not_found', 404)
+      return await portalLearning(env, request, id, identity.id, session.operator.id, door === 'progress.json')
+    }
     const admin = owner || !!await one(env, 'SELECT 1 FROM beam_portal_administrators WHERE portal_id=? AND identity_id=? AND revoked_at IS NULL', id, identity?.id ?? '')
     if (door === 'enroll') {
       insist(request.method === 'POST', 'method_not_allowed', 405)
       insist(admin, 'portal_administrator_required', 403)
       const input = await Input.from(request), learner = input.text('identity'), revision = input.text('revision')
       insist(await one(env, 'SELECT 1 FROM beam_portal_identities WHERE portal_id=? AND id=? AND consent_at IS NOT NULL AND revoked_at IS NULL AND operator_id IS NOT NULL', id, learner), 'portal_identity_not_found', 404)
-      insist(await one(env, "SELECT 1 FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revision_id=? AND s.revoked_at IS NULL AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL", id, revision), 'portal_revision_not_found', 404)
+      insist(await one(env, "SELECT 1 FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revision_id=? AND s.revoked_at IS NULL AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL", id, revision), 'portal_revision_not_found', 404)
       const enrollment = newId(), principal = owner ? (await currentActor(env, request))?.id : identity!.id
       insist(principal, 'portal_actor_unavailable', 403)
       await commit(env, [stmt(env, `INSERT OR IGNORE INTO beam_portal_enrollments(id,portal_id,identity_id,revision_id,enrolled_by,enrolled_at)
         SELECT ?,i.portal_id,i.id,s.revision_id,?,? FROM beam_portal_identities i
         JOIN beam_portal_shares s ON s.portal_id=i.portal_id AND s.revision_id=? AND s.revoked_at IS NULL
-        JOIN beam_course_revisions r ON r.id=s.revision_id AND r.state='published'
+        JOIN beam_course_revisions r ON r.id=s.revision_id AND r.state IN ('published','superseded')
         JOIN beam_courses c ON c.id=r.course_id AND c.retired_at IS NULL AND c.archived_at IS NULL
         WHERE i.portal_id=? AND i.id=? AND i.consent_at IS NOT NULL AND i.revoked_at IS NULL AND i.operator_id IS NOT NULL
         AND (?=1 OR EXISTS(SELECT 1 FROM beam_portal_administrators a JOIN beam_portal_identities admin ON admin.portal_id=a.portal_id AND admin.id=a.identity_id WHERE a.portal_id=i.portal_id AND a.identity_id=? AND a.revoked_at IS NULL AND admin.revoked_at IS NULL AND admin.consent_at IS NOT NULL AND admin.operator_id=?))`, enrollment, principal, now(), revision, id, learner, owner ? 1 : 0, identity?.id ?? '', session.operator.id)], { actor: principal, action: 'portal.enroll', subject: id, detail: { identity: learner, revision } })
@@ -222,16 +247,14 @@ async function enterprisePortalApiResponse(env: Bindings, request: Request): Pro
     }
     insist(['GET', 'HEAD'].includes(request.method), 'method_not_allowed', 405)
     let data: any
-    if (door === 'catalog') data = { portal: id, name: p.name, kind: p.kind, administrator: admin, state: 'preparation', theme: JSON.parse(p.theme_json), courses: await all(env, "SELECT r.id AS revision,r.title,r.number FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revoked_at IS NULL AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL ORDER BY r.title,r.number", id) }
+    if (door === 'catalog') data = { portal: id, name: p.name, kind: p.kind, administrator: admin, enrollments: identity ? await all(env, 'SELECT e.id,e.revision_id AS revision FROM beam_portal_enrollments e JOIN beam_portal_shares s ON s.portal_id=e.portal_id AND s.revision_id=e.revision_id WHERE e.portal_id=? AND e.identity_id=? AND s.revoked_at IS NULL ORDER BY e.id', id, identity.id) : [], state: 'preparation', theme: JSON.parse(p.theme_json), courses: await all(env, "SELECT r.id AS revision,r.title,r.number FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revoked_at IS NULL AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL ORDER BY r.title,r.number", id) }
     else {
       insist(admin, 'portal_administrator_required', 403)
-      data = door === 'roster' ? { name: p.name, identities: await all(env, 'SELECT id,display_name AS name,consent_at AS consentAt FROM beam_portal_identities WHERE portal_id=? AND revoked_at IS NULL AND consent_at IS NOT NULL AND operator_id IS NOT NULL ORDER BY id', id) } : { name: p.name, enrollments: await all(env, 'SELECT e.id,e.identity_id AS identity,i.display_name AS name,e.revision_id AS revision,r.title AS courseTitle,r.number AS revisionNumber,e.enrolled_at AS enrolledAt FROM beam_portal_enrollments e JOIN beam_portal_identities i ON i.id=e.identity_id AND i.portal_id=e.portal_id JOIN beam_portal_shares s ON s.portal_id=e.portal_id AND s.revision_id=e.revision_id JOIN beam_course_revisions r ON r.id=e.revision_id WHERE e.portal_id=? AND i.revoked_at IS NULL AND i.consent_at IS NOT NULL AND s.revoked_at IS NULL ORDER BY e.id', id) }
+      data = door === 'roster' ? { name: p.name, identities: await all(env, 'SELECT id,display_name AS name,consent_at AS consentAt FROM beam_portal_identities WHERE portal_id=? AND revoked_at IS NULL AND consent_at IS NOT NULL AND operator_id IS NOT NULL ORDER BY id', id) } : { ...await buildPortalReport(env, id, p.name), reviewing: owner }
     }
     if (door === 'report.csv') {
-      // Only opaque identifiers and a UTC enrollment time are exported; plans never imply progress.
-      const csv = [['Enrollment', 'Portal identity', 'Approved revision', 'Enrolled UTC', 'State'], ...data.enrollments.map((row: any) => [row.id, row.identity, row.revision, new Date(row.enrolledAt).toISOString(), 'planned'])]
-        .map(row => row.map((cell: unknown) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n') + '\r\n'
-      return new Response(request.method === 'HEAD' ? null : csv, { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="portal-enrollment-plans.csv"', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff' } })
+      const csv = portalReportCsv(data)
+      return new Response(request.method === 'HEAD' ? null : csv, { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="portal-learning-report.csv"', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff' } })
     }
     return request.method === 'HEAD' ? new Response(null, { headers: { 'cache-control': 'no-store' } }) : json(data)
   } catch (error) {
