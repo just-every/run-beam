@@ -1,3 +1,4 @@
+import { assertMicrosoftRevision } from './microsoft/rights'
 import { buildPortalReport, portalReportCsv } from './portal-report'
 import { portalPractical } from './portal-practical'
 import { portalQuizReview } from './portal-quiz-review'
@@ -42,6 +43,7 @@ export async function sharePortalRevision(env: Bindings, actor: Actor, input: In
   insist(input.flag('confirm'), 'portal_share_confirmation_required')
   insist(await one(env, "SELECT 1 FROM beam_course_revisions r JOIN beam_courses c ON c.id=r.course_id WHERE r.id=? AND r.state IN ('published','superseded') AND c.retired_at IS NULL AND c.archived_at IS NULL", revision), 'published_revision_required', 409)
   const revoked = input.flag('revoke')
+  if (!revoked) await assertMicrosoftRevision(env, revision)
   await commit(env, [stmt(env, `INSERT INTO beam_portal_shares VALUES(?,?,?,?,?) ON CONFLICT(portal_id,revision_id) DO UPDATE SET shared_by=excluded.shared_by,shared_at=excluded.shared_at,revoked_at=excluded.revoked_at`, id, revision, actor.id, now(), revoked ? now() : null)], { actor, action: revoked ? 'portal.unshare' : 'portal.share', subject: id, detail: { revision } })
   return { portal: id, revision, revoked }
 }

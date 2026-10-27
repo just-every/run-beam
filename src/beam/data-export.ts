@@ -1,3 +1,4 @@
+import { assertMicrosoftDistribution } from './microsoft/rights'
 // OPS-002: independent JSON interchange, not a database backup or a credential export.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
@@ -15,6 +16,7 @@ const headers = { 'cache-control': 'private, no-store', 'x-content-type-options'
 /** One D1 batch reads the records in a transaction. Files retain their content-addressed ids. */
 export async function dataExport(env: Bindings, actor: Actor) {
   requireOwner(actor)
+  await assertMicrosoftDistribution(env)
   const results = await env.DB.batch(Object.entries(LEARNING_INVENTORY).map(([table, columns]) => env.DB.prepare(`SELECT ${columns} FROM ${table} ORDER BY rowid`)))
   const records: Record<string, { count: number; sha256: string; rows: Row[] }> = {}
   for (let i = 0; i < Object.keys(LEARNING_INVENTORY).length; i++) {

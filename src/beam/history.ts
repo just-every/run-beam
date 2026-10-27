@@ -1,3 +1,4 @@
+import { assertMicrosoftFile } from './microsoft/rights'
 // Course and source history (AUTHOR-004): compare two course revisions lesson by
 // lesson and rule by rule, compare two versions of a source, and restore an
 // earlier revision into the editable draft. Restoring only rewrites the draft;
@@ -91,6 +92,7 @@ const TEXT_LIMIT = 1_000_000
 
 export async function sourceText(env: Bindings, version: Row) {
   if (version.media_type !== 'text/plain' || version.size > TEXT_LIMIT) return null
+  await assertMicrosoftFile(env, version.sha256)
   const object = await env.FILES.get(`sha256/${version.sha256}`)
   insist(object, 'file_missing', 503)
   const bytes = new Uint8Array(await object.arrayBuffer())

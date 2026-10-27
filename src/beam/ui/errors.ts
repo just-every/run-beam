@@ -1,5 +1,22 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  microsoft_rights_unavailable: 'Microsoft refused this document. Its source is withdrawn. Confirm current access with the tenant administrator before approving a new snapshot.',
+  microsoft_source_rights_revoked: 'this Microsoft source is withdrawn. Retrieval and new distribution are stopped; restoring a permission does not reactivate it.',
+  microsoft_connection_disabled: 'authorize a Microsoft document library in Settings before selecting a procedure.',
+  microsoft_preview_stale: 'the procedure or its authority changed. Open a fresh preview and review that exact snapshot.',
+  microsoft_boundary_refused: 'the document is outside the authorized site or document library.',
+  microsoft_download_destination_refused: 'Microsoft returned an unqualified download destination. No content was fetched from it.',
+  microsoft_token_denied: 'Microsoft refused the server credential. Ask the installation administrator to confirm the application registration.',
+  microsoft_credentials_required: 'ask the installation administrator to configure the Microsoft tenant, application and server credential.',
+  microsoft_permissions_unproven: 'the complete document permissions could not be verified. No snapshot can be imported.',
+  microsoft_snapshot_review_required: 'review the exact preview and confirm its recorded rights before importing.',
+  microsoft_consent_required: 'explicitly authorize this Microsoft account operation before continuing.',
+  microsoft_sync_required: 'check this source through its Microsoft connection so its origin and permissions remain verifiable.',
+  entra_server_registration_mismatch: 'the tenant and application must match the installation administrator’s server registration.',
+  entra_server_credentials_required: 'ask the installation administrator to configure the application credential and a separate provisioning token.',
+  entra_subject_review_required: 'the owner must review the employee’s exact application-specific sign-in subject and group grant.',
+  entra_subject_already_associated: 'this sign-in subject or employee already has a different reviewed association. It cannot be silently moved.',
+
   tutor_rights_required: 'confirm that the recorded content rights permit cohort sharing and paid tutor processing.',
   model_daily_budget_exceeded: 'the daily estimated USD ceiling is zero or exhausted. Review the ceiling in Automation settings. Failed and unknown requests stay reserved.',
   model_owner_session_ended: 'the owner session ended during this request. Sign in again and inspect the retained request history.',

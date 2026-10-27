@@ -1,5 +1,6 @@
 // OPS-002: explicit columns keep later auth/provider fields out of learning interchange.
 export const LEARNING_INVENTORY = {
+  beam_microsoft_sources: 'source_id, item_id, connection_version, etag, permissions_json, state, checked_at',
   beam_tutor_grants: 'course_id, source_version_id, enabled, version, changed_by, changed_at',
   beam_tutor_questions: 'id, assignment_id, learner_id, question, created_at, result_json, thread_id',
   beam_enterprise_portals: 'id, kind, name, consent_text, theme_json, created_by, created_at, notice_version',

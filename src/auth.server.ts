@@ -1,3 +1,4 @@
+import { entraAuth, entraSessionAllowed } from './beam/entra'
 import { frontlineResponse } from './beam/frontline-auth'
 import { createDependencies } from './modules/dependencies/index.mjs'
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
@@ -12,6 +13,12 @@ import type { ScheduledPolicy } from './modules/operator-auth/scheduled/index.mj
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ /** Server-held Microsoft credentials; never persisted in learning records or archives. */
+ ENTRA_TENANT_ID?: string
+ ENTRA_CLIENT_ID?: string
+ ENTRA_CLIENT_SECRET?: string
+ ENTRA_SCIM_TOKEN?: string
+
  /** Server-held, read-scoped Gusto token; never stored in learning archives. */
  GUSTO_ACCESS_TOKEN?: string
  /** Server-managed trusted HTTPS receiver hostnames, comma-separated; empty denies outbound webhooks. */
@@ -72,7 +79,8 @@ const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePoli
   && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.operator_id = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.id, Date.now()).first())
 
 export function operatorAuth(env: Bindings, scheduledPolicies?: () => ScheduledPolicy[], scheduledGuard?: RolePolicy) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ const auth = createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ return { ...auth, getSession: async (request: Request) => { const session = await auth.getSession(request); return session && await entraSessionAllowed(env, session.operator.id) ? session : null } }
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
@@ -103,7 +111,7 @@ async function configuredAuthResponse(request: Request, original: Bindings): Pro
  }
  // The shared server-rendered sign-in page: plain forms that work before any script.
  if (url.pathname === '/signin') {
-  const page = await createSignInHandler(operatorAuth(env), { defaultReturnTo: '/setup' })(request)
+  const page = await createSignInHandler(await entraAuth(env, operatorAuth(env)), { defaultReturnTo: '/setup' })(request)
   if (page) return fontDocumentResponse(page)
  }
  // Base's own invitation door stays the owner's: everyone else invites through Beam's People form.

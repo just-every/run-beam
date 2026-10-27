@@ -1,3 +1,4 @@
+import { assertMicrosoftSources } from './microsoft/rights'
 import { tableCellEntries } from './table-traversal'
 import { sourceOcrResult } from './source-ocr'
 // AUTHOR-002: read-only extraction and an explicit author-reviewed conversion.
@@ -13,6 +14,7 @@ import type { Input } from './input'
 async function originalDocument(env: Bindings, id: string) {
   const version = await one(env, 'SELECT v.*, s.title FROM beam_source_versions v JOIN beam_sources s ON s.id = v.source_id WHERE v.id = ? AND s.erased_at IS NULL', id)
   insist(version, 'source_version_not_found', 404)
+  await assertMicrosoftSources(env, id)
   const object = await env.FILES.get(`sha256/${version.sha256}`)
   insist(object, 'file_missing', 503)
   const bytes = new Uint8Array(await object.arrayBuffer())

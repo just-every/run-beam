@@ -252,6 +252,7 @@ jobs:
       - run: node tests/beam/regressions.mjs --only=AUTHOR-001,AUTHOR-002 --browser
       - run: node tests/beam/regressions.mjs --only=ORG-008 --browser
       - run: node tests/beam/regressions.mjs --only=ORG-009 --browser
+      - run: node tests/beam/microsoft-browser.mjs
       - run: node tests/beam/model-browser.mjs
       - run: node tests/beam/erasure-browser.mjs
       - run: node tests/beam/mobile-learning-browser.mjs

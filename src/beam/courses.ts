@@ -1,3 +1,4 @@
+import { assertMicrosoftSources, assertMicrosoftRevision } from './microsoft/rights'
 import { normaliseSequence, revisionSequence, type Sequence } from './microlearning'
 import { packageRecord, revisionPackages } from './packages/catalog'
 import { revisionXapi } from './packages/xapi-catalog'
@@ -65,12 +66,14 @@ export async function createCourse(env: Bindings, actor: Actor, input: Input) {
 export async function loadCourse(env: Bindings, id: string) {
   const course = await one(env, 'SELECT * FROM beam_courses WHERE id = ?', id)
   insist(course, 'course_not_found', 404)
+  await assertMicrosoftSources(env, JSON.parse(course.draft_json))
   return { ...course, draft: JSON.parse(course.draft_json) as Draft } as Row & { draft: Draft }
 }
 
 /** Validates a complete draft, as edited in the UI or proposed through the API. */
 export async function normaliseDraft(env: Bindings, value: unknown, course: string, { admit = true } = {}): Promise<Draft> {
   insist(value && typeof value === 'object', 'invalid_draft')
+  await assertMicrosoftSources(env, value)
   const draft = value as Draft
   insist(typeof draft.title === 'string' && draft.title.trim().length > 0 && draft.title.length <= 160, 'invalid_draft_title')
   insist(typeof draft.summary === 'string' && draft.summary.length <= 1000, 'invalid_draft_summary')
@@ -302,6 +305,7 @@ export async function decideRevision(env: Bindings, actor: Actor, input: Input) 
     return { id: revision.id, state: 'returned' }
   }
   insist(decision === 'publish', 'invalid_decision')
+  await assertMicrosoftRevision(env, revision.id)
   const reassignment = input.text('reassignment', { optional: true }) || 'none'
   insist(['none', 'open', 'everyone'].includes(reassignment), 'invalid_reassignment')
   const dueDays = input.integer('dueDays', { min: 1, max: 365, optional: true }) ?? 14
@@ -334,6 +338,7 @@ export async function revisionDetail(env: Bindings, id: string) {
   const revision = await one(env, 'SELECT * FROM beam_course_revisions WHERE id = ?', id)
   if (!revision) throw new BeamError('revision_not_found', 404)
   const lessons = (await all(env, 'SELECT id, position, title, body, source_version_ids, blocks_json FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', id)).map(lesson => ({ id: lesson.id, position: lesson.position, title: lesson.title, body: lesson.body, sources: JSON.parse(lesson.source_version_ids) as string[], blocks: JSON.parse(lesson.blocks_json) as Block[] }))
+  await assertMicrosoftSources(env, lessons)
   const assessment = await one(env, 'SELECT * FROM beam_assessment_revisions WHERE course_revision_id = ?', id)
   return { revision, lessons, sequence: await revisionSequence(env, id), xapiActivities: await revisionXapi(env, id), packages: await revisionPackages(env, id), survey: revision.survey_json ? JSON.parse(revision.survey_json) as SurveyQuestion[] : [], assessment: assessment ? { ...assessment, questions: JSON.parse(assessment.questions_json) as Question[] } as Row & { questions: Question[] } : null }
 }

@@ -1,3 +1,4 @@
+import { assertMicrosoftRevision } from './microsoft/rights'
 // Native lesson progress is isolated from employee assignments and earned evidence.
 import type { Bindings } from '../auth.server'
 import { all, insist, newId, now, one, stmt } from './core'
@@ -14,6 +15,7 @@ export async function portalLearning(env: Bindings, request: Request, portal: st
   const args = [portal, enrollment, identity, account]
   const enrolled = await one(env, portalAdmission, ...args)
   insist(enrolled, 'portal_enrollment_not_found', 404)
+  await assertMicrosoftRevision(env, enrolled.revision_id)
   if (input) {
     const lesson = input.text('lesson'), at = now(), event = newId()
     const found = await one(env, 'SELECT blocks_json FROM beam_lesson_revisions WHERE id=? AND course_revision_id=?', lesson, enrolled.revision_id)

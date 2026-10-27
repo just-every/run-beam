@@ -1,3 +1,5 @@
+import { entraPage } from './ui/entra'
+import { microsoftPage } from './ui/microsoft'
 import { tutorPage, tutorDownload } from './ui/tutor'
 import { enterprisePortalPage } from './ui/portal-learning-pages'
 import { enterprisePortalResponse } from './enterprise-portals'
@@ -251,6 +253,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   const xapiAttachmentMatch = url.pathname.match(/^\/app\/xapi\/attachments\/([^/]+)\/([a-f0-9]{64})$/)
   if (xapiAttachmentMatch && request.method === 'GET') return xapiAttachment(env, actor, xapiAttachmentMatch[1], xapiAttachmentMatch[2])
   const path = url.pathname
+  if (path === '/app/integrations/entra' && request.method === 'GET') return entraPage(env, actor, url)
+  if (/^\/app\/integrations\/microsoft(?:\/(?:check|browse|preview|original))?$/.test(path)) return microsoftPage(env, actor, request, url)
   if (request.method !== 'POST' && path === '/app/data-export.json') return dataExport(env, actor)
   const exportFile = path.match(/^\/app\/data-export\/files\/([a-f0-9]{64})$/)
   if (request.method !== 'POST' && exportFile) return dataExportFile(env, actor, exportFile[1])

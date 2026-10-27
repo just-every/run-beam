@@ -1,3 +1,4 @@
+import { assertMicrosoftRevision } from './microsoft/rights'
 import type { Bindings } from '../auth.server'
 import { insist, one } from './core'
 import { loadCaptionSource } from './captions'
@@ -25,6 +26,7 @@ export async function portalMedia(env: Bindings, request: Request, portal: strin
   const args = [portal, query.get('enrollment') ?? '', identity, account]
   const enrollment = await one(env, portalAdmission, ...args)
   insist(enrollment, 'portal_enrollment_not_found', 404)
+  await assertMicrosoftRevision(env, enrollment.revision_id)
   const lesson = await one(env, 'SELECT blocks_json FROM beam_lesson_revisions WHERE id=? AND course_revision_id=?', query.get('lesson'), enrollment.revision_id)
   insist(lesson, 'portal_lesson_not_found', 404)
   const blocks: Block[] = JSON.parse(lesson.blocks_json)

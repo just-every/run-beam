@@ -1,3 +1,4 @@
+import { assertMicrosoftSources } from './microsoft/rights'
 import { refuseErasedIdentity } from './erasure-fence'
 import { markLocaleSourceChange } from './course-locales'
 // Flow 2: owned source documents and media with provenance, licence evidence
@@ -33,9 +34,11 @@ export async function createSource(env: Bindings, actor: Actor, input: Input) {
   return { id, versionId, ...stored }
 }
 
-export async function addSourceVersion(env: Bindings, actor: Actor, input: Input) {
+export async function addSourceVersion(env: Bindings, actor: Actor, input: Input, microsoft = false) {
   requireRole(actor, 'author')
   const sourceId = input.text('source')
+  insist(microsoft || !await one(env, 'SELECT 1 FROM beam_microsoft_sources WHERE source_id=?', sourceId), 'microsoft_sync_required', 409)
+  await assertMicrosoftSources(env, sourceId)
   const source = await one(env, `SELECT id FROM beam_sources WHERE id=? AND erased_at IS NULL
     AND NOT EXISTS(SELECT 1 FROM beam_erasure_jobs e WHERE e.kind='source' AND e.subject_id=beam_sources.id AND e.state!='complete')`, sourceId)
   insist(source, 'source_not_found', 404)
@@ -80,9 +83,11 @@ export async function addSourceVersion(env: Bindings, actor: Actor, input: Input
 
 export async function listSources(env: Bindings, actor: Actor) {
   requireRole(actor, 'author', 'reviewer', 'manager')
+  const available = await all(env, `SELECT source_id FROM beam_microsoft_sources WHERE state='available'`)
+  for (const row of available) await assertMicrosoftSources(env, row.source_id).catch(error => { if (error.code !== 'microsoft_source_rights_revoked') throw error })
   return await all(env, `SELECT s.id, s.title, s.licence, s.licence_evidence AS licenceEvidence, s.reviewer_id AS reviewer, s.created_at AS createdAt,
     (SELECT json_group_array(json_object('id', v.id, 'number', v.number, 'filename', v.filename, 'mediaType', v.media_type, 'size', v.size, 'sha256', v.sha256, 'provenance', v.provenance, 'uploadedBy', v.uploaded_by, 'uploadedAt', v.uploaded_at)) FROM (SELECT * FROM beam_source_versions WHERE source_id = s.id ORDER BY number) v) AS versions
-    FROM beam_sources s ORDER BY s.title`).then(rows => rows.map(row => ({ ...row, versions: JSON.parse(row.versions) }) as Row))
+    FROM beam_sources s WHERE NOT EXISTS(SELECT 1 FROM beam_microsoft_sources m LEFT JOIN beam_microsoft_connection c ON c.singleton=1 WHERE m.source_id=s.id AND (m.state='revoked' OR coalesce(c.enabled,0)=0 OR m.connection_version<>c.version)) ORDER BY s.title`).then(rows => rows.map(row => ({ ...row, versions: JSON.parse(row.versions) }) as Row))
 }
 
 /** Staff may open any source version; a learner one cited by a course revision assigned to them, inside its access window (AUTO-009). */
@@ -95,5 +100,6 @@ export async function sourceFile(env: Bindings, actor: Actor, versionId: string,
     JOIN json_each(l.source_version_ids) j WHERE a.learner_id = ? AND j.value = ?
     AND (a.access_opens_at IS NULL OR a.access_opens_at <= ?) AND (a.access_closes_at IS NULL OR a.access_closes_at > ?) LIMIT 1`, actor.id, versionId, now(), now())
   insist(cited, 'not_found', 404)
+  await assertMicrosoftSources(env, versionId)
   return serve(env, version as never, { download })
 }

@@ -1,3 +1,4 @@
+import { assertMicrosoftSources } from './microsoft/rights'
 // CONNECT-016: permission-scoped MCP learning tools at POST /api/beam/mcp (MCP Streamable HTTP answered with single JSON
 // responses, JSON-RPC 2.0). The owner grants them on Access as a CONNECT-014 application credential with the 'mcp'
 // audience and an explicit tool list; each call runs as the owner narrowed to that tool and the grant's teams. No tool
@@ -41,7 +42,11 @@ async function searchMaterial(env: Bindings, query: string) {
         JOIN beam_source_versions v ON v.id = cited.id JOIN beam_sources s ON s.id = v.source_id) AS sources
     FROM beam_courses c JOIN beam_course_revisions r ON r.id = c.published_revision_id
     WHERE c.retired_at IS NULL AND c.archived_at IS NULL AND (lower(r.title) LIKE ? ESCAPE '\\' OR lower(r.summary) LIKE ? ESCAPE '\\') ORDER BY r.title LIMIT 50`, like, like)
-  const lessons = async (revision: string) => await all(env, 'SELECT title, body, source_version_ids AS sources FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', revision)
+  const lessons = async (revision: string) => {
+    const rows = await all(env, 'SELECT title, body, source_version_ids AS sources FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', revision)
+    await assertMicrosoftSources(env, rows)
+    return rows
+  }
   return { note: UNTRUSTED, courses: await Promise.all(courses.map(async course => ({ ...course, sources: JSON.parse(course.sources), lessons: (await lessons(course.publishedRevision)).map(lesson => ({ ...lesson, sources: JSON.parse(lesson.sources) })) }))) }
 }
 

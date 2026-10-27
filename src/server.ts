@@ -1,3 +1,4 @@
+import { entraResponse } from './beam/entra'
 import { themeAsset, themeDocument } from './beam/portal-theme'
 import { runWebhooks } from './beam/webhooks'
 import { runRenewals } from './beam/renewals'
@@ -11,7 +12,7 @@ import { staticAssetResponse } from './base/static-assets'
 import { deploymentHealth } from './base/deployment-health'
 import { lobbyResponse } from './base/lobby'
 import { setupStateResponse } from './base/setup-state'
-import { authResponse, runtimeBindings, type Bindings } from './auth.server'
+import { authResponse, operatorAuth, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { beamResponse } from './beam/http'
 import { seedDemo } from './demo'
@@ -37,6 +38,11 @@ export default withDemo({
     for (const result of await Promise.allSettled([scheduledInactivity(bindings), runUpkeep(bindings), runEscalations(bindings), runRenewals(bindings), runWebhooks(bindings)])) if (result.status === 'rejected') throw result.reason
   },
   async fetch(request, env, execution) {
+    const entraPath = new URL(request.url).pathname
+    if (entraPath === '/scim/v2' || entraPath.startsWith('/scim/v2/') || entraPath.startsWith('/auth/oidc/beam-entra/') || entraPath === '/api/beam/entra' || entraPath.startsWith('/api/beam/entra/')) {
+      const response = await entraResponse(runtimeBindings(env), request, operatorAuth(runtimeBindings(env)))
+      if (response) return response
+    }
     const imported = await beamImportDoor(request, runtimeBindings(env))
     if (imported) return themeDocument(runtimeBindings(env), imported)
     // Authorization is exclusively Beam's scoped agent door. Never allow a

@@ -1,3 +1,4 @@
+import { assertMicrosoftSources, assertMicrosoftRevision } from './microsoft/rights'
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
 import { all, commit, insist, newId, now, one, sha256Hex, stmt, type Row } from './core'
@@ -24,6 +25,7 @@ async function activeAssignment(env: Bindings, learner: string, id: string) {
  const assignment = await one(env, `SELECT a.*,r.title,r.number,o.version AS learner_access_version FROM beam_assignments a JOIN beam_course_revisions r ON r.id=a.course_revision_id
  JOIN beam_members m ON m.id=a.learner_id JOIN oa_operators o ON o.id=m.operator_id WHERE a.id=? AND a.learner_id=? AND a.status IN ('open','completed') AND o.status='active' AND m.erased_at IS NULL AND m.erasure_pending=0`, id, learner)
  insist(assignment, 'not_found', 404); requireAccess(assignment)
+ await assertMicrosoftRevision(env, assignment.course_revision_id)
  return assignment
 }
 export async function grantTutorSource(env: Bindings, actor: Actor, input: Input) {
@@ -73,6 +75,7 @@ async function context(env: Bindings, actor: Actor, id: string) {
  AND EXISTS(${sourceVisibility})
  ORDER BY g.source_version_id`, assignment.course_id, question.learner_id, now(), now())
  insist(grants.length <= 4, 'tutor_source_limit', 422)
+ await assertMicrosoftSources(env, grants)
  const passages: Row[] = []
  const lessons = await all(env, 'SELECT * FROM beam_lesson_revisions WHERE course_revision_id=? ORDER BY position', assignment.course_revision_id)
  for (const lesson of lessons) {
