@@ -23,7 +23,7 @@ async function freePort() {
   return port
 }
 
-export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService, clock } = {}) {
+export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM_WORKER_CHECKOUT, outboundService, clock, storageWriteBarrier, erasureAdmissionBarrier, sourceUploadAdmissionBarrier } = {}) {
   // OPS-007: run the identical public-door qualification against an unchanged historical producer or the candidate.
   const workerRoot = checkout || root
   const directory = await mkdtemp(join(tmpdir(), 'beam-worker-'))
@@ -36,11 +36,57 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   // `edge.refuse` makes the provider refuse every message, as Resend does a message it will not accept.
   const mails = [], edge = { refuse: false, attempts: [], webhooks: [], webhookStatus: 204 }
   const modules = [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) }))
+  const mainModule = modules[0]
   // Only test callers can freeze the worker clock. Provider timers remain real.
   if (clock !== undefined) {
     if (!Number.isSafeInteger(clock)) throw new Error('Invalid test clock')
-    modules[0].contents = `Date.now = () => ${clock};\n` + await readFile(modules[0].path, 'utf8')
+    mainModule.contents = `Date.now = () => ${clock};\n` + await readFile(mainModule.path, 'utf8')
   }
+  // Delay the real R2 write at its edge; requests still execute the built Worker.
+  if (storageWriteBarrier || erasureAdmissionBarrier || sourceUploadAdmissionBarrier) modules.unshift({ type: 'ESModule', path: join(server, 'storage-edge.mjs'), contents: `
+    import worker from './${config.main}';
+    export default { ...worker, fetch(request, env, ctx) {
+      const files = new Proxy(env.FILES, { get(target, key) {
+        if (key === 'put' && ${!!storageWriteBarrier}) return async (...args) => {
+          const response = await fetch('https://synthetic-beam-storage.example.test/write', { method: 'POST', body: String(args[0]) });
+          if (!response.ok) throw new Error('synthetic-beam-storage-interruption');
+          const result = await target.put(...args);
+          const settled = await fetch('https://synthetic-beam-storage.example.test/write-after', { method: 'POST', body: String(args[0]) });
+          if (!settled.ok) throw new Error('synthetic-beam-storage-interruption');
+          return result;
+        };
+        const value = target[key];
+        return typeof value === 'function' ? value.bind(target) : value;
+      }});
+      const admissions = new WeakSet();
+      const track = (statement, upload = false) => {
+        const proxy = new Proxy(statement, { get(target, key) {
+          if (key === 'bind') return (...args) => track(target.bind(...args), upload);
+          if (key === 'run' && upload) return async () => {
+            const response = await fetch('https://synthetic-beam-storage.example.test/upload-admission', { method: 'POST' });
+            if (!response.ok) throw new Error('synthetic-beam-upload-interruption');
+            return target.run();
+          };
+          const value = target[key];
+          return typeof value === 'function' ? value.bind(target) : value;
+        }});
+        if (!upload) admissions.add(proxy);
+        return proxy;
+      };
+      const db = new Proxy(env.DB, { get(target, key) {
+        if (key === 'prepare') return sql => sql.includes('INSERT INTO beam_erasure_jobs(') ? track(target.prepare(sql)) : sql.includes('INSERT INTO beam_source_uploads(') ? track(target.prepare(sql), true) : target.prepare(sql);
+        if (key === 'batch') return async statements => {
+          if (statements.some(statement => admissions.has(statement))) {
+            const response = await fetch('https://synthetic-beam-storage.example.test/admission', { method: 'POST' });
+            if (!response.ok) throw new Error('synthetic-beam-admission-interruption');
+          }
+          return target.batch(statements);
+        };
+        const value = target[key];
+        return typeof value === 'function' ? value.bind(target) : value;
+      }});
+      return worker.fetch(request, { ...env, FILES: files, DB: db }, ctx);
+    }};` })
   const options = () => convertV4MiniflareOptions({
     host: '127.0.0.1', port, https: true, modulesRoot: server,
     modules,
@@ -49,6 +95,9 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
     d1Databases: { DB: 'beam-tests' }, r2Buckets: { FILES: 'beam-tests-files' },
     bindings: vars,
     outboundService: async request => {
+      if (request.url === 'https://synthetic-beam-storage.example.test/admission') { if (erasureAdmissionBarrier) await erasureAdmissionBarrier(); return new Response(null, { status: 204 }) }
+      if (request.url === 'https://synthetic-beam-storage.example.test/upload-admission') { if (sourceUploadAdmissionBarrier) await sourceUploadAdmissionBarrier(); return new Response(null, { status: 204 }) }
+      if (storageWriteBarrier && ['https://synthetic-beam-storage.example.test/write','https://synthetic-beam-storage.example.test/write-after'].includes(request.url)) { await storageWriteBarrier(await request.text(), request.url.endsWith('write-after') ? 'after' : 'before'); return new Response(null, { status: 204 }) }
       if (outboundService) { const response = await outboundService(request.clone(), { mails, edge }); if (response) return response }
       if (request.url === 'https://synthetic-beam-1.example.test/hooks') {
         edge.webhooks.push({ url: request.url, headers: Object.fromEntries(request.headers), body: await request.text() })
@@ -92,7 +141,7 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const db = await mf.getD1Database('DB'), files = await mf.getR2Bucket('FILES')
   const setClock = async value => {
     if (clock === undefined || !Number.isSafeInteger(value)) throw new Error('A pinned test clock is required')
-    modules[0].contents = `Date.now = () => ${value};\n` + await readFile(modules[0].path, 'utf8')
+    mainModule.contents = `Date.now = () => ${value};\n` + await readFile(mainModule.path, 'utf8')
     await mf.setOptions({ ...options(), resourcePersistencePath: join(directory, 'state') })
     await mf.ready
   }
