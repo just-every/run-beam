@@ -2044,7 +2044,7 @@
       "executable": false
     },
     "src/beam/portal-assessment.ts": {
-      "sha256": "2eca3a3583255c397ed9f49dd5a94ce4a28e5ae1f1b783c6e2f425d70bf3ea7a",
+      "sha256": "58699ad291187603720214882c93ce7f3da97f91a2eba7e64100471041c8d035",
       "executable": false
     },
     "src/beam/portal-completion.ts": {

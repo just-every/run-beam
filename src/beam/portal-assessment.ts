@@ -54,9 +54,12 @@ export async function portalAssessment(env: Bindings, request: Request, portal: 
   }
   const passed = recorded.some(attempt => attempt.passed === 1)
   const nextNumber = recorded.length + 1, attemptsLeft = available ? Math.max(0, assessment!.max_attempts - recorded.length) : 0
-  const data = { portal, enrollment, revision: enrolled.revision_id, assessmentRevision: assessment?.id ?? null,
+  const timing = assessment?.feedback ?? 'attempt'
+  const feedbackShown = timing === 'attempt' || timing === 'final' && (passed || attemptsLeft === 0)
+  const receiptResponses = (value: string) => (JSON.parse(value) as ReturnType<typeof score>).map(response => feedbackShown ? response : { question: response.question, selected: response.selected, weight: response.weight })
+  const data = { feedback: feedbackShown ? 'shown' : 'withheld', portal, enrollment, revision: enrolled.revision_id, assessmentRevision: assessment?.id ?? null,
     available, lessonsComplete, passPercent: assessment?.pass_percent ?? null, nextNumber, attemptsLeft, passed,
-    attempts: recorded.map(attempt => ({ ...attempt, ...download ? { responses: JSON.parse(attempt.responses) } : {} })),
+    attempts: recorded.map(attempt => ({ ...attempt, ...download ? { responses: receiptResponses(attempt.responses) } : {} })),
     questions: !download && available && lessonsComplete && !passed && attemptsLeft > 0 ? draw(nextNumber).map(presentQuestion) : [],
     completion: await one(env, 'SELECT id,revision_id AS revision,assessment_revision_id AS assessmentRevision,completed_at AS completedAt,certificate_number AS number FROM beam_portal_completions WHERE enrollment_id=?', enrollment), scope: 'Untimed automatically scored quizzes only. Passing is distinct from earned course completion.' }
   const headers = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff',
