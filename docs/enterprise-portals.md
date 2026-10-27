@@ -3,7 +3,8 @@
 ORG-008 is partial. The JSON preparation APIs keep external portal identities,
 consent, administrator grants and enrollment plans apart from employee membership.
 They do not deliver external lessons or assessments and never record completion.
-No portal page or hostname activation is available yet.
+Verified learners can use the rendered claim, consent and shared catalog pages.
+Hostname activation and external lesson delivery remain unavailable.
 
 The human owner first configures the existing Settings theme. POST
 `/api/beam/portal.create` with `kind` (`employee`, `customer` or `partner`),
@@ -39,8 +40,10 @@ The invitation records an intended account, with no live binding, consent,
 employee membership or administrator authority. Employee collisions are refused
 and audited, including already linked employees. Reviewed linking remains unbuilt.
 
-The new-account invitation returns to a read-only claim API response naming the
-pending identity; opening it never binds or accepts consent.
+The new-account invitation returns to `/app/portal/PORTAL/claim?identity=IDENTITY`.
+The rendered claim form names the portal and requires an explicit claim.
+Opening the page never binds or accepts consent. Existing accounts can open the
+same address using the pending identity returned to the owner.
 After signing in through the ordinary verified account flow, the intended learner
 POSTs `/api/beam/portal/PORTAL/claim` with the invitation's `identity`.
 Only that stable account can claim it; the owner cannot claim on their behalf.
@@ -48,6 +51,14 @@ The claim checks again for an employee collision. An account email change keeps
 the stable binding. Reusing its old delivery address creates another identity and
 cannot claim the original invitation or inherit its records. A dev or review
 session, a View as session and bearer credentials cannot use these portal doors.
+
+The learner opens `/app/portal/PORTAL/consent` to review every disclosure field,
+accept the exact notice version, inspect their decision receipt or withdraw.
+The shared catalog at `/app/portal/PORTAL/catalog` shows only explicitly shared
+revision metadata and links back to consent. It does not deliver lessons.
+These pages have no employee navigation. Unknown portal pages and files fail closed.
+Signed-out page requests lead to ordinary sign-in and preserve the portal return address.
+A stale notice submission is refused and links to the current notice.
 
 The learner GETs `/api/beam/portal/PORTAL/consent` to inspect the complete notice
 and its version, then POSTs `accept: true` and the exact `noticeVersion`.
@@ -82,7 +93,12 @@ portal and enrollment records without external identity account bindings or admi
 
 CT approved the identity and consent policy with riders on 26 October 2026.
 The implemented API portion does not prove the complete policy or legal compliance. Full external
-learning, portal UI, erasure workflows, branded downloads,
-completion evidence and browser isolation proof remain owed. OPS-003 inherits
+learning, owner configuration UI, independent theme and asset delivery, erasure
+workflows, branded downloads and completion evidence remain owed.
+`tests/beam/portal-browser.mjs` exercises rendered claim, complete disclosure,
+explicit consent, the isolated catalog, independent withdrawal, stale notices,
+renewal without grant revival and wrong-account refusal at 1440 and 390.
+It runs within the existing portal regression when `--browser` is supplied,
+including the push Verify browser job. OPS-003 inherits
 the external identity retention and erasure obligation; ORG-009 retains hostname
 activation. This preparation feature must not be described as a finished portal.

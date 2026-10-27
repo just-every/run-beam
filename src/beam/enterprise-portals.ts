@@ -6,6 +6,7 @@ import { Input } from './input'
 import { portalTheme, readThemeInput } from './portal-theme'
 import { normalizeEmail } from '../modules/operator-auth/index.mjs'
 import { refuseErasedIdentity } from './erasure-fence'
+import { portalEntryPage, portalEntryError } from './ui/enterprise-portals'
 
 const humanOwner = (actor: Actor) => { requireOwner(actor); insist(!actor.agent && !actor.app && !actor.viewAs, 'human_owner_required', 403) }
 async function portal(env: Bindings, id: string) {
@@ -53,7 +54,7 @@ export async function invitePortalIdentity(env: Bindings, actor: Actor, input: I
     insist(false, 'employee_identity_link_required', 409)
   }
   const identity = newId()
-  if (!previous) await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: `/api/beam/portal/${id}/claim?identity=${identity}` })
+  if (!previous) await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: `/app/portal/${id}/claim?identity=${identity}` })
   const account = previous ?? await one(env, 'SELECT id FROM oa_operators WHERE lower(email)=?', email)
   insist(account, 'portal_account_unavailable', 409)
   const existing = await one(env, 'SELECT id FROM beam_portal_identities WHERE portal_id=? AND (operator_id=? OR invited_operator_id=?)', id, account.id, account.id)
@@ -89,6 +90,28 @@ export async function revokePortalIdentity(env: Bindings, actor: Actor, input: I
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff' } })
 /** Handle this entire namespace before employee actor resolution. Unknown doors fail closed. */
 export async function enterprisePortalResponse(env: Bindings, request: Request): Promise<Response | null> {
+  const url = new URL(request.url)
+  if (url.pathname !== '/app/portal' && !url.pathname.startsWith('/app/portal/')) return enterprisePortalApiResponse(env, request)
+  const match = url.pathname.match(/^\/app\/portal\/([\w-]+)\/(claim|consent|catalog)$/)
+  if (!match) return portalEntryError('portal_door_not_found', 404)
+  const [, id, door] = match
+  url.pathname = `/api/beam/portal/${id}/${door}`
+  // Both rendered forms and JSON requests pass through the same authorization and mutation door.
+  const response = await enterprisePortalApiResponse(env, new Request(url, request))
+  if (!response) return portalEntryError('portal_door_not_found', 404)
+  if (response.status === 401 && ['GET', 'HEAD'].includes(request.method)) {
+    const signin = new URL('/signin', env.AUTH_ORIGIN)
+    signin.searchParams.set('returnTo', new URL(request.url).pathname + new URL(request.url).search)
+    return new Response(null, { status: 303, headers: { location: signin.href, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } })
+  }
+  if (request.method === 'HEAD') return new Response(null, { status: response.status, headers: response.headers })
+  const data = await response.json() as Record<string, any>
+  if (!response.ok) return portalEntryError(data.error, response.status, `/app/portal/${id}/consent`)
+  if (request.method === 'POST') return new Response(null, { status: 303, headers: { location: `/app/portal/${id}/consent`, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } })
+  return portalEntryPage(id, door, data)
+}
+
+async function enterprisePortalApiResponse(env: Bindings, request: Request): Promise<Response | null> {
   const path = new URL(request.url).pathname
   if (path !== '/api/beam/portal' && !path.startsWith('/api/beam/portal/')) return null
   try {

@@ -202,4 +202,5 @@ export async function enterprisePortalsCheck(f) {
   assert.ok(audit.events.some(row => row.action === 'portal.identity.collision' && row.detail.identity === collision.id && row.detail.outcome === 'refused'))
   assert.ok(audit.events.some(row => row.action === 'portal.consent.withdraw' && row.detail.identity === external.id))
   assert.ok(!(await api('owner', 'people')).members.some(row => row.name === 'Customer learner'))
+  if (process.argv.includes('--browser')) await (await import('./portal-browser.mjs')).portalEntryBrowserCheck(f)
 }
