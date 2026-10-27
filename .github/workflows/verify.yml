@@ -77,11 +77,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Reclaim unused hosted-runner SDKs
-        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
-        run: |
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
@@ -104,12 +99,16 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # rer's servers keep their real 15 GiB free-space guard; Beam uses none of
-      # these preinstalled SDKs, so remove them on GitHub's disposable runner.
+      # Leave room for the complete wall, reclaiming only as much as it needs.
       - name: Reclaim unused hosted-runner SDKs
         if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
         run: |
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          set -euo pipefail
+          for sdk in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do
+            available=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR == 2 {print $4}')
+            if [ "$available" -ge $((20 * 1024 * 1024)) ]; then break; fi
+            sudo rm -rf -- "$sdk"
+          done
           df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - uses: actions/setup-node@v4
         with:
@@ -145,11 +144,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Reclaim unused hosted-runner SDKs
-        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
-        run: |
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
@@ -169,11 +163,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Reclaim unused hosted-runner SDKs
-        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
-        run: |
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
@@ -193,11 +182,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Reclaim unused hosted-runner SDKs
-        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
-        run: |
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
@@ -216,11 +200,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Reclaim unused hosted-runner SDKs
-        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
-        run: |
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
@@ -255,11 +234,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Reclaim unused hosted-runner SDKs
-        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
-        run: |
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
