@@ -314,7 +314,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d53f6e3ca4df0ae449954a32cb6cc2ab8fc51573f5af737ec18fac01083972f2",
+      "sha256": "1f6b6ec58545797aae177d9a8968269fa9de41379d0b6ee97f920fc07ba01dad",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -334,7 +334,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1b298504f44f3b9570f6a7dc63fffc2da3fae27d8cd93d0fe837882127217ab7",
+      "sha256": "49bcfad3162f45d8df9903bb63cead8b04fbd9b341d65c9399245d0ccd80f1bf",
       "executable": false
     },
     "DEMO.md": {
@@ -374,7 +374,7 @@
       "executable": false
     },
     "docs/enterprise-portals.md": {
-      "sha256": "c180337bd846440bee990d137670e83b8ae0f10c243e28d504baee10c4e09c9f",
+      "sha256": "27cf6ebde4f9f07dd20534e04e2013ae0ba1f1219badfacda02da7e60965309a",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -1682,7 +1682,7 @@
       "executable": false
     },
     "src/beam/enterprise-portals.ts": {
-      "sha256": "53a40dd6134740b989a5db0a9a11815cb7adc8bc08123f63d70615c265834544",
+      "sha256": "5efa62018997aedfcd079178de3e18d39f241e3800bc83eb2e64db5237e93c49",
       "executable": false
     },
     "src/beam/erasure-custody.ts": {
@@ -2307,6 +2307,10 @@
     },
     "src/beam/ui/drawings.ts": {
       "sha256": "17afbc062dbbed1b04aa0af3ae848912d32321e0ab840a23846b1ea09d65958c",
+      "executable": false
+    },
+    "src/beam/ui/enterprise-portals.ts": {
+      "sha256": "151f128e4586a983ffc56e94a3c4d4abc7f21fecb6aa7a31f89232b24baa4e55",
       "executable": false
     },
     "src/beam/ui/erasure-source-drafts.ts": {
@@ -4202,7 +4206,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "c0171b12be15f5cbac3a33f6096450c9442765a30f602cc271d0b4cdd51b1929",
+      "sha256": "5d17f87fc3b4e03c99d96f54e6c8a07a335838e739f7eb5c111f50b65c570e71",
       "executable": false
     },
     "src/site/docs/build.ts": {
@@ -4473,6 +4477,10 @@
       "sha256": "b9880dfdf7f0edf30e5009a2d1f066b85fedfc158748444151cfdddef5f1bee7",
       "executable": false
     },
+    "tests/beam/portal-browser.mjs": {
+      "sha256": "b609b2cc8180c7e7b5c3e8e4259b8dc5b3de452f254846f79ce7bf078547f3ee",
+      "executable": false
+    },
     "tests/beam/regression-admin.mjs": {
       "sha256": "f48294bb12f59bc887d6d57ba15c0125e9b8fdb0aadf4a1d1eb791fe93d2b2ec",
       "executable": false
@@ -4634,7 +4642,7 @@
       "executable": false
     },
     "tests/beam/regression-portals.mjs": {
-      "sha256": "d23a22a29f926a3df88542829236cd0b88abee78bcd9e6415e88a774e7939584",
+      "sha256": "4b00941e1a82d5cbe0e54f3d5d7360989fda89eba06a8041b5798ee51d9a8d22",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {

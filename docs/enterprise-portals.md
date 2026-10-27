@@ -13,8 +13,10 @@ Each portal snapshots the validated theme. Later employee-theme changes leave
 that snapshot intact. GET `/api/beam/portals` lists portals for the owner.
 The owner independently edits a portal theme through `/api/beam/portal.theme`
 with `portal` and the existing theme fields. Contrast and raster admission use
-the same ORG-009 validation. Other portal themes stay unchanged. Portal logo
-delivery remains unbuilt.
+the same ORG-009 validation. Other portal themes stay unchanged. Rendered entry pages use that portal’s own colors and scoped raster logo and favicon
+bytes. Pending invitees can read only the branding for their intended portal;
+no employee theme is injected into external pages. External authentication and
+mail branding remain unqualified.
 
 The human owner explicitly shares a published revision by POSTing
 `/api/beam/portal.share` with `portal`, `revision` and `confirm: true`.
@@ -79,7 +81,13 @@ doors and POST to its `enroll` door with `identity` and `revision`. Both values
 must belong to that portal and current consent and sharing are required. Repeating
 the same enrollment returns the existing plan. Reports contain enrollment plans,
 never inferred progress or completion. Learners may GET their portal's `catalog`
-after consent. Unknown portal doors and downloads are refused.
+after consent. Administrators can also open the rendered `roster` and `report`
+pages under `/app/portal/PORTAL/`, and download the report’s enrollment plans
+through `report.csv`. The CSV contains only that portal’s currently consenting
+identity ids, explicitly shared revision ids, enrollment ids and UTC times, with
+state `planned`. Withdrawal closes administrator pages and downloads immediately;
+ordinary owner reports also hide the withdrawn identity. Unknown portal doors
+and downloads are refused.
 
 The owner POSTs `/api/beam/portal.revoke` with `portal` and `identity` to end
 that identity's portal access, including any administrator grant. This never
@@ -93,10 +101,11 @@ portal and enrollment records without external identity account bindings or admi
 
 CT approved the identity and consent policy with riders on 26 October 2026.
 The implemented API portion does not prove the complete policy or legal compliance. Full external
-learning, owner configuration UI, independent theme and asset delivery, erasure
+learning, owner configuration UI, external authentication and mail branding, erasure
 workflows, branded downloads and completion evidence remain owed.
 `tests/beam/portal-browser.mjs` exercises rendered claim, complete disclosure,
-explicit consent, the isolated catalog, independent withdrawal, stale notices,
+explicit consent, independent colors and scoped raster assets, the isolated
+catalog, administrator roster and enrollment-plan pages and CSV, independent withdrawal, stale notices,
 renewal without grant revival and wrong-account refusal at 1440 and 390.
 It runs within the existing portal regression when `--browser` is supplied,
 including the push Verify browser job. OPS-003 inherits

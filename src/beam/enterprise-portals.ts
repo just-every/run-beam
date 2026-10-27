@@ -3,10 +3,11 @@ import { operatorAuth, type Bindings } from '../auth.server'
 import { currentActor, requireOwner, type Actor } from './actor'
 import { all, BeamError, commit, insist, newId, now, one, stmt } from './core'
 import { Input } from './input'
-import { portalTheme, readThemeInput } from './portal-theme'
+import { portalTheme, readThemeInput, type PortalTheme } from './portal-theme'
 import { normalizeEmail } from '../modules/operator-auth/index.mjs'
 import { refuseErasedIdentity } from './erasure-fence'
 import { portalEntryPage, portalEntryError } from './ui/enterprise-portals'
+import { serve } from './files'
 
 const humanOwner = (actor: Actor) => { requireOwner(actor); insist(!actor.agent && !actor.app && !actor.viewAs, 'human_owner_required', 403) }
 async function portal(env: Bindings, id: string) {
@@ -92,7 +93,7 @@ const json = (data: unknown, status = 200) => Response.json(data, { status, head
 export async function enterprisePortalResponse(env: Bindings, request: Request): Promise<Response | null> {
   const url = new URL(request.url)
   if (url.pathname !== '/app/portal' && !url.pathname.startsWith('/app/portal/')) return enterprisePortalApiResponse(env, request)
-  const match = url.pathname.match(/^\/app\/portal\/([\w-]+)\/(claim|consent|catalog)$/)
+  const match = url.pathname.match(/^\/app\/portal\/([\w-]+)\/(claim|consent|catalog|roster|report|report\.csv|theme\.css|logo|favicon)$/)
   if (!match) return portalEntryError('portal_door_not_found', 404)
   const [, id, door] = match
   url.pathname = `/api/beam/portal/${id}/${door}`
@@ -104,11 +105,12 @@ export async function enterprisePortalResponse(env: Bindings, request: Request):
     signin.searchParams.set('returnTo', new URL(request.url).pathname + new URL(request.url).search)
     return new Response(null, { status: 303, headers: { location: signin.href, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } })
   }
+  if (['theme.css', 'logo', 'favicon', 'report.csv'].includes(door)) return response
   if (request.method === 'HEAD') return new Response(null, { status: response.status, headers: response.headers })
   const data = await response.json() as Record<string, any>
   if (!response.ok) return portalEntryError(data.error, response.status, `/app/portal/${id}/consent`)
   if (request.method === 'POST') return new Response(null, { status: 303, headers: { location: `/app/portal/${id}/consent`, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } })
-  return portalEntryPage(id, door, data)
+  return portalEntryPage(id, door, data, JSON.parse((await portal(env, id)).theme_json))
 }
 
 async function enterprisePortalApiResponse(env: Bindings, request: Request): Promise<Response | null> {
@@ -124,11 +126,26 @@ async function enterprisePortalApiResponse(env: Bindings, request: Request): Pro
     insist(session, 'authentication_required', 401)
     insist(session.kind !== 'dev' && session.kind !== 'review', 'verified_human_session_required', 403)
     const owner = session.operator.role === 'owner'
-    const match = path.match(/^\/api\/beam\/portal\/([\w-]+)\/(claim|consent|catalog|roster|enroll|report)$/)
+    const match = path.match(/^\/api\/beam\/portal\/([\w-]+)\/(claim|consent|catalog|roster|enroll|report|report\.csv|theme\.css|logo|favicon)$/)
     insist(match, 'portal_door_not_found', 404)
     const [, id, door] = match, p = await portal(env, id)
     // Consent remains reachable after owner revocation; ordinary doors remain closed.
     const identity = await one(env, 'SELECT * FROM beam_portal_identities WHERE portal_id=? AND operator_id=?', id, session.operator.id)
+    if (['theme.css', 'logo', 'favicon'].includes(door)) {
+      insist(['GET', 'HEAD'].includes(request.method), 'method_not_allowed', 405)
+      // Pending invitees may read only their intended portal's branding before consent.
+      const pending = new URL(request.url).searchParams.get('identity')
+      insist(owner || identity || pending && await one(env, 'SELECT 1 FROM beam_portal_identities WHERE portal_id=? AND id=? AND invited_operator_id=? AND revoked_at IS NULL', id, pending, session.operator.id), 'portal_not_found', 404)
+      const theme: PortalTheme = JSON.parse(p.theme_json)
+      if (door === 'theme.css') {
+        insist(/^#[0-9a-f]{6}$/i.test(theme.primary) && /^#[0-9a-f]{6}$/i.test(theme.accent), 'invalid_theme_color', 409)
+        return new Response(request.method === 'HEAD' ? null : `.portal-entry button:not(.secondary){background:${theme.primary};border-color:${theme.primary};color:#fff}.portal-entry :focus-visible{outline-color:${theme.accent}}.portal-entry .portal-logo{width:80px;height:48px;object-fit:contain}.portal-entry .rail{background:none}.portal-entry.app{background:none}`, { headers: { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+      }
+      const file = door === 'logo' ? theme.logo : theme.favicon
+      insist(file && ['image/png', 'image/jpeg'].includes(file.mediaType), 'portal_asset_not_found', 404)
+      const response = await serve(env, file)
+      return request.method === 'HEAD' ? new Response(null, response) : response
+    }
     if (door === 'claim') {
       const intended = request.method === 'POST' ? (await Input.from(request)).text('identity') : new URL(request.url).searchParams.get('identity')
       insist(intended, 'missing_identity')
@@ -204,11 +221,17 @@ async function enterprisePortalApiResponse(env: Bindings, request: Request): Pro
       return json(planned)
     }
     insist(['GET', 'HEAD'].includes(request.method), 'method_not_allowed', 405)
-    let data: unknown
-    if (door === 'catalog') data = { portal: id, name: p.name, kind: p.kind, state: 'preparation', theme: JSON.parse(p.theme_json), courses: await all(env, "SELECT r.id AS revision,r.title,r.number FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revoked_at IS NULL AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL ORDER BY r.title,r.number", id) }
+    let data: any
+    if (door === 'catalog') data = { portal: id, name: p.name, kind: p.kind, administrator: admin, state: 'preparation', theme: JSON.parse(p.theme_json), courses: await all(env, "SELECT r.id AS revision,r.title,r.number FROM beam_portal_shares s JOIN beam_course_revisions r ON r.id=s.revision_id JOIN beam_courses c ON c.id=r.course_id WHERE s.portal_id=? AND s.revoked_at IS NULL AND r.state='published' AND c.retired_at IS NULL AND c.archived_at IS NULL ORDER BY r.title,r.number", id) }
     else {
       insist(admin, 'portal_administrator_required', 403)
-      data = door === 'roster' ? { identities: await all(env, 'SELECT id,display_name AS name,consent_at AS consentAt FROM beam_portal_identities WHERE portal_id=? AND revoked_at IS NULL AND consent_at IS NOT NULL AND operator_id IS NOT NULL ORDER BY id', id) } : { enrollments: await all(env, 'SELECT e.id,e.identity_id AS identity,e.revision_id AS revision,e.enrolled_at AS enrolledAt FROM beam_portal_enrollments e JOIN beam_portal_identities i ON i.id=e.identity_id AND i.portal_id=e.portal_id JOIN beam_portal_shares s ON s.portal_id=e.portal_id AND s.revision_id=e.revision_id WHERE e.portal_id=? AND i.revoked_at IS NULL AND i.consent_at IS NOT NULL AND s.revoked_at IS NULL ORDER BY e.id', id) }
+      data = door === 'roster' ? { name: p.name, identities: await all(env, 'SELECT id,display_name AS name,consent_at AS consentAt FROM beam_portal_identities WHERE portal_id=? AND revoked_at IS NULL AND consent_at IS NOT NULL AND operator_id IS NOT NULL ORDER BY id', id) } : { name: p.name, enrollments: await all(env, 'SELECT e.id,e.identity_id AS identity,i.display_name AS name,e.revision_id AS revision,r.title AS courseTitle,r.number AS revisionNumber,e.enrolled_at AS enrolledAt FROM beam_portal_enrollments e JOIN beam_portal_identities i ON i.id=e.identity_id AND i.portal_id=e.portal_id JOIN beam_portal_shares s ON s.portal_id=e.portal_id AND s.revision_id=e.revision_id JOIN beam_course_revisions r ON r.id=e.revision_id WHERE e.portal_id=? AND i.revoked_at IS NULL AND i.consent_at IS NOT NULL AND s.revoked_at IS NULL ORDER BY e.id', id) }
+    }
+    if (door === 'report.csv') {
+      // Only opaque identifiers and a UTC enrollment time are exported; plans never imply progress.
+      const csv = [['Enrollment', 'Portal identity', 'Approved revision', 'Enrolled UTC', 'State'], ...data.enrollments.map((row: any) => [row.id, row.identity, row.revision, new Date(row.enrolledAt).toISOString(), 'planned'])]
+        .map(row => row.map((cell: unknown) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n') + '\r\n'
+      return new Response(request.method === 'HEAD' ? null : csv, { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="portal-enrollment-plans.csv"', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff' } })
     }
     return request.method === 'HEAD' ? new Response(null, { headers: { 'cache-control': 'no-store' } }) : json(data)
   } catch (error) {
