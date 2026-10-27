@@ -7,6 +7,7 @@ export const LEARNING_INVENTORY = {
   beam_portal_consent_events: 'id, portal_id, identity_id, notice_version, action, at',
   beam_portal_shares: 'portal_id, revision_id, shared_by, shared_at, revoked_at',
   beam_portal_identities: 'id, portal_id, display_name, invited_by, invited_at, consent_at, revoked_at, consent_version',
+  beam_portal_lesson_progress: 'enrollment_id, lesson_revision_id, completed_at',
   beam_portal_enrollments: 'id, portal_id, identity_id, revision_id, enrolled_by, enrolled_at',
   beam_erasure_policy: 'singleton, assessment_days, justification, version, changed_at',
   beam_erasure_holds: 'id, kind, subject_id, justification, placed_by, placed_at, released_at, released_by',
