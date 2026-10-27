@@ -46,6 +46,7 @@ import { coverageFilters, coverageReport } from './coverage'
 import { creditsView } from './credits'
 import { programQuality } from './quality'
 import { providerCosts } from './costs'
+import { operations } from './operations'
 import { listDiagnoses } from './interventions'
 import { outcomeComparison } from './outcomes'
 import { evaluation } from './evaluations'
@@ -83,6 +84,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  operations,
   portals: listPortals,
   theme: themeSettings,
   'roster-feeds': rosterFeeds,
@@ -183,6 +185,7 @@ export const views: Record<string, View> = {
 }
 
 const ROUTES: [RegExp, string][] = [
+  [/^operations$/, 'operations'],
   [/^portals$/, 'portals'],
   [/^theme$/, 'theme'],
   [/^roster-feeds$/, 'roster-feeds'],
