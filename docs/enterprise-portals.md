@@ -3,7 +3,7 @@
 ORG-008 is partial. The JSON preparation APIs keep external portal identities,
 consent, administrator grants and enrollment plans apart from employee membership.
 Enrolled learners can read native text lessons and record isolated lesson progress.
-External assessments and earned completion are not implemented.
+Untimed automatic assessments and explicit completion are available for qualified native courses, with isolated certificate PDFs. Other delivery and assessment modes remain unqualified.
 Rendered claim, consent, catalog and native text learning pages are available.
 Independent portal branding and hostname activation remain unqualified.
 
@@ -71,7 +71,7 @@ or administer other portals. They can GET the portal's `roster` and `report`
 doors and POST to its `enroll` door with `identity` and `revision`. Both values
 must belong to that portal and current consent and sharing are required. Repeating
 the same enrollment returns the existing plan. Reports contain enrollments with explicit `lessonsRead` and `totalLessons` counts,
-never inferred assessment results or completion. Learners may GET their portal's `catalog`
+assessment attempt totals, passing state and earned completion metadata. They exclude private answers. Learners may GET their portal's `catalog`
 after consent. Unknown portal doors and downloads are refused.
 
 The owner POSTs `/api/beam/portal.revoke` with `portal` and `identity` to end
@@ -141,7 +141,54 @@ unqualified under OPS-003.
 
 CT approved the identity and consent policy with riders on 26 October 2026.
 The implemented API portion does not prove the complete policy or legal compliance. Full external
-learning, independent branding, structured media, erasure workflows, branded downloads,
-completion evidence and the remaining enterprise journeys remain owed. OPS-003 inherits
+learning, independent branding, structured media, erasure workflows, advanced certificates
+and the remaining enterprise journeys remain owed. OPS-003 inherits
 the external identity retention and erasure obligation; ORG-009 retains hostname
 activation. This preparation feature must not be described as a finished portal.
+
+## Native assessments and earned evidence
+
+The learner opens the contextual assessment link from enrolled learning, or GETs
+`/api/beam/portal/PORTAL/assessment?enrollment=ENROLLMENT`. An untimed automatic
+quiz becomes available after every enrolled lesson is read. It uses the immutable
+assessment revision, question weights, pass mark, attempt limit and stable question
+draw. Choice, blank, ordering and matching questions use the existing scoring rules.
+Answer keys and assessor guidance never appear in the learner response.
+Timed quizzes, written answers and practical review remain unavailable; requirements
+are never silently dropped.
+
+POST the assessment door with `enrollment`, the displayed `number` and the existing
+question answer fields. Each number consumes one attempt. Repeating a submitted
+number returns its recorded lineage without scoring again; concurrent retries do
+not create two attempts. Invalid answers do not consume an attempt. A new number
+must be the next displayed number, within the revision's limit and before a pass.
+GET `assessment.json` with the enrollment downloads that learner's own attempt
+receipt, including submitted answers and results, without the answer key.
+Assessment progress, receipt downloads and reports close when consent is withdrawn,
+the revision is unshared or the course is retired. Renewed consent preserves the
+original revision and attempts without restoring administrator rights.
+
+Passing the quiz does not itself issue course completion. The learner follows
+Review course completion and explicitly records it through the rendered form, or
+POSTs `/api/beam/portal/PORTAL/completion` with `enrollment`. Every native lesson
+must have a read receipt, and any automatic assessment must have a passing attempt
+on its original revision. A course with structured blocks, packages, external tools,
+xAPI requirements, a sequence, attendance, timed assessment, written answers or
+practical review cannot complete through this bounded door. GET on the same door
+shows qualification and any earned evidence. Repeating the action preserves the
+original completion and certificate number.
+
+GET `/api/beam/portal/PORTAL/certificate.pdf?enrollment=ENROLLMENT` downloads only
+the enrolled learner's earned certificate. It snapshots the portal issuer, learner
+name, course title, revision, assessment and evidence at completion; later course
+publication cannot replace it. It creates no public verification link and sends
+no notification. Withdrawal closes ordinary certificate access without rewriting
+earned evidence; downloaded copies cannot be recalled. Renewed consent restores
+access only to that identity's original evidence. Certificate corrections, expiry,
+public links and independent branded assets remain unqualified.
+
+The owner learning export and installation archive retain isolated formal attempts
+and completions. Both protected and legacy restores disconnect identity and consent;
+a freshly invited account cannot read or inherit the old attempts, completion or
+certificate. Complete retained-record access, external erasure and readmission
+remain subject to the Gaps in ORG-008.
