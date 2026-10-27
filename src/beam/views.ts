@@ -84,7 +84,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
-  operations,
+  operations: (env, actor) => operations(env, actor, 'json'),
   portals: listPortals,
   theme: themeSettings,
   'roster-feeds': rosterFeeds,
