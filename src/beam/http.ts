@@ -51,6 +51,7 @@ import { revisionComparePage, sourceComparePage } from './ui/history'
 import { acknowledgmentPage } from './ui/acknowledgments'
 import { dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
 import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
+import { operationsPage } from './ui/operations'
 import { managePage } from './ui/compliance'
 import { importBrowserResponse } from './movein/browser'
 import { importPage, previewPage, importProgressPage } from './ui/movein'
@@ -301,6 +302,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/dashboards\/([\w-]+)\.csv$/))) return dashboardCsvResponse(env, actor, match[1], url)
   if (path === '/app/learning') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
+  if (path === '/app/business/health') return operationsPage(env, actor, url)
   if (path === '/app/tutor') return tutorPage(env,actor,url)
   const tutorMatch = path.match(/^\/app\/tutor\/([\w-]+)(\/citation)?$/)
   if (tutorMatch) return tutorMatch[2] ? tutorDownload(env,actor,tutorMatch[1],url) : tutorPage(env,actor,url,tutorMatch[1])

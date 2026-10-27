@@ -307,7 +307,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "42fa43a9cba7b98abdb27a2372679349d4244b0f3bb5c67e07ab44027f53668b",
+      "sha256": "42ecb07188c521972879c604e8575258790fc1410b484618b80937860e2bb0f7",
       "executable": false
     },
     ".gitignore": {
@@ -319,7 +319,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "03deb8c9bcf6cda8b57ae393bd9a90e24b99b470ab0fa679a708bcc775985476",
+      "sha256": "547e2a1fc693de957d339c43159c6051e80fcaefb5634cb84d6651047e6f423e",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -339,7 +339,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a92b411e2307b0923f1bb7d0d99703846fb954c9234a67251fd3767e485ed13f",
+      "sha256": "4c261c8a40a8f4a15c4a914169291f461ed118a5b0e057ae841d5f33332fc2ff",
       "executable": false
     },
     "DEMO.md": {
@@ -923,7 +923,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "18b7eec2687e3f6b7fd6786d84ff1e2e486ac5827860a0d660201a70797ec4bc",
+      "sha256": "50674c83a72c03534cec188f2a13a938aae1d443e0ae12f27c8fc5a1f78fb62f",
       "executable": false
     },
     "package.json": {
@@ -1791,7 +1791,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "2fc70cecde5a6773711711936c874e40517728be7dd5b41b717028826671e6e0",
+      "sha256": "4b62a2ef35a99833ec069178b2b351bece06f6b1f6abd3475204729fa4c0875d",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -1956,6 +1956,10 @@
     },
     "src/beam/notification-template.ts": {
       "sha256": "530d5f7f18737de1ac338853289eecb94c51337b73657a9756849134d042b964",
+      "executable": false
+    },
+    "src/beam/operations.ts": {
+      "sha256": "da68204d766a53033a3cafbc031dd8564df9d54d214dd6609121dd70793b0d51",
       "executable": false
     },
     "src/beam/outcomes.ts": {
@@ -2455,7 +2459,7 @@
       "executable": false
     },
     "src/beam/ui/managing.ts": {
-      "sha256": "5403e09b50b14f65100d3a735e8b786a28d7f00008c02157a33ff5cd8fd06c8d",
+      "sha256": "ecdf8ab10c7a4a017f29316d572013af26ab9a4b739b64d0e4435ddd5b8b6c6c",
       "executable": false
     },
     "src/beam/ui/media.ts": {
@@ -2484,6 +2488,10 @@
     },
     "src/beam/ui/notifications.ts": {
       "sha256": "cce378525a4391848f362963078f58b505ba65491d4cd277c10e2a8d24e49c4b",
+      "executable": false
+    },
+    "src/beam/ui/operations.ts": {
+      "sha256": "3b2f8966fb575940c9faf1791c2bf338926ca73a37ab8b197a17680c9952627a",
       "executable": false
     },
     "src/beam/ui/outcomes.ts": {
@@ -2599,7 +2607,7 @@
       "executable": false
     },
     "src/beam/views.ts": {
-      "sha256": "c758fed8d3f8e176292af8dc1f137737cb93d32cee5d1d28c596876c329c9467",
+      "sha256": "63e0a8301fa545a15635c08140b099b78683b999c342f54e23d2a85e5cd65e80",
       "executable": false
     },
     "src/beam/webhook-recovery.ts": {
@@ -4414,6 +4422,10 @@
       "sha256": "618af0bd888fad5234c45b0a0664a76c7bde64455a8d1c5024046384454f8198",
       "executable": false
     },
+    "tests/beam/capacity.mjs": {
+      "sha256": "9b80b32312ad15dae9004883b69bbb693b3d5d974abcdf919d50b65410c3a664",
+      "executable": false
+    },
     "tests/beam/cli.mjs": {
       "sha256": "329d9863a32ada79163fd4ff0e12f1ae1a2fa81ed3f22072d1cd9c3a9ad16919",
       "executable": false
@@ -4766,6 +4778,10 @@
       "sha256": "c759b756c82c2b94d69e54ee4c51890bdc952177e020b7fbc7cf7e3a784b5bf1",
       "executable": false
     },
+    "tests/beam/regression-operations.mjs": {
+      "sha256": "86ad2955c1ecb8274fb49113216459b1e484425cc5e3e1f9637d910a00ba1e1d",
+      "executable": false
+    },
     "tests/beam/regression-packages.mjs": {
       "sha256": "6ae62dfdff3e83322d1b39f9c1afdea2e40f52cfd9f25d65536397914f0279ee",
       "executable": false
@@ -4847,7 +4863,7 @@
       "executable": false
     },
     "tests/beam/regressions.mjs": {
-      "sha256": "69f77da92885b3ab1869e52996d767e783069cff25e98579f6a407727da84b9c",
+      "sha256": "a1737454fa640cef5ea84db622b6cbcdf92f1746c69d7d4dd2e30f2661b1c201",
       "executable": false
     },
     "tests/beam/restore.mjs": {
