@@ -921,7 +921,7 @@
       "executable": false
     },
     "migrations/core/0120_beam_entra.sql": {
-      "sha256": "387865dd233fe6f0322065bf23fc76fb1bd964dd420bb57ee3d53ff993604e37",
+      "sha256": "7ada6ee1b1846f405f29202b64080a464910be14d021773f5cf867cedb9a7bd8",
       "executable": false
     },
     "migrations/core/0121_beam_microsoft_sources.sql": {

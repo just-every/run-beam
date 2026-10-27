@@ -9,7 +9,9 @@ CREATE TABLE beam_entra_connection (
 CREATE TABLE beam_entra_users (
  id TEXT PRIMARY KEY, external_id TEXT NOT NULL UNIQUE, user_name TEXT NOT NULL UNIQUE,
  display_name TEXT NOT NULL, member_id TEXT NOT NULL UNIQUE REFERENCES beam_members(id),
- operator_id TEXT UNIQUE REFERENCES oa_operators(id),
+ -- Authentication accounts are excluded from portable archives; this link is
+ -- checked through account joins and cleared by the archive policy on export.
+ operator_id TEXT UNIQUE,
  active INTEGER NOT NULL CHECK(active IN (0,1)), revision INTEGER NOT NULL DEFAULT 1,
  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, deleted_at INTEGER
 );
