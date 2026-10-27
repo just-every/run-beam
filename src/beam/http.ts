@@ -1,5 +1,5 @@
 import { tutorPage, tutorDownload } from './ui/tutor'
-import { enterprisePortalPage } from './ui/enterprise-portals'
+import { enterprisePortalPage } from './ui/portal-learning-pages'
 import { enterprisePortalResponse } from './enterprise-portals'
 import { captionFile } from './caption-file'
 import { modelAccountPage } from './ui/model-account'

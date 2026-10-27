@@ -5,7 +5,7 @@ consent, administrator grants and enrollment plans apart from employee membershi
 Enrolled learners can read native text lessons and record isolated lesson progress.
 Untimed automatic assessments and explicit completion are available for qualified native courses, with isolated certificate PDFs. Other delivery and assessment modes remain unqualified.
 Rendered claim, consent, catalog and native text learning pages are available.
-Independent portal branding and hostname activation remain unqualified.
+Branding on native learning pages and hostname activation remain unqualified.
 
 The human owner first configures the existing Settings theme. POST
 `/api/beam/portal.create` with `kind` (`employee`, `customer` or `partner`),
@@ -14,8 +14,7 @@ Each portal snapshots the validated theme. Later employee-theme changes leave
 that snapshot intact. GET `/api/beam/portals` lists portals for the owner.
 The owner independently edits a portal theme through `/api/beam/portal.theme`
 with `portal` and the existing theme fields. Contrast and raster admission use
-the same ORG-009 validation. Other portal themes stay unchanged. Portal logo
-delivery remains unbuilt.
+the same ORG-009 validation. Other portal themes stay unchanged. Portal logo delivery is available on the branded entry pages.
 
 The human owner explicitly shares a published revision by POSTing
 `/api/beam/portal.share` with `portal`, `revision` and `confirm: true`.
@@ -42,7 +41,7 @@ The invitation records an intended account, with no live binding, consent,
 employee membership or administrator authority. Employee collisions are refused
 and audited, including already linked employees. Reviewed linking remains unbuilt.
 
-The new-account invitation returns to `/portal/PORTAL/claim?identity=IDENTITY`.
+The new-account invitation returns to the branded entry at `/app/portal/PORTAL/claim?identity=IDENTITY`.
 The rendered claim page is read-only until the learner submits its claim form;
 opening it never binds or accepts consent. The API claim response remains available.
 After signing in through the ordinary verified account flow, the intended learner
@@ -99,7 +98,7 @@ native text lessons, record reads, and download the learner's own lesson progres
 Withdrawing consent closes those pages and downloads. Fresh consent resumes the
 same revision-bound progress and leaves the former administrator grant revoked.
 Pages use Beam's existing components and visible control labels, with no employee
-navigation or employee theme injected. Independent portal branding remains Gap work.
+navigation or employee theme injected. Branding on native learning pages remains Gap work.
 The ordinary push Verify runs the real claim, consent, learning, download and
 withdrawal forms; its changed-screen evidence covers 1440 and 390.
 
@@ -192,3 +191,13 @@ and completions. Both protected and legacy restores disconnect identity and cons
 a freshly invited account cannot read or inherit the old attempts, completion or
 certificate. Complete retained-record access, external erasure and readmission
 remain subject to the Gaps in ORG-008.
+
+## Branded entry and administrator exports
+
+The branded entry remains at `/app/portal/PORTAL/claim`, with consent, catalog,
+roster and report pages in that namespace. It serves each portal theme, logo and
+favicon through authenticated scoped asset doors. My enrolled learning opens
+the isolated native learning route described above. Portal administrators download
+only their portal enrollment plans through `report.csv`; withdrawals close those
+exports and retained records never imply planned progress. Independent branding
+on the native learning pages remains unqualified.

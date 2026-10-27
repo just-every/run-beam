@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
-import { portalBrowser } from './portal-browser.mjs'
+import { portalBrowser } from './native-portal-browser.mjs'
 
 export const portalNotice = {
   operatorName: 'Synthetic training operator', purpose: 'Customer and partner training',
@@ -204,6 +204,10 @@ export async function enterprisePortalsCheck(f) {
   assert.deepEqual((await call(customer, 'report', externalCookie)).enrollments.map(row => [row.id, row.revision, row.lessonsRead, row.totalLessons]), [[enrolled.id, c.revision, 1, 1]])
 
   assert.deepEqual((await call(customer, 'report', externalCookie)).enrollments.map(row => row.identity), [external.id])
+  const csv = await h.raw(`/api/beam/portal/${customer.id}/report.csv`, { cookie: externalCookie })
+  assert.equal(csv.status, 200)
+  assert.ok((await csv.text()).includes(external.id))
+  assert.equal((await h.raw(`/api/beam/portal/${customer.id}/report.csv`, { cookie: partnerCookie })).status, 404)
   await call(partner, 'roster', externalCookie, undefined, 403)
   // An external account gains no employee member or authority, even after a portal grant.
   for (const path of ['/app', '/app/people', '/app/learning', '/app/reports.csv', '/app/reports.xlsx', '/app/audit.csv', `/app/certificates/${enrolled.id}.pdf`, `/app/files/source/${c.revision}`,
@@ -213,7 +217,7 @@ export async function enterprisePortalsCheck(f) {
     assert.ok(!(await response.text()).includes('Perform the owned procedure.'))
   }
   await h.api('portal.admin', externalCookie, { portal: partner.id, identity: other.id }, 403)
-  for (const door of [`catalog/${c.revision}`, 'report.csv', 'download', 'admin']) {
+  for (const door of [`catalog/${c.revision}`, 'download', 'admin']) {
     const response = await h.raw(`/api/beam/portal/${customer.id}/${door}`, { cookie: externalCookie })
     assert.equal(response.status, 404)
   }
@@ -301,6 +305,7 @@ export async function enterprisePortalsCheck(f) {
   assert.ok(audit.events.some(row => row.action === 'portal.identity.collision' && row.detail.identity === collision.id && row.detail.outcome === 'refused'))
   assert.ok(audit.events.some(row => row.action === 'portal.consent.withdraw' && row.detail.identity === external.id))
   assert.ok(!(await api('owner', 'people')).members.some(row => row.name === 'Customer learner'))
+  if (process.argv.includes('--browser')) await (await import('./portal-browser.mjs')).portalEntryBrowserCheck(f)
   const assessed = await portalAssessmentCheck(f)
   await portalBrowser(f, partner, assessed.revision, portalNotice, customer)
 }
