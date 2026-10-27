@@ -56,7 +56,7 @@ export default withDemo({
     const lobby = await lobbyResponse(request, runtimeBindings(env), identity)
     if (lobby) return themeDocument(runtimeBindings(env), lobby)
     const beam = await beamResponse(request, env)
-    if (beam && new URL(request.url).pathname.startsWith('/app/portal/')) return beam
+    if (beam && ['/portal/', '/app/portal/'].some(prefix => new URL(request.url).pathname.startsWith(prefix))) return beam
     if (beam) return request.headers.has('authorization') && beam.status >= 400 ? rejectedResponse(request, beam) : themeDocument(runtimeBindings(env), beam)
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
   },

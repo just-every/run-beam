@@ -87,11 +87,11 @@ function rail(actor: Actor, current: string, shell?: Shell): Html {
 
 /** The app frame: the left rail (a menu at phone width), the top bar with the business's date and time and any page
  * tools, and the work surface. `wide` pages lay out their own columns. */
-export function page(title: string, actor: Actor | null, body: Html, { current = '', url, status = 200, tools, wide = false, script, locale }: { locale?: Language; current?: string; url?: URL; status?: number; tools?: Html; wide?: boolean; script?: string | string[] } = {}): Response {
+export function page(title: string, actor: Actor | null, body: Html, { current = '', url, status = 200, tools, wide = false, script, locale, brandHref = '/app' }: { brandHref?: string; locale?: Language; current?: string; url?: URL; status?: number; tools?: Html; wide?: boolean; script?: string | string[] } = {}): Response {
   const scripts = [script ?? []].flat()
   const notice = url?.searchParams.get('notice'), error = url?.searchParams.get('error')
   const shell = actor?.shell
-  const brand = h`<a class="brand" href="/app"><img src="/brand/mark.svg" alt="" width="30" height="35"><span data-rer-name>${branding.name}</span></a>`
+  const brand = h`<a class="brand" href="${brandHref}"><img src="/brand/mark.svg" alt="" width="30" height="35"><span data-rer-name>${branding.name}</span></a>`
   const clock = shell ? h`<p class="clock"><span>${formatWeekday(shell.now, shell.zone, actor?.locale)}</span><span>${formatClock(shell.now, shell.zone, actor?.locale)}</span></p>` : ''
   const document = h`<!doctype html><html lang="${locale ?? actor?.locale ?? 'en-US'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${branding.name}</title><link rel="icon" href="/brand/mark.svg"><link rel="stylesheet" href="/site/fonts.css"><link rel="stylesheet" href="/site/theme.css"><link rel="stylesheet" href="/beam.css">${scripts.map(src => h`<script src="${src}" defer></script>`)}</head><body>
 <div class="app${actor ? '' : ' bare'}">${actor ? h`<input type="checkbox" id="menu-toggle" class="menu-toggle" aria-hidden="true" tabindex="-1"><aside class="rail">${brand}<label for="menu-toggle" class="menu-button">${raw(icon('menu', { size: 22 }))}<span>${t(actor, 'Menu')}</span></label>${rail(actor, current, shell)}</aside>` : h`<aside class="rail">${brand}</aside>`}

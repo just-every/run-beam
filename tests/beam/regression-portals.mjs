@@ -1,5 +1,15 @@
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
+import { portalPracticalFlow } from './portal-practical-flow.mjs'
+import { portalPracticalBrowser } from './portal-practical-browser.mjs'
+import { portalWrittenFlow } from './portal-written-flow.mjs'
+import { portalReportFlow } from './portal-report-flow.mjs'
+import { portalReportBrowser } from './portal-report-browser.mjs'
+import { portalTimingFlow } from './portal-timing-flow.mjs'
+import { portalTimingBrowser } from './portal-timing-browser.mjs'
+import { portalMediaFlow } from './portal-media-flow.mjs'
+import { portalMediaBrowser } from './portal-media-browser.mjs'
+import { portalBrowser } from './native-portal-browser.mjs'
 
 export const portalNotice = {
   operatorName: 'Synthetic training operator', purpose: 'Customer and partner training',
@@ -305,4 +315,227 @@ export async function enterprisePortalsCheck(f) {
   assert.ok(audit.events.some(row => row.action === 'portal.consent.withdraw' && row.detail.identity === external.id))
   assert.ok(!(await api('owner', 'people')).members.some(row => row.name === 'Customer learner'))
   if (process.argv.includes('--browser')) await (await import('./portal-browser.mjs')).portalEntryBrowserCheck(f)
+  const assessed = await portalAssessmentCheck(f)
+  await portalBrowser(f, partner, assessed.revision, portalNotice, customer)
+  const media = await portalMediaFlow(f, partner, customer)
+  await portalMediaBrowser(f, media)
+  const timed = await portalTimingFlow(f, partner, customer)
+  await portalTimingBrowser(f, timed)
+  await portalWrittenFlow(f, partner, customer)
+  const practical = await portalPracticalFlow(f)
+  await portalPracticalBrowser(f, practical)
+  const reporting = await portalReportFlow(f)
+  await portalReportBrowser(f, reporting)
+}
+
+// Authoring and publication use the same reviewed revision doors as employee courses.
+export async function portalQuizCourse(f, title, mode = 'automatic', feedback = 'attempt') {
+  const c = await f.api('author', 'course.create', { title, reviewer: f.ids.reviewer })
+  let version = c.draftVersion
+  const edit = async (action, fields) => { version = (await f.api('author', action, { course: c.id, draftVersion: version, ...fields })).draftVersion }
+  await edit('course.lesson', { title: 'Procedure', body: 'Perform the owned procedure.', sources: [] })
+  await edit('course.question', { prompt: 'Select the safe action.', choices: 'Review the procedure\nIgnore the procedure', correct: '1', points: 2 })
+  await edit('course.question', { kind: 'blank', prompt: 'Complete the safety word.', answers: 'synthetic-beam-14', ignoreCase: true })
+  await edit('course.question', { kind: 'order', prompt: 'Order the procedure.', items: 'Review\nPerform' })
+  await edit('course.question', { kind: 'match', prompt: 'Match each action.', pairs: 'Review = Before work\nRecord = After work' })
+  if (mode === 'written') await edit('course.question', { kind: 'text', prompt: 'Describe the procedure.', guidance: 'Reviewer-only guidance.' })
+  await edit('course.assessment', { passPercent: 100, maxAttempts: 2, feedback, ...(mode === 'timed' ? { timeLimitMinutes: 10 } : {}), ...(mode === 'written' ? { assessor: f.ids.assessor } : {}), ...(mode === 'practical' ? { practicalInstructions: 'Demonstrate the procedure.', assessor: f.ids.assessor } : {}) })
+  const revision = (await f.api('author', 'course.submit', { course: c.id, draftVersion: version })).id
+  await f.publish(revision)
+  return { id: c.id, revision }
+}
+
+async function portalAssessmentCheck(f) {
+  const { api, h, cookies } = f
+  const portal = await api('owner', 'portal.create', { kind: 'customer', name: 'External assessment', consentText: 'Independent assessment consent', confirm: true })
+  await api('owner', 'portal.notice', { portal: portal.id, version: 0, ...portalNotice })
+  const invite = await api('owner', 'portal.invite', { portal: portal.id, email: 'synthetic-beam-12@example.test', name: 'Assessment learner', sendInvitation: true })
+  const cookie = await h.signIn('synthetic-beam-12@example.test', { requested: true })
+  const accountId = (await (await h.raw('/auth/session', { cookie })).json()).operator.id
+  const call = (door, body, status = 200, as = cookie) => h.api(`portal/${portal.id}/${door}`, as, body, status)
+  await call('claim', { identity: invite.id })
+  await call('consent', { accept: true, noticeVersion: 1 })
+  const c = await portalQuizCourse(f, 'External assessed procedure')
+  await api('owner', 'portal.share', { portal: portal.id, revision: c.revision, confirm: true })
+  const enrollment = await call('enroll', { identity: invite.id, revision: c.revision }, 200, cookies.owner)
+  const door = `assessment?enrollment=${enrollment.id}`
+  assert.deepEqual(await call(`completion?enrollment=${enrollment.id}`), { portal: portal.id, enrollment: enrollment.id, qualified: false, completion: null })
+  await call('completion', { enrollment: enrollment.id }, 409)
+  await call(`certificate.pdf?enrollment=${enrollment.id}`, undefined, 404)
+  const blocked = await call(door)
+  assert.deepEqual([blocked.available, blocked.lessonsComplete, blocked.attempts, blocked.questions], [true, false, [], []])
+  await call(door, { enrollment: enrollment.id, number: 1 }, 409)
+  for (const other of [cookies.owner, cookies.learner]) {
+    await call(door, undefined, 404, other)
+    await call(door, { enrollment: enrollment.id, number: 1 }, 404, other)
+    await call(`assessment.json?enrollment=${enrollment.id}`, undefined, 404, other)
+    await call('completion', { enrollment: enrollment.id }, 404, other)
+    await call(`completion?enrollment=${enrollment.id}`, undefined, 404, other)
+    await call(`certificate.pdf?enrollment=${enrollment.id}`, undefined, 404, other)
+  }
+  const foreign = await api('owner', 'portal.create', { kind: 'partner', name: 'Independent assessment portal', consentText: 'Separate partner consent', confirm: true })
+  await api('owner', 'portal.notice', { portal: foreign.id, version: 0, ...portalNotice })
+  const separate = await api('owner', 'portal.invite', { portal: foreign.id, email: 'synthetic-beam-12@example.test', name: 'Independent identity', sendInvitation: true })
+  assert.notEqual(separate.id, invite.id)
+  await h.api(`portal/${foreign.id}/claim`, cookie, { identity: separate.id })
+  await h.api(`portal/${foreign.id}/consent`, cookie, { accept: true, noticeVersion: 1 })
+  for (const door of ['assessment', 'assessment.json', 'completion', 'certificate.pdf']) {
+    await h.api(`portal/${foreign.id}/${door}?enrollment=${enrollment.id}`, cookie, undefined, 404)
+    const path = `/api/beam/portal/${portal.id}/${door}?enrollment=${enrollment.id}`
+    assert.equal((await h.raw(path)).status, 401)
+    assert.equal((await h.fetch(path, { headers: { cookie, authorization: 'Bearer synthetic-beam-16' } })).status, 403)
+    assert.equal((await h.raw(path, { cookie: `${cookies.owner}; beam_view=synthetic-beam-17` })).status, 403)
+    assert.equal((await h.fetch(path, { method: 'PUT', headers: { cookie } })).status, 405)
+    assert.equal((await h.fetch(path, { method: 'POST', headers: { cookie, origin: 'https://example.test', 'content-type': 'application/json' }, body: JSON.stringify({ enrollment: enrollment.id }) })).status, 403)
+  }
+  const lesson = (await call(`learning?enrollment=${enrollment.id}`)).lessons[0].id
+  await call('learning', { enrollment: enrollment.id, lesson })
+  const ready = await call(door), [choice, blank, order, match] = ready.questions
+  assert.deepEqual(ready.questions.map(question => question.kind), ['choice', 'blank', 'order', 'match'])
+  assert.deepEqual([ready.attemptsLeft, ready.nextNumber, ready.passed, ready.completion], [2, 1, false, null])
+  assert.ok(!JSON.stringify(ready).includes('synthetic-beam-14'))
+  assert.ok(!JSON.stringify(ready).includes('correct'))
+  const empty = { enrollment: enrollment.id, number: 1 }
+  const repeated = await Promise.all([call(door, empty), call(door, empty)])
+  assert.deepEqual(repeated[0], repeated[1], 'Concurrent retries consume only one numbered attempt')
+  const failed = repeated[0]
+  assert.deepEqual(failed.attempts.map(row => [row.number, row.score, row.maxScore, row.percent, row.passed]), [[1, 0, 5, 0, 0]])
+  assert.deepEqual([failed.attemptsLeft, failed.nextNumber, failed.passed], [1, 2, false])
+  await call('completion', { enrollment: enrollment.id }, 409)
+  await call(door, { enrollment: enrollment.id, number: 2, [`q_${choice.id}`]: ['99'] }, 400)
+  assert.equal((await call(door)).attempts.length, 1, 'Invalid answers do not consume an attempt')
+  const answers = { enrollment: enrollment.id, number: 2, [`q_${choice.id}`]: ['0'], [`q_${blank.id}_0`]: ' SYNTHETIC-BEAM-14 ', [`q_${order.id}_0`]: '0', [`q_${order.id}_1`]: '1', [`q_${match.id}_0`]: '0', [`q_${match.id}_1`]: '1' }
+  const passed = await call(door, answers)
+  assert.deepEqual(passed.attempts.map(row => [row.number, row.score, row.maxScore, row.percent, row.passed]), [[1, 0, 5, 0, 0], [2, 5, 5, 100, 1]])
+  assert.deepEqual([passed.passed, passed.questions, passed.attemptsLeft, passed.completion], [true, [], 0, null])
+  assert.deepEqual(await call(door, answers), passed)
+  await call(door, { ...answers, number: 3 }, 409)
+  const receiptResponse = await h.raw(`/api/beam/portal/${portal.id}/assessment.json?enrollment=${enrollment.id}`, { cookie })
+  assert.match(receiptResponse.headers.get('content-disposition'), /^attachment;/)
+  const receipt = await receiptResponse.json()
+  assert.deepEqual(receipt.attempts.map(row => row.assessmentRevision), [ready.assessmentRevision, ready.assessmentRevision])
+  assert.deepEqual(receipt.attempts[1].responses.map(row => [row.question, row.points, row.weight]), [[choice.id, 2, 2], [blank.id, 1, 1], [order.id, 1, 1], [match.id, 1, 1]])
+  assert.equal(receipt.questions.length, 0)
+  assert.ok(!JSON.stringify(receipt).includes('correct":['), 'No answer keys travel in personal receipts')
+  await call(`assessment.json?enrollment=${enrollment.id}`, answers, 405)
+  const draft = await api('author', `courses/${c.id}`)
+  const changed = await api('author', 'course.question', { course: c.id, draftVersion: draft.draftVersion, question: choice.id, prompt: 'Changed assessment', choices: 'Review\nPerform', correct: '2' })
+  const next = (await api('author', 'course.submit', { course: c.id, draftVersion: changed.draftVersion })).id
+  await f.publish(next)
+  assert.deepEqual(await call(door), passed, 'Later publication preserves the original assessment and attempts')
+  const completed = await call('completion', { enrollment: enrollment.id })
+  assert.equal(completed.qualified, true)
+  assert.deepEqual([completed.completion.revision, completed.completion.assessmentRevision, completed.completion.attempt, completed.completion.method], [c.revision, ready.assessmentRevision, passed.attempts[1].id, 'assessed'])
+  assert.deepEqual(completed.completion.evidence, { lessons: [{ lesson, completedAt: (await call(`learning?enrollment=${enrollment.id}`)).lessons[0].completedAt }], quizAttempt: passed.attempts[1].id })
+  assert.deepEqual(await call('completion', { enrollment: enrollment.id }), completed, 'Repeated completion preserves the earned time and certificate')
+  const assessedCompletion = await call(door)
+  assert.deepEqual([assessedCompletion.completion.id, assessedCompletion.completion.revision], [completed.completion.id, c.revision])
+  const pdfPath = `/api/beam/portal/${portal.id}/certificate.pdf?enrollment=${enrollment.id}`
+  const pdf = await h.raw(pdfPath, { cookie })
+  assert.equal(pdf.status, 200)
+  assert.equal(pdf.headers.get('content-type'), 'application/pdf')
+  const pdfBytes = Buffer.from(await pdf.arrayBuffer())
+  const { extractText } = await import('unpdf')
+  const pdfText = (await extractText(new Uint8Array(pdfBytes), { mergePages: true })).text
+  assert.ok(pdfText.includes(completed.completion.number) && pdfText.includes('Assessment learner') && pdfText.includes(c.revision))
+  const pdfHead = await h.raw(pdfPath, { cookie, method: 'HEAD' })
+  assert.deepEqual([pdfHead.status, await pdfHead.text()], [200, ''])
+  await call('consent', { withdraw: true })
+  for (const path of [door, `completion?enrollment=${enrollment.id}`, `certificate.pdf?enrollment=${enrollment.id}`, `assessment.json?enrollment=${enrollment.id}`]) await call(path, undefined, 403)
+  await call(door, answers, 403)
+  assert.deepEqual((await call('report', undefined, 200, cookies.owner)).enrollments, [])
+  await call('consent', { accept: true, noticeVersion: 1 })
+  assert.deepEqual(await call(door), assessedCompletion)
+  assert.deepEqual(await call(`completion?enrollment=${enrollment.id}`), completed, 'Consent renewal preserves earned evidence without issuing another certificate')
+  assert.deepEqual(Buffer.from(await (await h.raw(pdfPath, { cookie })).arrayBuffer()), pdfBytes)
+  const report = (await call('report', undefined, 200, cookies.owner)).enrollments
+  assert.deepEqual(report.map(row => [row.id, row.attempts, row.assessmentPassed]), [[enrollment.id, 2, 1]])
+  assert.deepEqual(report.map(row => [row.completion, row.completedAt]), [[completed.completion.id, completed.completion.completedAt]])
+  assert.ok(!JSON.stringify(report).includes('responses'))
+  await api('owner', 'portal.share', { portal: portal.id, revision: c.revision, confirm: true, revoke: true })
+  await call(door, undefined, 404)
+  await call(door, answers, 404)
+  await call(`assessment.json?enrollment=${enrollment.id}`, undefined, 404)
+  await call(`completion?enrollment=${enrollment.id}`, undefined, 404)
+  await call('completion', { enrollment: enrollment.id }, 404)
+  assert.equal((await h.raw(pdfPath, { cookie })).status, 404)
+  const exported = (await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()).records
+  assert.deepEqual(exported.beam_portal_attempts.rows.map(row => [row.enrollment_id, row.assessment_revision_id, row.number, row.percent, row.passed]), [[enrollment.id, ready.assessmentRevision, 1, 0, 0], [enrollment.id, ready.assessmentRevision, 2, 100, 1]])
+  assert.deepEqual(exported.beam_portal_completions.rows.map(row => [row.id, row.enrollment_id, row.revision_id, row.assessment_revision_id, row.attempt_id]), [[completed.completion.id, enrollment.id, c.revision, ready.assessmentRevision, passed.attempts[1].id]])
+  assert.ok(!exported.beam_completions.rows.some(row => row.assignment_id === enrollment.id))
+  const audit = await api('owner', 'audit')
+  assert.deepEqual(audit.events.filter(row => row.action === 'portal.quiz.submit').map(row => [row.actor, row.subject, row.detail.enrollment, row.detail.number, row.detail.outcome]).sort((a,b) => a[3]-b[3]), [[accountId, portal.id, enrollment.id, 1, 'failed'], [accountId, portal.id, enrollment.id, 2, 'passed']])
+  assert.ok(!JSON.stringify(audit.events.filter(row => row.action === 'portal.quiz.submit')).includes('SYNTHETIC-BEAM-14'))
+  assert.deepEqual(audit.events.filter(row => row.action === 'portal.completion.record').map(row => [row.actor, row.subject, row.detail.identity, row.detail.revision, row.detail.attempt, row.detail.outcome]), [[accountId, portal.id, invite.id, c.revision, passed.attempts[1].id, 'earned']])
+  assert.deepEqual(audit.events.filter(row => ['portal.quiz.submit', 'portal.completion.record'].includes(row.action)).map(row => typeof row.at), ['number', 'number', 'number'])
+  // Unqualified assessment modes refuse scoring instead of silently dropping requirements.
+  for (const mode of ['written']) {
+    const unsupported = await portalQuizCourse(f, `External ${mode} assessment`, mode)
+    await api('owner', 'portal.share', { portal: portal.id, revision: unsupported.revision, confirm: true })
+    const held = await call('enroll', { identity: invite.id, revision: unsupported.revision }, 200, cookies.owner)
+    assert.deepEqual([(await call(`assessment?enrollment=${held.id}`)).available, (await call(`assessment?enrollment=${held.id}`)).questions], [false, []])
+    const heldLesson = (await call(`learning?enrollment=${held.id}`)).lessons[0].id
+    await call('learning', { enrollment: held.id, lesson: heldLesson })
+    await call('assessment', { enrollment: held.id, number: 1 }, 409)
+    await call('completion', { enrollment: held.id }, 409)
+    await call(`assessment-review?enrollment=${held.id}`, undefined, 403, cookies.owner)
+    await call(`certificate.pdf?enrollment=${held.id}`, undefined, 404)
+  }
+  const exhaustedIdentity = await api('owner', 'portal.invite', { portal: portal.id, email: 'synthetic-beam-15@example.test', name: 'Second assessment learner', sendInvitation: true })
+  const exhaustedCookie = await h.signIn('synthetic-beam-15@example.test', { requested: true })
+  const second = (door, body, status = 200) => call(door, body, status, exhaustedCookie)
+  await second('claim', { identity: exhaustedIdentity.id })
+  await second('consent', { accept: true, noticeVersion: 1 })
+  await api('owner', 'portal.share', { portal: portal.id, revision: c.revision, confirm: true })
+  const secondEnrollment = await call('enroll', { identity: exhaustedIdentity.id, revision: c.revision }, 200, cookies.owner)
+  await second(`assessment?enrollment=${enrollment.id}`, undefined, 404)
+  await second(`certificate.pdf?enrollment=${enrollment.id}`, undefined, 404)
+  assert.deepEqual((await second(`assessment?enrollment=${secondEnrollment.id}`)).attempts, [])
+  const secondLesson = (await second(`learning?enrollment=${secondEnrollment.id}`)).lessons[0].id
+  await second('learning', { enrollment: secondEnrollment.id, lesson: secondLesson })
+  await second('assessment', { enrollment: secondEnrollment.id, number: 1 })
+  const exhausted = await second('assessment', { enrollment: secondEnrollment.id, number: 2 })
+  assert.deepEqual([exhausted.attemptsLeft, exhausted.passed, exhausted.questions], [0, false, []])
+  await second('assessment', { enrollment: secondEnrollment.id, number: 3 }, 409)
+  await second('completion', { enrollment: secondEnrollment.id }, 409)
+  const native = await f.course('External native lesson-only completion')
+  await api('owner', 'portal.share', { portal: portal.id, revision: native.revision, confirm: true })
+  const nativeEnrollment = await call('enroll', { identity: exhaustedIdentity.id, revision: native.revision }, 200, cookies.owner)
+  await second('completion', { enrollment: nativeEnrollment.id }, 409)
+  const nativeStudy = await second(`learning?enrollment=${nativeEnrollment.id}`)
+  await second('learning', { enrollment: nativeEnrollment.id, lesson: nativeStudy.lessons[0].id })
+  const nativeReady = await second(`completion?enrollment=${nativeEnrollment.id}`)
+  assert.deepEqual([nativeReady.qualified, nativeReady.completion], [true, null], 'Lesson reads qualify without automatically writing completion')
+  const nativeComplete = await second('completion', { enrollment: nativeEnrollment.id })
+  assert.deepEqual([nativeComplete.completion.method, nativeComplete.completion.assessmentRevision, nativeComplete.completion.attempt], ['lessons', null, null])
+  const draftNative = await api('author', `courses/${native.id}`)
+  const attendance = await api('author', 'course.attendance', { course: native.id, draftVersion: draftNative.draftVersion, attendancePercent: 100 })
+  const attendanceRevision = (await api('author', 'course.submit', { course: native.id, draftVersion: attendance.draftVersion })).id
+  await f.publish(attendanceRevision)
+  await api('owner', 'portal.share', { portal: portal.id, revision: attendanceRevision, confirm: true })
+  const attended = await call('enroll', { identity: exhaustedIdentity.id, revision: attendanceRevision }, 200, cookies.owner)
+  const attendedStudy = await second(`learning?enrollment=${attended.id}`)
+  await second('learning', { enrollment: attended.id, lesson: attendedStudy.lessons[0].id })
+  await second('completion', { enrollment: attended.id }, 409)
+  assert.deepEqual(await second(`completion?enrollment=${nativeEnrollment.id}`), nativeComplete, 'New attendance requirements cannot rewrite earlier earned evidence')
+  for (const feedback of ['score', 'final']) {
+    const heldFeedback = await portalQuizCourse(f, `External ${feedback} feedback`, 'automatic', feedback)
+    await api('owner', 'portal.share', { portal: portal.id, revision: heldFeedback.revision, confirm: true })
+    const heldEnrollment = await call('enroll', { identity: exhaustedIdentity.id, revision: heldFeedback.revision }, 200, cookies.owner)
+    const heldStudy = await second(`learning?enrollment=${heldEnrollment.id}`)
+    await second('learning', { enrollment: heldEnrollment.id, lesson: heldStudy.lessons[0].id })
+    const heldQuiz = await second(`assessment?enrollment=${heldEnrollment.id}`)
+    await second('assessment', { enrollment: heldEnrollment.id, number: 1, [`q_${heldQuiz.questions[0].id}`]: ['1'] })
+    const before = await second(`assessment.json?enrollment=${heldEnrollment.id}`)
+    assert.equal(before.feedback, 'withheld')
+    assert.deepEqual(before.attempts[0].responses.map(response => response.question), heldQuiz.questions.map(question => question.id))
+    assert.deepEqual(before.attempts[0].responses[0].selected, [1])
+    assert.deepEqual(before.attempts[0].responses.map(response => Object.keys(response).sort()), Array.from({ length: 4 }, () => ['question', 'selected', 'weight']))
+    await second('assessment', { enrollment: heldEnrollment.id, number: 2 })
+    const after = await second(`assessment.json?enrollment=${heldEnrollment.id}`)
+    assert.equal(after.feedback, feedback === 'final' ? 'shown' : 'withheld')
+    assert.deepEqual(after.attempts.map(attempt => attempt.percent), [0, 0])
+    assert.deepEqual(after.attempts[0].responses.map(response => response.points ?? null), feedback === 'final' ? [0, 0, 0, 0] : [null, null, null, null])
+  }
+  return c
 }
