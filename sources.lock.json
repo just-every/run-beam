@@ -4579,7 +4579,7 @@
       "executable": false
     },
     "tests/beam/portal-practical-browser.mjs": {
-      "sha256": "904ad84fcc77e593c36d5eebcf619a4faad361bafe20c52e92b9a527931d940b",
+      "sha256": "e3c815ee38b37923a9ba9cfcb2ee77363bf8a15f06102af10977d0a34ed8a16c",
       "executable": false
     },
     "tests/beam/portal-practical-flow.mjs": {
@@ -4607,7 +4607,7 @@
       "executable": false
     },
     "tests/beam/portal-written-flow.mjs": {
-      "sha256": "f630c0d02c58e5181aa341b8a4b9790963a65e206c0e13d6657b96493dcc9bef",
+      "sha256": "d26d070dbf18545db5d6625e875c8c53694290ac45f07f05963907085110f452",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
@@ -4815,7 +4815,7 @@
       "executable": false
     },
     "tests/beam/regression-timing.mjs": {
-      "sha256": "1be1185e06bdda732d6659ad83a4a4b402aeff11300b94f1107daefc6746ba6d",
+      "sha256": "ca6dd00a42f12ca56dd34a1dff83962df17a0302c1ef83c915b054921e553026",
       "executable": false
     },
     "tests/beam/regression-transcript.mjs": {

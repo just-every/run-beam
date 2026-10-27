@@ -59,7 +59,8 @@ export async function portalWrittenFlow(f, portal, foreignPortal) {
       }
       await page.setViewportSize({ width: 1440, height: 1000 })
     }
-    await page.goto(`${h.origin}/portal/${portal.id}/${review}`)
+    await page.goto(`${h.origin}/app/portal/${portal.id}/report`)
+    await page.getByRole('link', { name: 'Review written answers', exact: true }).click()
     await page.getByRole('button', { name: 'Record written review', exact: true }).waitFor()
     await page.getByText('I inspect the probe before starting work.', { exact: true }).waitFor()
     await shot('pending')

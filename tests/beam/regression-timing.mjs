@@ -40,7 +40,7 @@ export async function timedCheck(f) {
   // In a browser the countdown starts from the server's deadline; the warnings reach the live region once each, at five
   // minutes and at one minute left. Only the page's clock moves here: the server's deadline is unchanged.
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT || '@playwright/test')
-  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--use-mock-keychain', '--password-store=basic'] })
   try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, ignoreHTTPSErrors: true })
     await context.addCookies(cookies.learner.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: h.origin })))
