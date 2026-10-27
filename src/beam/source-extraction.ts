@@ -61,14 +61,19 @@ export async function validateSourceAsset(env: Bindings, versionId: string, asse
 export async function sourceAsset(env: Bindings, actor: Actor, versionId: string, assetId: string) {
   const { sourceFile } = await import('./sources')
   await sourceFile(env, actor, versionId, true)
-  insist(/^asset-[1-9]\d*$/.test(assetId), 'source_asset_not_found', 404)
-  const asset = (await preparedDocument(env, versionId)).document.assets.find(item => item.id === assetId)
-  insist(asset, 'source_asset_not_found', 404)
+  const asset = await loadSourceAsset(env, versionId, assetId)
   return new Response(new Uint8Array(asset.bytes), { headers: {
     'content-type': asset.mediaType,
     'content-disposition': `inline; filename*=UTF-8''${encodeURIComponent(asset.filename)}`,
     'content-security-policy': "sandbox; default-src 'none'", 'x-content-type-options': 'nosniff', 'cache-control': 'private, no-store',
   } })
+}
+/** Caller authorizes the exact approved block before reading an extracted asset. */
+export async function loadSourceAsset(env: Bindings, versionId: string, assetId: string) {
+  insist(/^asset-[1-9]\d*$/.test(assetId), 'source_asset_not_found', 404)
+  const asset = (await preparedDocument(env, versionId)).document.assets.find(item => item.id === assetId)
+  insist(asset, 'source_asset_not_found', 404)
+  return asset
 }
 
 function reviewedLessons(input: Input, original: ExtractedLesson[]) {

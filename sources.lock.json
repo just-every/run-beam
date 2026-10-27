@@ -2043,16 +2043,24 @@
       "sha256": "e06d454fceba805ffa354c442d3a7bd9d714ebf3c4760bf1e66c0e80243e6b5c",
       "executable": false
     },
+    "src/beam/portal-admission.ts": {
+      "sha256": "6958805bd6b6a1dc7275457c69bdb8bd0a77e6a1daf1032ce84a9079e72c107a",
+      "executable": false
+    },
     "src/beam/portal-assessment.ts": {
-      "sha256": "58699ad291187603720214882c93ce7f3da97f91a2eba7e64100471041c8d035",
+      "sha256": "fb0a39a467bb66842687d455744af7d11ab974df214a460f452cb3f861b53bc8",
       "executable": false
     },
     "src/beam/portal-completion.ts": {
-      "sha256": "7e56fc55a5f70083c87de70a20116192e7b33b9f53c22d90a48d447b971adfce",
+      "sha256": "69817bafcc362c2098586395c44334e5f9a7b9a728c5b6b15490335ddfa93fec",
       "executable": false
     },
     "src/beam/portal-learning.ts": {
-      "sha256": "cf754013596a812e030595bbdeb67474d87056c21838d0a616a822dc76194827",
+      "sha256": "d61ac94f1900248758c1576e6a336d24450bf1f8ac3faf9a78119836d3c454e1",
+      "executable": false
+    },
+    "src/beam/portal-media.ts": {
+      "sha256": "c7c9a614dfdf7f6d69df1787d1bf78052411659458f94ad84f894c6576784964",
       "executable": false
     },
     "src/beam/portal-theme.ts": {
@@ -2156,7 +2164,7 @@
       "executable": false
     },
     "src/beam/source-extraction.ts": {
-      "sha256": "45966c48f17161cd126a196be964c56ea64d352a4130d58b948dc30798be539b",
+      "sha256": "39dfe78382433d94d1817e6f549d07e21f86b68fd5e3950c248ca3b4130c60b9",
       "executable": false
     },
     "src/beam/source-html-archive.ts": {
@@ -2420,7 +2428,7 @@
       "executable": false
     },
     "src/beam/ui/media.ts": {
-      "sha256": "b75c0873244e3ae03795d5888d7da3148879375571bdf8067c51766af37156d3",
+      "sha256": "3fa0a1b81ab6d7cfdb69435b7c798bb82fde327b4619af85cfcbe93c643e4cd4",
       "executable": false
     },
     "src/beam/ui/microlearning.ts": {
@@ -2453,6 +2461,10 @@
     },
     "src/beam/ui/packages.ts": {
       "sha256": "fc9943d821de0bafcf85f1bc3daf57344af9ce54d2cf9f73ee9c878360a7e1b7",
+      "executable": false
+    },
+    "src/beam/ui/portal-learning-pages.ts": {
+      "sha256": "738e511eec7e5394a955f4385d43407d452ac4afed1dc3c60570e5c6e0bbf120",
       "executable": false
     },
     "src/beam/ui/portal-theme.ts": {
@@ -4505,6 +4517,14 @@
     },
     "tests/beam/portal-browser.mjs": {
       "sha256": "3ed958bb3f9e5ffa567cec9b7feaef6db21ee0a50f4adf7d0183b0be4fd7cf8d",
+      "executable": false
+    },
+    "tests/beam/portal-media-browser.mjs": {
+      "sha256": "f589c2cc8b573ba2c5ac05607a849477d82e359e6d5b6f7f1061304dc3466096",
+      "executable": false
+    },
+    "tests/beam/portal-media-flow.mjs": {
+      "sha256": "9bcd28236bfa30f8e815e135a4ef58edf2157b636ad5aa1a4e0bdc0c6c28f2d1",
       "executable": false
     },
     "tests/beam/portal-theme-browser.mjs": {

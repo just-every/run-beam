@@ -2,7 +2,7 @@
 import type { Bindings } from '../auth.server'
 import { all, insist, newId, now, one, stmt } from './core'
 import { Input } from './input'
-import { portalAdmission } from './portal-learning'
+import { portalAdmission } from './portal-admission'
 import { drawQuestions, presentQuestion, SCORING_RULE, type Question } from './question-types'
 import { score, selectionsFrom, tally } from './timing'
 

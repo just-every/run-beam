@@ -1,7 +1,8 @@
 // Qualification is bounded to native text and untimed automatic assessments.
 import type { Bindings } from '../auth.server'
 import { all, insist, one } from './core'
-import { portalAdmission } from './portal-learning'
+import { portalUnsupportedBlocks } from './portal-media'
+import { portalAdmission } from './portal-admission'
 import { tryComplete } from './learning'
 import { Input } from './input'
 import { certificatePdf } from './pdf'
@@ -13,7 +14,7 @@ export const portalQualification = `SELECT e.* FROM (${portalAdmission}) e
  WHERE revision.attendance_percent IS NULL
  AND EXISTS(SELECT 1 FROM beam_lesson_revisions l WHERE l.course_revision_id=e.revision_id)
  AND NOT EXISTS(SELECT 1 FROM beam_lesson_revisions l WHERE l.course_revision_id=e.revision_id AND
-   (json_array_length(l.blocks_json)>0 OR NOT EXISTS(SELECT 1 FROM beam_portal_lesson_progress p WHERE p.enrollment_id=e.id AND p.lesson_revision_id=l.id)))
+   (${portalUnsupportedBlocks} OR NOT EXISTS(SELECT 1 FROM beam_portal_lesson_progress p WHERE p.enrollment_id=e.id AND p.lesson_revision_id=l.id)))
  AND NOT EXISTS(SELECT 1 FROM beam_revision_packages WHERE course_revision_id=e.revision_id)
  AND NOT EXISTS(SELECT 1 FROM beam_revision_xapi WHERE course_revision_id=e.revision_id)
  AND NOT EXISTS(SELECT 1 FROM beam_revision_sequences WHERE course_revision_id=e.revision_id)
