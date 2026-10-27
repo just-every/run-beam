@@ -125,6 +125,10 @@ export async function enterprisePortalsCheck(f) {
   assert.deepEqual(await call(customer, 'enroll', cookies.owner, { identity: external.id, revision: c.revision }), enrolled)
   await call(customer, 'enroll', externalCookie, { identity: other.id, revision: c.revision }, 404)
   assert.deepEqual((await call(customer, 'report', externalCookie)).enrollments.map(row => row.identity), [external.id])
+  const csv = await h.raw(`/api/beam/portal/${customer.id}/report.csv`, { cookie: externalCookie })
+  assert.equal(csv.status, 200)
+  assert.ok((await csv.text()).includes(external.id))
+  assert.equal((await h.raw(`/api/beam/portal/${customer.id}/report.csv`, { cookie: partnerCookie })).status, 404)
   await call(partner, 'roster', externalCookie, undefined, 403)
   // An external account gains no employee member or authority, even after a portal grant.
   for (const path of ['/app', '/app/people', '/app/learning', '/app/reports.csv', '/app/reports.xlsx', '/app/audit.csv', `/app/certificates/${enrolled.id}.pdf`, `/app/files/source/${c.revision}`,
@@ -134,7 +138,7 @@ export async function enterprisePortalsCheck(f) {
     assert.ok(!(await response.text()).includes('Perform the owned procedure.'))
   }
   await h.api('portal.admin', externalCookie, { portal: partner.id, identity: other.id }, 403)
-  for (const door of [`catalog/${c.revision}`, 'report.csv', 'download', 'admin']) {
+  for (const door of [`catalog/${c.revision}`, 'download', 'admin']) {
     const response = await h.raw(`/api/beam/portal/${customer.id}/${door}`, { cookie: externalCookie })
     assert.equal(response.status, 404)
   }
