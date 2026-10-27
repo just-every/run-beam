@@ -2495,7 +2495,7 @@
       "executable": false
     },
     "src/beam/ui/portal-assessment.ts": {
-      "sha256": "61ebc6a203b61db0dea4fe47654dde0b88788e005f1ccd13606cbf692005016a",
+      "sha256": "1a08046c489d814216c8ac9fa276658eb251808069c0d8d52806bc36e7be8646",
       "executable": false
     },
     "src/beam/ui/portal-learning-pages.ts": {
@@ -2503,11 +2503,11 @@
       "executable": false
     },
     "src/beam/ui/portal-practical.ts": {
-      "sha256": "6f5770b78f7a7227c882cd7cdcf86485f2f4f37ec367f9757b6fe232fc720f81",
+      "sha256": "3cef6a19da3c03d2b0cb1f907ef0af75d452196da0a7e12f3190080ec242bc24",
       "executable": false
     },
     "src/beam/ui/portal-quiz-review.ts": {
-      "sha256": "9ef69468e679977da1497c1b9c6ce4a12f264bef49cee990b8f52e67e52e7c57",
+      "sha256": "c08aba1f67d1b0b0bddbd53ecb82da2f5d925fa2ce3f360e1ca960cf4d2eb776",
       "executable": false
     },
     "src/beam/ui/portal-report.ts": {

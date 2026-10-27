@@ -16,7 +16,7 @@ export function portalPracticalFragment(base: string, data: PortalPracticalData)
         <button type="submit" name="decision" value="rejected" class="secondary">Request resubmission</button>
       </form>` : ''}`))
   return h`<h1>${data.review ? 'Review practical evidence' : 'Practical assessment'}</h1>
-    ${data.review ? h`<p>Learner: ${data.learner}</p>` : h`<p class="actions"><a href="${base}/learning?enrollment=${data.enrollment}">Back to enrolled lessons</a><a href="${base}/consent">Consent settings</a></p>`}
+    ${data.review ? h`<p><a href="/app/portal/${data.portal}/report">Back to progress report</a></p><p>Learner: ${data.learner}</p>` : h`<p class="actions"><a href="${base}/learning?enrollment=${data.enrollment}">Back to enrolled lessons</a><a href="${base}/consent">Consent settings</a></p>`}
     <p>Approved revision: ${data.revision}</p>
     ${card('Practical instructions', data.available ? h`${lessonText(data.instructions ?? '')}<p>Acceptance records the named assessor's decision. Course completion is recorded separately after every requirement is met.</p><p>Describe your work in text. File attachments are not available in this portal yet.</p>` : h`<p>This revision has no practical assessment available.</p>`)}
     ${!data.review && data.available ? card('Your evidence', data.accepted ? h`<p role="status">Practical evidence accepted.</p>` : data.pending ? h`<p role="status">Your evidence is waiting for the named assessor. Your submitted text is retained below.</p>` : !data.lessonsComplete ? h`<p>Read all enrolled lessons before submitting practical evidence.</p>` : h`
