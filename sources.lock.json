@@ -339,7 +339,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4c261c8a40a8f4a15c4a914169291f461ed118a5b0e057ae841d5f33332fc2ff",
+      "sha256": "f734fb8283519f4b6d81b5da05b8e9f44a43ea3bb446ff39ef2909c89ca364c5",
       "executable": false
     },
     "DEMO.md": {
@@ -4571,7 +4571,7 @@
       "executable": false
     },
     "tests/beam/native-portal-browser.mjs": {
-      "sha256": "b3b94e2d1e05dbd785b56f7e9a68d779acdbdab4d01ca8b4631af3af6d969721",
+      "sha256": "d72d0bb5f6f6aa9dc37a1942e6188173c780bc1b9f6596673bc2d26bef681e5c",
       "executable": false
     },
     "tests/beam/package-browser.mjs": {

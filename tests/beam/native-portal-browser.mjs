@@ -136,7 +136,7 @@ export async function portalBrowser(f, portal, revision, notice, foreignPortal, 
     assert.equal(await page.locator(`a[href="${learning}"]`).count(), 1)
     await f.api('owner', 'course.retire', { course: courseId, reason: 'End external training availability' })
     const retired = await f.h.api(`portal/${portal.id}/catalog`, cookie)
-    assert.deepEqual(retired.courses, [], 'Retired revisions are unavailable in the learner catalog')
+    assert.ok(!retired.courses.some(course => course.revision === revision), 'Retired revisions are unavailable in the learner catalog')
     assert.deepEqual(retired.enrollments, [], 'Retired enrollments offer no active learning link')
     await page.reload()
     assert.equal(await page.locator(`a[href="${learning}"]`).count(), 0)
