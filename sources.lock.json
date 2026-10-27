@@ -4587,7 +4587,7 @@
       "executable": false
     },
     "tests/beam/portal-report-flow.mjs": {
-      "sha256": "a8525a530ebfd838a5bbee8e052dac10b11c5e9bb909444fd4c62dd24856cc5d",
+      "sha256": "3e42dd1c4c2709ac4262d99ec0bf70661882b438e7b937939c9854d66cf1136d",
       "executable": false
     },
     "tests/beam/portal-theme-browser.mjs": {

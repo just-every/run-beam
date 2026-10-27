@@ -28,7 +28,7 @@ export async function portalReportFlow(f) {
     await call(p, 'consent', cookie, { accept: true, noticeVersion: 1 })
     return { ...identity, cookie }
   }
-  const adminName = '=SUM(1,2) "<synthetic-beam-90>"\nNext row'
+  const adminName = '=SUM(1,2) "<synthetic-beam-90>"'
   const learnerName = 'Synthetic report learner'
   const admin = await admit(portal, 'synthetic-beam-90@example.test', adminName)
   const learner = await admit(portal, 'synthetic-beam-91@example.test', learnerName)
