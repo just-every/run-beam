@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
 // The clause's ordinary verified learner follows the actual server-rendered forms.
-export async function portalBrowser(f, portal, revision, notice, foreignPortal) {
+export async function portalBrowser(f, portal, revision, notice, foreignPortal, courseId) {
   const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
   const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
   await mkdir(evidence, { recursive: true })
@@ -131,6 +131,26 @@ export async function portalBrowser(f, portal, revision, notice, foreignPortal) 
       const viewed = await f.h.raw(`${base}/${door}`, { cookie: `${f.cookies.owner}; beam_view=synthetic-beam-11` })
       assert.equal(viewed.status, 403)
     }
+    // Catalog admission must agree with learning admission after course lifecycle changes.
+    await page.goto(`${f.h.origin}${base}/catalog`)
+    assert.equal(await page.locator(`a[href="${learning}"]`).count(), 1)
+    await f.api('owner', 'course.retire', { course: courseId, reason: 'End external training availability' })
+    const retired = await f.h.api(`portal/${portal.id}/catalog`, cookie)
+    assert.deepEqual(retired.courses, [], 'Retired revisions are unavailable in the learner catalog')
+    assert.deepEqual(retired.enrollments, [], 'Retired enrollments offer no active learning link')
+    await page.reload()
+    assert.equal(await page.locator(`a[href="${learning}"]`).count(), 0)
+    await page.getByText('No enrolled learning is available.', { exact: false }).waitFor()
+    await shot('retired-catalog')
+    assert.equal((await page.goto(f.h.origin + learning)).status(), 404)
+    await page.getByRole('heading', { name: 'Access is closed', exact: true }).waitFor()
+    await f.api('owner', 'course.archive', { course: courseId, archived: 'true' })
+    assert.deepEqual((await f.h.api(`portal/${portal.id}/catalog`, cookie)).enrollments, [])
+    await f.api('owner', 'course.reinstate', { course: courseId })
+    await page.goto(`${f.h.origin}${base}/catalog`)
+    assert.equal(await page.locator(`a[href="${learning}"]`).count(), 1, 'Reinstatement restores currently authorized learning')
+    await page.locator(`a[href="${learning}"]`).click()
+    await page.getByText('Read recorded', { exact: true }).waitFor()
     await context.close()
   } finally { await browser.close() }
   console.log('PASS portal claim, disclosure, native lessons and withdrawal forms; screens at 1440 and 390')

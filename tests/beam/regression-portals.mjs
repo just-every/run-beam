@@ -316,7 +316,7 @@ export async function enterprisePortalsCheck(f) {
   assert.ok(!(await api('owner', 'people')).members.some(row => row.name === 'Customer learner'))
   if (process.argv.includes('--browser')) await (await import('./portal-browser.mjs')).portalEntryBrowserCheck(f)
   const assessed = await portalAssessmentCheck(f)
-  await portalBrowser(f, partner, assessed.revision, portalNotice, customer)
+  await portalBrowser(f, partner, assessed.revision, portalNotice, customer, assessed.id)
   const media = await portalMediaFlow(f, partner, customer)
   await portalMediaBrowser(f, media)
   const timed = await portalTimingFlow(f, partner, customer)
