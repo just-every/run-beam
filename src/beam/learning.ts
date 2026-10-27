@@ -1,3 +1,4 @@
+import { portalCompletionCandidate, portalQualification, type PortalLearner, type PortalCompletionCandidate } from './portal-completion'
 import { revisionSequence } from './microlearning'
 import { packageRequirements } from './packages/runtime'
 import { xapiRequirements } from './packages/xapi-launch'
@@ -397,7 +398,14 @@ export async function attachmentFile(env: Bindings, actor: Actor, id: string) {
 }
 
 /** Records completion once every requirement of the exact assigned revision is met. */
-export async function tryComplete(env: Bindings, actor: Actor, assignmentId: string) {
+export async function tryComplete(env: Bindings, actor: Actor | PortalLearner, assignmentId: string) {
+  if ('portal' in actor) {
+    const existing = await one(env, `SELECT c.id FROM beam_portal_completions c JOIN beam_portal_enrollments e ON e.id=c.enrollment_id
+      JOIN beam_portal_identities i ON i.id=e.identity_id WHERE e.id=? AND e.portal_id=? AND i.id=? AND i.operator_id=?`, assignmentId, actor.portal, actor.identity, actor.account)
+    if (existing) return { id: existing.id, certificate: existing.id, expiresAt: null }
+    const candidate = await portalCompletionCandidate(env, actor, assignmentId)
+    return candidate ? await recordCompletion(env, actor, candidate) : null
+  }
   const assignment = await one(env, "SELECT * FROM beam_assignments WHERE id = ? AND status = 'open'", assignmentId)
   if (!assignment) return null
   const state = await progress(env, assignment)
@@ -415,7 +423,24 @@ export async function tryComplete(env: Bindings, actor: Actor, assignmentId: str
   return await recordCompletion(env, actor, { assignment: assignment.id, learner: assignment.learner_id, course: assignment.course_id, revision: assignment.course_revision_id, assessmentRevision: assessment?.id ?? null, method: assessment ? 'assessed' : 'lessons', evidence, renewalDays: assignment.renewal_days })
 }
 
-export async function recordCompletion(env: Bindings, actor: Actor, item: { assignment: string | null; learner: string; course: string; revision: string; assessmentRevision: string | null; method: 'lessons' | 'assessed' | 'offline'; evidence: unknown; renewalDays: number | null; completedAt?: number }) {
+export async function recordCompletion(env: Bindings, actor: Actor | PortalLearner, item: PortalCompletionCandidate | { assignment: string | null; learner: string; course: string; revision: string; assessmentRevision: string | null; method: 'lessons' | 'assessed' | 'offline'; evidence: unknown; renewalDays: number | null; completedAt?: number }) {
+  if ('portalEnrollment' in item) {
+    insist('portal' in actor, 'portal_actor_required', 403)
+    const id = newId(), at = now(), number = `BEAM-${id.toUpperCase()}`
+    await env.DB.batch([
+      stmt(env, `INSERT INTO beam_portal_completions
+        SELECT ?5,e.id,e.revision_id,?6,?7,?8,?9,?10,?11,p.name,i.display_name,r.title,r.number,json_extract(p.theme_json,'$.accent')
+        FROM (${portalQualification}) e JOIN beam_enterprise_portals p ON p.id=e.portal_id
+        JOIN beam_portal_identities i ON i.id=e.identity_id JOIN beam_course_revisions r ON r.id=e.revision_id
+        WHERE 1 ON CONFLICT(enrollment_id) DO NOTHING`, actor.portal, item.portalEnrollment, actor.identity, actor.account, id,
+        item.assessmentRevision, item.attempt, item.method, JSON.stringify(item.evidence), at, number),
+      stmt(env, `INSERT INTO beam_audit(at,actor,action,subject,detail) SELECT ?,?,'portal.completion.record',?,? WHERE changes()=1`,
+        at, actor.account, actor.portal, JSON.stringify({ identity: actor.identity, enrollment: item.portalEnrollment, revision: item.revision, assessmentRevision: item.assessmentRevision, attempt: item.attempt, outcome: 'earned' })),
+    ])
+    const earned = await one(env, 'SELECT id FROM beam_portal_completions WHERE enrollment_id=?', item.portalEnrollment)
+    return earned ? { id: earned.id, certificate: earned.id, expiresAt: null } : null
+  }
+  insist(!('portal' in actor), 'employee_actor_required', 403)
   // A linked completion must describe exactly the assignment it closes.
   if (item.assignment) {
     const assignment = await one(env, 'SELECT * FROM beam_assignments WHERE id = ?', item.assignment)

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
 import { populateAnsweredTutor } from './tutor-custody.mjs'
-import { portalNotice } from './regression-portals.mjs'
+import { portalNotice, portalQuizCourse } from './regression-portals.mjs'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { mkdtemp, readdir, readFile, realpath, rm } from 'node:fs/promises'
@@ -48,10 +48,16 @@ export async function archiveCheck(f) {
   await h.api(`portal/${portal.id}/claim`, portalCookie, { identity: portalIdentity.id })
   await h.api(`portal/${portal.id}/consent`, portalCookie, { accept: true, noticeVersion: 1 })
   await api('owner', 'portal.admin', { portal: portal.id, identity: portalIdentity.id })
-  await api('owner', 'portal.share', { portal: portal.id, revision: c.revision, confirm: true })
-  const portalEnrollment = await h.api(`portal/${portal.id}/enroll`, cookies.owner, { identity: portalIdentity.id, revision: c.revision })
+  const portalCourse = await portalQuizCourse(f, 'Archived external assessment')
+  await api('owner', 'portal.share', { portal: portal.id, revision: portalCourse.revision, confirm: true })
+  const portalEnrollment = await h.api(`portal/${portal.id}/enroll`, cookies.owner, { identity: portalIdentity.id, revision: portalCourse.revision })
   const portalLesson = (await h.api(`portal/${portal.id}/learning?enrollment=${portalEnrollment.id}`, portalCookie)).lessons[0].id
   await h.api(`portal/${portal.id}/learning`, portalCookie, { enrollment: portalEnrollment.id, lesson: portalLesson })
+  const [choice, blank, order, match] = (await h.api(`portal/${portal.id}/assessment?enrollment=${portalEnrollment.id}`, portalCookie)).questions
+  const portalAttempt = (await h.api(`portal/${portal.id}/assessment`, portalCookie, { enrollment: portalEnrollment.id, number: 1,
+    [`q_${choice.id}`]: ['0'], [`q_${blank.id}_0`]: 'synthetic-beam-14', [`q_${order.id}_0`]: '0', [`q_${order.id}_1`]: '1', [`q_${match.id}_0`]: '0', [`q_${match.id}_1`]: '1' })).attempts[0]
+  assert.deepEqual([portalAttempt.percent, portalAttempt.passed], [100, 1])
+  const portalCompletion = (await h.api(`portal/${portal.id}/completion`, portalCookie, { enrollment: portalEnrollment.id })).completion
   const tutorSource = await api('author','source.create',{title:'Tutor archive source',licence:'owned',licenceEvidence:'Synthetic employer policy',provenance:'Archive qualification',reviewer:ids.reviewer,file:file('synthetic-beam-8.txt','Use clean tools.')})
   await api('owner','tutor.source',{course:c.id,source:tutorSource.versionId,enabled:true,rightsConfirmed:true})
   const tutorAssignment = await assign(c)
@@ -77,6 +83,8 @@ export async function archiveCheck(f) {
     for await (const record of fileRecords(archive, readArchive)) if (record.kind === 'part') rows.push(...record.items.filter(item => item.kind === 'row'))
     assert.ok(!rows.some(item => ['beam_frontline_credentials', 'beam_frontline_policy'].includes(item.table)), 'archives omit both frontline credential rows and method activation')
     assert.ok(!rows.some(item=>item.table==='beam_tutor_questions'),'Private tutor question caches never travel in archives')
+    assert.deepEqual(rows.filter(item => item.table === 'beam_portal_attempts').map(item => [item.row.enrollment_id, item.row.assessment_revision_id, item.row.percent]), [[portalEnrollment.id, portalAttempt.assessmentRevision, 100]])
+    assert.deepEqual(rows.filter(item => item.table === 'beam_portal_completions').map(item => [item.row.id, item.row.enrollment_id, item.row.attempt_id]), [[portalCompletion.id, portalEnrollment.id, portalAttempt.id]])
     const archivedGrants=rows.filter(item=>item.table==='beam_tutor_grants')
     assert.equal(archivedGrants.length,1,'The enabled source grant is present in the archive')
     assert.deepEqual(archivedGrants.map(item=>[item.row.course_id,item.row.source_version_id,item.row.enabled]),[[c.id,tutorSource.versionId,0]],'The archived source grant is disabled')
@@ -136,12 +144,22 @@ export async function archiveCheck(f) {
         await t.api(`portal/${portal.id}/roster`, freshCookie, undefined, 403)
         await t.api(`portal/${portal.id}/learning?enrollment=${portalEnrollment.id}`, freshCookie, undefined, 404)
         await t.api(`portal/${portal.id}/progress.json?enrollment=${portalEnrollment.id}`, freshCookie, undefined, 404)
+        await t.api(`portal/${portal.id}/assessment?enrollment=${portalEnrollment.id}`, freshCookie, undefined, 404)
+        await t.api(`portal/${portal.id}/assessment.json?enrollment=${portalEnrollment.id}`, freshCookie, undefined, 404)
+        await t.api(`portal/${portal.id}/completion?enrollment=${portalEnrollment.id}`, freshCookie, undefined, 404)
+        await t.api(`portal/${portal.id}/certificate.pdf?enrollment=${portalEnrollment.id}`, freshCookie, undefined, 404)
         assert.deepEqual((await t.api(`portal/${portal.id}/report`, owner)).enrollments, [])
-        const freshEnrollment = await t.api(`portal/${portal.id}/enroll`, owner, { identity: freshInvitation.id, revision: c.revision })
+        const freshEnrollment = await t.api(`portal/${portal.id}/enroll`, owner, { identity: freshInvitation.id, revision: portalCourse.revision })
         assert.notEqual(freshEnrollment.id, portalEnrollment.id)
         const freshProgress = await t.api(`portal/${portal.id}/learning?enrollment=${freshEnrollment.id}`, freshCookie)
         assert.equal(freshProgress.lessonsRead, 0)
         assert.deepEqual(freshProgress.lessons.map(row => row.completedAt), [null])
+        assert.deepEqual((await t.api(`portal/${portal.id}/assessment?enrollment=${freshEnrollment.id}`, freshCookie)).attempts, [])
+        assert.equal((await t.api(`portal/${portal.id}/completion?enrollment=${freshEnrollment.id}`, freshCookie)).completion, null)
+        const retainedCompletions = (await (await t.raw('/app/data-export.json', { cookie: owner })).json()).records.beam_portal_completions.rows
+        assert.deepEqual(retainedCompletions.map(row => [row.id, row.enrollment_id, row.attempt_id]), [[portalCompletion.id, portalEnrollment.id, portalAttempt.id]])
+        const retainedAttempts = (await (await t.raw('/app/data-export.json', { cookie: owner })).json()).records.beam_portal_attempts.rows
+        assert.deepEqual(retainedAttempts.map(row => [row.id, row.enrollment_id, row.assessment_revision_id, row.percent]), [[portalAttempt.id, portalEnrollment.id, portalAttempt.assessmentRevision, 100]])
         const restoredProgress = (await (await t.raw('/app/data-export.json', { cookie: owner })).json()).records.beam_portal_lesson_progress.rows
         assert.deepEqual(restoredProgress.map(row => [row.enrollment_id, row.lesson_revision_id]), [[portalEnrollment.id, portalLesson]])
         await t.api('portal.admin', owner, { portal: portal.id, identity: freshInvitation.id })
