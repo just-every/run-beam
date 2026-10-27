@@ -117,17 +117,15 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
       # rer verify ends with the hydration check, which needs Chromium.
-      # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
-      # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
-      - name: Use the official Ubuntu HTTPS archive for browser dependencies
+      - name: Install Chromium
         run: |
-          # Current runner images use mirror+file: indirection in ubuntu.sources.
-          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
-            if [ -f "$source" ]; then
-              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|http://archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
-            fi
-          done
-      - run: pnpm exec playwright install --with-deps --only-shell chromium
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - run: pnpm exec rer verify
       - uses: actions/upload-artifact@v4
         if: always()
@@ -228,17 +226,15 @@ jobs:
           node-version: '22.20.0'
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
-      # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
-      # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
-      - name: Use the official Ubuntu HTTPS archive for browser dependencies
+      - name: Install Chromium
         run: |
-          # Current runner images use mirror+file: indirection in ubuntu.sources.
-          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
-            if [ -f "$source" ]; then
-              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|http://archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
-            fi
-          done
-      - run: pnpm exec playwright install --with-deps --only-shell chromium
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - run: pnpm exec rer build
       - name: Tutor custody and responsive screens
         run: BEAM_TUTOR_BROWSER=1 BEAM_EVIDENCE_DIR="$RUNNER_TEMP/beam-tutor-pages" node tests/beam/regressions.mjs --only=LEARN-008
@@ -269,17 +265,15 @@ jobs:
           node-version: '22.20.0'
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile && pnpm exec rer install
-      # The Azure HTTP mirror throttled font packages to 50 kB/s and consumed
-      # nine minutes of the 15-minute wall. Keep the same signed Ubuntu packages.
-      - name: Use the official Ubuntu HTTPS archive for browser dependencies
+      - name: Install Chromium
         run: |
-          # Current runner images use mirror+file: indirection in ubuntu.sources.
-          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
-            if [ -f "$source" ]; then
-              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g; s|http://archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
-            fi
-          done
-      - run: pnpm exec playwright install --with-deps --only-shell chromium
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
       - run: pnpm exec rer build
       - run: node tests/beam/regressions.mjs --only=AUTHOR-001,AUTHOR-002 --browser
       - run: node tests/beam/model-browser.mjs
