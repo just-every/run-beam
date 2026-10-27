@@ -54,7 +54,7 @@ export async function invitePortalIdentity(env: Bindings, actor: Actor, input: I
     insist(false, 'employee_identity_link_required', 409)
   }
   const identity = newId()
-  if (!previous) await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: `/api/beam/portal/${id}/claim?identity=${identity}` })
+  if (!previous) await operatorAuth(env).invite(request, { email, displayName: name, role: 'member', returnTo: `/portal/${id}/claim?identity=${identity}` })
   const account = previous ?? await one(env, 'SELECT id FROM oa_operators WHERE lower(email)=?', email)
   insist(account, 'portal_account_unavailable', 409)
   const existing = await one(env, 'SELECT id FROM beam_portal_identities WHERE portal_id=? AND (operator_id=? OR invited_operator_id=?)', id, account.id, account.id)
