@@ -163,7 +163,7 @@ number returns its recorded lineage without scoring again; concurrent retries do
 not create two attempts. Invalid answers do not consume an attempt. A new number
 must be the next displayed number, within the revision's limit and before a pass.
 GET `assessment.json` with the enrollment downloads that learner's own attempt
-receipt, including submitted answers and results, without the answer key.
+receipt, including submitted answers and results, without the answer key. Per-question results follow the immutable revision feedback rule: after each attempt, after passing or exhaustion, or score only. Withheld results stay out of the download.
 Assessment progress, receipt downloads and reports close when consent is withdrawn,
 the revision is unshared or the course is retired. Renewed consent preserves the
 original revision and attempts without restoring administrator rights.

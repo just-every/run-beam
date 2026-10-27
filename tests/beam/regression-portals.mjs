@@ -306,7 +306,7 @@ export async function enterprisePortalsCheck(f) {
 }
 
 // Authoring and publication use the same reviewed revision doors as employee courses.
-export async function portalQuizCourse(f, title, mode = 'automatic') {
+export async function portalQuizCourse(f, title, mode = 'automatic', feedback = 'attempt') {
   const c = await f.api('author', 'course.create', { title, reviewer: f.ids.reviewer })
   let version = c.draftVersion
   const edit = async (action, fields) => { version = (await f.api('author', action, { course: c.id, draftVersion: version, ...fields })).draftVersion }
@@ -316,7 +316,7 @@ export async function portalQuizCourse(f, title, mode = 'automatic') {
   await edit('course.question', { kind: 'order', prompt: 'Order the procedure.', items: 'Review\nPerform' })
   await edit('course.question', { kind: 'match', prompt: 'Match each action.', pairs: 'Review = Before work\nRecord = After work' })
   if (mode === 'written') await edit('course.question', { kind: 'text', prompt: 'Describe the procedure.', guidance: 'Reviewer-only guidance.' })
-  await edit('course.assessment', { passPercent: 100, maxAttempts: 2, ...(mode === 'timed' ? { timeLimitMinutes: 10 } : {}), ...(mode === 'written' ? { assessor: f.ids.assessor } : {}), ...(mode === 'practical' ? { practicalInstructions: 'Demonstrate the procedure.', assessor: f.ids.assessor } : {}) })
+  await edit('course.assessment', { passPercent: 100, maxAttempts: 2, feedback, ...(mode === 'timed' ? { timeLimitMinutes: 10 } : {}), ...(mode === 'written' ? { assessor: f.ids.assessor } : {}), ...(mode === 'practical' ? { practicalInstructions: 'Demonstrate the procedure.', assessor: f.ids.assessor } : {}) })
   const revision = (await f.api('author', 'course.submit', { course: c.id, draftVersion: version })).id
   await f.publish(revision)
   return { id: c.id, revision }
@@ -494,5 +494,24 @@ async function portalAssessmentCheck(f) {
   await second('learning', { enrollment: attended.id, lesson: attendedStudy.lessons[0].id })
   await second('completion', { enrollment: attended.id }, 409)
   assert.deepEqual(await second(`completion?enrollment=${nativeEnrollment.id}`), nativeComplete, 'New attendance requirements cannot rewrite earlier earned evidence')
+  for (const feedback of ['score', 'final']) {
+    const heldFeedback = await portalQuizCourse(f, `External ${feedback} feedback`, 'automatic', feedback)
+    await api('owner', 'portal.share', { portal: portal.id, revision: heldFeedback.revision, confirm: true })
+    const heldEnrollment = await call('enroll', { identity: exhaustedIdentity.id, revision: heldFeedback.revision }, 200, cookies.owner)
+    const heldStudy = await second(`learning?enrollment=${heldEnrollment.id}`)
+    await second('learning', { enrollment: heldEnrollment.id, lesson: heldStudy.lessons[0].id })
+    const heldQuiz = await second(`assessment?enrollment=${heldEnrollment.id}`)
+    await second('assessment', { enrollment: heldEnrollment.id, number: 1, [`q_${heldQuiz.questions[0].id}`]: ['1'] })
+    const before = await second(`assessment.json?enrollment=${heldEnrollment.id}`)
+    assert.equal(before.feedback, 'withheld')
+    assert.deepEqual(before.attempts[0].responses.map(response => response.question), heldQuiz.questions.map(question => question.id))
+    assert.deepEqual(before.attempts[0].responses[0].selected, [1])
+    assert.deepEqual(before.attempts[0].responses.map(response => Object.keys(response).sort()), Array.from({ length: 4 }, () => ['question', 'selected', 'weight']))
+    await second('assessment', { enrollment: heldEnrollment.id, number: 2 })
+    const after = await second(`assessment.json?enrollment=${heldEnrollment.id}`)
+    assert.equal(after.feedback, feedback === 'final' ? 'shown' : 'withheld')
+    assert.deepEqual(after.attempts.map(attempt => attempt.percent), [0, 0])
+    assert.deepEqual(after.attempts[0].responses.map(response => response.points ?? null), feedback === 'final' ? [0, 0, 0, 0] : [null, null, null, null])
+  }
   return c
 }

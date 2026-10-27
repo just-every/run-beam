@@ -316,7 +316,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "63c13d55422efa1ebb52380c97313c33b6455ea139afae8fcfd5765459e33b9d",
+      "sha256": "d4f0e75f0551d34552ca81e3f6ded7044c5584f13f516b7d84f2c2dbcd4a4327",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -336,7 +336,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "860d7865559251a791154c6e7f2810fc73413b534786a90fa6fc4e6a412bba45",
+      "sha256": "ece1745ec591927bc3eef6c5d4251a90ffd9bd61e44bf3d6d7175d1faf275712",
       "executable": false
     },
     "DEMO.md": {
@@ -376,7 +376,7 @@
       "executable": false
     },
     "docs/enterprise-portals.md": {
-      "sha256": "6ed4607b0325b61b3106f554ed34d76fa82355fb57d3b64d5236095be923b7c0",
+      "sha256": "80c96c5f0f7051436c7e3ebdbc2f5960a607f73039db27d3b550b11ea5170d4d",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -2044,7 +2044,7 @@
       "executable": false
     },
     "src/beam/portal-assessment.ts": {
-      "sha256": "2eca3a3583255c397ed9f49dd5a94ce4a28e5ae1f1b783c6e2f425d70bf3ea7a",
+      "sha256": "58699ad291187603720214882c93ce7f3da97f91a2eba7e64100471041c8d035",
       "executable": false
     },
     "src/beam/portal-completion.ts": {
@@ -4668,7 +4668,7 @@
       "executable": false
     },
     "tests/beam/regression-portals.mjs": {
-      "sha256": "7adb6fc97eb752fb8f6c3f2c0a9c90f1a28c4b3851d40d34442f6daf98ff70b2",
+      "sha256": "2574407866469375482c3297c64954b57a00946683b636f78c6ec0d96fcd17e4",
       "executable": false
     },
     "tests/beam/regression-questions.mjs": {
