@@ -1,0 +1,98 @@
+import assert from 'node:assert/strict'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
+
+// The clause's ordinary verified learner follows the actual server-rendered forms.
+export async function portalBrowser(f, portal, revision, notice, foreignPortal) {
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const evidence = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  await mkdir(evidence, { recursive: true })
+  const invitation = await f.api('owner', 'portal.invite', { portal: portal.id, email: 'synthetic-beam-9@example.test', name: 'External training learner', sendInvitation: true })
+  const cookie = await f.h.signIn('synthetic-beam-9@example.test', { requested: true })
+  const browser = await chromium.launch({ ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), headless: true, args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic', '--ignore-certificate-errors'] })
+  try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, ignoreHTTPSErrors: true })
+    await context.addCookies(cookie.split('; ').map(pair => ({ name: pair.slice(0, pair.indexOf('=')), value: pair.slice(pair.indexOf('=') + 1), url: f.h.origin })))
+    const page = await context.newPage(), base = `/portal/${portal.id}`
+    async function shot(name) {
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name} fits the asserted desktop width`)
+      // Every control has visible text. New icon-only controls would need the shared tooltip contract.
+      for (const control of await page.locator('button,a').all()) assert.ok((await control.innerText()).trim(), 'Portal controls have visible labels')
+      await page.screenshot({ path: join(evidence, `1440-portal-${name}.png`), fullPage: true })
+      await page.setViewportSize({ width: 390, height: 900 })
+      await page.screenshot({ path: join(evidence, `390-portal-${name}.png`), fullPage: true })
+      await page.setViewportSize({ width: 1440, height: 900 })
+    }
+    await page.goto(`${f.h.origin}${base}/claim?identity=${invitation.id}`)
+    await page.getByRole('heading', { name: 'Claim your invitation', exact: true }).waitFor()
+    await shot('claim')
+    await f.h.api(`portal/${portal.id}/consent`, cookie, undefined, 404)
+    const claiming = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === `${base}/claim`)
+    await page.getByRole('button', { name: 'Claim invitation', exact: true }).click()
+    assert.equal((await claiming).status(), 303, 'The real claim form passes the exact-Origin check')
+    await page.waitForURL(`${f.h.origin}${base}/consent`)
+    for (const disclosure of Object.values(notice)) assert.ok((await page.locator('main').innerText()).includes(disclosure))
+    assert.equal((await f.h.api(`portal/${portal.id}/consent`, cookie)).accepted, false)
+    await shot('consent')
+    await f.api('owner', 'portal.notice', { portal: portal.id, version: 1, ...notice, purpose: 'Revised external learning purpose.' })
+    await page.getByRole('checkbox').check()
+    const stale = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === `${base}/consent`)
+    await page.getByRole('button', { name: 'Accept portal notice', exact: true }).click()
+    assert.equal((await stale).status(), 409, 'A rendered notice cannot accept a later undisclosed version')
+    await page.getByRole('heading', { name: 'Access is closed', exact: true }).waitFor()
+    await shot('notice-changed')
+    await page.getByRole('link', { name: 'Review your consent', exact: true }).click()
+    assert.ok((await page.locator('main').innerText()).includes('Revised external learning purpose.'))
+    await page.getByRole('checkbox').check()
+    await page.getByRole('button', { name: 'Accept portal notice', exact: true }).click()
+    await page.getByText('Consent accepted', { exact: false }).waitFor()
+    assert.equal((await f.h.api(`portal/${portal.id}/consent`, cookie)).accepted, true)
+    await f.api('owner', 'portal.admin', { portal: portal.id, identity: invitation.id })
+    assert.deepEqual((await f.h.api(`portal/${portal.id}/roster`, cookie)).identities.map(row => row.id), [invitation.id])
+    const enrollment = await f.h.api(`portal/${portal.id}/enroll`, f.cookies.owner, { identity: invitation.id, revision })
+    await page.getByRole('link', { name: 'My portal learning', exact: true }).click()
+    await page.getByRole('heading', { name: 'My enrolled learning', exact: true }).waitFor()
+    await shot('catalog')
+    const learning = `${base}/learning?enrollment=${enrollment.id}`
+    await page.locator(`a[href="${learning}"]`).click()
+    await page.getByRole('button', { name: 'Mark lesson read', exact: true }).waitFor()
+    assert.ok((await page.locator('main').innerText()).includes('Perform the owned procedure.'))
+    await shot('learning')
+    await page.getByRole('button', { name: 'Mark lesson read', exact: true }).click()
+    await page.getByText('Read recorded', { exact: true }).waitFor()
+    assert.equal((await f.h.api(`portal/${portal.id}/learning?enrollment=${enrollment.id}`, cookie)).lessonsRead, 1)
+    await shot('progress')
+    const receiving = page.waitForEvent('download')
+    await page.getByRole('link', { name: 'Download my lesson progress', exact: true }).click()
+    const received = await receiving, chunks = []
+    for await (const chunk of await received.createReadStream()) chunks.push(chunk)
+    const receipt = JSON.parse(Buffer.concat(chunks).toString())
+    assert.deepEqual([receipt.portal, receipt.enrollment, receipt.revision.id, receipt.lessonsRead, receipt.completion], [portal.id, enrollment.id, revision, 1, null])
+    await page.getByRole('link', { name: 'Consent settings', exact: true }).click()
+    await page.getByRole('button', { name: 'Withdraw consent', exact: true }).click()
+    await page.getByText('Consent not accepted', { exact: false }).waitFor()
+    await shot('withdrawn')
+    assert.equal((await page.goto(f.h.origin + learning)).status(), 403)
+    await page.getByRole('heading', { name: 'Access is closed', exact: true }).waitFor()
+    await shot('closed')
+    await page.getByRole('link', { name: 'Review your consent', exact: true }).click()
+    await page.getByRole('checkbox').check()
+    await page.getByRole('button', { name: 'Accept portal notice', exact: true }).click()
+    await page.getByText('Consent accepted', { exact: false }).waitFor()
+    await page.goto(f.h.origin + learning)
+    await page.getByText('Read recorded', { exact: true }).waitFor()
+    await f.h.api(`portal/${portal.id}/roster`, cookie, undefined, 403)
+    const other = await f.h.raw(learning, { cookie: f.cookies.learner })
+    assert.equal(other.status, 404)
+    assert.ok(!(await other.text()).includes('Perform the owned procedure.'))
+    for (const door of [`claim?identity=${invitation.id}`, 'consent', 'catalog', `learning?enrollment=${enrollment.id}`]) {
+      const refused = await f.h.raw(`/portal/${foreignPortal.id}/${door}`, { cookie })
+      assert.equal(refused.status, 404)
+      assert.ok(!(await refused.text()).includes('Perform the owned procedure.'))
+      const viewed = await f.h.raw(`${base}/${door}`, { cookie: `${f.cookies.owner}; beam_view=synthetic-beam-11` })
+      assert.equal(viewed.status, 403)
+    }
+    await context.close()
+  } finally { await browser.close() }
+  console.log('PASS portal claim, disclosure, native lessons and withdrawal forms; screens at 1440 and 390')
+}

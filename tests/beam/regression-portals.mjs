@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { file } from './harness.mjs'
+import { portalBrowser } from './portal-browser.mjs'
 
 export const portalNotice = {
   operatorName: 'Synthetic training operator', purpose: 'Customer and partner training',
@@ -300,4 +301,5 @@ export async function enterprisePortalsCheck(f) {
   assert.ok(audit.events.some(row => row.action === 'portal.identity.collision' && row.detail.identity === collision.id && row.detail.outcome === 'refused'))
   assert.ok(audit.events.some(row => row.action === 'portal.consent.withdraw' && row.detail.identity === external.id))
   assert.ok(!(await api('owner', 'people')).members.some(row => row.name === 'Customer learner'))
+  await portalBrowser(f, partner, c.revision, portalNotice, customer)
 }

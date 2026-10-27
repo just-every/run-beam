@@ -4,7 +4,8 @@ ORG-008 is partial. The JSON preparation APIs keep external portal identities,
 consent, administrator grants and enrollment plans apart from employee membership.
 Enrolled learners can read native text lessons and record isolated lesson progress.
 External assessments and earned completion are not implemented.
-No portal page or hostname activation is available yet.
+Rendered claim, consent, catalog and native text learning pages are available.
+Independent portal branding and hostname activation remain unqualified.
 
 The human owner first configures the existing Settings theme. POST
 `/api/beam/portal.create` with `kind` (`employee`, `customer` or `partner`),
@@ -41,8 +42,9 @@ The invitation records an intended account, with no live binding, consent,
 employee membership or administrator authority. Employee collisions are refused
 and audited, including already linked employees. Reviewed linking remains unbuilt.
 
-The new-account invitation returns to a read-only claim API response naming the
-pending identity; opening it never binds or accepts consent.
+The new-account invitation returns to `/portal/PORTAL/claim?identity=IDENTITY`.
+The rendered claim page is read-only until the learner submits its claim form;
+opening it never binds or accepts consent. The API claim response remains available.
 After signing in through the ordinary verified account flow, the intended learner
 POSTs `/api/beam/portal/PORTAL/claim` with the invitation's `identity`.
 Only that stable account can claim it; the owner cannot claim on their behalf.
@@ -83,6 +85,24 @@ restoration never silently reactivates them. Owner learning exports include
 portal and enrollment records without external identity account bindings or administrator grants.
 
 
+## Rendered learner controls
+
+An ordinarily signed-in invited learner opens `/portal/PORTAL/claim?identity=IDENTITY`,
+claims their intended identity, and continues to `/portal/PORTAL/consent`. The complete
+notice is shown before the explicit acceptance checkbox. An earlier displayed
+version cannot accept a newly published notice; the learner must review it again.
+The consent page also supports withdrawal without an owner decision, and remains
+reachable after ordinary admission is closed.
+
+`/portal/PORTAL/catalog` lists that identity's enrolled learning. Its links open
+native text lessons, record reads, and download the learner's own lesson progress.
+Withdrawing consent closes those pages and downloads. Fresh consent resumes the
+same revision-bound progress and leaves the former administrator grant revoked.
+Pages use Beam's existing components and visible control labels, with no employee
+navigation or employee theme injected. Independent portal branding remains Gap work.
+The ordinary push Verify runs the real claim, consent, learning, download and
+withdrawal forms; its changed-screen evidence covers 1440 and 390.
+
 ## Native text lessons and progress
 
 After consent and enrollment, the learner's catalog lists their own `enrollments`.
@@ -91,7 +111,8 @@ approved revision, native text lesson titles and bodies, recorded read times,
 `lessonsRead` and the first unread `resumeLesson`. It excludes source references,
 source files, draft content, assessment answers and employee records. Lessons
 with structured blocks return `available: false` and no body until portal media
-delivery is qualified. This API is not a rendered portal or a complete learning flow.
+delivery is qualified. The matching `/portal/PORTAL/learning?enrollment=ENROLLMENT` page renders these
+lessons and real mark-read forms. This remains a bounded native text learning flow.
 
 POST the same `learning` door with `enrollment` and `lesson` to record a native
 text lesson as read. Only its enrolled learner can do this, independently of any
@@ -120,7 +141,7 @@ unqualified under OPS-003.
 
 CT approved the identity and consent policy with riders on 26 October 2026.
 The implemented API portion does not prove the complete policy or legal compliance. Full external
-learning, rendered portals, structured media, erasure workflows, branded downloads,
-completion evidence and browser isolation proof remain owed. OPS-003 inherits
+learning, independent branding, structured media, erasure workflows, branded downloads,
+completion evidence and the remaining enterprise journeys remain owed. OPS-003 inherits
 the external identity retention and erasure obligation; ORG-009 retains hostname
 activation. This preparation feature must not be described as a finished portal.
