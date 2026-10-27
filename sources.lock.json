@@ -1791,7 +1791,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "002e7fc405d981199704b2f393714da9fd6eac30f2f2ddf8cf9fbde484d1411d",
+      "sha256": "2fc70cecde5a6773711711936c874e40517728be7dd5b41b717028826671e6e0",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -4556,6 +4556,10 @@
     },
     "tests/beam/model-edge.mjs": {
       "sha256": "a254313ce4f79285e6ff1a8122ccfb6d24d81bb498e0a639cf4798c4fd0823fd",
+      "executable": false
+    },
+    "tests/beam/native-portal-browser.mjs": {
+      "sha256": "a392e05f2a4585d8f2371d62a5a9c8c9d9a5563921b8dd1c255d0fc307c0864c",
       "executable": false
     },
     "tests/beam/package-browser.mjs": {
