@@ -100,7 +100,8 @@
           "migrations/core/0113_beam_tutor.sql",
           "migrations/core/0114_beam_tutor_consent.sql",
           "migrations/core/0115_beam_portal_learning.sql",
-          "migrations/core/0116_beam_portal_assessments.sql"
+          "migrations/core/0116_beam_portal_assessments.sql",
+          "migrations/core/0117_beam_portal_timing.sql"
         ]
       }
     },

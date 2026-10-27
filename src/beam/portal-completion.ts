@@ -1,4 +1,4 @@
-// Qualification is bounded to native text and untimed automatic assessments.
+// Qualification is bounded to native lessons and automatic assessments.
 import type { Bindings } from '../auth.server'
 import { all, insist, one } from './core'
 import { portalUnsupportedBlocks } from './portal-media'
@@ -20,7 +20,7 @@ export const portalQualification = `SELECT e.* FROM (${portalAdmission}) e
  AND NOT EXISTS(SELECT 1 FROM beam_revision_sequences WHERE course_revision_id=e.revision_id)
  AND NOT EXISTS(SELECT 1 FROM beam_lti_resources WHERE course_id=revision.course_id)
  AND NOT EXISTS(SELECT 1 FROM beam_assessment_revisions a WHERE a.course_revision_id=e.revision_id AND
-   (a.time_limit_minutes IS NOT NULL OR a.practical_instructions IS NOT NULL
+   (a.practical_instructions IS NOT NULL
    OR EXISTS(SELECT 1 FROM json_each(a.questions_json) q WHERE json_extract(q.value,'$.kind')='text')
    OR (json_array_length(a.questions_json)>0 AND NOT EXISTS(SELECT 1 FROM beam_portal_attempts t WHERE t.enrollment_id=e.id AND t.assessment_revision_id=a.id AND t.passed=1))))`
 

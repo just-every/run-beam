@@ -10,7 +10,8 @@ export async function portalMediaFlow(f, portal, foreignPortal) {
   const cookie = await h.signIn('synthetic-beam-21@example.test', { requested: true })
   const call = (door, body, status = 200, as = cookie) => h.api(`portal/${portal.id}/${door}`, as, body, status)
   await call('claim', { identity: invitation.id })
-  await call('consent', { accept: true, noticeVersion: 1 })
+  const noticeVersion = (await call('consent')).noticeVersion
+  await call('consent', { accept: true, noticeVersion })
   const upload = (filename, bytes) => api('author', 'source.create', { title: filename, licence: 'owned', licenceEvidence: 'Employer-owned training', reviewer: ids.reviewer, provenance: 'Private preparation provenance', file: file(filename, bytes) })
   const originals = [
     ['image', 'synthetic-beam-21.png', syntheticImage, 'image/png'],
@@ -78,7 +79,7 @@ export async function portalMediaFlow(f, portal, foreignPortal) {
   assert.equal((await call(`completion?enrollment=${enrollment.id}`)).qualified, true)
   await call('consent', { withdraw: true })
   for (const path of [...paths, captionPath]) assert.equal((await h.raw(path, { cookie })).status, 403)
-  await call('consent', { accept: true, noticeVersion: 1 })
+  await call('consent', { accept: true, noticeVersion })
   assert.equal((await call(`learning?enrollment=${enrollment.id}`)).lessonsRead, 1)
   await api('owner', 'portal.share', { portal: portal.id, revision, confirm: true, revoke: true })
   for (const path of [...paths, captionPath]) assert.equal((await h.raw(path, { cookie })).status, 404)
