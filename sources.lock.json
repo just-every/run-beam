@@ -4562,7 +4562,7 @@
       "executable": false
     },
     "tests/beam/regression-directory.mjs": {
-      "sha256": "1462b1257501c0c307f97312e2e85c08acfdb42cc8ab87cc7b951a5d5ce13f01",
+      "sha256": "38fad24e7a4b79ab29d830edb4d3f66e69584954afaf184ef124357b7052c23e",
       "executable": false
     },
     "tests/beam/regression-discussions.mjs": {
@@ -4650,7 +4650,7 @@
       "executable": false
     },
     "tests/beam/regression-portal-theme.mjs": {
-      "sha256": "f8ef90dc20f7bcbc49c81d65de4bb887b471b32d0740aeea1621e4f39dfbb6b4",
+      "sha256": "6d129a3f1946a6ecfc55cfaf4e866c19c0bc58bd967d435fa3f7933e26ccaa76",
       "executable": false
     },
     "tests/beam/regression-portals.mjs": {

@@ -208,4 +208,3 @@ export async function frontlineCheck(f) {
     assert.equal(response.status, i < 30 ? 401 : 429)
   }
 }
-
