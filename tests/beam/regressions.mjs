@@ -69,6 +69,7 @@ try {
     const result = await check(f)
     if (name === 'AUTHOR-002 reviewed source extraction' && process.argv.includes('--browser')) await (await import('./source-browser.mjs')).sourceBrowserCheck(f)
     if (name.startsWith('AUTHOR-001') && process.argv.includes('--browser')) await multimediaBrowserCheck(f, result)
+    if (name === 'AUTHOR-002 owner-consented OCR and correction' && process.argv.includes('--browser')) await (await import('./provider-browser.mjs')).providerControlBrowserCheck()
     console.log(`PASS ${name}`)
   }
 } finally {

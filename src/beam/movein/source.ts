@@ -160,7 +160,7 @@ export async function talentLmsSource(env: Bindings, ownerPrincipalId: string): 
           if (source.kind === 'active-requirement') {
             const cells = payload.cells as Record<string,string>, email = cells.email.toLowerCase(), course = cells['course id']
             if (!email || !courses.has(course)) return {effects:[],rejection:`${at(source)}: requirement needs an email and a course from the course list`}
-            if (!['true','false','active','closed'].includes(cells.active.toLowerCase())) return {effects:[],rejection:`${at(source)}: Active must be true/false or active/closed`}
+            if (!['true','false','active','closed'].includes(cells.active.toLowerCase())) return {effects:[],rejection:`${at(source)}: Active must be true or false, or active or closed`}
             const dueOn = cells['due date'] ? parseDate(cells['due date'],order) : null
             if (cells['due date'] && !dueOn) return {effects:[],rejection:`${at(source)}: unreadable requirement due date`}
             const target = sha256(`requirement:${course}:${email}`)

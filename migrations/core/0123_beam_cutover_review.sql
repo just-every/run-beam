@@ -1,4 +1,4 @@
--- Value-free owner decisions; source people/requirements remain in existing import custody.
+-- Value-free owner decisions; source people and requirements remain in existing import custody.
 CREATE TABLE beam_cutover_credit_decisions (
  plan_id TEXT NOT NULL REFERENCES ik_door_plans(id), course_id TEXT NOT NULL REFERENCES beam_courses(id),
  decided_by TEXT NOT NULL REFERENCES beam_members(id), decided_at INTEGER NOT NULL,

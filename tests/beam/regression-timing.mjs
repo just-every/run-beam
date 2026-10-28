@@ -107,8 +107,8 @@ export async function timedCheck(f) {
   assert.deepEqual([timing.timeLimitMinutes, timing.extraMinutes, timing.closeReason, timing.accommodation.grantedBy, timing.accommodation.note], [10, 5, 'submitted', ids.owner, 'LEARN-011 extra time'])
   const page = await (await h.raw(`/app/attempts/${submitted.id}`, { cookie: cookies.manager })).text()
   assert.ok(page.includes('50% extra time') && page.includes(`granted by ${timing.accommodation.grantedByName}`))
-  // A request is private and cannot grant time by itself. Decline/replay and
-  // concurrent approval use the same public doors as the request/review cards.
+  // A request is private and cannot grant time by itself. Decline and replay and
+  // concurrent approval use the same public doors as the request and review cards.
   await api('learner', 'accommodation.request', { assignment: second, kind: 'percent', amount: 50 }, 404)
   await api('learner', 'accommodation.request', { assignment: mine, kind: 'percent', amount: 401 }, 400)
   const requested = await h.submit('accommodation.request', cookies.learner, { assignment: mine, kind: 'minutes', amount: '10' }, '/app/learning')

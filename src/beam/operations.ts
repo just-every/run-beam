@@ -16,7 +16,7 @@ export async function runOperationalJob(env: Bindings, name: OperationalJob, run
     await stmt(env, "UPDATE beam_operational_jobs SET finished_at=?,last_success_at=?,outcome='succeeded' WHERE name=? AND started_at=?", now(), now(), name, started).run()
     return result
   } catch (error) {
-    // The original provider/runtime error is deliberately absent from the health record.
+    // The original provider or runtime error is deliberately absent from the health record.
     await stmt(env, "UPDATE beam_operational_jobs SET finished_at=?,outcome='failed',failures=failures+1 WHERE name=? AND started_at=?", now(), name, started).run()
     throw error
   }

@@ -40,6 +40,7 @@ export async function erasureCheck() {
     await api('owner', 'erasure.policy', { assessmentDays: 0, justification: 'Keep only explicitly held learning evidence.', consent: true })
     await api('owner', 'erasure.preview', { kind: 'person', subject: ids.owner }, 409)
     const c = await f.course('Held observed equipment check', true), assigned = await f.assign(c)
+    const timeRequest = await api('learner', 'accommodation.request', { assignment: assigned, kind: 'percent', amount: 50 })
     const tutor = await populateAnsweredTutor(f,assigned)
     await f.lessons(assigned)
     const evidence = await api('learner', 'practical.submit', { assignment: assigned, evidence: 'Observed pressure check.', file: file('synthetic-beam-1.txt', 'Observed equipment evidence') })
@@ -170,6 +171,8 @@ export async function erasureCheck() {
       assert.notEqual(i, 59, 'erasure converges')
     }
     assert.ok(report.outcomes.native.some(row => row.table === 'beam_sequence_answers' && row.removed > 0))
+    assert.ok(report.outcomes.native.some(row => row.table === 'beam_accommodation_requests' && row.removed === 1))
+    await api('owner', 'accommodation.decide', { request: timeRequest.id, decision: 'approve' }, 404)
     assert.ok(report.providers.some(row => row.state === 'failed'), 'provider deletion remains visibly unresolved')
     assert.ok(report.providers.some(row=>row.connection_id==='model:openai' && row.state==='failed' && row.failure==='model_provider_erasure_api_required'),'Erasing the native answered cache never claims model-provider deletion')
     assert.ok(report.providers.some(row=>row.connection_id===external.connection && row.state==='failed' && row.failure==='connected_lrs_erasure_api_required'))

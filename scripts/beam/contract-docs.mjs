@@ -18,7 +18,7 @@ const summary = (label, predicate) => `| ${label} | ${count(predicate).join(' | 
 const contract = source.replace(/^\| Published \|.*$/m, summary('Published', row => row[2] === 'published'))
   .replace(/^\| Target and push further \|.*$/m, summary('Target and push further', row => row[2] !== 'published'))
   .replace(/^\| All \|.*$/m, summary('All', () => true))
-const claims = '# Beam implementation claims\n\nGenerated from CONTRACT.md. The source retains all acceptance obligations and judgments.\n\n| Clause | Title | Kind | Status | Evidence | Gap |\n| --- | --- | --- | --- | --- | --- |\n' + rows.map(row => row.join(' | ')).join('\n') + '\n'
+const claims = '# Beam implementation claims\n\nGenerated from CONTRACT.md. Read the source for the complete acceptance obligations, evidence and remaining gaps.\n\n| Clause | Title | Kind | Status |\n| --- | --- | --- | --- |\n' + rows.map(row => row.slice(0, 4).join(' | ') + ' |').join('\n') + '\n'
 for (const [path, expected] of [['CONTRACT.md', contract], ['ACCEPTANCE.md', acceptance], ['docs/CLAIMS.md', claims]]) {
   if (mode === 'write') writeFileSync(path, expected)
   else if (!existsSync(path) || read(path) !== expected) throw Error(`Stale generated contract view: ${path}`)

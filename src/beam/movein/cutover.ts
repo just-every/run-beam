@@ -12,7 +12,7 @@ import { talentLmsSource } from './source'
 import { importInstallationId, importNamespace, ownerPredicate } from './door'
 
 function owner(actor:Actor) {requireOwner(actor);insist(!actor.agent&&!actor.app&&!actor.viewAs,'human_owner_required',403)}
-// Exact, ordered state compared inside the final INSERT: no read/check/write race.
+// Exact, ordered state compared inside the final INSERT: no read, check and write race.
 // Only decision lineage is stored; the state body never leaves this server or enters an audit.
 const inventories:[string,string][]=[
  ['beam_imported_history','id,kind,payload,revision'], ['beam_members','id,email,employment,erased_at,operator_id,name'],
@@ -36,7 +36,7 @@ async function comparison(env:Bindings,actor:Actor,planId:string){
    WHERE p.id=? AND p.installation_id=? AND p.namespace=? AND p.complete=1 AND n.pending_id IS NULL`,planId,importInstallationId,importNamespace)
  insist(plan?.state==='completed','cutover_completed_head_required',409)
  const source=await talentLmsSource(env,actor.id)
- // Snapshot validation reads destination/principal and the retained database only; authority stays the live owner session.
+ // Snapshot validation reads destination and principal and the retained database only; authority stays the live owner session.
  const context:DoorRequest={options:{database:env.DB as unknown as D1Database,destination:'history',targets:historyTargets,...source,ownerPrincipalId:actor.id,format:'json'},via:'operator',authority:ownerPredicate(actor),epoch:Number(data[12][0]?.[1]??0),
    access:{action:'status',installationId:importInstallationId,email:actor.email,namespace:importNamespace,maxBytes:64*1024*1024,maxChunks:1024,maxRecords:100000}}
  const snapshot=await loadSnapshot(context,plan)

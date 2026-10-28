@@ -27,7 +27,7 @@ export const migrations = async () => migrationReplay(plan, policy)
 // withholding policy (as before it) still restores, and its grants come back disabled the same way.
 export async function archiveCheck(f) {
   const { api, h, cookies, ids, course, assign, lessons } = f
-  await api('owner', 'source.ocr.configure', { operation: 'enable', apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
+  await api('owner', 'source.ocr.configure', { operation: 'enable', accountMode: 'sandbox', agreementConfirmed: true, totalBudgetCents: 10000, apiKey: 'synthetic-beam-1', maxCostCents: 1000, consent: true })
   await api('owner', 'model.configure', { operation: 'enable', apiKey: 'synthetic-beam-2', maxCostCents: 1000, consent: true })
   const modelCipher = (await h.db.prepare('SELECT key_cipher FROM beam_model_config WHERE singleton=1').first()).key_cipher
   const ocrCipher = (await h.db.prepare('SELECT key_cipher FROM beam_source_ocr_config WHERE singleton=1').first()).key_cipher

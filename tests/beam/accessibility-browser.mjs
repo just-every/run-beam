@@ -19,12 +19,13 @@ export async function accessibilityBrowserCheck(){
    const tabTo=async locator=>{assert.equal(await locator.count(),1);for(let n=0;n<250;n++){if(await locator.evaluate(node=>node===document.activeElement))return;await page.keyboard.press('Tab')}assert.fail('Keyboard focus did not reach the named control')}
    const activate=async(locator,{navigate=true,space=false}={})=>{await tabTo(locator);const key=space?'Space':'Enter';if(navigate)await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.keyboard.press(key)]);else await page.keyboard.press(key)}
    const shot=async name=>{
+    const initialViewport = page.viewportSize()
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${name} overflow`)
     for(const proofWidth of [1440,390]){
      await page.setViewportSize({width:proofWidth,height:900})
      await page.screenshot({path:join(evidence,`${proofWidth}-accessibility-${name}.png`),fullPage:true})
     }
-    await page.setViewportSize({width,height:900})
+    await page.setViewportSize(initialViewport)
    }
    const audit=async name=>{
     const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze()
@@ -54,7 +55,7 @@ export async function accessibilityBrowserCheck(){
    await as('learner');await page.goto(f.h.origin+'/app/learning')
    await page.keyboard.press('Tab');assert.equal(await page.getByRole('link',{name:'Skip to content',exact:true}).evaluate(node=>node===document.activeElement),true)
    await shot('skip-link-focus')
-   {await page.setViewportSize({width:390,height:900});const menu=page.getByRole('checkbox',{name:'Menu',exact:true});await activate(menu,{navigate:false,space:true});assert.equal(await menu.isChecked(),true);assert.equal(await page.getByRole('navigation',{name:'Main',exact:true}).isVisible(),true);await shot('menu-focus');await page.keyboard.press('Space');assert.equal(await menu.isChecked(),false);await page.setViewportSize({width,height:900})}
+   {await page.setViewportSize({width:390,height:900});const menu=page.getByRole('checkbox',{name:'Menu',exact:true});await activate(menu,{navigate:false,space:true});assert.equal(await menu.isChecked(),true);assert.equal(await page.getByRole('navigation',{name:'Main',exact:true}).isVisible(),true);await shot('menu-focus');await tabTo(menu);await page.keyboard.press('Space');assert.equal(await menu.isChecked(),false);await page.setViewportSize({width,height:900})}
    await activate(page.getByRole('link',{name:'Skip to content',exact:true}))
    assert.equal(await page.locator('main').evaluate(node=>node===document.activeElement),true)
    await audit('learning')
@@ -93,6 +94,6 @@ export async function accessibilityBrowserCheck(){
  await writeFile(join(evidence,'accessibility.json'),JSON.stringify(report,null,2)+'\n')
  const violations=audits.flatMap(row=>row.violations.map(violation=>({width:row.width,screen:row.screen,...violation})))
  assert.deepEqual(violations,[],'automated WCAG violations remain; inspect accessibility.json')
- console.log('PASS automated WCAG 2.2 AA rules on authoring, review and native learner screens at 1440/390')
+ console.log('PASS automated WCAG 2.2 AA rules at 1440; responsive proof at 1440 and 390')
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await accessibilityBrowserCheck()
