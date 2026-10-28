@@ -106,7 +106,8 @@
           "migrations/core/0120_beam_entra.sql",
           "migrations/core/0121_beam_microsoft_sources.sql",
           "migrations/core/0118_beam_portal_practical.sql",
-          "migrations/core/0122_beam_ocr_budget.sql"
+          "migrations/core/0122_beam_ocr_budget.sql",
+          "migrations/core/0123_beam_cutover_review.sql"
         ]
       }
     },

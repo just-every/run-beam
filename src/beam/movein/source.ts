@@ -6,7 +6,7 @@ import type { ImportDoorSource } from '../../modules/import-kit/src/door/types'
 import { BeamError, all, insist } from '../core'
 import { readCsv, readXlsx, type Table } from './tables'
 
-export const mappingVersion = 'talentlms-records-1'
+export const mappingVersion = 'talentlms-records-2'
 const HEADERS = {
   id: ['id', 'course id'], name: ['course', 'course name', 'name', 'title'], code: ['code', 'course code'], category: ['category'],
   user: ['user', 'name', 'full name', 'learner'], email: ['email', 'e-mail', 'email address'], status: ['status', 'completion status', 'progress status'],
@@ -107,6 +107,19 @@ export async function talentLmsSource(env: Bindings, ownerPrincipalId: string): 
       }
 
 
+      // Employer-reviewed sidecar for current requirements; it is not inferred from historical completion.
+      if (input.activeRequirements) {
+        const original = decodeFile(input.activeRequirements), table = readCsv(original.bytes, original.filename)
+        insist(table.rows.length>1 && table.rows.length<=5001,'requirement_row_limit')
+        const headers = table.rows[0]?.map(value => value.trim().toLowerCase()) ?? []
+        insist(['email','course id','active','due date'].every(name => headers.includes(name)), 'requirement_headers')
+        insist(new Set(headers).size === headers.length, 'requirement_headers')
+        for (const [index,cells] of table.rows.slice(1).entries()) {
+          const fields = Object.fromEntries(headers.map((name,i)=>[name,cells[i]?.trim() ?? '']))
+          record('active-requirement', `requirement:${index+2}`, {course:fields['course id'],cells:fields,
+            unsupportedFields:headers.filter(name=>!['email','course id','active','due date'].includes(name))}, original.filename, index+2)
+        }
+      }
       const mapped = new Map<string, string | null>()
       insist(input.mappings === undefined || (input.mappings && !Array.isArray(input.mappings) && typeof input.mappings === 'object'), 'invalid_course_mapping')
       for (const id of courses.keys()) {
@@ -143,6 +156,22 @@ export async function talentLmsSource(env: Bindings, ownerPrincipalId: string): 
           if (source.kind === 'course') {
             if (!payload.id) return {effects: [], rejection: 'course row without an ID'}
             return { effects: [{ targetKind: 'course', targetId: sha256(`course:${payload.id}`), value: { source: 'TalentLMS', sourceId: payload.id, name: payload.name, code: payload.code, category: payload.category, mappedCourse: mapped.get(payload.id) ?? null } }] }
+          }
+          if (source.kind === 'active-requirement') {
+            const cells = payload.cells as Record<string,string>, email = cells.email.toLowerCase(), course = cells['course id']
+            if (!email || !courses.has(course)) return {effects:[],rejection:`${at(source)}: requirement needs an email and a course from the course list`}
+            if (!['true','false','active','closed'].includes(cells.active.toLowerCase())) return {effects:[],rejection:`${at(source)}: Active must be true/false or active/closed`}
+            const dueOn = cells['due date'] ? parseDate(cells['due date'],order) : null
+            if (cells['due date'] && !dueOn) return {effects:[],rejection:`${at(source)}: unreadable requirement due date`}
+            const target = sha256(`requirement:${course}:${email}`)
+            if (emitted.has(target)) return {effects:[],rejection:`${at(source)}: duplicate requirement for ${email} and ${course}`}
+            emitted.set(target,at(source))
+            const value = {source:'TalentLMS',sourceCourse:course,sourceEmail:email,email,member:members.get(email)??null,
+              mappedCourse:mapped.get(course)??null,active:['true','active'].includes(cells.active.toLowerCase()),dueOn,
+              unsupportedFields:payload.unsupportedFields,historical:false,sourcePointer:at(source)}
+            const reasons = [!value.member?'no matching Beam person':null,!value.mappedCourse?'no mapped Beam course':null,
+              payload.unsupportedFields.length?`unsupported fields retained in original: ${payload.unsupportedFields.join(', ')}`:null].filter((value):value is string=>!!value)
+            return {effects:[{targetKind:'requirement',targetId:target,value:value as Json}],unmapped:reasons.map(reason=>({reason}))}
           }
           const cells = payload.cells as Record<string, string>
           const field = (names: string[]) => Object.entries(cells).find(([header]) => names.includes(header.trim().toLowerCase()))?.[1]?.trim() ?? ''

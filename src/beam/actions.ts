@@ -1,3 +1,4 @@
+import { declineCutoverCredit, approveCutover } from './movein/cutover'
 import { configureEntra, associateEntraSubject, mapEntraGroup } from './entra'
 import { configureMicrosoft, checkMicrosoft } from './microsoft/account'
 import { browseMicrosoft, previewMicrosoft, importMicrosoft, syncMicrosoft } from './microsoft/sources'
@@ -339,6 +340,8 @@ export const actions: Record<string, Handler> = {
   'history.accept': (env, actor, input) => acceptHistory(env, actor, input),
   // REPORT-001 / MOVE-009: the expiring window and imported-history credit decisions.
   'report.window': (env, actor, input) => saveExpiringWindow(env, actor, input),
+  'cutover.credit.decline': declineCutoverCredit,
+  'cutover.approve': approveCutover,
   'credit.preview': (env, actor, input) => previewCredit(env, actor, input),
   'credit.approve': (env, actor, input) => approveCredit(env, actor, input),
   'credit.undo': (env, actor, input) => undoCredit(env, actor, input),
