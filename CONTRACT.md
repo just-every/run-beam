@@ -750,7 +750,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 **Requirement.** Learning-specific accommodations include recorded extra time under LEARN-024 on timed assessments and an equivalent accessible route for an inaccessible package, approved by its reviewer. The shared Base accessibility bar applies to every learning door.
 
 **Acceptance.**
-1. Complete a course, quiz, evidence submission and certificate retrieval with keyboard and screen reader on phone/desktop; request extra time and test an inaccessible package’s disclosed equivalent route.
+1. Complete a course, quiz, evidence submission and certificate retrieval by keyboard with accessibility-tree assertions at phone and desktop widths; request extra time and test an inaccessible package’s disclosed equivalent route.
 
 #### LEARN-012 — Deliver lessons through workplace messaging and SMS
 

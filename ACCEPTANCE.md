@@ -912,7 +912,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-PUBLIC-003 �
 **Requirement.** Learning-specific accommodations include recorded extra time under LEARN-024 on timed assessments and an equivalent accessible route for an inaccessible package, approved by its reviewer. The shared Base accessibility bar applies to every learning door.
 
 **Acceptance.**
-1. Complete a course, quiz, evidence submission and certificate retrieval with keyboard and screen reader on phone/desktop; request extra time and test an inaccessible package’s disclosed equivalent route.
+1. Complete a course, quiz, evidence submission and certificate retrieval by keyboard with accessibility-tree assertions at phone and desktop widths; request extra time and test an inaccessible package’s disclosed equivalent route.
 
 **Evidence.** `src/beam/ui/html.ts`, `src/beam/ui/learner.ts`, `src/beam/timing.ts`, `tests/beam/journey.mjs`, `tests/beam/regression-timing.mjs`
 **Gap.** Semantic forms, responsive native journeys and recorded timed-assessment extra time exist. Complete keyboard/screen-reader and WCAG 2.2 AA qualification, captions/transcripts and inaccessible-package equivalent-route acceptance remain unproven.

@@ -1918,7 +1918,25 @@
     {
       "file": "CONTRACT.md",
       "line": 236,
-      "text": "**Acceptance evidence:** Complete a course, quiz, evidence submission and certificate retrieval with keyboard and screen reader on phone/desktop; request extra time and test an inaccessible package\u2019s disclosed equivalent route.",
+      "text": "**Acceptance evidence:** Complete a course, quiz, evidence submission and certificate retrieval with keyboard and ",
+      "to": "clause",
+      "ids": [
+        "LEARN-011"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 236,
+      "text": "screen reader",
+      "to": "register",
+      "ids": [
+        "R-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 236,
+      "text": " on phone/desktop; request extra time and test an inaccessible package\u2019s disclosed equivalent route.",
       "to": "clause",
       "ids": [
         "LEARN-011"
