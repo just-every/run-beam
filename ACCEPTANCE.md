@@ -8,10 +8,10 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 5 | 113 | 33 | 151 |
+| Core | 3 | 115 | 33 | 151 |
 | Agent surface | 0 | 0 | 3 | 3 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 5 | 113 | 36 | 154 |
+| Full target | 3 | 115 | 36 | 154 |
 
 Judged from the code and tests at commit `40dbe6808dad0076a932fb33b69c9dcb3861b48e` (26 October 2026). Field proof register: 10 rows; 0 passed, 0 failed, 10 not run.
 
@@ -117,7 +117,7 @@ Core · published · **partial** · Cites BASE-ACCESS-002, BASE-INPUT-001, BASE-
 
 #### BEAM-09 — Keep exact revision completion evidence
 
-Core · published · **done** · Rules D-1
+Core · published · **partial** · Rules D-1
 
 **Requirement.** Native learning completion is recorded only when every lesson of the assigned revision is done and each required assessment is passed or accepted, and binds the exact course and assessment revision with its evidence. Offline completion uses the separate instructor attestation in BEAM-10. Every completion linked to an assignment must match its learner, course and exact course revision. No door turns partial progress into a completion. Publishing a new revision, with or without reassignment, leaves earlier completions bound to their revision.
 
@@ -125,7 +125,7 @@ Core · published · **done** · Rules D-1
 1. Attempt premature completion, finish the required lessons and assessments through learner doors, publish a newer course revision and compare the old completion’s exact course/assessment revision and evidence.
 
 **Evidence.** `src/beam/learning.ts`, `tests/beam/flows.mjs`
-**Gap.** None.
+**Gap.** Premature completion, native completion bindings before publication and retained course revision after newer publication are asserted. Retained assessment revision and quiz/practical evidence after newer publication are not read back by the carried assertions.
 
 #### BEAM-10 — Record instructor-attested offline training
 
@@ -330,7 +330,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 
 #### ORG-006 — Preview bulk people changes
 
-Core · target · **done** · Cites BASE-ACCESS-004, BASE-ROLE-001
+Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 
 **Requirement.** Admins upload CSV or XLSX rosters and bulk invite, update, transfer or deactivate selected employees with validation, field mapping, duplicate handling and a write-free preview. Rows need an email or an employee id; email-less rows map username and mobile columns (as TalentLMS’s Login column does) and get ORG-011 sign-in and first-sign-in sheets instead of emailed invitations. Apply reports per-row outcomes, resumes safely and never deactivates missing rows without an explicitly chosen policy. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#org-006).
 
@@ -338,7 +338,7 @@ Core · target · **done** · Cites BASE-ACCESS-004, BASE-ROLE-001
 1. Upload a 200-person roster with duplicate email, invalid manager, a transfer and email-less rows with usernames, preview without mail/writes, apply twice and resume an interrupted batch without repeated invitations.
 
 **Evidence.** `src/beam/roster-batch.ts`, `src/beam/ui/roster-batch.ts`, `src/beam/directory.ts`, `migrations/core/0048_beam_roster_batches.sql`, `tests/beam/regression-roster.mjs`
-**Gap.** None.
+**Gap.** Roster validation, write-free preview, exact 200-person outcomes, bounded partial applies and duplicate-free ordinary reapply are asserted. Recovery after an interrupted apply response or process, without repeated invitations, is not asserted.
 
 #### ORG-007 — Offer an organized self-service learning catalog
 

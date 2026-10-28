@@ -59,8 +59,8 @@ Old reference: `e1ab711cb9ad0fffc7b942dfb504770a30fa0cf1`.
 | BEAM-09 | 1 | Incomplete required work records no completion. | `tests/beam/flows.mjs:229` | asserted |
 | BEAM-09 | 1 | Required learning and assessments complete the assignment. | `tests/beam/flows.mjs:215` | asserted |
 | BEAM-09 | 1 | Completion binds the exact course revision. | `tests/beam/flows.mjs:216` | asserted |
-| BEAM-09 | 1 | Completion binds the exact assessment revision. | `tests/beam/flows.mjs:218` | asserted |
-| BEAM-09 | 1 | Completion keeps the quiz and practical evidence ids. | `tests/beam/flows.mjs:222` | asserted |
+| BEAM-09 | 1 | The old completion retains its exact assessment revision after newer publication. | none | none |
+| BEAM-09 | 1 | The old completion retains its quiz and practical evidence after newer publication. | none | none |
 | BEAM-09 | 1 | Publishing and reassignment preserve the earlier completion revision. | `tests/beam/flows.mjs:244` | asserted |
 | BEAM-10 | 1 | Record attendance through Manage for current. | none | none |
 | BEAM-10 | 1 | historical published revisions. | none | none |
@@ -234,7 +234,7 @@ Old reference: `e1ab711cb9ad0fffc7b942dfb504770a30fa0cf1`.
 | ORG-006 | 1 | The transfer is previewed. | `tests/beam/regression-roster.mjs:41` | asserted |
 | ORG-006 | 1 | Email-less rows preserve usernames and mobile numbers. | `tests/beam/regression-roster.mjs:44`; `tests/beam/regression-roster.mjs:72` | asserted |
 | ORG-006 | 1 | The preview writes no people or mail. | `tests/beam/regression-roster.mjs:47` | asserted |
-| ORG-006 | 1 | Interrupted apply resumes through the form. | `tests/beam/regression-roster.mjs:56`; `tests/beam/regression-roster.mjs:61`; `tests/beam/regression-roster.mjs:67` | asserted |
+| ORG-006 | 1 | Bounded partial applies resume through the form. | `tests/beam/regression-roster.mjs:56`; `tests/beam/regression-roster.mjs:67` | asserted |
 | ORG-006 | 1 | Invitations are not repeated. | `tests/beam/regression-roster.mjs:65` | asserted |
 | ORG-006 | 1 | Applying twice changes no people or mail. | `tests/beam/regression-roster.mjs:76`; `tests/beam/regression-roster.mjs:80` | asserted |
 | ORG-007 | 1 | As a learner find a course. | none | none |
@@ -864,3 +864,4 @@ Old reference: `e1ab711cb9ad0fffc7b942dfb504770a30fa0cf1`.
 | LEARN-018 | old 5 | Native countdown, warnings and offline-start refusal remain in LEARN-004 and LEARN-005. | none | moved |
 | AUTO-009 | old 7 | Native reconnect refusal remains in LEARN-004 and LEARN-005. | none | moved |
 | AUTO-008 | old 2 | Provider denial, replay and spend controls remain requirements on each named provider door. | none | moved |
+| ORG-006 | 1 | An interrupted apply response or process resumes without repeated invitations. | none | none |

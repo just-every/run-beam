@@ -63,3 +63,7 @@ LEARN-008: Inherited obligations: OPS-003 and OPS-005 retain real provider delet
 
 OPS-006: Done: setup and dev, native publish and completion, build and dry-run deployment, export and restore, and one real provider connect with actionable missing-credential diagnostics are each proved above. Hosted account qualification beyond the dry run is not an acceptance point of this clause.
 
+
+## 2026-10-28 — Evidence timing and interruption boundaries
+
+BEAM-09 retains a partial status until assessment and evidence bindings are asserted after newer publication. ORG-006 retains a partial status until interruption recovery is proved; ordinary bounded batch resumption is not used as that receipt. Requirements and tests remain intact.
