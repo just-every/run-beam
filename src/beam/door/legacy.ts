@@ -23,9 +23,10 @@ export async function legacyPreparation(env: Bindings, actor: Actor, path: strin
   const part=(request.headers.get('authorization')??'').split('.')[1]
   const claim=JSON.parse(atob(part.replaceAll('-','+').replaceAll('_','/')))
   const args=write ? await request.json() as Record<string,unknown> : Object.fromEntries(new URL(request.url).searchParams)
+  if(!args || typeof args!=='object' || Array.isArray(args)) return Response.json({code:'invalid_json',error:'invalid_json'},{status:400})
   if(reader?.[1].includes(':id')) args.id=path.split('/').pop()
   if(source) args.id=path.split('/').pop()
-  if(write && !args.idempotency_key) args.idempotency_key=crypto.randomUUID()
+  if(write && args.idempotency_key===undefined) args.idempotency_key=crypto.randomUUID()
   if(write?.action==='course.block.reuse' && typeof args.from==='string') { const [course,lesson,block]=args.from.split(':'); args.from={course,lesson,block} }
   const result=await beamAgentDoor(env).invoke(name,args,{person,agent:{id:`beam-preparation:${actor.sessionId}:${claim.expiresAt}`,name:'Preparation agent'}})
   if(result.outcome==='done') {
@@ -33,6 +34,6 @@ export async function legacyPreparation(env: Bindings, actor: Actor, path: strin
     return Response.json(result.result)
   }
   const code=result.code??(result.outcome==='pending'?'approval_required':'refused')
-  const status=typeof result.fields?.status==='number' ? result.fields.status : result.outcome==='pending'?202:code==='unauthenticated'?401:403
+  const status=typeof result.fields?.status==='number' ? result.fields.status : result.outcome==='pending'?202:code==='unauthenticated'?401:code==='invalid_arguments'?400:code==='output_invalid'?500:403
   return Response.json({code,error:code,...result.fields,...(result.approval?{approval:result.approval}:{})},{status})
 }

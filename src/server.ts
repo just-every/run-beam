@@ -12,7 +12,7 @@ import { staticAssetResponse } from './base/static-assets'
 import { deploymentHealth } from './base/deployment-health'
 import { lobbyResponse } from './base/lobby'
 import { setupStateResponse } from './base/setup-state'
-import { authResponse, operatorAuth, runtimeBindings, type Bindings } from './auth.server'
+import { authResponse, identityOperatorAuth, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { beamResponse } from './beam/http'
 import { seedDemo } from './demo'
@@ -48,7 +48,7 @@ export default withDemo({
     if (agent) return agent
     const entraPath = new URL(request.url).pathname
     if (entraPath === '/scim/v2' || entraPath.startsWith('/scim/v2/') || entraPath.startsWith('/auth/oidc/beam-entra/') || entraPath === '/api/beam/entra' || entraPath.startsWith('/api/beam/entra/')) {
-      const response = await entraResponse(runtimeBindings(env), request, operatorAuth(runtimeBindings(env)))
+      const response = await entraResponse(runtimeBindings(env), request, await identityOperatorAuth(runtimeBindings(env)))
       if (response) return response
     }
     const imported = await beamImportDoor(request, runtimeBindings(env))

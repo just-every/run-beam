@@ -3,18 +3,30 @@
 // The agent is a real preparation credential issued from a manager's or
 // author's ordinary session; no model is involved.
 import assert from 'node:assert/strict'
-import { randomUUID } from 'node:crypto'
-import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypto.mjs'
+import { randomUUID, webcrypto } from 'node:crypto'
+import { autonomousPolicy, policyEnvelope } from '../../src/modules/agent-door/conformance/crypto.mjs'
 import { file } from './harness.mjs'
 import { pdf } from './fixtures.mjs'
 import { formResult } from './form-result.mjs'
 
-export async function agentFlows({ h, check, people, ids, publish }) {
-  const agentOf = async cookie => {
-    const adopted = await h.fetch('/agents/api/policy', { method: 'PUT', headers: { cookie: people.owner, origin: h.origin, 'content-type': 'application/json' }, body: JSON.stringify({ document: autonomousPolicy() }) })
+export async function agentFlows({ h, check, people, ids, publish, trust }) {
+  let policyReady
+  const ensureAgentPolicy = () => policyReady ??= (async () => {
+    let adopted
+    if (trust) {
+      const kid = 'business-a'
+      const privateKey = await webcrypto.subtle.importKey('jwk', trust.keys[kid].privateKey.export({ format: 'jwk' }), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign'])
+      const signed = await policyEnvelope({ origin: h.origin, signer: { issuer: h.vars.RER_OWNER_CLAIM_ISSUER, installationId: h.vars.RER_OWNER_CLAIM_INSTALLATION_ID, kid, privateKey }, business: 'beam-native-flows', seq: 0, revision: 0 }, autonomousPolicy())
+      adopted = await h.fetch('/api/rer/agent-policy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ policy: signed.policy }) })
+    } else {
+      adopted = await h.fetch('/agents/api/policy', { method: 'PUT', headers: { cookie: people.owner, origin: h.origin, 'content-type': 'application/json' }, body: JSON.stringify({ document: autonomousPolicy() }) })
+    }
     assert.equal(adopted.status,200)
     await adopted.body?.cancel()
+  })()
 
+  const agentOf = async cookie => {
+    await ensureAgentPolicy()
     const { token } = await h.api('agent.issue', cookie, { expiresInSeconds: 900 })
     return async (path, body, status = 200) => {
       const response = await h.fetch(`/api/beam/${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, ...(body === undefined ? {} : { origin: h.origin, 'content-type': 'application/json' }) }, body: body === undefined ? undefined : JSON.stringify(body) })
@@ -86,7 +98,7 @@ export async function agentFlows({ h, check, people, ids, publish }) {
     await h.api('agent.decide', people.author, { proposal: proposed.id, decision: 'approve', sha256: proposed.sha256 }, 403)
     await h.api('agent.decide', people.manager, { proposal: proposed.id, decision: 'approve', sha256: '0'.repeat(64) }, 409)
     const listed = (await agent('proposals')).find(row => row.id === proposed.id)
-    assert.deepEqual([listed.agent, listed.viaAgent, listed.inputs.length, listed.excluded[0].item], ['claude-code', true, 2, 'Opening the clinic'])
+    assert.deepEqual([listed.agent, listed.viaAgent, listed.inputs.length, listed.excluded[0].item], [`Preparation agent for ${(await h.api('me', people.manager)).name}`, true, 2, 'Opening the clinic'])
     assert.ok((await pageOf('/app/agent', people.manager)).includes('Front desk handbook for Lee'))
     const approved = await h.submit('agent.decide', people.manager, { proposal: proposed.id, decision: 'approve', sha256: proposed.sha256, note: 'Yes, before April.' }, '/app/agent')
     assert.equal(approved.searchParams.get('error'), null)
@@ -671,9 +683,7 @@ export async function agentFlows({ h, check, people, ids, publish }) {
   })
 
   await check('CONNECT-016', async () => {
-    const policy = await h.fetch('/agents/api/policy', { method: 'PUT', headers: { cookie: people.owner, origin: h.origin, 'content-type': 'application/json' }, body: JSON.stringify({ document: autonomousPolicy() }) })
-    assert.equal(policy.status, 200)
-    await policy.body?.cancel()
+    await ensureAgentPolicy()
     const names = { search_material: 'beam.material.search', read_report: 'beam.report.scoped', propose_course_change: 'beam.proposal.scoped' }
 
     const grant = async fields => {

@@ -175,6 +175,7 @@ legend { padding: 0; font-size: 14px; font-weight: 600; }
 .work .pop[open] > summary { margin: 0; }
 td details, td details:last-of-type { border: 0; padding: 0; }
 td form button { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.audit-table form button { min-height: 44px; }
 
 /* Tables: wall-blue header tint, hairline rows. */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }

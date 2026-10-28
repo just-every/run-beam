@@ -464,6 +464,25 @@
     },
     {
       "clauses": [
+        "BEAM-03",
+        "BEAM-08",
+        "BEAM-18",
+        "BEAM-19",
+        "BEAM-20",
+        "ORG-001",
+        "ORG-002",
+        "ORG-003",
+        "ORG-004",
+        "ORG-005",
+        "ORG-010",
+        "ORG-011",
+        "CONNECT-014",
+        "CONNECT-016"
+      ],
+      "reason": "screen"
+    },
+    {
+      "clauses": [
         "LEARN-004",
         "LEARN-005"
       ],
@@ -502,6 +521,23 @@
         "CONNECT-013",
         "CONNECT-018",
         "CONNECT-019"
+      ],
+      "reason": "connector"
+    },
+    {
+      "clauses": [
+        "AUTHOR-007",
+        "AUTHOR-008",
+        "LEARN-008",
+        "LEARN-020",
+        "LEARN-021",
+        "LEARN-022",
+        "LEARN-023",
+        "OPS-005",
+        "PACK-003",
+        "PACK-006",
+        "CONNECT-004",
+        "CONNECT-015"
       ],
       "reason": "connector"
     }

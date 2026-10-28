@@ -5,15 +5,16 @@ import { currentActor, resolveAuthority, type Actor } from '../actor.ts'
 import { one, BeamError } from '../core.ts'
 import { agentApplicationActor } from '../app-credentials.ts'
 import { liveSession } from '../agent-credentials.ts'
+type BeamPerson = Person & { policyRole: 'owner' | 'editor' | null }
 
 /** Business subjects resolve to OA ids, then to the actual learning member id. */
 export function beamPeople(env: Bindings): PeopleAdapter {
   const operators = operatorAuthPeople({ db: env.DB, allowList: authConfig(env).allowList, session: request => operatorAuth(env).getSession(request) })
-  const member = async (operatorId: string): Promise<Person | null> => {
+  const member = async (operatorId: string): Promise<BeamPerson | null> => {
     const operator = await operators.person(operatorId)
     const row = await one(env, 'SELECT id,name,employment,erasure_pending,erased_at FROM beam_members WHERE operator_id=?', operatorId)
     if (!operator || !row) return null
-    return { ...operator, id: row.id, name: row.name, active: operator.active && row.employment !== 'terminated' && !row.erasure_pending && !row.erased_at && await entraSessionAllowed(env, operatorId) }
+    return { ...operator, id: row.id, name: row.name, policyRole: (await operators.businessMember!(operator))?.role ?? null, active: operator.active && row.employment !== 'terminated' && !row.erasure_pending && !row.erased_at && await entraSessionAllowed(env, operatorId) }
   }
   const operatorFor = async (person: Person) => {
     const row = await one(env, 'SELECT operator_id FROM beam_members WHERE id=?', person.id)
@@ -26,7 +27,7 @@ export function beamPeople(env: Bindings): PeopleAdapter {
       if (request.headers.has('authorization')) return null
       try { const actor = await currentActor(env, request); return actor && !actor.viewAs ? this.person(actor.id) : null } catch { return null }
     },
-    businessRole: person => person.role === 'owner' ? 'owner' : null,
+    businessRole: person => person.role === 'owner' ? 'owner' : (person as BeamPerson).policyRole ?? null,
     async businessMember(person) { const operator = await operatorFor(person); return operator ? operators.businessMember!(operator) : null },
   }
 }

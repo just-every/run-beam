@@ -10,10 +10,12 @@ import { sourceTool } from './source.ts'
 
 export const notTools = [
   { clauses: ['LEARN-003','LEARN-011'], reason: 'screen' as const },
+  { clauses: ['BEAM-03','BEAM-08','BEAM-18','BEAM-19','BEAM-20','ORG-001','ORG-002','ORG-003','ORG-004','ORG-005','ORG-010','ORG-011','CONNECT-014','CONNECT-016'], reason: 'screen' as const },
   { clauses: ['LEARN-004','LEARN-005'], reason: 'device' as const },
   { clauses: ['BEAM-15','MOVE-001','MOVE-002','MOVE-003','MOVE-004','MOVE-005','MOVE-006','MOVE-007','MOVE-008','MOVE-009'], reason: 'import-door' as const },
   { clauses: ['OPS-006','OPS-007'], reason: 'installation' as const },
   { clauses: ['CONNECT-007','CONNECT-008','CONNECT-009','CONNECT-010','CONNECT-011','CONNECT-012','CONNECT-013','CONNECT-018','CONNECT-019'], reason: 'connector' as const },
+  { clauses: ['AUTHOR-007','AUTHOR-008','LEARN-008','LEARN-020','LEARN-021','LEARN-022','LEARN-023','OPS-005','PACK-003','PACK-006','CONNECT-004','CONNECT-015'], reason: 'connector' as const },
 ]
 
 function trust(env: Bindings): Trust | null {

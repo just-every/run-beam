@@ -11,9 +11,13 @@ export function scopedTools(env: Bindings): ToolDefinition[] {
     scope: `beam:mcp:${tool}`, readOnly: tool !== 'propose_course_change', classes: [tool === 'propose_course_change' ? 'standard' : 'sensitive'], clauses: ['CONNECT-016','CONNECT-014'], untrusted: true,
     inputSchema: { type: 'object', properties: { query: { type: 'string', maxLength: 200 }, team: { type: 'string' }, course: { type: 'string' }, status: { type: 'string' }, draftVersion: { type: 'integer' }, summary: { type: 'string' }, draft: { type: 'object' }, inputs: { type: 'array' }, passages: { type: 'array' }, missing: { type: 'array' } }, required: tool === 'search_material' ? ['query'] : tool === 'propose_course_change' ? ['course','draftVersion','summary','draft'] : [], additionalProperties: true }, outputSchema: { type: 'object' },
     classify: async (args,ctx) => native(async () => {
-      const actor = await callActor(env,ctx)
+      let actor = await callActor(env,ctx)
       if (actor.app && !actor.app.tools.includes(tool)) throw new ToolRefusal('tool_not_granted')
-      return [{ class: tool === 'propose_course_change' ? 'standard' : 'sensitive', facts: tool === 'propose_course_change' ? { measure: 1 } : { measure: 1, kind: 'private_learning' } }]
+      if (tool === 'propose_course_change') return [{ class: 'standard', facts: { measure: 1 } }]
+      if (actor.app) actor = { ...actor, roles: new Set(tool === 'read_report' ? ['manager'] : []) }
+      const record = await runMcpNative(env,actor,tool,args)
+      const values = tool === 'search_material' ? (record as { courses: unknown[] }).courses : (record as { rows: unknown[] }).rows
+      return [{ class: 'sensitive', facts: { measure: values.length, kind: 'private_learning' } }]
     }),
     ...(tool === 'propose_course_change' ? {
       summary: async (args) => ({ target: { id: String(args.course) }, items: [String(args.summary)] }),

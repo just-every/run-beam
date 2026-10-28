@@ -13,6 +13,7 @@ export function beamBusiness(env: Bindings) {
         // The native invitation lifecycle creates a learning member with its
         // normal learner role. Business admin never grants learning ownership.
         for (const row of plan.rows) if (row.operatorId && row.state !== 'conflict' && row.state !== 'inactive') {
+          if (await env.DB.prepare('SELECT id FROM beam_members WHERE operator_id=?').bind(row.operatorId).first()) continue
           const operator = await env.DB.prepare('SELECT email,display_name AS name FROM oa_operators WHERE id=?').bind(row.operatorId).first<{ email: string; name: string }>()
           if (operator) await ensureMember(env, operator.email, operator.name, ['learner'])
         }
