@@ -1,15 +1,27 @@
-import type { OperatorAuth, IdentityProviders } from '../../modules/operator-auth/index.mjs'
+import type { AuthConfig, OperatorAuth, IdentityProviders } from '../../modules/operator-auth/index.mjs'
 import { createOidcProviders } from '../../modules/operator-auth/identity/oidc/index.mjs'
 import { insist, one, sha256Hex } from '../core'
-import { connection, issuerOf, providerId, ready, type EntraBindings } from './common'
+import { connection, issuerOf, providerId, ready, type Connection, type EntraBindings } from './common'
+
+// Base's provider controls must see the same registration as Beam's OIDC handler.
+// Keep credentials in server config and use the connection's reviewed tenant/client.
+export async function entraProviderConfig(env: EntraBindings, snapshot?: Connection | null): Promise<Pick<AuthConfig, 'providers' | 'OIDC_TRANSACTION_SECRET'>> {
+ const c = snapshot === undefined ? await connection(env) : snapshot
+ if (!c || !ready(env, c)) return {}
+ return {
+  providers: [{ id: providerId, preset: 'microsoft', tenant: c.tenant_id, clientId: c.client_id, clientSecret: env.ENTRA_CLIENT_SECRET, tokenAuthMethod: 'client_secret_post', label: 'Microsoft Entra ID' }],
+  OIDC_TRANSACTION_SECRET: await sha256Hex(new TextEncoder().encode(env.SESSION_SECRET + '\0beam-entra\0' + c.revision)),
+ }
+}
 
 export async function entraAuth(env: EntraBindings, baseAuth: OperatorAuth): Promise<OperatorAuth> {
  const c = await connection(env)
  if (!c || !ready(env, c)) return baseAuth
+ const providerConfig = await entraProviderConfig(env, c)
  const enabled = async () => { const current = await connection(env); return ready(env, current) && current?.revision === c.revision && await baseAuth.accounts.identityEnabled!() }
  const entra = createOidcProviders({ db: env.DB, clientIp: request => request.headers.get('CF-Connecting-IP') || '',
   policyVersion: async () => (await one<{ generation: number }>(env, 'SELECT generation FROM oa_auth_settings WHERE singleton=1'))?.generation ?? -1, enabled,
-  config: { origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', transactionSecret: await sha256Hex(new TextEncoder().encode(env.SESSION_SECRET + '\0beam-entra\0' + c.revision)), signInPath: '/signin', providers: [{ id: providerId, preset: 'microsoft', tenant: c.tenant_id, clientId: c.client_id, clientSecret: env.ENTRA_CLIENT_SECRET, tokenAuthMethod: 'client_secret_post', label: 'Microsoft Entra ID' }] },
+  config: { origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', transactionSecret: providerConfig.OIDC_TRANSACTION_SECRET!, signInPath: '/signin', providers: providerConfig.providers! },
   admission: { admit: async (request, principal, input) => {
    insist(await enabled() && principal.issuer === issuerOf(c.tenant_id) && principal.provider === providerId && principal.providerPin?.id === providerId && principal.providerPin.clientId === c.client_id, 'entra_admission_denied', 403)
    const user = await one(env, `SELECT u.id,u.operator_id,o.email FROM beam_entra_subjects a JOIN beam_entra_users u ON u.id=a.user_id JOIN oa_operators o ON o.id=u.operator_id JOIN beam_members m ON m.id=u.member_id WHERE a.subject=? AND u.active=1 AND o.role='member' AND o.status='active' AND m.employment<>'terminated' AND m.erased_at IS NULL AND m.erasure_pending=0 AND EXISTS(SELECT 1 FROM beam_entra_group_members gm JOIN beam_entra_group_roles gr ON gr.group_id=gm.group_id WHERE gm.user_id=u.id)`, principal.subject)

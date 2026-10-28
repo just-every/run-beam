@@ -1,4 +1,5 @@
 import { entraAuth, entraSessionAllowed } from './beam/entra'
+import { entraProviderConfig } from './beam/entra/oidc'
 import { frontlineResponse } from './beam/frontline-auth'
 import { createDependencies } from './modules/dependencies/index.mjs'
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
@@ -79,8 +80,16 @@ const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePoli
   && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.operator_id = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.id, Date.now()).first())
 
 export function operatorAuth(env: Bindings, scheduledPolicies?: () => ScheduledPolicy[], scheduledGuard?: RolePolicy) {
- const auth = createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
- return { ...auth, getSession: async (request: Request) => { const session = await auth.getSession(request); return session && await entraSessionAllowed(env, session.operator.id) ? session : null } }
+ const createAuth = (config: AuthConfig) => createOperatorAuth({ db: env.DB, config, mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ const auth = createAuth(authConfig(env))
+ // Resolve registration at each settings operation so disconnected or unready
+ // Entra cannot enable sign-in. Only the controls use this Base instance:
+ // OIDC admission remains in entraAuth with Beam's reviewed-subject checks.
+ const providerControls = async () => createAuth({ ...authConfig(env), ...await entraProviderConfig(env) })
+ return { ...auth,
+  identitySettings: async (request: Request) => (await providerControls()).identitySettings(request),
+  setIdentitySettings: async (request: Request, input: { idpSignIn: boolean }) => (await providerControls()).setIdentitySettings(request, input),
+  getSession: async (request: Request) => { const session = await auth.getSession(request); return session && await entraSessionAllowed(env, session.operator.id) ? session : null } }
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
