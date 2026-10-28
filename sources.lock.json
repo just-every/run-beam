@@ -4717,7 +4717,7 @@
       "executable": false
     },
     "tests/beam/regression-action-dispatch.mjs": {
-      "sha256": "e6d5327e8455d9ca1600b55ca1ce48f1f53f1753ce616595290fb0972f3643aa",
+      "sha256": "bb1ed12f972ae2a04b1c1458f5db4ee02da60fd7f64842669d3dc149e2232e53",
       "executable": false
     },
     "tests/beam/regression-admin.mjs": {
