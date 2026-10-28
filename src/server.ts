@@ -1,3 +1,4 @@
+import { runOperationalJob } from './beam/operations'
 import { entraResponse } from './beam/entra'
 import { themeAsset, themeDocument } from './beam/portal-theme'
 import { runWebhooks } from './beam/webhooks'
@@ -35,7 +36,7 @@ export default withDemo({
   async scheduled(_controller, env) {
     const bindings = runtimeBindings(env)
     // One job's failure never skips the other; both are still reported as failures.
-    for (const result of await Promise.allSettled([scheduledInactivity(bindings), runUpkeep(bindings), runEscalations(bindings), runRenewals(bindings), runWebhooks(bindings)])) if (result.status === 'rejected') throw result.reason
+    for (const result of await Promise.allSettled([runOperationalJob(bindings, 'inactivity', () => scheduledInactivity(bindings)), runOperationalJob(bindings, 'content-review', () => runUpkeep(bindings)), runOperationalJob(bindings, 'escalations', () => runEscalations(bindings)), runOperationalJob(bindings, 'renewals', () => runRenewals(bindings)), runOperationalJob(bindings, 'webhooks', () => runWebhooks(bindings))])) if (result.status === 'rejected') throw result.reason
   },
   async fetch(request, env, execution) {
     const entraPath = new URL(request.url).pathname

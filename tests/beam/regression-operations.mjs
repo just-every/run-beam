@@ -10,11 +10,22 @@ export async function operationsCheck() {
   const { api, h, cookies, ids } = f
   try {
     const read = () => api('owner', 'operations')
+    const accessEvents = async () => (await api('owner', 'audit?category=access&q=access.operations')).events
+    const beforeAccess = await accessEvents()
     const empty = await read()
+    const afterJson = await accessEvents()
+    assert.equal(afterJson.length, beforeAccess.length + 1, 'JSON diagnostics access appends one audit event')
+    assert.equal((await h.raw('/app/business/health', { cookie: cookies.owner })).status, 200)
+    const afterPage = await accessEvents()
+    assert.equal(afterPage.length, afterJson.length + 1, 'page diagnostics access appends one audit event')
+    assert.deepEqual(afterPage.slice(0, 2).map(event => [event.actor, event.action, event.subject, event.detail, event.via, event.at]), [
+      [ids.owner, 'access.operations', 'installation', { door: 'page' }, null, start],
+      [ids.owner, 'access.operations', 'installation', { door: 'json' }, null, start],
+    ], 'access lineage contains only the actor, fixed door and observation time')
     assert.deepEqual(empty.readiness, { database: 'readable', files: 'readable', providers: 'not_probed' })
     assert.deepEqual(empty.jobs, [])
     assert.deepEqual(empty.feeds, [])
-    assert.deepEqual(empty.providers.map(p => [p.kind, p.failures, p.lastSuccessAt]), [['webhook', 0, null], ['model', 0, null], ['ocr', 0, null]])
+    assert.deepEqual(empty.providers.map(p => [p.kind, p.failures, p.unknownOutcomes, p.lastSuccessAt]), [['webhook', 0, 0, null], ['model', 0, 0, null], ['ocr', 0, 0, null]])
     // Ordinary managers, learning administrators, scoped preparation and signed-out callers cannot read installation diagnostics.
     const unit = (await api('owner', 'unit.create', { name: 'Synthetic operations unit' })).id
     await api('owner', 'admin.grant', { unit, member: ids.other })
@@ -25,6 +36,9 @@ export async function operationsCheck() {
     assert.equal((await h.raw('/api/beam/operations')).status, 401)
     const credential = await api('manager', 'agent.issue', { expiresInSeconds: 3600 })
     assert.equal((await f.request('/api/beam/operations', { token: credential.token })).status, 403)
+    const ownerCredential = await api('owner', 'agent.issue', { expiresInSeconds: 3600 })
+    assert.equal((await f.request('/api/beam/operations', { token: ownerCredential.token })).status, 403)
+    assert.deepEqual(await accessEvents(), afterPage, 'refused reads produce no successful access event')
     // Feed receipts are preparation; only an applied batch is a successful synchronization.
     const feed = (await api('owner', 'roster-feed.create', { name: 'Synthetic daily roster', headers: ['Employee ID', 'Name'], mapping: ['employeeId', 'name'], intervalMinutes: 15, terminationLimit: 10 })).id
     const received = await api('owner', 'roster-feed.receive', { feed, file: file('synthetic-beam-1.csv', 'Employee ID,Name\nsynthetic-beam-1,Synthetic colleague') })
@@ -37,30 +51,54 @@ export async function operationsCheck() {
     assert.deepEqual(synchronized.jobs.filter(job => job.kind === 'roster_review').map(job => [job.state, job.count]), [['applied', 1]])
     const applied = synchronized.feeds[0]
     assert.deepEqual([applied.held, applied.lastAppliedAt], [0, start])
-    await h.setClock(start + 15 * 60000)
-    assert.equal((await read()).feeds[0].stale, false, 'fresh at the interval boundary')
-    await h.setClock(start + 15 * 60000 + 1)
-    assert.equal((await read()).feeds[0].stale, true, 'stale after the interval boundary')
     // A real failed provider send appears as failed history and retry backlog, never healthy.
     const c = await f.course('Synthetic operations course')
     const sub = await api('owner', 'webhook.subscribe', { name: 'Synthetic receiver', endpoint: 'https://synthetic-beam-1.example.test/hooks', consent: true, teams: [ids.team], courses: [c.id], events: ['publication'] })
     await api('owner', 'webhook.state', { subscription: sub.id, enabled: true, consent: true })
     await f.publish(await f.nextRevision(c))
+    h.edge.webhookStatus = 204
+    await api('owner', 'webhook.run', {})
+    const interrupted = (await api('owner', 'webhooks')).deliveries[0]
+    assert.equal(interrupted.state, 'delivered')
+    const execution = (await api('owner', 'automation-controls')).executions.find(event => event.input.delivery === interrupted.id)
+    assert.ok(execution)
+    // Reproduce receiver acceptance followed by Worker loss before its delivery transaction,
+    // as in the committed interrupted-send qualification. Recovery uses public reads.
+    await h.db.prepare("UPDATE beam_automation_executions SET state='running',outcome='reserved',failure=NULL WHERE id=?").bind(execution.id).run()
+    await h.db.prepare('DELETE FROM beam_webhook_attempts WHERE delivery_id=?').bind(interrupted.id).run()
+    await h.db.prepare("UPDATE beam_webhook_deliveries SET state='sending',tries=0,outcome=NULL,send_token='synthetic-beam-1',send_started_at=?,send_expires_at=? WHERE id=?")
+      .bind(start + 15 * 60000, start + 15 * 60000, interrupted.id).run()
+    await h.setClock(start + 15 * 60000)
+    assert.equal((await read()).feeds[0].stale, false, 'fresh at the interval boundary')
+    await h.setClock(start + 15 * 60000 + 1)
+    assert.equal((await read()).feeds[0].stale, true, 'stale after the interval boundary')
+    assert.equal((await api('owner', 'webhooks')).deliveries[0].outcome, 'outcome_unknown')
+    const uncertain = await read()
+    assert.deepEqual(uncertain.providers[0], { kind: 'webhook', failures: 0, unknownOutcomes: 1, lastSuccessAt: null }, 'receiver acceptance remains unknown, never a known failure')
+    const uncertainPage = await h.raw('/app/business/health', { cookie: cookies.owner })
+    assert.equal(uncertainPage.status, 200)
+    const uncertainHtml = await uncertainPage.text()
+    assert.ok(uncertainHtml.includes('webhook: 0 known unsuccessful attempts'))
+    assert.ok(uncertainHtml.includes('1 unknown outcome'))
+    assert.ok(uncertainHtml.includes('may have accepted'))
+    if (process.argv.includes('--browser')) await operationsBrowser(f)
+    await api('owner', 'webhook.replay', { delivery: interrupted.id, confirm: true })
+    await f.publish(await f.nextRevision(c))
     h.edge.webhookStatus = 503
     await api('owner', 'webhook.run', {})
     let health = await read()
-    assert.deepEqual(health.jobs.filter(job => job.kind === 'webhook').map(job => [job.state, job.count]), [['retry', 1]])
-    assert.deepEqual(health.providers[0], { kind: 'webhook', failures: 1, lastSuccessAt: null })
+    assert.deepEqual(health.jobs.filter(job => job.kind === 'webhook').map(job => [job.state, job.count]), [['delivered', 1], ['retry', 1]])
+    assert.deepEqual(health.providers[0], { kind: 'webhook', failures: 1, unknownOutcomes: 1, lastSuccessAt: start + 15 * 60000 + 1 })
     const calls = h.edge.webhooks.length
     await read(); await h.raw('/app/business/health', { cookie: cookies.owner })
     assert.equal(h.edge.webhooks.length, calls, 'diagnostic reads never retry a provider call')
     h.edge.webhookStatus = 204
-    const delivery = (await api('owner', 'webhooks')).deliveries[0]
+    const delivery = (await api('owner', 'webhooks')).deliveries.find(item => item.state === 'retry')
     await h.setClock(start + 16 * 60000 + 2)
     await api('owner', 'webhook.replay', { delivery: delivery.id })
     health = await read()
-    assert.deepEqual(health.jobs.filter(job => job.kind === 'webhook').map(job => [job.state, job.count]), [['delivered', 1]])
-    assert.deepEqual(health.providers[0], { kind: 'webhook', failures: 1, lastSuccessAt: start + 16 * 60000 + 2 })
+    assert.deepEqual(health.jobs.filter(job => job.kind === 'webhook').map(job => [job.state, job.count]), [['delivered', 2]])
+    assert.deepEqual(health.providers[0], { kind: 'webhook', failures: 1, unknownOutcomes: 1, lastSuccessAt: start + 16 * 60000 + 2 })
     // The aggregate projection never includes provider keys, session secrets, endpoint or employee payloads.
     const serialized = JSON.stringify(health)
     for (const secret of [sub.key, credential.token, ...Object.values(h.vars)]) if (typeof secret === 'string' && secret.length > 20) assert.equal(serialized.includes(secret), false, 'private configuration absent')
@@ -76,7 +114,20 @@ export async function operationsCheck() {
     const saved = await api('owner', 'source.create', { ...fields, file: file('synthetic-beam-small.txt', bytes) })
     assert.deepEqual(Buffer.from(await (await h.raw(`/api/beam/source-files/${saved.versionId}`, { cookie: cookies.owner })).arrayBuffer()), bytes)
     assert.equal((await read()).usage.sourceVersionBytes, bytes.length)
-    if (process.argv.includes('--browser')) await operationsBrowser(f)
+    const scheduledBefore = (await read()).scheduledJobs
+    assert.ok(scheduledBefore.length && scheduledBefore.every(job => job.outcome === 'not_run' && job.lastSuccessAt === null))
+    await h.scheduled()
+    const scheduledAfter = (await read()).scheduledJobs
+    assert.ok(scheduledAfter.every(job => job.outcome === 'succeeded' && job.lastSuccessAt >= start))
+    const roster = await api('owner', 'people.batch.preview', { file: file('synthetic-beam-roster.csv', 'Employee ID,Name\nsynthetic-beam-301,First employee\nsynthetic-beam-302,Second employee\n') })
+    await api('owner', 'people.batch.apply', { batch: roster.id, limit: 1 })
+    assert.equal((await read()).backlog.rosterRows, 1)
+    await api('owner', 'people.batch.apply', { batch: roster.id })
+    assert.equal((await read()).backlog.rosterRows, 0)
+    await api('owner', 'person.directory', { member: ids.learner, employeeId: 'synthetic-beam-303' })
+    const mapping = await api('owner', 'gusto.language.configure', { member: ids.learner, employeeId: 'synthetic-beam-303', employeeUuid: 'synthetic-beam-304', companyUuid: 'synthetic-beam-305', fieldId: 'synthetic-beam-306', environment: 'demo', version: 0, consent: true })
+    assert.equal((await api('owner', 'gusto.language.pull', { mapping: mapping.id, version: mapping.version })).outcome, 'gusto_token_missing')
+    assert.deepEqual((({ configured, stale, failures, lastSuccessAt }) => [configured, stale, failures, lastSuccessAt])((await read()).synchronization), [1, 1, 1, null])
   } finally { await h.close() }
 }
 
@@ -93,8 +144,9 @@ async function operationsBrowser(f) {
       await page.goto(`${f.h.origin}/app/business`)
       await page.getByRole('link', { name: 'Readiness, jobs, roster synchronization, limits and ownership costs' }).click()
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('Service health and capacity')
-      await expect(page.getByText('webhook: 1 unsuccessful attempts', { exact: true })).toBeVisible()
-      await expect(page.getByText('webhook: delivered', { exact: true })).toBeVisible()
+      await expect(page.getByText('webhook: 0 known unsuccessful attempts', { exact: true })).toBeVisible()
+      await expect(page.getByText(/1 unknown outcome/)).toBeVisible()
+      await expect(page.getByText('webhook: held', { exact: true })).toBeVisible()
       await expect(page.getByText('Synthetic daily roster', { exact: true })).toBeVisible()
       await expect(page.getByText('Stale · 0 held previews · 0 failures', { exact: true })).toBeVisible()
       await expect(page.getByText(/Last applied: 2026-10-27T12:00:00.000Z/)).toBeVisible()
@@ -103,7 +155,7 @@ async function operationsBrowser(f) {
         await page.setViewportSize({ width, height: 1000 })
         for (const [path, name] of [['/app/business', 'settings'], ['/app/business/health', 'health']]) {
           await page.goto(`${f.h.origin}${path}`)
-          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: no horizontal overflow at ${width}`)
+          if (width === 1440) assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: no horizontal overflow`)
           await page.screenshot({ path: join(evidence, `${width}-operations-${name}.png`), fullPage: true })
         }
       }

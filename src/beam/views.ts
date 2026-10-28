@@ -89,7 +89,7 @@ type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promi
 
 export const views: Record<string, View> = {
   'accommodation-requests': accommodationRequests,
-  operations,
+  operations: (env, actor) => operations(env, actor, 'json'),
   portals: listPortals,
   theme: themeSettings,
   'roster-feeds': rosterFeeds,
