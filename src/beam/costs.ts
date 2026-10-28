@@ -12,9 +12,9 @@ export async function providerCosts(env: Bindings, actor: Actor) {
   const mail = env.MAIL_PROVIDER && env.MAIL_PROVIDER !== 'development' ? env.MAIL_PROVIDER : null
   const business = await requireBusiness(env), policy = await automationPolicy(env)
   const day = localDate(now(), business.timezone), budget = await reservedAutomationBudget(env, day, business.timezone)
-  const ocrConfig = await one<{enabled:number;hasKey:number;max_cost_cents:number}>(env, 'SELECT enabled,key_cipher IS NOT NULL AS hasKey,max_cost_cents FROM beam_source_ocr_config WHERE singleton=1')
-  const ocrTotals = await one<{requests:number;reserved:number;usage:number}>(env, `SELECT count(*) AS requests,coalesce(sum(estimate_cents),0) AS reserved,coalesce(sum(json_extract(usage_json,'$.estimatedCostCents')),0) AS usage FROM beam_source_ocr_runs`)
-  const ocr = ocrConfig?.hasKey || ocrTotals?.requests ? { enabled:ocrConfig?.enabled === 1, approvedMaximumCents:ocrConfig?.max_cost_cents ?? 0, requests:ocrTotals?.requests ?? 0, reservedEstimateCents:ocrTotals?.reserved ?? 0, usageEstimateCents:ocrTotals?.usage ?? 0, invoice:false } : null
+  const ocrConfig = await one<{enabled:number;hasKey:number;max_cost_cents:number;total_budget_cents:number;account_mode:string}>(env, 'SELECT enabled,key_cipher IS NOT NULL AS hasKey,max_cost_cents,total_budget_cents,account_mode FROM beam_source_ocr_config WHERE singleton=1')
+  const ocrTotals = await one<{requests:number;reserved:number;usage:number}>(env, `SELECT count(*) AS requests,coalesce(sum(CASE WHEN provider_attempted=1 THEN estimate_cents ELSE 0 END),0) AS reserved,coalesce(sum(json_extract(usage_json,'$.estimatedCostCents')),0) AS usage FROM beam_source_ocr_runs`)
+  const ocr = ocrConfig?.hasKey || ocrTotals?.requests ? { enabled:ocrConfig?.enabled === 1, approvedMaximumCents:ocrConfig?.max_cost_cents ?? 0, totalBudgetCents:ocrConfig?.total_budget_cents ?? 0, accountMode:ocrConfig?.account_mode ?? 'production', requests:ocrTotals?.requests ?? 0, reservedEstimateCents:ocrTotals?.reserved ?? 0, usageEstimateCents:ocrTotals?.usage ?? 0, invoice:false } : null
   const modelConfig = await one(env, 'SELECT enabled,key_cipher IS NOT NULL AS hasKey,max_cost_cents FROM beam_model_config WHERE singleton=1')
   const modelTotals = await one(env, `SELECT count(*) requests,coalesce(sum(estimate_cents),0) reserved,coalesce(sum(json_extract(usage_json,'$.estimatedCostCents')),0) usage,
     count(CASE WHEN state!='completed' THEN 1 END) unknownRequests,

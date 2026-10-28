@@ -1,5 +1,9 @@
 // Trusted system error descriptions, shared by learner form alerts and error pages.
 const ERRORS: Record<string, string> = {
+  source_ocr_config_changed: 'the OCR account settings changed. Reload the account page and review the current key state and budget before saving again.',
+  source_ocr_agreement_required: 'review and confirm the employer provider agreements before enabling or rotating this account.',
+  source_ocr_account_mode: 'select sandbox or production for the employer’s provider project.',
+  source_ocr_budget_exhausted: 'the total OCR budget is exhausted. No provider call was made. Review the request history and explicitly change the budget before approving a fresh request.',
   microsoft_rights_unavailable: 'Microsoft refused this document. Its source is withdrawn. Confirm current access with the tenant administrator before approving a new snapshot.',
   microsoft_source_rights_revoked: 'this Microsoft source is withdrawn. Retrieval and new distribution are stopped; restoring a permission does not reactivate it.',
   microsoft_connection_disabled: 'authorize a Microsoft document library in Settings before selecting a procedure.',

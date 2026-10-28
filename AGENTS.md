@@ -463,3 +463,13 @@ termination percentages above the limit have distinct hold reasons. This is
 manual preparation, without an SFTP service, cloud watcher, scheduled apply,
 AUTO-002 lifecycle enrollment or a configuration screen. ct approved owner-only explicit
 review for every file as adopted, 24 October; no invitations, unattended provider calls or automatic application. A feed preview cannot be changed to enable invitations.
+
+## Contract views
+
+Lander-Regenerate: `node scripts/beam/contract-docs.mjs write CLAUSE ...`, with
+all touched clause ids. Then run the same command with `check` in place of
+`write`. CONTRACT.md owns evidence, gaps and status judgments; the generator
+preserves established acceptance journeys and unrelated prose. It also writes
+`docs/CLAIMS.md` and recounts the source summary. Regenerate the edition lock
+last with `node scripts/edition-authoring/cli.mjs lock`, then run
+`node scripts/edition-authoring/cli.mjs check`.
