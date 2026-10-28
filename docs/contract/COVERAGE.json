@@ -1909,7 +1909,26 @@
     {
       "file": "CONTRACT.md",
       "line": 236,
-      "text": "**LEARN-011 \u2014 Make every learning route accessible.** Web and native authoring/learning routes target WCAG 2.2 AA with screen-reader names, logical focus, keyboard completion, captions/transcripts, contrast, reduced motion and assessment accommodations, including recorded extra time on timed assessments (LEARN-018). Package accessibility limitations are identified before assignment with an equivalent accessible learning route approved by the reviewer. ",
+      "text": "**LEARN-011 \u2014 Make every learning route accessible.** ",
+      "to": "clause",
+      "ids": [
+        "LEARN-011"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 236,
+      "text": "Web and native authoring/learning routes target WCAG 2.2 AA with screen-reader names, logical focus, keyboard completion, captions/transcripts, contrast, reduced motion and assessment accommodations,",
+      "to": "base",
+      "ids": [
+        "BASE-ACCESSIBILITY-001",
+        "BASE-PUBLIC-003"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 236,
+      "text": " including recorded extra time on timed assessments (LEARN-018). Package accessibility limitations are identified before assignment with an equivalent accessible learning route approved by the reviewer. ",
       "to": "clause",
       "ids": [
         "LEARN-011"
