@@ -122,7 +122,10 @@
           "src/modules/dependencies",
           "src/modules/owner-claim",
           "src/modules/demo",
-          "src/modules/d1-transport"
+          "src/modules/d1-transport",
+          "src/modules/agent-door",
+          "src/modules/business-settings",
+          "src/foundation/runtime"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
