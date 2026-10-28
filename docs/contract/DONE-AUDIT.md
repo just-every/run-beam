@@ -860,3 +860,7 @@ Old reference: `e1ab711cb9ad0fffc7b942dfb504770a30fa0cf1`.
 | LEARN-024 | 2 | is refused for a non-teammate. | none | none |
 | LEARN-024 | 2 | grant two course accommodations. | none | none |
 | LEARN-024 | 2 | see the newest win. | none | none |
+| LEARN-008 | old 2 | The ct custody decision moved to RULINGS.md RL-1. | none | moved |
+| LEARN-018 | old 5 | Native countdown, warnings and offline-start refusal remain in LEARN-004 and LEARN-005. | none | moved |
+| AUTO-009 | old 7 | Native reconnect refusal remains in LEARN-004 and LEARN-005. | none | moved |
+| AUTO-008 | old 2 | Provider denial, replay and spend controls remain requirements on each named provider door. | none | moved |

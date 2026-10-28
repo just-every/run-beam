@@ -270,12 +270,12 @@ Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-A
 
 Core · target · **done** · Cites BASE-ACCESS-004, BASE-ROLE-001
 
-**Requirement.** People records carry a stable external employee id, preferred name, work email (optional: a person without one is identified by employee id and signs in under ORG-011), mobile number, preferred language, employment state, manager, role, department, location, hire date and custom fields. Email changes and rehires preserve the person’s prior learning without conflating two employees. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#org-001).
+**Requirement.** People records carry a stable external employee id, preferred name, work email (optional: a person without one is identified by employee id and signs in under ORG-011), mobile number, preferred language, employment state, manager, role, department, location, hire date and custom fields. Email changes and rehires preserve the person’s prior learning without conflating two employees. Owners and unit learning administrators edit their scoped records; managers read their teams' learning-directory fields and only custom fields explicitly exposed to them. People read their own record, with edits limited to their language preference under LEARN-017; other staff see names only. Directory email never becomes a sign-in identity merge key. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#org-001).
 
 **Acceptance.**
 1. Import and edit a US roster through People, including a person with an employee id and mobile number but no email, change an email, rehire an employee and introduce a conflicting external id; show retained history and a conflict requiring resolution.
 
-**Evidence.** `src/beam/directory.ts`, `src/beam/ui/directory.ts`, `src/beam/actor.ts`, `migrations/core/0046_beam_directory.sql`, `tests/beam/regression-directory.mjs` (ORG-001)
+**Evidence.** `src/beam/directory.ts`, `src/beam/ui/directory.ts`, `src/beam/actor.ts`, `migrations/core/0046_beam_directory.sql`, `tests/beam/regression-directory.mjs`
 **Gap.** None.
 
 #### ORG-002 — Delegate administration with explicit rights
@@ -288,7 +288,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 1. Grant a learning administrator one unit, manage its courses and learners, then request another unit and provider credentials through HTML and JSON; deny both and revoke the active grant.
 2. As that administrator, invite a learner into the unit's team, set its members, set and extend the window of their own enrollment, and be refused another unit's team, another role, an outside person, naming a manager and another person's enrollment window.
 
-**Evidence.** `src/beam/units.ts`, `src/beam/actor.ts`, `src/beam/ui/units.ts`, `migrations/core/0023_beam_units.sql`, `tests/beam/regression-admin.mjs` (ORG-002)
+**Evidence.** `src/beam/units.ts`, `src/beam/actor.ts`, `src/beam/ui/units.ts`, `migrations/core/0023_beam_units.sql`, `tests/beam/regression-admin.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Grant a learning administrator one unit. manage its courses. learners. request another unit. provider credentials through HTML. JSON. deny both. revoke the active grant. As that administrator. invite a learner into the unit's team. set its members. set. extend the window of their own enrollment. and be refused another unit's team. another role. an outside person. naming a manager. another person's enrollment window.
 
 #### ORG-003 — Scope authors and reviewers to their content
@@ -300,7 +300,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 **Acceptance.**
 1. Give an expert one course, coauthor and review it, then try an unrelated course, people administration and evidence download; replace its reviewer and retain both decision histories; with self-review allowed, have one learning administrator author and publish a fix and find it labeled self-reviewed in history, then refuse the same when self-review is off.
 
-**Evidence.** `src/beam/course-access.ts`, `src/beam/courses.ts`, `src/beam/ui/course-access.ts`, `migrations/core/0024_beam_course_scope.sql`, `tests/beam/regression-admin.mjs` (ORG-003)
+**Evidence.** `src/beam/course-access.ts`, `src/beam/courses.ts`, `src/beam/ui/course-access.ts`, `migrations/core/0024_beam_course_scope.sql`, `tests/beam/regression-admin.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Give an expert one course. coauthor. review it. try an unrelated course. people administration. evidence download. replace its reviewer. retain both decision histories. with self-review allowed. have one learning administrator author. publish a fix. find it labeled self-reviewed in history. refuse the same when self-review is off.
 
 #### ORG-004 — Give managers only their teams’ learning authority
@@ -312,7 +312,7 @@ Core · target · **done** · Cites BASE-ACCESS-004, BASE-ROLE-001
 **Acceptance.**
 1. Sign in as two team managers, assign and report within each team, try cross-team access and an assessor decision, then exercise and expire a temporary coverage grant.
 
-**Evidence.** `src/beam/scope.ts`, `src/beam/managers.ts`, `src/beam/actor.ts`, `src/beam/assignments.ts`, `migrations/core/0025_beam_team_managers.sql`, `tests/beam/regression-managers.mjs` (ORG-004)
+**Evidence.** `src/beam/scope.ts`, `src/beam/managers.ts`, `src/beam/actor.ts`, `src/beam/assignments.ts`, `migrations/core/0025_beam_team_managers.sql`, `tests/beam/regression-managers.mjs`
 **Gap.** None.
 
 #### ORG-005 — Support instructors and read-only auditors
@@ -325,7 +325,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 1. Invite an instructor and a time-limited auditor through Access, conduct a session and download the allowed evidence, then try prohibited writes and access after expiry.
 2. As an instructor-only person, try team and course announcements and receive 403; after instructor access expires, announcing and new replies are refused.
 
-**Evidence.** `src/beam/auditors.ts`, `src/beam/instructors.ts`, `src/beam/announcement-authority.ts`, `tests/beam/regression-notices.mjs` (NOTICE-006 instructor door), `src/beam/ui/instructors.ts`, `migrations/core/0027_beam_auditors.sql`, `migrations/core/0042_beam_instructor_grants.sql`, `tests/beam/regression-managers.mjs` (ORG-005), `tests/beam/regression-instructors.mjs` (ORG-005)
+**Evidence.** `src/beam/auditors.ts`, `src/beam/instructors.ts`, `src/beam/announcement-authority.ts`, `tests/beam/regression-notices.mjs`, `src/beam/ui/instructors.ts`, `migrations/core/0027_beam_auditors.sql`, `migrations/core/0042_beam_instructor_grants.sql`, `tests/beam/regression-managers.mjs`, `tests/beam/regression-instructors.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Invite an instructor. a time-limited auditor through Access. conduct a session. download the allowed evidence. try prohibited writes. access after expiry. As an instructor-only person. try team. course announcements. receive 403. after instructor access expires. announcing. new replies are refused.
 
 #### ORG-006 — Preview bulk people changes
@@ -337,7 +337,7 @@ Core · target · **done** · Cites BASE-ACCESS-004, BASE-ROLE-001
 **Acceptance.**
 1. Upload a 200-person roster with duplicate email, invalid manager, a transfer and email-less rows with usernames, preview without mail/writes, apply twice and resume an interrupted batch without repeated invitations.
 
-**Evidence.** `src/beam/roster-batch.ts`, `src/beam/ui/roster-batch.ts`, `src/beam/directory.ts`, `migrations/core/0048_beam_roster_batches.sql`, `tests/beam/regression-roster.mjs` (ORG-006)
+**Evidence.** `src/beam/roster-batch.ts`, `src/beam/ui/roster-batch.ts`, `src/beam/directory.ts`, `migrations/core/0048_beam_roster_batches.sql`, `tests/beam/regression-roster.mjs`
 **Gap.** None.
 
 #### ORG-007 — Offer an organized self-service learning catalog
@@ -349,7 +349,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 **Acceptance.**
 1. As a learner find a course, self-enroll in an open course, request a restricted one, withdraw and inspect history; unauthorized courses and other learners’ favorites stay hidden.
 
-**Evidence.** `src/beam/catalog.ts`, `src/beam/ui/catalog.ts`, `migrations/core/0036_beam_learner_catalog.sql`, `tests/beam/regression-catalog.mjs` (ORG-007)
+**Evidence.** `src/beam/catalog.ts`, `src/beam/ui/catalog.ts`, `migrations/core/0036_beam_learner_catalog.sql`, `tests/beam/regression-catalog.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: As a learner find a course. self-enroll in an open course. request a restricted one. withdraw. inspect history. unauthorized courses. other learners’ favorites stay hidden.
 
 #### ORG-008 — Separate employee and external training portals
@@ -364,7 +364,7 @@ Core · target · **partial**
 3. Exercise every changed screen at 1440 and 390.
 4. Qualify the remaining extended-enterprise capabilities before claiming them complete.
 
-**Evidence.** `tests/beam/regression-portals.mjs` — enterprisePortalsCheck (loaded by push Verify): three portal kinds, immutable explicit revision sharing, independent account-bound claims and consent, employee collision refusal, account email continuity, withdrawal and grant non-revival, employee-door refusal and cross-portal pages, APIs and downloads. `tests/beam/portal-browser.mjs` — portalEntryBrowserCheck: ordinary invitation confirmation, branded claim, full versioned disclosures, stale-notice refusal, scoped roster and report navigation at 1440 and 390. `tests/beam/native-portal-browser.mjs` — portalBrowser: rendered native lessons, progress, automatic assessment failure and pass, explicit completion, immutable certificate PDF and consent closure at 1440 and 390. `tests/beam/portal-media-flow.mjs` — portalMediaFlow: approved rich text, tables, practice checks, original images, audio, video, captions, PDFs and extracted images; exact original bytes and revision continuity, integrity refusal, isolated delivery and withdrawal or unsharing closure. `tests/beam/portal-media-browser.mjs` — portalMediaBrowser: actual playback, document download, independent native-page branding, qualified completion and closed screens at 1440 and 390. `tests/beam/portal-timing-flow.mjs` — portalTimingFlow: pinned-clock concurrent starts, saved-answer resume, stale saves, deadline scoring excluding late answers, retry-safe results and exact earned attempt. `tests/beam/portal-timing-browser.mjs` — portalTimingBrowser: timed start, save, expiry, retry, pass and completion forms at 1440 and 390. `tests/beam/portal-written-flow.mjs` — portalWrittenFlow: pending written work, refusal of ordinary administrators and employee assessors, exact named-owner grading, bounded points, no duplicate grading, audit without private answers and qualified completion; owner review forms at 1440 and 390. `tests/beam/portal-practical-flow.mjs` — portalPracticalFlow: isolated text submissions, idempotent retries, exact named-owner rejection and acceptance, resubmission, separate quiz and practical requirements, withdrawal and unsharing refusal, original-revision evidence and archive retention. `tests/beam/portal-practical-browser.mjs` — portalPracticalBrowser: learner submission and owner review through rejection, resubmission, acceptance and completion at 1440 and 390. `tests/beam/portal-report-flow.mjs` — portalReportFlow: planned, in-progress, passed-but-incomplete and completed states, exact certificate metadata, independent portal reports, safe CSV export, withdrawal restrictions and original evidence preservation. `tests/beam/portal-report-browser.mjs` — portalReportBrowser: populated reports and CSV, withdrawal and lost administrator access at 1440 and 390. `tests/beam/regression-archive.mjs` — archiveCheck: protected and legacy archives disconnect portal bindings and consent, revoke grants, preserve isolated progress, attempts and completions without transfer to fresh identities. These proofs establish native portions; the remaining target is not complete.
+**Evidence.** `tests/beam/regression-portals.mjs`, `tests/beam/portal-browser.mjs`, `tests/beam/native-portal-browser.mjs`, `tests/beam/portal-media-flow.mjs`, `tests/beam/portal-media-browser.mjs`, `tests/beam/portal-timing-flow.mjs`, `tests/beam/portal-timing-browser.mjs`, `tests/beam/portal-written-flow.mjs`, `tests/beam/portal-practical-flow.mjs`, `tests/beam/portal-practical-browser.mjs`, `tests/beam/portal-report-flow.mjs`, `tests/beam/portal-report-browser.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Catalog links exclude retired, archived, unshared and unapproved revisions; reinstatement resumes authorized retained progress. PARTIAL. The CT identity and consent ruling of 26 October 2026 remains approved with riders. Identity Gap: reviewed linking and complete restored-identity readmission remain unqualified; employee collisions are refused without merging. Consent Gap: restricted retained-record and privacy controls, complete provider suppression and optional public certificate-link consequences remain unproved. Learning Gap: native text, rich text, tables, practice checks, images, audio, captioned video, PDF downloads and extracted images, automatic quizzes, server-timed quizzes, explicit completion and isolated certificate PDFs now have public-door proof. Written grading and text practical review are implemented only for the current human owner who is also the immutable revision’s exact named assessor; this  Complete external packages, xAPI activities, external tools and embeds, sequences, live attendance, timing accommodations, non-owner assessor delegation, practical attachments, certificate corrections and optional public verification remain unbuilt or unqualified. Portal Gap: native learner branding and scoped media delivery now have rendered proof at 1440 and 390; full remaining delivery journeys are owed. Administration Gap: explicit external delegation using ORG-002 unit and ORG-010 custom scopes remains required; owner invitations and grants remain the supported floor. Reporting Gap: isolated lesson counts, assessment state, planned and in-progress status, exact earned completion and certificate metadata, and safe CSV exports are proved; reporting for the remaining delivery and delegated scopes is unqualified. Commercial-model Gap: external seat allocation and billing models remain unproved, with billing controlled by the owner under ORG-002. Customer-identity Gap: customer organization SSO and SCIM, tenant mapping, lifecycle revocation and prevention of automatic elevated grants remain owed under ORG-008 and applicable CONNECT clauses; qualified customer identity accounts are not provisioned. Domain Gap: ORG-009 hostname activation remains dependent on the held Base door and provider qualification. Audit Gap: new quiz, grading and practical decisions retain stable revision and subject lineage without private answers in audit payloads; complete decision contents, authorized audit visibility and retention redaction remain unqualified. Privacy and recovery Gap: OPS-003 external retention, erasure and provider propagation, and full OPS-007 readmission after disconnected restore remain owed; retained archive rows do not prove complete readmission or erasure. Not DONE.
 
 #### ORG-009 — Brand the employee portal on the employer’s own address
@@ -379,7 +379,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001
 3. Follow an old assignment link and land on the same assignment.
 4. Try a low-contrast color pair and see it refused.
 
-**Evidence.** `tests/beam/regression-portal-theme.mjs` — portalThemeCheck: owner-only persistence of all five text and color fields, raster logo and favicon custody, learner and administrator theme links, sign-in heading and text, provider-edge ordinary sign-in and reminder sender name and both email colors, downloaded certificate color and decoded logo, named low-contrast pairs and unsafe upload and sender refusals; `tests/beam/portal-theme-browser.mjs` — portalThemeBrowserCheck: Settings edits of every theme field and raster uploads, rendered certificate employer logo, contrast refusal, computed primary and accent colors on Settings, learner, manager, certificate and sign-in pages, ordinary email confirmation and immediate keyboard and delayed hover tooltips at 1440 and 390. The existing push Verify browser job invokes this journey with --only=ORG-009 --browser.
+**Evidence.** `tests/beam/regression-portal-theme.mjs`, `tests/beam/portal-theme-browser.mjs`
 **Gap.** Custom hostname attachment, DNS and TLS setup checks, callback qualification, hostname sign-in and old-address assignment redirects remain absent. Completion requires an authorized employer-controlled hostname and Cloudflare zone, application attachment and origin switching, registered identity callbacks and continued routing of the former address; the existing run-site attachment is a separate Worker and does not qualify this employee application. Delivered-email qualification beyond the captured provider edge remains unproved. Native theme qualification remains with LEARN-004; every future notification channel inherits this theme before shipping under NOTICE-001 and NOTICE-005. Current certificate logos accept bounded non-interlaced 8-bit PNG or JPEG; favicon uses the same safe raster admission. No hostname activation is claimed.
 
 #### ORG-010 — Define custom administrator roles
@@ -393,7 +393,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 2. Try another location, a provider credential and a publication, and see each refused.
 3. Remove the reports permission and see the open session lose report access.
 
-**Evidence.** `src/beam/roles.ts`, `src/beam/scope.ts`, `src/beam/actor.ts`, `src/beam/ui/roles.ts`, `migrations/core/0026_beam_custom_roles.sql`, `tests/beam/regression-managers.mjs` (ORG-010), `tests/beam/regression-directory.mjs` (ORG-010)
+**Evidence.** `src/beam/roles.ts`, `src/beam/scope.ts`, `src/beam/actor.ts`, `src/beam/ui/roles.ts`, `migrations/core/0026_beam_custom_roles.sql`, `tests/beam/regression-managers.mjs`, `tests/beam/regression-directory.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Create a “Site training coordinator” role with enrollment. reports for one location. grant it. enroll. report in that location. Try another location. a provider credential. a publication. and see each refused. Remove the reports permission. see the open session lose report access.
 
 #### ORG-011 — Sign in without a work email
@@ -412,7 +412,7 @@ Core · target · **partial** · Cites BASE-ACCESS-001, BASE-SIGNIN-002
 7. Trigger an overdue reminder and see SMS and in-app delivery; remove the mobile number and see “no contact route” in the manager’s queue.
 8. On a registered shared tablet, sign in two people one after the other by username and PIN and see the first signed out with nothing of theirs left on the device. Let an SMS code pass its expiry and see it refused. Switch the SMS method off and see SMS codes refused.
 
-**Evidence.** `src/beam/frontline-auth.ts`, `tests/beam/regression-directory.mjs` — frontlineCheck: email-less admission, first-use password and PIN, quiz and certificate, scoped reset and session ending, audit, lockout and unlock, independent method disabling and session revocation, seven-day default and accepted 1-day and 30-day initial lifetimes, refusal at 0 and 31 days, expiry-boundary refusal, termination, replay and throttling; `tests/beam/regression-archive.mjs` — archiveCheck: no credential rows, verifier, salt or method activation in archives and disabled restored admission.
+**Evidence.** `src/beam/frontline-auth.ts`, `tests/beam/regression-directory.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** ct approved as adopted, 24 October: local methods start disabled; owner provisions, managers reset existing teammates, owner and learning administrators keep workplace recovery; owner selects initial expiry from 1 to 30 days, seven by default. Initial-secret preparation counts against its lifetime and session admission rechecks the first-use deadline. Directory and bulk credential provisioning remain a named Gap. People and sign-in UI, localized first-sign-in sheets and QR codes, device-specific throttling, SMS verification and delivery, shared-device behavior, AUTO-002 enrollment and native-app qualification remain owed.
 
 #### ORG-012 — View Beam as a learner, read-only
@@ -426,7 +426,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 2. Find the session in Audit.
 3. Try “View as” for a learner in another unit, for the owner and for another administrator and see each refused; confirm the learner’s practice runs and anonymous answers are not shown.
 
-**Evidence.** `src/beam/view-as.ts`, `src/beam/http.ts`, `migrations/core/0029_beam_view_sessions.sql`, `tests/beam/regression-view.mjs` (ORG-012)
+**Evidence.** `src/beam/view-as.ts`, `src/beam/http.ts`, `migrations/core/0029_beam_view_sessions.sql`, `tests/beam/regression-view.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: As a learning administrator. open “View as” for a learner in your unit. see their assignments. progress. quiz results. certificates as they see them. try to answer a quiz. mark a lesson read. change their language. see each refused. Find the session in Audit. Try “View as” for a learner in another unit. for the owner. for another administrator. confirm the learner’s practice runs. anonymous answers are not shown.
 
 ### Authoring and content maintenance
@@ -440,7 +440,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 **Acceptance.**
 1. Create and preview a mixed-media course through the editor, reuse a block, rearrange it and publish; embed a YouTube video, a Loom recording and a Google Slides deck and play each as a learner; try active HTML and an unlisted embed host and confirm the lesson and assets render safely.
 
-**Evidence.** Rich text, native image/audio/video, authenticated inline original PDFs with actual text/artwork, page/zoom controls, isolated script sandbox and downloads, links and practice checks; block edit/reuse/duplicate/order and exact source attribution; read-only learner preview, immutable publication/restore and media-sensitive revision moves; owner allowlist, sandbox frames/assets, active-HTML and unlisted-host refusal: `tests/beam/regression-sources.mjs` (multimediaCheck, multimediaBrowserCheck); revision movement: `tests/beam/regression-moves.mjs` (movesCheck). `tests/beam/live-multimedia.mjs` — real public YouTube/Loom video time advances and Google Slides navigation changes the rendered slide at 1440/390, without provider stubs: remote heavy-slot run 20261023T005452897655Z-heavy-slot-94a07eaf, candidate 397a81b571766399d43d183e5bb21d3904177025 (23 Oct 2026).
+**Evidence.** `tests/beam/regression-sources.mjs`, `tests/beam/regression-moves.mjs`, `tests/beam/live-multimedia.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Create. preview a mixed-media course through the editor. reuse a block. rearrange it. publish. embed a YouTube video. a Loom recording. a Google Slides deck. play each as a learner. try active HTML. an unlisted embed host. confirm the lesson. assets render safely.
 
 #### AUTHOR-002 — Turn existing SOP documents into editable learning
@@ -452,7 +452,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 **Acceptance.**
 1. Under the held company policy, import a procedure containing tables and an image plus a scanned PDF through Sources, compare extracted passages to originals, correct an OCR warning and publish only after review.
 
-**Evidence.** `tests/beam/regression-sources.mjs` — sourceExtractionCheck: DOCX, PPTX, inert HTML, text/Markdown, text/tagged/untagged-table PDF and raster scan through Sources, including authored PDF reading order, bounded rectangular PDF spans, nested Word/tagged-PDF/HTML tables and package-local HTML image companions; immutable original/provenance, located headings/passages, editable tables/images/descriptions including reviewed DOCX/PPTX rectangular row/column spans, legacy DOCX horizontal merges and nested cell corrections, unsafe/malformed/oversize refusal, authenticated derived assets and reviewed draft-only conversion. `tests/beam/source-browser.mjs` — sourceBrowserCheck: original comparison, corrected text/table/header/image description, named human review, published learner content and visible scan/OCR refusal at 1440/390. `tests/beam/regression-source-ocr.mjs` — sourceOcrCheck: owner-consented exact-source OCR, no read spend, one-use approval/revocation, real original bytes at the faked provider edge, marked uncertainty/correction, human publication, refusal without automatic retry, key/content-safe audit and reserved USD costs. `tests/beam/regression-archive.mjs` — archiveCheck: modern/legacy archives withhold the key and disable restored OCR. `tests/beam/live-source-ocr.mjs` — PASS actual OCR and human correction/publication: held-key OpenAI run 22 Oct 2026 22:30Z, candidate 9ef41ab0546d7203a2251f0363a7d911f34b9b09, provider response resp_0712c5b1b9f02210016ada8e8d053887d0812d918c6cc5d7ef, immutable original SHA-256 4e4b05c2042dbdfb894fe04697b46ddc2a6d72c2d17fc820bd1d361df2b5fb4a; 1513 input/93 output tokens, one provider call; owner disclosure/consent and before/after USD costs, original comparison, corrected passages, draft-only conversion, named review and published learner at 1440/390.
+**Evidence.** `tests/beam/regression-sources.mjs`, `tests/beam/source-browser.mjs`, `tests/beam/regression-source-ocr.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/live-source-ocr.mjs`
 **Gap.** Ambiguous untagged PDF reading order, unsupported Office objects and remote HTML image resources absent from the original remain warned/refused rather than silently reconstructed; full preservation remains unproved. Relative raster images are preserved from bounded companion HTML ZIPs; no remote resource is fetched. Nested Word, tagged PDF and HTML grids remain inside their owning cells through comparison, correction, human review and learner rendering. Nested presentation tables and omitted Word grid cells retain located text with required uncertainty review; full reconstruction of those layouts remains unproved. Provider retention/deletion is not claimed (OPS-003/005 inherit). Not DONE.
 
 #### AUTHOR-003 — Collect expert feedback before publication
@@ -464,7 +464,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Have two authors edit the same lesson, resolve the conflict, leave and resolve a question comment, then submit learner feedback and show it in the owner’s content queue.
 
-**Evidence.** `src/beam/collab.ts`, `src/beam/feedback.ts`, `src/beam/courses.ts`, `src/beam/ui/collab.ts`, `migrations/core/0041_beam_collaboration.sql`, `tests/beam/regression-collab.mjs` (AUTHOR-003)
+**Evidence.** `src/beam/collab.ts`, `src/beam/feedback.ts`, `src/beam/courses.ts`, `src/beam/ui/collab.ts`, `migrations/core/0041_beam_collaboration.sql`, `tests/beam/regression-collab.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Have two authors edit the same lesson. resolve the conflict. leave. resolve a question comment. submit learner feedback. show it in the owner’s content queue.
 
 #### AUTHOR-004 — Compare and restore earlier content safely
@@ -476,7 +476,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Publish two revisions, compare them and restore the first into a new draft through course history; publish that draft and verify all three revisions and prior completion evidence.
 
-**Evidence.** `src/beam/history.ts`, `src/beam/ui/history.ts`, `tests/beam/flows.mjs` (AUTHOR-004), `tests/beam/regression-admin.mjs` (AUTHOR-004)
+**Evidence.** `src/beam/history.ts`, `src/beam/ui/history.ts`, `tests/beam/flows.mjs`, `tests/beam/regression-admin.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Publish two revisions. compare them. restore the first into a new draft through course history. publish that draft. verify all three revisions. prior completion evidence.
 
 #### AUTHOR-005 — Organize and reuse the course estate
@@ -488,7 +488,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Build courses from a template, clone and bulk tag them, retire one with an open assignment and verify retained evidence plus refusal of new enrollment.
 
-**Evidence.** `src/beam/estate.ts`, `src/beam/assignments.ts`, `src/beam/ui/authoring.ts`, `migrations/core/0030_beam_course_retirement.sql`, `migrations/core/0031_beam_course_catalog.sql`, `tests/beam/regression-estate.mjs` (AUTHOR-005)
+**Evidence.** `src/beam/estate.ts`, `src/beam/assignments.ts`, `src/beam/ui/authoring.ts`, `migrations/core/0030_beam_course_retirement.sql`, `migrations/core/0031_beam_course_catalog.sql`, `tests/beam/regression-estate.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Build courses from a template. clone. bulk tag them. retire one with an open assignment. verify retained evidence plus refusal of new enrollment.
 
 #### AUTHOR-006 — Schedule content upkeep and accountable review
@@ -500,7 +500,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Set a review date, advance the scheduler with no source change, remove the owner and inspect fallback escalation; separately replace a cited source and record a no-change decision.
 
-**Evidence.** `src/beam/upkeep.ts`, `src/beam/maintenance.ts`, `src/beam/sources.ts`, `src/beam/ui/upkeep.ts`, `migrations/core/0059_beam_content_upkeep.sql`, `tests/beam/regression-upkeep.mjs` (AUTHOR-006)
+**Evidence.** `src/beam/upkeep.ts`, `src/beam/maintenance.ts`, `src/beam/sources.ts`, `src/beam/ui/upkeep.ts`, `migrations/core/0059_beam_content_upkeep.sql`, `tests/beam/regression-upkeep.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Set a review date. advance the scheduler with no source change. remove the owner. inspect fallback escalation. separately replace a cited source. record a no-change decision.
 
 #### AUTHOR-007 — Generate source-grounded course drafts with AI
@@ -512,7 +512,7 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 **Acceptance.**
 1. Under the held company policy, connect a model account, select a procedure and request a course draft through the editor; inspect citations and missing facts, edit a question, refuse injected instructions and publish only by human review.
 
-**Evidence.** `tests/beam/regression-model-course.mjs` — modelCourseCheck: owner model account, exact consent and USD reservation, selected procedure generation, editable outline and objectives, server-verified cited lessons and quiz, missing facts, refused injected instruction, question edit and named-human-only publication; `tests/beam/regression-archive.mjs` — archiveCheck: model key withholding and restored spending disabled; `tests/beam/regression-course-locale-browser.mjs` — courseLocaleBrowser and approveModelInBrowser: editor, selected-source consent, proposal, citations, missing facts and human review at 1440 and 390; `tests/beam/live-model-preparation.mjs` — held-account qualification through the actual paid Responses endpoint.
+**Evidence.** `tests/beam/regression-model-course.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/regression-course-locale-browser.mjs`, `tests/beam/live-model-preparation.mjs`
 **Gap.** Embedded source-grounded proposals, outline and objectives, editable cited lessons and quiz, missing facts, refused source instructions, sealed account consent and USD controls are built.
 
 #### AUTHOR-008 — Translate learning with human language review
@@ -526,7 +526,7 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 2. A learner whose LEARN-017 language is Spanish receives the Spanish version.
 3. Under the held company policy, the owner or a specifically authorized language reviewer within course scope reviews the locale independently of preparation and publication; old assignments retain their immutable revision (RL-103).
 
-**Evidence.** `tests/beam/regression-course-locales.mjs` — courseLocaleCheck: approved glossary, embedded English-to-Spanish draft and timed subtitle translation, ordinary text correction of deliberate mistranslation, preserved structure and answer indexes and source links, human language approval, Spanish learner quiz and immutable completion and certificate, changed-source maintenance and original-language fallback; `tests/beam/regression-course-locale-browser.mjs` — courseLocaleBrowser, approveModelInBrowser and correctLocaleText: account, consent, correction, review, Spanish learning and maintenance at 1440 and 390; `tests/beam/regression-archive.mjs` — archiveCheck: model key withholding and restored spending disabled; `tests/beam/live-model-preparation.mjs` — held-account qualification through the actual paid Responses endpoint.
+**Evidence.** `tests/beam/regression-course-locales.mjs`, `tests/beam/regression-course-locale-browser.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/live-model-preparation.mjs`
 **Gap.** Embedded AI translation and timed subtitle translation are built through the existing correction and human language-review door. Provider retention and erasure propagation belong to OPS-003 and OPS-005.
 
 #### AUTHOR-009 — Compose conversational microlearning sequences
@@ -538,7 +538,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Build and review a five-day sequence, preview its SMS and Teams rendering, answer a branching question and pause/resume; inspect the same revision and required assessment in web and messaging.
 
-**Evidence.** `tests/beam/regression-collab.mjs` — microlearningCheck: five short source-cited modules with image media and authored retry/continue feedback, human review and immutable program, local web/SMS/Teams previews with unchanged assessment, early/paused/stale/foreign reply refusal, work-hour refusal, weekday releases across weekend/DST and pause/resume, version-bound reply evidence, native quiz still required, unchanged earlier assignment after draft edit, revision restore, approved locale preservation and learning export. `tests/beam/microlearning-browser.mjs` — authoring, all three local previews, review, actual lesson media, five-day web spacing, pause/resume, branching feedback and separate required assessment at 1440/390.
+**Evidence.** `tests/beam/regression-collab.mjs`, `tests/beam/microlearning-browser.mjs`
 **Gap.** Real SMS/Teams delivery and authenticated messaging replies, provider identity/consent lifecycle and same-revision web/messaging reconciliation remain unproved; PARTIAL until the messaging doors (LEARN-012, NOTICE-003) exist. Dependencies: a provisioned authorized Twilio sender/account and Teams messaging app/tenant (fleet helper confirms neither prerequisite provisioned). Local previews do not prove provider rendering or delivery. The OPS-003 erasure door now removes practice replies (`beam_sequence_answers`) even while assessed evidence is held; `tests/beam/erasure-browser.mjs` proves it through the owner UI at 1440/390. Retained assessment evidence follows the explicit employer policy/hold; OPS-003 remains partial for the custody and propagation gaps named there. ct approved as adopted with riders, 22 Oct: learner-only pause/reply actions, learner/owner-only personal reply inspection, no outbound send or external reply without explicit verified channel consent. LEARN-012/NOTICE-003 inherit the boundary. Not DONE.
 
 #### AUTHOR-010 — Carry published fixes to learners in progress
@@ -552,7 +552,7 @@ Core · target · **partial**
 2. Then publish a revision with an added lesson, marked material, choosing “move” and “reassign finished”: the mid-course learner sees only the new lesson reopened, the finished learner’s original completion and certificate are unchanged, and a new assignment appears for them.
 3. Repeat the publication with “keep” and see no assignment move or new assignment.
 
-**Evidence.** `src/beam/moves.ts`, `src/beam/assignments.ts`, `src/beam/learning.ts`, `src/beam/ui/authoring.ts`, `migrations/core/0040_beam_assignment_moves.sql`, `tests/beam/regression-moves.mjs` (AUTHOR-010)
+**Evidence.** `src/beam/moves.ts`, `src/beam/assignments.ts`, `src/beam/learning.ts`, `src/beam/ui/authoring.ts`, `migrations/core/0040_beam_assignment_moves.sql`, `tests/beam/regression-moves.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: With one learner mid-course. one finished. publish a typo fix. choose “move”: the mid-course learner keeps their progress at the same place. Then publish a revision with an added lesson. marked material. choosing “move”. “reassign finished”: the mid-course learner sees only the new lesson reopened. the finished learner’s original completion. certificate are unchanged. and a new assignment appears for them. Repeat the publication with “keep”. see no assignment move or new assignment.
 
 ### Course packages and learning standards
@@ -566,7 +566,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 **Acceptance.**
 1. Under the held company policy, upload a real licensed SCORM 1.2 package through Courses, preview and assign it, suspend on one device and resume on another, fail then pass and inspect raw runtime events and the exact completion revision; change a procedure the package cites and see its metadata listed in the AGENT-004 impact.
 
-**Evidence.** `tests/beam/regression-packages.mjs` — package12Check: rights-backed ZIP/manifest/assets admission and refusals, non-recording isolated preview, immutable reviewed assignment, status/score/time/bookmark/suspend resume, fail then pass with exact revision/raw events, cited package-only procedure impact and human replacement proposal, mixed native/package export and restricted ZIP/asset enumeration with owner retrieval; `tests/beam/package-browser.mjs` — SCORM 1.2 Courses upload/preview/review/assignment, opaque sandbox, separate-device resume, failed and passed end states, exact completion and raw evidence at 1440/390; `tests/beam/scorm-fixtures.mjs` — original runnable CC0 package; `tests/beam/regression-archive.mjs` — packageArchiveCheck: withheld playback capabilities and terminal modern/legacy restoration with original runtime/evidence/files
+**Evidence.** `tests/beam/regression-packages.mjs`, `tests/beam/package-browser.mjs`, `tests/beam/scorm-fixtures.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: upload a real licensed SCORM 1.2 package through Courses. preview. assign it. suspend on one device. resume on another. fail. pass. inspect raw runtime events. the exact completion revision. change a procedure the package cites. see its metadata listed in the AGENT-004 impact. Company-policy computation for the classes declared on agent calls.
 
 #### PACK-002 — Play SCORM 2004 with sequencing and separate outcomes
@@ -578,7 +578,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 **Acceptance.**
 1. Import licensed packages from each edition, exercise a multi-SCO prerequisite sequence and suspend/resume, then inspect failed, completed and passed outcomes and a refused invalid manifest.
 
-**Evidence.** `tests/beam/regression-packages.mjs` — package2004Check: licensed 2nd/3rd/4th editions, multi-SCO prerequisite/navigation and objective/interaction state, suspend/resume, failed/incomplete/completed/passed distinctions, named invalid/unsupported manifest refusals, procedure-change impact for every edition, mixed native/SCORM export and restricted ZIP/asset retrieval; `tests/beam/package-browser.mjs` — SCORM 2004 prerequisite refusal, multi-SCO navigation, separate completion/success outcomes, suspend/resume and raw evidence at 1440/390; `tests/beam/scorm-fixtures.mjs` — original runnable CC0 editions
+**Evidence.** `tests/beam/regression-packages.mjs`, `tests/beam/package-browser.mjs`, `tests/beam/scorm-fixtures.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Import licensed packages from each edition. exercise a multi-SCO prerequisite sequence. suspend. resume. inspect failed. completed. passed outcomes. a refused invalid manifest.
 
 #### PACK-003 — Record xAPI learning in an authorized LRS
@@ -590,7 +590,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 **Acceptance.**
 1. Connect a sandbox LRS through Integrations, launch an authorized activity, send duplicate and foreign-actor statements and inspect trusted completion mapping and retained original statements.
 
-**Evidence.** `tests/beam/regression-xapi.mjs` — xapiCheck: explicit LRS/producer consent and reviewed mapping, stable pseudonymous actor/activity/registration and original timestamps, exact and concurrent duplicate/conflict/foreign/contradictory refusal, original multipart attachments and LRS write/readback/refusal, native completion gates and exact revision, cited procedure impact/human replacement and safe portable export; isolatedXapiArchiveCheck plus `tests/beam/regression-archive.mjs` — packageArchiveCheck: modern/legacy archive secret exclusion, terminal restored access and intact SCORM/xAPI/native evidence and files; `tests/beam/live-xapi.mjs` — actual official SQL LRS v0.9.9 sandbox (22 Oct 2026), original statements/attachments and negative probes with real write/readback, original server-scored activity and Beam screens at 1440/390; `tests/beam/xapi-browser.mjs` — Integrations, course/review, authorized activity launch, fail/new-attempt/pass, native gate/completion, raw evidence, impact and revocation
+**Evidence.** `tests/beam/regression-xapi.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/live-xapi.mjs`, `tests/beam/xapi-browser.mjs`
 **Gap.** ct approved the adopted xAPI trust/custody policy with riders, 22 Oct: explicit revocable owner consent, exact-origin HTTPS admission, server-only rotatable producer credentials, connection-specific pseudonyms and single-use short-lived current-human/assignment-bound launches; native gates remain. PACK-004/005 inherit. Existing official SQL LRS sandbox/browser qualification stands. PARTIAL for qualification that only an independent provider/LRS tenant can prove (external dependency), and propagation of learner erasure to the connected LRS (OPS-003).
 
 #### PACK-004 — Launch and track cmi5 courses
@@ -602,7 +602,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 **Acceptance.**
 1. Import a cmi5 course, start an assignable unit, interrupt and resume it, exercise failed/passed moveOn and inspect session/statement provenance through the learner record.
 
-**Evidence.** `tests/beam/regression-packages.mjs` — cmi5Check: licensed cmi5.xml/ZIP import and immutable human-reviewed assignment; one-time AU fetch and actor/activity/registration/session-bound credentials with foreign/revoked refusal; AU-posted waived refused before the LRS, without completion; saved JSON state and interrupted/abandoned/resumed/terminated sessions; failed/passed/mastery and all five moveOn rules with native assessment gates; exact original statement/session provenance, deduplication, procedure impact and safe export. `tests/beam/cmi5-browser.mjs` — built import, Browse preview, review, launch, interruption, cross-context resume, failure/pass and evidence at 1440/390. `tests/beam/regression-xapi.mjs` — isolatedXapiArchiveCheck and `tests/beam/regression-archive.mjs` — packageArchiveCheck: cmi5 modern/legacy restore fences, state and original statements.
+**Evidence.** `tests/beam/regression-packages.mjs`, `tests/beam/cmi5-browser.mjs`, `tests/beam/regression-xapi.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** ct approved as adopted with riders, 22 Oct: owner-only explicit consent to packaged-AU scoped browser evidence, connection-specific pseudonyms and current human/assignment/AU/session-bound launch; no general LRS credential or competence decision. PACK-005 inherits this boundary. PARTIAL until a real LRS plus real cmi5 package receipt; the checks above use a synthetic package and fake only the remote LRS edge. External-LRS gap (external dependency): write and readback against a real connected LRS are unproved. Erasure-propagation gap: the Beam owner erasure door journals a visible unresolved provider deletion; it does not erase statements already written to the connected LRS (OPS-003 partial). AU content is served from Beam's own host in an opaque-origin sandbox (no Beam cookies readable); a distinct host is not yet built. Qualified profile is flat package-local AnyWindow AUs, conditional JSON state and individual attachment-free statements; nested blocks, remote/OwnWindow AUs and broader xAPI state/batch/attachment profiles are explicitly refused.
 
 #### PACK-005 — Bring Articulate and iSpring authoring outputs
@@ -626,7 +626,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 **Acceptance.**
 1. Register an LTI sandbox, deep-link a lesson and receive a grade, then rotate keys, revoke deployment and replay a foreign result through the callback door.
 
-**Evidence.** `tests/beam/regression-agent.mjs` — ltiCheck: registration/consent and minimal signed OIDC launch, signed one-time deep link, reviewed attachment/publication and same-course draft fences, score-only expiring AGS, exact learner/assignment/revision and native gates, replay/foreign/rotation/revocation refusal, concurrent duplicate callbacks, interrupted-completion reconciliation, revoked-tool grade cannot complete; `tests/beam/regression-integration-scope.mjs` — ltiScopeCheck: unit administrator and custom integrations+courses registration/deep-link/attachment, outside-unit/private-platform-key refusal and live grant changes; ltiBrowserCheck: course/lesson/handoff/author/review at 1440/390; `tests/beam/regression-archive.mjs` — integrationArchiveCheck: terminal restore; `tests/beam/live-lti.mjs` — actual anonymous saLTIre sandbox at candidate 9a95a71a7ec3c52566aa160b45ac7b6bf25434ba (22 Oct 2026): signed deep link/replay refusal, reviewed publication, pseudonymous learner launch, failing then passing AGS, native gate, platform-key rotation and revoked deployment refusal; temporary relay deleted.
+**Evidence.** `tests/beam/regression-agent.mjs`, `tests/beam/regression-integration-scope.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/live-lti.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Register an LTI sandbox. deep-link a lesson. receive a grade. rotate keys. revoke deployment. replay a foreign result through the callback door. Company-policy computation for the classes declared on agent calls.
 
 #### PACK-007 — Offer a managed Rustici compatibility connection
@@ -719,7 +719,7 @@ Core · target · **partial**
 3. Reject a second upload with a reason and see the learner told why.
 4. Advance time to 30 days before expiry and see the reminder to the learner and manager; let it lapse and see the learner missing with the old certificate still in their transcript and export.
 
-**Evidence.** `src/beam/external.ts`, `src/beam/ui/external.ts`, `migrations/core/0043_beam_external_certificates.sql`, `tests/beam/regression-external.mjs` (LIB-006)
+**Evidence.** `src/beam/external.ts`, `src/beam/ui/external.ts`, `migrations/core/0043_beam_external_certificates.sql`, `tests/beam/regression-external.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Define a food-handler requirement for kitchen staff with a 30-day reminder. As a learner on a phone. photograph. upload a food-handler card with its expiry date. see it pending. approve it as the manager. see REPORT-001 count the learner current. labeled external. Reject a second upload with a reason. see the learner told why. Advance time to 30 days before expiry. see the reminder to the learner. manager. let it lapse. see the learner missing with the old certificate still in their transcript. export.
 
 ### Learning, assessment and mobile
@@ -733,7 +733,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Publish a course using a randomized bank, free response and survey, take two attempts and grade the written task as the assigned assessor; inspect reproducible scoring and absence of survey-based completion.
 
-**Evidence.** `src/beam/question-types.ts`, `src/beam/learning.ts`, `src/beam/timing.ts`, `src/beam/courses.ts`, `src/beam/survey.ts`, `src/beam/ui/managing.ts`, `migrations/core/0045_beam_question_banks.sql`, `tests/beam/regression-questions.mjs` (LEARN-001)
+**Evidence.** `src/beam/question-types.ts`, `src/beam/learning.ts`, `src/beam/timing.ts`, `src/beam/courses.ts`, `src/beam/survey.ts`, `src/beam/ui/managing.ts`, `migrations/core/0045_beam_question_banks.sql`, `tests/beam/regression-questions.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Publish a course using a randomized bank. free response. survey. take two attempts. grade the written task as the assigned assessor. inspect reproducible scoring. absence of survey-based completion.
 
 #### LEARN-002 — Customize and verify completion certificates
@@ -745,7 +745,7 @@ Core · target · **partial** · Cites BASE-INPUT-003, BASE-PUBLIC-001 · Rules 
 **Acceptance.**
 1. Create a template, complete a course, download the PDF and verify only permitted fields as a visitor; revoke its link and issue a corrected certificate with retained lineage.
 
-**Evidence.** `src/beam/certificates.ts`, `src/beam/pdf.ts`, `src/beam/ui/certificates.ts`, `migrations/core/0044_beam_certificate_templates.sql`, `tests/beam/regression-certificates.mjs` (LEARN-002)
+**Evidence.** `src/beam/certificates.ts`, `src/beam/pdf.ts`, `src/beam/ui/certificates.ts`, `migrations/core/0044_beam_certificate_templates.sql`, `tests/beam/regression-certificates.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Create a template. complete a course. download the PDF. verify only permitted fields as a visitor. revoke its link. issue a corrected certificate with retained lineage.
 
 #### LEARN-003 — Learn reliably through mobile web
@@ -757,7 +757,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001 · Rules D-1
 **Acceptance.**
 1. At 390 and 1440 pixels complete an assigned mixed-media/package course, upload practical evidence, interrupt connectivity and resume; inspect saved versus pending state and accessible controls.
 
-**Evidence.** `tests/beam/mobile-learning-browser.mjs` — mobileLearningBrowserCheck: at 1440/390 assignment discovery; real native image/audio/video and corrected, source-version-bound timed WebVTT captions; authenticated PDF download; SCORM suspend/reopen/resume; quiz and practical file submission; real offline interruption and lost accepted response; saved/pending/server baseline and explicit retry without duplicate evidence; records/certificate retrieval; keyboard/touch controls and account-change draft clearing. `tests/beam/regression-learning.mjs` — learningChecks: LEARN-003 retry without duplicate learning or evidence.
+**Evidence.** `tests/beam/mobile-learning-browser.mjs`, `tests/beam/regression-learning.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: At 390. 1440 pixels complete an assigned mixed-media. package course. upload practical evidence. interrupt connectivity. resume. inspect saved versus pending state. accessible controls.
 
 #### LEARN-004 — Provide native iOS and Android learner apps
@@ -793,7 +793,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Upload video through Courses, wait for a real provider’s processing, correct captions, play/resume on mobile and revoke assignment access; verify refused playback and visible processing failure.
 
-**Evidence.** `tests/beam/mobile-learning-browser.mjs` — mobileLearningBrowserCheck: corrected immutable WebVTT source and actual native cue playback at 1440/390. `tests/beam/regression-sources.mjs` — multimediaCheck: valid-caption original/correction, malformed timing refusal, authorization and immutable native media revision.
+**Evidence.** `tests/beam/mobile-learning-browser.mjs`, `tests/beam/regression-sources.mjs`
 **Gap.** Native video now supports author-corrected, reviewed immutable WebVTT tracks. Managed provider processing/transcoding, adaptive authenticated streaming, provider caption editing, mobile playback resume/revocation and processing-failure qualification remain absent. Native caption support does not prove the full LEARN-006 provider journey.
 
 #### LEARN-007 — Map skills and recommend personal learning paths
@@ -805,7 +805,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Map a role’s objectives, record a learner’s goal and diagnostic gap, inspect recommended courses and approve a minimal path; opt out of optional personalization and verify required learning remains.
 
-**Evidence.** `src/beam/skills.ts`, `src/beam/recommendations.ts`, `src/beam/ui/skills.ts`, `migrations/core/0060_beam_skills.sql`, `tests/beam/regression-skills.mjs` (LEARN-007)
+**Evidence.** `src/beam/skills.ts`, `src/beam/recommendations.ts`, `src/beam/ui/skills.ts`, `migrations/core/0060_beam_skills.sql`, `tests/beam/regression-skills.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Map a role’s objectives. record a learner’s goal. diagnostic gap. inspect recommended courses. approve a minimal path. opt out of optional personalization. verify required learning remains.
 
 #### LEARN-008 — Answer learning questions from permitted company sources
@@ -821,7 +821,7 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 4. Exclude learner records, assessment answers, evidence, anonymous diagnostic answers and private practice from model context; disclose any learner-supplied information in the question itself.
 5. Expert handoff requires a separate learner action identifying the question text and named cohort discussion audience; model consent never authorizes posting.
 
-**Evidence.** `tests/beam/regression-tutor.mjs` — tutorCheck: assigned learner questions from company sources and published lessons; entire immutable company passage equality and exact published lesson equality; asserted uncertainty; revision-bound citations, page and download scope; explicit unsupported answers; learner-only disclosed expert posting, expert reply and resolution without another paid call; grant revocation, stale approvals, no cache revival, replaced and canceled enrollment, prompt injection refusal and unchanged assessment and completion evidence. `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful original cited answers for ordinary paraphrases and compatible differing passages; irrelevant, unknown, instruction-bearing, partial and conflicting selections refused; in-flight revocation and pending erasure; current owner session replacement and in-flight revocation refusal; unchanged enrollment with pinned clock advancement proving expired stored answer, page and citation reads close; pending erasure independently closes a previously valid stored answer and its download; independent source visibility and regrant invalidation. `tests/beam/tutor-privacy.mjs` — loadTutorCanaries, assertNoCanaries and assertTutorLineage: populated restricted source, other learner question, anonymous answer, private practice, assessment-answer and practical-evidence canaries excluded from approved wire data and learner result, page and citation download; consent, source versions, digest, model, explicit provider identity, approval, configuration, policy and reservation lineage without question or passage bodies, approval ciphertext, credentials or session secrets. `tests/beam/regression-model-budget.mjs` — modelBudgetCheck: initial zero ceiling, exhaustion, concurrent reservations, contention with paid automation, consumed and expired approvals, retained failed and unknown billing and reconciled USD totals. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm, loaded in Verify with BEAM_TUTOR_BROWSER: learner entry and consent, source grants, owner exact request review, answers and citations, paraphrases, compatible and refused selections, expert disclosure and discussion, revoked sources, model account, zero and exhausted budgets at 1440 and 390; exact visible outbound request, rendered uncertainty, USD estimates and unknown billing, overflow and icon tooltip checks. `tests/beam/regression-erasure.mjs` — erasureCheck and `tests/beam/regression-archive.mjs` — archiveCheck retain local question erasure, cache exclusion and disabled restored grants. Only the provider network edge is substituted; no real provider retention, deletion or legal outcome is claimed.  `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful cited single and conjunctive paraphrases, explicit support for every question aspect, missing and conflicting support with asserted uncertainty and expert routes, preserved irrelevant and injected selection refusals. `tests/beam/regression-tutor.mjs` — tutorCheck: learner-supplied question information disclosed before consent, unanswered uncertainty and exact consented question body preserved by the explicit cohort handoff. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm: learner, owner and expert pages and real forms at 1440 and 390, including conjunctive-paraphrase, partial, conflicting and unsupported states with rendered uncertainty and consent disclosure. `tests/beam/regression-erasure.mjs` — erasureCheck: populated answered cache and citation removal under an assessment hold, with model-provider deletion visibly unresolved. `tests/beam/regression-archive.mjs` — archiveCheck: populated answered-cache exclusion, restored citation refusal and the exact restored tutor source grant disabled in both current and legacy archives.
+**Evidence.** `tests/beam/regression-tutor.mjs`, `tests/beam/tutor-adversarial.mjs`, `tests/beam/tutor-privacy.mjs`, `tests/beam/regression-model-budget.mjs`, `tests/beam/tutor-browser.mjs`, `tests/beam/regression-erasure.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Ask an answerable. unsupported policy question from the learner page. follow citations. revoke a source grant. try prompt injection in a document. verify no restricted passage or fabricated answer is shown. Only the authorized source grant for the named course cohort permits retrieval. enrollment. revision access. source visibility. erasure restrictions. recorded content rights all continue to hold. Before the question is submitted. disclose the question. learning purpose. permitted passages. paid provider. consent covers this question. purpose only. Exclude learner records. assessment answers. evidence. anonymous diagnostic answers. private practice from model context. disclose any learner-supplied information in the question itself. Expert handoff requires a separate learner action identifying the question text. named cohort discussion audience. model consent never authorizes posting. Company-policy computation for the classes declared on agent calls.
 
 #### LEARN-020 — Bind tutor requests to exact consent
@@ -837,7 +837,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 4. Load permitted and restricted source canaries and private learner data, inspect the complete outbound request and verify exact consent with no additional data.
 5. Revoke authority during a request and retry stale and consumed consent; result reads and citation downloads disclose no withdrawn material.
 
-**Evidence.** `tests/beam/regression-tutor.mjs` — tutorCheck: assigned learner questions from company sources and published lessons; entire immutable company passage equality and exact published lesson equality; asserted uncertainty; revision-bound citations, page and download scope; explicit unsupported answers; learner-only disclosed expert posting, expert reply and resolution without another paid call; grant revocation, stale approvals, no cache revival, replaced and canceled enrollment, prompt injection refusal and unchanged assessment and completion evidence. `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful original cited answers for ordinary paraphrases and compatible differing passages; irrelevant, unknown, instruction-bearing, partial and conflicting selections refused; in-flight revocation and pending erasure; current owner session replacement and in-flight revocation refusal; unchanged enrollment with pinned clock advancement proving expired stored answer, page and citation reads close; pending erasure independently closes a previously valid stored answer and its download; independent source visibility and regrant invalidation. `tests/beam/tutor-privacy.mjs` — loadTutorCanaries, assertNoCanaries and assertTutorLineage: populated restricted source, other learner question, anonymous answer, private practice, assessment-answer and practical-evidence canaries excluded from approved wire data and learner result, page and citation download; consent, source versions, digest, model, explicit provider identity, approval, configuration, policy and reservation lineage without question or passage bodies, approval ciphertext, credentials or session secrets. `tests/beam/regression-model-budget.mjs` — modelBudgetCheck: initial zero ceiling, exhaustion, concurrent reservations, contention with paid automation, consumed and expired approvals, retained failed and unknown billing and reconciled USD totals. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm, loaded in Verify with BEAM_TUTOR_BROWSER: learner entry and consent, source grants, owner exact request review, answers and citations, paraphrases, compatible and refused selections, expert disclosure and discussion, revoked sources, model account, zero and exhausted budgets at 1440 and 390; exact visible outbound request, rendered uncertainty, USD estimates and unknown billing, overflow and icon tooltip checks. `tests/beam/regression-erasure.mjs` — erasureCheck and `tests/beam/regression-archive.mjs` — archiveCheck retain local question erasure, cache exclusion and disabled restored grants. Only the provider network edge is substituted; no real provider retention, deletion or legal outcome is claimed.  `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful cited single and conjunctive paraphrases, explicit support for every question aspect, missing and conflicting support with asserted uncertainty and expert routes, preserved irrelevant and injected selection refusals. `tests/beam/regression-tutor.mjs` — tutorCheck: learner-supplied question information disclosed before consent, unanswered uncertainty and exact consented question body preserved by the explicit cohort handoff. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm: learner, owner and expert pages and real forms at 1440 and 390, including conjunctive-paraphrase, partial, conflicting and unsupported states with rendered uncertainty and consent disclosure. `tests/beam/regression-erasure.mjs` — erasureCheck: populated answered cache and citation removal under an assessment hold, with model-provider deletion visibly unresolved. `tests/beam/regression-archive.mjs` — archiveCheck: populated answered-cache exclusion, restored citation refusal and the exact restored tutor source grant disabled in both current and legacy archives.
+**Evidence.** `tests/beam/regression-tutor.mjs`, `tests/beam/tutor-adversarial.mjs`, `tests/beam/tutor-privacy.mjs`, `tests/beam/regression-model-budget.mjs`, `tests/beam/tutor-browser.mjs`, `tests/beam/regression-erasure.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Bind the request to every passage's immutable source identity. digest. instruction. response-schema versions. provider. model. configuration. estimate. request limit. Invalidate unused consent on relevant payload. grant. access or configuration change. expiry or use. merely opening. questioning. granting a source or receiving no answer authorizes no paid request. Recheck permissions. pending erasure before sending. accepting a response. reading every answer. citation. download. revocation invalidates stored results. unused consent. regrant never revives them. Load permitted. restricted source canaries. private learner data. inspect the complete outbound request. verify exact consent with no additional data. Revoke authority during a request. retry stale. consumed consent. result reads. citation downloads disclose no withdrawn material. Company-policy computation for the classes declared on agent calls.
 
 #### LEARN-021 — Return only supported tutor answers
@@ -851,7 +851,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 2. No tutor action records an assessment pass, completion, competence judgment or employee rating.
 3. Exercise the learner, owner and expert screens at 1440 and 390.
 
-**Evidence.** `tests/beam/regression-tutor.mjs` — tutorCheck: assigned learner questions from company sources and published lessons; entire immutable company passage equality and exact published lesson equality; asserted uncertainty; revision-bound citations, page and download scope; explicit unsupported answers; learner-only disclosed expert posting, expert reply and resolution without another paid call; grant revocation, stale approvals, no cache revival, replaced and canceled enrollment, prompt injection refusal and unchanged assessment and completion evidence. `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful original cited answers for ordinary paraphrases and compatible differing passages; irrelevant, unknown, instruction-bearing, partial and conflicting selections refused; in-flight revocation and pending erasure; current owner session replacement and in-flight revocation refusal; unchanged enrollment with pinned clock advancement proving expired stored answer, page and citation reads close; pending erasure independently closes a previously valid stored answer and its download; independent source visibility and regrant invalidation. `tests/beam/tutor-privacy.mjs` — loadTutorCanaries, assertNoCanaries and assertTutorLineage: populated restricted source, other learner question, anonymous answer, private practice, assessment-answer and practical-evidence canaries excluded from approved wire data and learner result, page and citation download; consent, source versions, digest, model, explicit provider identity, approval, configuration, policy and reservation lineage without question or passage bodies, approval ciphertext, credentials or session secrets. `tests/beam/regression-model-budget.mjs` — modelBudgetCheck: initial zero ceiling, exhaustion, concurrent reservations, contention with paid automation, consumed and expired approvals, retained failed and unknown billing and reconciled USD totals. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm, loaded in Verify with BEAM_TUTOR_BROWSER: learner entry and consent, source grants, owner exact request review, answers and citations, paraphrases, compatible and refused selections, expert disclosure and discussion, revoked sources, model account, zero and exhausted budgets at 1440 and 390; exact visible outbound request, rendered uncertainty, USD estimates and unknown billing, overflow and icon tooltip checks. `tests/beam/regression-erasure.mjs` — erasureCheck and `tests/beam/regression-archive.mjs` — archiveCheck retain local question erasure, cache exclusion and disabled restored grants. Only the provider network edge is substituted; no real provider retention, deletion or legal outcome is claimed.  `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful cited single and conjunctive paraphrases, explicit support for every question aspect, missing and conflicting support with asserted uncertainty and expert routes, preserved irrelevant and injected selection refusals. `tests/beam/regression-tutor.mjs` — tutorCheck: learner-supplied question information disclosed before consent, unanswered uncertainty and exact consented question body preserved by the explicit cohort handoff. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm: learner, owner and expert pages and real forms at 1440 and 390, including conjunctive-paraphrase, partial, conflicting and unsupported states with rendered uncertainty and consent disclosure. `tests/beam/regression-erasure.mjs` — erasureCheck: populated answered cache and citation removal under an assessment hold, with model-provider deletion visibly unresolved. `tests/beam/regression-archive.mjs` — archiveCheck: populated answered-cache exclusion, restored citation refusal and the exact restored tutor source grant disabled in both current and legacy archives.
+**Evidence.** `tests/beam/regression-tutor.mjs`, `tests/beam/tutor-adversarial.mjs`, `tests/beam/tutor-privacy.mjs`, `tests/beam/regression-model-budget.mjs`, `tests/beam/tutor-browser.mjs`, `tests/beam/regression-erasure.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Supply irrelevant. partial. conflicting. injected provider selections. observe safe refusal or an unanswered question. a working expert route. No tutor action records an assessment pass. completion. competence judgment or employee rating. Exercise the learner. owner. expert screens at 1440. 390. Company-policy computation for the classes declared on agent calls.
 
 #### LEARN-022 — Reconcile tutor request cost
@@ -865,7 +865,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 2. Failed and unknown outcomes retain reservations and never cause automatic retries or background spending.
 3. At a zero or exhausted ceiling, including concurrent requests and failed or unknown outcomes, reconcile reservations and visible billing uncertainty in Settings and JSON.
 
-**Evidence.** `tests/beam/regression-tutor.mjs` — tutorCheck: assigned learner questions from company sources and published lessons; entire immutable company passage equality and exact published lesson equality; asserted uncertainty; revision-bound citations, page and download scope; explicit unsupported answers; learner-only disclosed expert posting, expert reply and resolution without another paid call; grant revocation, stale approvals, no cache revival, replaced and canceled enrollment, prompt injection refusal and unchanged assessment and completion evidence. `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful original cited answers for ordinary paraphrases and compatible differing passages; irrelevant, unknown, instruction-bearing, partial and conflicting selections refused; in-flight revocation and pending erasure; current owner session replacement and in-flight revocation refusal; unchanged enrollment with pinned clock advancement proving expired stored answer, page and citation reads close; pending erasure independently closes a previously valid stored answer and its download; independent source visibility and regrant invalidation. `tests/beam/tutor-privacy.mjs` — loadTutorCanaries, assertNoCanaries and assertTutorLineage: populated restricted source, other learner question, anonymous answer, private practice, assessment-answer and practical-evidence canaries excluded from approved wire data and learner result, page and citation download; consent, source versions, digest, model, explicit provider identity, approval, configuration, policy and reservation lineage without question or passage bodies, approval ciphertext, credentials or session secrets. `tests/beam/regression-model-budget.mjs` — modelBudgetCheck: initial zero ceiling, exhaustion, concurrent reservations, contention with paid automation, consumed and expired approvals, retained failed and unknown billing and reconciled USD totals. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm, loaded in Verify with BEAM_TUTOR_BROWSER: learner entry and consent, source grants, owner exact request review, answers and citations, paraphrases, compatible and refused selections, expert disclosure and discussion, revoked sources, model account, zero and exhausted budgets at 1440 and 390; exact visible outbound request, rendered uncertainty, USD estimates and unknown billing, overflow and icon tooltip checks. `tests/beam/regression-erasure.mjs` — erasureCheck and `tests/beam/regression-archive.mjs` — archiveCheck retain local question erasure, cache exclusion and disabled restored grants. Only the provider network edge is substituted; no real provider retention, deletion or legal outcome is claimed.  `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful cited single and conjunctive paraphrases, explicit support for every question aspect, missing and conflicting support with asserted uncertainty and expert routes, preserved irrelevant and injected selection refusals. `tests/beam/regression-tutor.mjs` — tutorCheck: learner-supplied question information disclosed before consent, unanswered uncertainty and exact consented question body preserved by the explicit cohort handoff. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm: learner, owner and expert pages and real forms at 1440 and 390, including conjunctive-paraphrase, partial, conflicting and unsupported states with rendered uncertainty and consent disclosure. `tests/beam/regression-erasure.mjs` — erasureCheck: populated answered cache and citation removal under an assessment hold, with model-provider deletion visibly unresolved. `tests/beam/regression-archive.mjs` — archiveCheck: populated answered-cache exclusion, restored citation refusal and the exact restored tutor source grant disabled in both current and legacy archives.
+**Evidence.** `tests/beam/regression-tutor.mjs`, `tests/beam/tutor-adversarial.mjs`, `tests/beam/tutor-privacy.mjs`, `tests/beam/regression-model-budget.mjs`, `tests/beam/tutor-browser.mjs`, `tests/beam/regression-erasure.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: An exact request consent never raises the installation ceiling. Failed. unknown outcomes retain reservations. never cause automatic retries or background spending. At a zero or exhausted ceiling. including concurrent requests. failed or unknown outcomes. reconcile reservations. visible billing uncertainty in Settings. JSON. Company-policy computation for the classes declared on agent calls.
 
 #### LEARN-023 — Keep value-free tutor decision lineage
@@ -878,7 +878,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 1. Inspect audit output for stable actor and subject ids, question and request ids, consent notice version and time, source and revision ids, grant versions, payload digest, provider and model, configuration and policy versions, approval identity and time, USD estimate and reservation, action, outcome and value-free failure code.
 2. Verify that question bodies, passages, answers, credentials and session secrets are absent from audit output.
 
-**Evidence.** `tests/beam/regression-tutor.mjs` — tutorCheck: assigned learner questions from company sources and published lessons; entire immutable company passage equality and exact published lesson equality; asserted uncertainty; revision-bound citations, page and download scope; explicit unsupported answers; learner-only disclosed expert posting, expert reply and resolution without another paid call; grant revocation, stale approvals, no cache revival, replaced and canceled enrollment, prompt injection refusal and unchanged assessment and completion evidence. `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful original cited answers for ordinary paraphrases and compatible differing passages; irrelevant, unknown, instruction-bearing, partial and conflicting selections refused; in-flight revocation and pending erasure; current owner session replacement and in-flight revocation refusal; unchanged enrollment with pinned clock advancement proving expired stored answer, page and citation reads close; pending erasure independently closes a previously valid stored answer and its download; independent source visibility and regrant invalidation. `tests/beam/tutor-privacy.mjs` — loadTutorCanaries, assertNoCanaries and assertTutorLineage: populated restricted source, other learner question, anonymous answer, private practice, assessment-answer and practical-evidence canaries excluded from approved wire data and learner result, page and citation download; consent, source versions, digest, model, explicit provider identity, approval, configuration, policy and reservation lineage without question or passage bodies, approval ciphertext, credentials or session secrets. `tests/beam/regression-model-budget.mjs` — modelBudgetCheck: initial zero ceiling, exhaustion, concurrent reservations, contention with paid automation, consumed and expired approvals, retained failed and unknown billing and reconciled USD totals. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm, loaded in Verify with BEAM_TUTOR_BROWSER: learner entry and consent, source grants, owner exact request review, answers and citations, paraphrases, compatible and refused selections, expert disclosure and discussion, revoked sources, model account, zero and exhausted budgets at 1440 and 390; exact visible outbound request, rendered uncertainty, USD estimates and unknown billing, overflow and icon tooltip checks. `tests/beam/regression-erasure.mjs` — erasureCheck and `tests/beam/regression-archive.mjs` — archiveCheck retain local question erasure, cache exclusion and disabled restored grants. Only the provider network edge is substituted; no real provider retention, deletion or legal outcome is claimed.  `tests/beam/tutor-adversarial.mjs` — tutorAdversarial: useful cited single and conjunctive paraphrases, explicit support for every question aspect, missing and conflicting support with asserted uncertainty and expert routes, preserved irrelevant and injected selection refusals. `tests/beam/regression-tutor.mjs` — tutorCheck: learner-supplied question information disclosed before consent, unanswered uncertainty and exact consented question body preserved by the explicit cohort handoff. `tests/beam/tutor-browser.mjs` — tutorBrowser and tutorForm: learner, owner and expert pages and real forms at 1440 and 390, including conjunctive-paraphrase, partial, conflicting and unsupported states with rendered uncertainty and consent disclosure. `tests/beam/regression-erasure.mjs` — erasureCheck: populated answered cache and citation removal under an assessment hold, with model-provider deletion visibly unresolved. `tests/beam/regression-archive.mjs` — archiveCheck: populated answered-cache exclusion, restored citation refusal and the exact restored tutor source grant disabled in both current and legacy archives.
+**Evidence.** `tests/beam/regression-tutor.mjs`, `tests/beam/tutor-adversarial.mjs`, `tests/beam/tutor-privacy.mjs`, `tests/beam/regression-model-budget.mjs`, `tests/beam/tutor-browser.mjs`, `tests/beam/regression-erasure.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Inspect audit output for stable actor. subject ids. question. request ids. consent notice version. time. source. revision ids. grant versions. payload digest. provider. model. configuration. policy versions. approval identity. USD estimate. reservation. action. outcome. value-free failure code. Verify that question bodies. passages. answers. credentials. session secrets are absent from audit output. Company-policy computation for the classes declared on agent calls.
 
 #### LEARN-009 — Coach through reviewed text and voice roleplay
@@ -902,7 +902,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Assign a policy acknowledgment, sign after viewing it, decline another and publish a revised policy; download original signed evidence and see a separate new acknowledgment requirement.
 
-**Evidence.** `src/beam/acknowledgments.ts`, `src/beam/ui/acknowledgments.ts`, `migrations/core/0020_beam_acknowledgments.sql`, `tests/beam/flows.mjs` (LEARN-010)
+**Evidence.** `src/beam/acknowledgments.ts`, `src/beam/ui/acknowledgments.ts`, `migrations/core/0020_beam_acknowledgments.sql`, `tests/beam/flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Assign a policy acknowledgment. sign after viewing it. decline another. publish a revised policy. download original signed evidence. see a separate new acknowledgment requirement.
 
 #### LEARN-011 — Make every learning route accessible
@@ -962,7 +962,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001 · Rules D-1
 **Acceptance.**
 1. Publish a test with one question of each type, take it with all-correct, one-wrong and accepted-variant answers through the learner page at 390 and 1440 pixels and by keyboard, and inspect each attempt’s stored responses, rule and score.
 
-**Evidence.** `src/beam/question-types.ts`, `src/beam/timing.ts`, `src/beam/ui/timing.ts`, `public/beam-match.js`, `src/beam/ui/authoring.ts`, `tests/beam/regression-questions.mjs` (LEARN-015)
+**Evidence.** `src/beam/question-types.ts`, `src/beam/timing.ts`, `src/beam/ui/timing.ts`, `public/beam-match.js`, `src/beam/ui/authoring.ts`, `tests/beam/regression-questions.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Publish a test with one question of each type. take it with all-correct. one-wrong. accepted-variant answers through the learner page at 390. 1440 pixels. by keyboard. and inspect each attempt’s stored responses. rule. score.
 
 #### LEARN-016 — Import GIFT and Aiken question banks
@@ -974,7 +974,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Upload a GIFT file with every GIFT question type and an Aiken file, inspect the preview and its named losses, apply them, publish a test drawing from the bank and take it with each type scored correctly; export the bank and re-import it without duplicates.
 
-**Evidence.** `src/beam/bank-import.ts`, `src/beam/ui/bank.ts`, `tests/beam/regression-bank.mjs` (LEARN-016)
+**Evidence.** `src/beam/bank-import.ts`, `src/beam/ui/bank.ts`, `tests/beam/regression-bank.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Upload a GIFT file with every GIFT question type. an Aiken file. inspect the preview. its named losses. apply them. publish a test drawing from the bank. take it with each type scored correctly. export the bank. re-import it without duplicates.
 
 #### LEARN-017 — Use Beam in the learner’s language
@@ -986,7 +986,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Set a learner to Spanish through People, then open every learner-facing page, take a quiz, receive a delivered reminder and download a certificate, all in Spanish; open a course with no Spanish version and see the original with the note; change the learner back to English and see the next email in English.
 
-**Evidence.** `tests/beam/regression-learning.mjs` — languageCheck: explicit/default precedence, self switch and View as refusal, original-language notice, core and peripheral learner pages, timed quiz and saved controls, authored text preserved, certificate/PDF and Spanish then English overdue mail at the network edge; `tests/beam/regression-language-browser.mjs` — languageBrowserCheck: learner/course/lesson/quiz/certificate, timed and peripheral screens plus visitor-selected public verification at 1440/390; `tests/beam/live-language-mail.mjs` — authenticated live Spanish then English delivered mail at candidate 80dee06b0137cd24f1c1f278c1fd22ecb7040277, QA-inbox receipts 303bec16-49f1-4387-9d1c-b95938899cc4 / 3efd638a-45ba-44f1-9767-fdfeb51d9315 (22 Oct 2026); `tests/beam/regression-course-locales.mjs` — courseLocaleCheck: reviewed Spanish selection, correction, immutable evidence and source-change queue; `tests/beam/regression-hris-language.mjs` — hrisLanguageCheck: actual connector through a Gusto HTTPS edge fake, current preference and retained evidence; `tests/beam/regression-language-errors.mjs` — languageErrorCheck: localized quiz/enrollment/signature form refusals with retained state; `src/beam/language.ts`, `src/beam/messages.ts`.
+**Evidence.** `tests/beam/regression-learning.mjs`, `tests/beam/regression-language-browser.mjs`, `tests/beam/live-language-mail.mjs`, `tests/beam/regression-course-locales.mjs`, `tests/beam/regression-hris-language.mjs`, `tests/beam/regression-language-errors.mjs`, `src/beam/language.ts`, `src/beam/messages.ts`
 **Gap.** Partial: core, timed and peripheral web controls, structured transcript/evidence and signature intent, locale dates/numbers, reviewed Spanish course selection, original-language fallback, manual HRIS preference ingestion and delivered Spanish then English mail are proved. Owed: Base authentication localization (email-link messages, sign-in/confirmation and account settings expose no locale API); real Gusto language qualification (company OAuth authorization and existing language field unavailable); LEARN-004 native store/signing/device coverage.
 
 #### LEARN-018 — Time-limit assessments
@@ -999,7 +999,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001 · Rules D-1
 1. Publish a scored quiz with a 10-minute limit and a practical with no clock; start the quiz as a learner and see the accessible countdown from the server deadline, the same deadline through JSON, and 5- and 1-minute warnings announced in a live region.
 2. Leave and return and see the time still running; let it expire and see the saved answers scored and a late answer refused through the page and JSON.
 
-**Evidence.** `src/beam/timing.ts`, `src/beam/learning.ts`, `src/beam/ui/timing.ts`, `public/beam-countdown.js`, `migrations/core/0022_beam_timed_attempts.sql`, `tests/beam/regression-timing.mjs` (LEARN-018)
+**Evidence.** `src/beam/timing.ts`, `src/beam/learning.ts`, `src/beam/ui/timing.ts`, `public/beam-countdown.js`, `migrations/core/0022_beam_timed_attempts.sql`, `tests/beam/regression-timing.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Publish a scored quiz with a 10-minute limit. a practical with no clock. start the quiz as a learner. see the accessible countdown from the server deadline. the same deadline through JSON. and 5-. 1-minute warnings announced in a live region. Leave. return. see the time still running. let it expire. see the saved answers scored. a late answer refused through the page. JSON.
 
 #### LEARN-024 — Apply recorded assessment accommodations
@@ -1012,7 +1012,7 @@ Core · target · **partial** · From LEARN-018 · Cites BASE-ACCESSIBILITY-001 
 1. As owner, grant a second learner 50% extra time under LEARN-011 and see a 15-minute limit and the recorded accommodation.
 2. Prove a manager can grant it to a teammate and is refused for a non-teammate; grant two course accommodations and see the newest win.
 
-**Evidence.** `src/beam/timing.ts`, `src/beam/learning.ts`, `src/beam/ui/timing.ts`, `public/beam-countdown.js`, `migrations/core/0022_beam_timed_attempts.sql`, `tests/beam/regression-timing.mjs` (LEARN-018)
+**Evidence.** `src/beam/timing.ts`, `src/beam/learning.ts`, `src/beam/ui/timing.ts`, `public/beam-countdown.js`, `migrations/core/0022_beam_timed_attempts.sql`, `tests/beam/regression-timing.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: As owner. grant a second learner 50% extra time under LEARN-011. see a 15-minute limit. the recorded accommodation. Prove a manager can grant it to a teammate. is refused for a non-teammate. grant two course accommodations. see the newest win.
 
 #### LEARN-019 — Reset one learner’s progress with history kept
@@ -1027,7 +1027,7 @@ Core · target · **partial** · Rules D-1
 3. Refuse the manager’s reset of a non-teammate; with ORG-004, prove the same check against the manager’s teams and hierarchy.
 4. Try to reset a completed assignment and see it refused with the offer to create a new assignment instead; create it and see the old completion and certificate unchanged.
 
-**Evidence.** `src/beam/resets.ts`, `src/beam/learning.ts`, `migrations/core/0019_beam_resets.sql`, `tests/beam/regression-learning.mjs` (LEARN-019)
+**Evidence.** `src/beam/resets.ts`, `src/beam/learning.ts`, `migrations/core/0019_beam_resets.sql`, `tests/beam/regression-learning.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: As the owner. reset anyone’s open assignment. As a manager. reset a teammate’s open assignment after a failed practical. giving a reason. see the learner start from the first lesson with a fresh attempt allowance. and see the earlier lesson progress. attempts. rejected evidence in the assignment history. Audit. Refuse the manager’s reset of a non-teammate. with ORG-004. prove the same check against the manager’s teams. hierarchy. Try to reset a completed assignment. see it refused with the offer to create a new assignment instead. create it. see the old completion. certificate unchanged.
 
 ### Enrollment, renewals and automation
@@ -1042,7 +1042,7 @@ Core · target · **partial** · Rules D-1
 1. Preview a location/role rule, change a person’s HR fields, run synchronization twice and inspect additions/removals, retained completions and a reasoned exclusion.
 2. Assign a LIB-006 requirement by role and location and see it apply to a person whose HR fields move them into that audience.
 
-**Evidence.** `src/beam/audiences.ts`, `src/beam/ui/audiences.ts`, `src/beam/external.ts`, `src/beam/directory.ts`, `migrations/core/0047_beam_audiences.sql`, `tests/beam/regression-audiences.mjs` (AUTO-001)
+**Evidence.** `src/beam/audiences.ts`, `src/beam/ui/audiences.ts`, `src/beam/external.ts`, `src/beam/directory.ts`, `migrations/core/0047_beam_audiences.sql`, `tests/beam/regression-audiences.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Preview a location. role rule. change a person’s HR fields. run synchronization twice. inspect additions. removals. retained completions. a reasoned exclusion. Assign a LIB-006 requirement by role. location. see it apply to a person whose HR fields move them into that audience.
 
 #### AUTO-002 — Enroll joiners and movers and remove leavers
@@ -1066,7 +1066,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Build hire-relative and prerequisite-relative paths, enroll around a US daylight-saving transition and transfer a learner; compare previewed instants and unchanged past assignments.
 
-**Evidence.** `src/beam/due-rules.ts`, `src/beam/assignments.ts`, `src/beam/time.ts`, `src/beam/ui/managing.ts`, `migrations/core/0049_beam_due_rules.sql`, `tests/beam/regression-due.mjs` (AUTO-003)
+**Evidence.** `src/beam/due-rules.ts`, `src/beam/assignments.ts`, `src/beam/time.ts`, `src/beam/ui/managing.ts`, `migrations/core/0049_beam_due_rules.sql`, `tests/beam/regression-due.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Build hire-relative. prerequisite-relative paths. enroll around a US daylight-saving transition. transfer a learner. compare previewed instants. unchanged past assignments.
 
 #### AUTO-004 — Execute recurring training and certificate renewals
@@ -1078,7 +1078,7 @@ Core · target · **partial** · Cites BASE-MAIL-001 · Rules D-1
 **Acceptance.**
 1. Set annual and expiry-relative rules, advance the scheduled job across two cycles and replay it, complete a renewal and inspect retained original certificates, due dates and no duplicate open assignment; advance it past the lead time of a MOVE-009 credited person and see one renewal assignment due on their credited expiry.
 
-**Evidence.** `tests/beam/regression-renewals.mjs` — renewalCheck: annual/expiry lead and grace, two native cycles, current revision with retained path/interval, overdue deadlines, unchanged certificates, cross-rule deduplication and AUTO-008 replay; `tests/beam/regression-credit-renewals.mjs` — creditRenewalCheck: real imported-history credit approval, historical-expiry lead/deadline without grace, no early enrollment, native precedence, undo before and after assignment, retained import/certificate and replacement-rule deduplication; renewalBrowser: rules, credited cycles, consent, notices, USD policy and costs at 1440/390; `tests/beam/regression-renewal-notices.mjs` — renewalNoticeCheck: legacy-off/future-only human consent, current learner/manager and language, provider refusal with visible failure, concurrent safe replay, policy/approval/quiet/rate/USD limits and revocation, unknown-outcome no-resend; `tests/beam/regression-archive.mjs` — renewalNoticeArchiveCheck: actual archive restore fences consent and old notices.
+**Evidence.** `tests/beam/regression-renewals.mjs`, `tests/beam/regression-credit-renewals.mjs`, `tests/beam/regression-renewal-notices.mjs`, `tests/beam/regression-archive.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Set annual. expiry-relative rules. advance the scheduled job across two cycles. replay it. complete a renewal. inspect retained original certificates. due dates. no duplicate open assignment. advance it past the lead time of a MOVE-009 credited person. see one renewal assignment due on their credited expiry.
 
 #### AUTO-005 — Assign follow-on learning after success or failure
@@ -1090,7 +1090,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Configure completion and exhausted-attempt branches through Automation, complete/fail the source course and replay events; verify the selected next assignment and a rejected cycle.
 
-**Evidence.** `src/beam/automation.ts`, `src/beam/ui/automation.ts`, `src/beam/learning.ts`, `migrations/core/0034_beam_automation.sql`, `tests/beam/regression-automation.mjs` (AUTO-005)
+**Evidence.** `src/beam/automation.ts`, `src/beam/ui/automation.ts`, `src/beam/learning.ts`, `migrations/core/0034_beam_automation.sql`, `tests/beam/regression-automation.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Configure completion. exhausted-attempt branches through Automation. complete. fail the source course. replay events. verify the selected next assignment. a rejected cycle.
 
 #### AUTO-006 — Handle leave, exceptions and deadline changes openly
@@ -1102,7 +1102,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Report leave against an overdue course, approve a temporary deferral, expire it and inspect the restored queue plus original deadline; refuse an unauthorized exemption and backdated completion.
 
-**Evidence.** `src/beam/exceptions.ts`, `src/beam/report.ts`, `src/beam/records.ts`, `src/beam/ui/exceptions.ts`, `migrations/core/0033_beam_exceptions.sql`, `tests/beam/regression-exceptions.mjs` (AUTO-006)
+**Evidence.** `src/beam/exceptions.ts`, `src/beam/report.ts`, `src/beam/records.ts`, `src/beam/ui/exceptions.ts`, `migrations/core/0033_beam_exceptions.sql`, `tests/beam/regression-exceptions.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Report leave against an overdue course. approve a temporary deferral. expire it. inspect the restored queue plus original deadline. refuse an unauthorized exemption. backdated completion.
 
 #### AUTO-007 — Deactivate inactive learners under a reviewed policy
@@ -1114,7 +1114,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Preview and enable an inactivity policy, advance its notice period, run it twice and verify session revocation, exclusions and recovery by fresh authorized sign-in.
 
-**Evidence.** `src/beam/inactivity.ts`, `src/beam/inactivity-scheduled.ts`, `src/beam/ui/inactivity.ts`, `migrations/core/0035_beam_inactivity.sql`, `migrations/core/0055_scheduled_policy.sql`, `migrations/core/0056_last_signin.sql`, `tests/beam/regression-inactivity.mjs` (AUTO-007)
+**Evidence.** `src/beam/inactivity.ts`, `src/beam/inactivity-scheduled.ts`, `src/beam/ui/inactivity.ts`, `migrations/core/0035_beam_inactivity.sql`, `migrations/core/0055_scheduled_policy.sql`, `migrations/core/0056_last_signin.sql`, `tests/beam/regression-inactivity.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Preview. enable an inactivity policy. advance its notice period. run it twice. verify session revocation. exclusions. recovery by fresh authorized sign-in.
 
 #### AUTO-008 — Control and inspect unattended automation
@@ -1126,7 +1126,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Dry-run and enable a scoped native rule, require and invalidate an approval, hold it in quiet hours and at its rate limit, deny an unavailable target, inspect the input, policy and actionable failure, recover and replay without duplication, then pause all rules and verify no audience or follow-on effect occurs.
 
-**Evidence.** `src/beam/automation-policy.ts`, `src/beam/automation-execution.ts`, `src/beam/ui/automation-controls.ts`, `tests/beam/regression-renewal-notices.mjs` — renewalNoticeCheck: inherited positive-cost provider refusal/replay, atomic concurrent estimated-USD ceiling and retained uncertain reservations; `tests/beam/regression-automation.mjs` (AUTO-008) `tests/beam/regression-model-budget.mjs` — modelBudgetCheck: atomic shared model and automation reservations and retained failed and unknown estimates.
+**Evidence.** `src/beam/automation-policy.ts`, `src/beam/automation-execution.ts`, `src/beam/ui/automation-controls.ts`, `tests/beam/regression-renewal-notices.mjs`, `tests/beam/regression-automation.mjs`, `tests/beam/regression-model-budget.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Dry-run. enable a scoped native rule. require. invalidate an approval. hold it in quiet hours. at its rate limit. deny an unavailable target. inspect the input. policy. actionable failure. recover. replay without duplication. pause all rules. verify no audience or follow-on effect occurs.
 
 #### AUTO-009 — Open and close course access windows
@@ -1143,7 +1143,7 @@ Core · target · **partial** · Rules D-1
 5. As a manager, extend a teammate’s closing day by seven days with a reason and see learning resume when within the extended window; see the original due date and the extension in the report, and refuse an extension for a non-teammate.
 6. Prove an extension of a closed window adds seven days to its current closing day.
 
-**Evidence.** `src/beam/access.ts`, `src/beam/learning.ts`, `src/beam/report.ts`, `migrations/core/0021_beam_access_windows.sql`, `tests/beam/regression-learning.mjs` (AUTO-009), `tests/beam/regression-admin.mjs`
+**Evidence.** `src/beam/access.ts`, `src/beam/learning.ts`, `src/beam/report.ts`, `migrations/core/0021_beam_access_windows.sql`, `tests/beam/regression-learning.mjs`, `tests/beam/regression-admin.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: As the owner (admin until ORG-002). set a course to close 30 days after enrollment. another to open on a future date. close a week later. enroll a learner in each. see the first open. the second listed with its opening date but not launchable. Change a course or path rule. see it apply only to new assignments. Prove fixed dates include the whole opening. closing days in the employer’s time zone. Advance time past each close. see “access ended” with records. certificates still readable. and learning refused through every current page. form. JSON door. As a manager. extend a teammate’s closing day by seven days with a reason. see learning resume when within the extended window. see the original due date. the extension in the report. and refuse an extension for a non-teammate. Prove an extension of a closed window adds seven days to its current closing day.
 
 ### Instructor-led and blended programs
@@ -1157,7 +1157,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Create a blended path with two session options through Programs, enroll a learner, reschedule across a time-zone boundary and compare the calendar invitation, agenda and prerequisite gate.
 
-**Evidence.** `src/beam/live.ts`, `src/beam/ics.ts`, `src/beam/ui/live.ts`, `migrations/core/0037_beam_live_sessions.sql`, `tests/beam/regression-live.mjs` (LIVE-001)
+**Evidence.** `src/beam/live.ts`, `src/beam/ics.ts`, `src/beam/ui/live.ts`, `migrations/core/0037_beam_live_sessions.sql`, `tests/beam/regression-live.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Create a blended path with two session options through Programs. enroll a learner. reschedule across a time-zone boundary. compare the calendar invitation. agenda. prerequisite gate.
 
 #### LIVE-002 — Manage capacity and waitlists
@@ -1169,7 +1169,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Fill a two-seat session, waitlist two people, cancel a seat and accept/expire an offer; issue simultaneous registrations and inspect capacity, notifications and retained enrollment history.
 
-**Evidence.** `src/beam/registrations.ts`, `src/beam/live.ts`, `src/beam/ui/live.ts`, `migrations/core/0038_beam_session_seats.sql`, `tests/beam/regression-seats.mjs` (LIVE-002)
+**Evidence.** `src/beam/registrations.ts`, `src/beam/live.ts`, `src/beam/ui/live.ts`, `migrations/core/0038_beam_session_seats.sql`, `tests/beam/regression-seats.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Fill a two-seat session. waitlist two people. cancel a seat. accept. expire an offer. issue simultaneous registrations. inspect capacity. notifications. retained enrollment history.
 
 #### LIVE-003 — Reconcile attendance and instructor evidence
@@ -1181,7 +1181,7 @@ Core · target · **partial** · Rules D-1
 **Acceptance.**
 1. Take attendance through the session roster, mark one absence and partial attendance, amend a mistake and inspect the timeline and still-outstanding blended requirements.
 
-**Evidence.** `src/beam/attendance.ts`, `src/beam/ui/attendance.ts`, `src/beam/learning.ts`, `src/beam/courses.ts`, `migrations/core/0039_beam_attendance.sql`, `tests/beam/regression-attendance.mjs` (LIVE-003)
+**Evidence.** `src/beam/attendance.ts`, `src/beam/ui/attendance.ts`, `src/beam/learning.ts`, `src/beam/courses.ts`, `migrations/core/0039_beam_attendance.sql`, `tests/beam/regression-attendance.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Take attendance through the session roster. mark one absence. partial attendance. amend a mistake. inspect the timeline. still-outstanding blended requirements.
 
 #### LIVE-004 — Deliver Zoom sessions and reconcile attendance
@@ -1273,7 +1273,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Let a reminder fail while the learner is on leave, transfer their manager and advance escalation; inspect the new manager’s queue, fallback route, blocker resolution and suppression after completion.
 
-**Evidence.** `src/beam/escalations.ts`, `src/beam/automation-policy.ts`, `src/beam/records.ts`, `migrations/core/0068_beam_escalations.sql`, `migrations/core/0069_beam_escalation_control.sql`, `tests/beam/regression-notices.mjs` (NOTICE-004)
+**Evidence.** `src/beam/escalations.ts`, `src/beam/automation-policy.ts`, `src/beam/records.ts`, `migrations/core/0068_beam_escalations.sql`, `migrations/core/0069_beam_escalation_control.sql`, `tests/beam/regression-notices.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Let a reminder fail while the learner is on leave. transfer their manager. advance escalation. inspect the new manager’s queue. fallback route. blocker resolution. suppression after completion.
 
 #### NOTICE-005 — Define notification rules, recipients and messages
@@ -1288,7 +1288,7 @@ Core · target · **partial** · Cites BASE-MAIL-001
 3. Create “test failed → instructor” and a welcome email, trigger each, and see the Spanish variant delivered to a Spanish-preference learner.
 4. Save a body with an unknown merge field and see it refused.
 
-**Evidence.** `src/beam/notification-rules.ts`, `src/beam/notification-delivery.ts`, `src/beam/ui/notifications.ts`, `tests/beam/regression-notices.mjs` — notificationRulesCheck: editor tests, merge validation, languages, current managers, scoped unit and custom-role editing, grant revocation, saved-path filtering, named-assessor and administrator recipients, pending practical evidence and obsolete-notice suppression, dedupe and controlled replay; notificationScopeBrowser and pendingEvidenceBrowser: editor, inbox and evidence link at 1440 and 390
+**Evidence.** `src/beam/notification-rules.ts`, `src/beam/notification-delivery.ts`, `src/beam/ui/notifications.ts`, `tests/beam/regression-notices.mjs`
 **Gap.** Completion rules in-app, current learner and manager recipients, course, team and location filters, versioned merge templates, language variants, editor tests, private inboxes and explicit controlled replay work. Scoped unit administrators and custom notification-role holders now edit, test, enable and replay bounded rules; authority is checked again at execution and on delivery-record reads. Path filters use the assignment’s saved path revision. Named practical assessors and authorized learning administrators receive completion notices, with current authority checked again on inbox reads. Practical evidence awaiting decision also triggers a notice with captured recipients and an exact attempt link; decided, reset or closed work disappears from the inbox and replay rechecks it. Other events (welcome, assignment, session, due, failure, certificate and renewal), instructor recipients and named addresses, delivered email, SMS, Slack and Teams, channel fallback, no contact route and provider delivery and suppression remain owed.
 
 #### NOTICE-006 — Send announcements to a course, team or cohort
@@ -1306,7 +1306,7 @@ Core · target · **partial**
 6. Refuse announcements for canceled sessions and out-of-scope sessions; exercise owner and unit learning-administrator session authority.
 7. Every private reply and read keeps the original captured management boundary and current authority; new overlapping teams cannot rescue a lost boundary, and renewal reopens only the original boundary (RL-108).
 
-**Evidence.** `src/beam/announcements.ts`, `src/beam/announcement-authority.ts`, `src/beam/ui/announcements.ts`, `migrations/core/0032_beam_announcements.sql`, `tests/beam/regression-notices.mjs` — announcementCheck and announcementAudienceCheck: private replies, scoped locations and cohorts, recipient snapshots and revoked management; announcementAudienceBrowser: send and reply at 1440 and 390; `tests/beam/regression-announcement-sessions.mjs` — sessionAnnouncementCheck: registered-only snapshots, instructor and unit authority, expiry, revocation and renewal
+**Evidence.** `src/beam/announcements.ts`, `src/beam/announcement-authority.ts`, `src/beam/ui/announcements.ts`, `migrations/core/0032_beam_announcements.sql`, `tests/beam/regression-notices.mjs`, `tests/beam/regression-announcement-sessions.mjs`
 **Gap.** In-app team and course announcements and private replies, plus scheduled-session announcements for the owner, course-unit learning administrators and named instructors with current course-covering grants, are implemented. Session recipients are fixed at send, exclude waitlisted, offered, canceled and other-session learners and the sender, and instructor authority is rechecked for send, reply and read with replies closed and hidden on loss and restored on renewal. Location and active AUTO-001 cohort audiences now snapshot only active recipients within current management scope; later membership changes do not add recipients. Management authority is rechecked for new replies and private reply reads. Location and cohort recipients retain their original managed-team boundary: losing any captured team authority or membership closes their replies and hides them from the sender; another team cannot preserve access, and restoring the original boundary reopens it. Instructor-only access remains restricted to registered session learners.  Delivered email, Slack and Teams with consent, opt-out, quiet hours and delivery states remain absent under NOTICE-001, NOTICE-002 and NOTICE-003.
 
 ### Reporting and learning operations
@@ -1320,7 +1320,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Open a manager dashboard for a mixed US workforce, filter role/location/team, drill into an overdue learner and reconcile totals against active roster, exemptions and revision-bound records; drill into a person credited under MOVE-009 and see the credit label, decision and expiry, and see them counted as current.
 
-**Evidence.** `tests/beam/regression-dashboards.mjs` — coverageCheck: mixed-workforce role/location/team filters, overdue drill-down to the exact revision, single-requirement drill-down, role and location only for directory readers (ORG-001), active-roster denominators (leave and terminated left out), exemption, statuses adding up to the required count, policy effective dates and the effective-date filter, owner-only expiring window shared with the training report, MOVE-009 credit label/decision/expiry counted current then expiring and missing, imported history labelled; coverageBrowserCheck: coverage, location filter, overdue and credited record drill-down with decision actor/reason/expiry, and owner expiring-window control at 1440 and 390; `src/beam/coverage.ts`, `src/beam/credits.ts`, `src/beam/ui/coverage.ts`, `src/beam/ui/history-credits.ts`, `src/beam/report.ts`
+**Evidence.** `tests/beam/regression-dashboards.mjs`, `src/beam/coverage.ts`, `src/beam/credits.ts`, `src/beam/ui/coverage.ts`, `src/beam/ui/history-credits.ts`, `src/beam/report.ts`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Open a manager dashboard for a mixed US workforce. filter role. location. team. drill into an overdue learner. reconcile totals against active roster. exemptions. revision-bound records. drill into a person credited under MOVE-009. see the credit label. decision. expiry. and see them counted as current.
 
 #### REPORT-002 — Share scoped learning dashboards
@@ -1332,7 +1332,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Save and share a team dashboard with a named leader and an expiring field-limited link, attempt another team and revoke the share; inspect redacted fields and denied access.
 
-**Evidence.** `src/beam/dashboards.ts`, `src/beam/ui/dashboards.ts`, `migrations/core/0058_beam_dashboards.sql`, `tests/beam/regression-dashboards.mjs` (REPORT-002)
+**Evidence.** `src/beam/dashboards.ts`, `src/beam/ui/dashboards.ts`, `migrations/core/0058_beam_dashboards.sql`, `tests/beam/regression-dashboards.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Save. share a team dashboard with a named leader. an expiring field-limited link. attempt another team. revoke the share. inspect redacted fields. denied access.
 
 #### REPORT-003 — Export complete reports and learner transcripts
@@ -1344,7 +1344,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Download CSV, XLSX and a transcript for repeated completions and imported history, compare every attempt and source id to the timeline, reconcile absent and partial live attendance plus superseding corrections across the page, JSON, CSV and XLSX while retaining earlier completion evidence, and export a larger cohort with formula-like names.
 
-**Evidence.** `src/beam/report.ts`, `src/beam/xlsx.ts`, `src/beam/transcript.ts`, `src/beam/ui/transcript.ts`, `tests/beam/regression-transcript.mjs`, `tests/beam/regression-attendance.mjs`, `tests/beam/agent-flows.mjs` (REPORT-003)
+**Evidence.** `src/beam/report.ts`, `src/beam/xlsx.ts`, `src/beam/transcript.ts`, `src/beam/ui/transcript.ts`, `tests/beam/regression-transcript.mjs`, `tests/beam/regression-attendance.mjs`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Download CSV. XLSX. a transcript for repeated completions. imported history. compare every attempt. source id to the timeline. reconcile absent. partial live attendance plus superseding corrections across the page. JSON. CSV. XLSX while retaining earlier completion evidence. and export a larger cohort with formula-like names.
 
 #### REPORT-004 — Schedule report delivery and external analytics
@@ -1356,7 +1356,7 @@ Core · target · **partial** · Cites BASE-MAIL-001
 **Acceptance.**
 1. Schedule a weekly manager report, change its recipient’s role before sending and inspect withheld data and delivery history; connect Power BI Desktop to the report feed with a read-only credential, refresh it and reconcile its totals to the same reporting period in REPORT-001; revoke the credential and see the next refresh refused.
 
-**Evidence.** `src/beam/report-feed.ts`, `src/beam/app-credentials.ts`, `tests/beam/agent-flows.mjs` (REPORT-004)
+**Evidence.** `src/beam/report-feed.ts`, `src/beam/app-credentials.ts`, `tests/beam/agent-flows.mjs`
 **Gap.** The versioned CSV and JSON report feed on a read-only credential works; scheduled email/Slack/Teams reports with authorized recipients, expiring downloads and delivery history, a real Power BI Desktop refresh and AUTO-008 provider-call denial are absent.
 
 #### REPORT-005 — Measure course quality and program effort
@@ -1368,7 +1368,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Run a program with drop-offs, retries and feedback, inspect course/revision trends and effort, and verify private practice and anonymous answers cannot be drilled into as individual performance.
 
-**Evidence.** `src/beam/quality.ts`, `src/beam/ui/quality.ts`, `src/beam/views.ts`, `tests/beam/agent-flows.mjs` (REPORT-005)
+**Evidence.** `src/beam/quality.ts`, `src/beam/ui/quality.ts`, `src/beam/views.ts`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Run a program with drop-offs. retries. feedback. inspect course. revision trends. effort. and verify private practice. anonymous answers cannot be drilled into as individual performance.
 
 ### Workforce, identity and knowledge connections
@@ -1419,7 +1419,7 @@ Core · target · **partial** · Register R-5
 1. Connect an authorized Gusto sandbox through Integrations, preview a hire/transfer/termination, approve its mapping and run/replay synchronization; revoke access and inspect stale-feed warnings plus unchanged retained records.
 2. Use the exact company-bound read-only language mapping to an independently bound employee; refuse ambiguous identity and revoke authority on withdrawal or restore (RL-104).
 
-**Evidence.** `tests/beam/regression-hris-language.mjs` — hrisLanguageCheck: explicitly consented manual Gusto employee/custom-field reads, exact company/employee UUID and existing local employee-id binding, preferred language with retained identity/completions, unsupported-language fallthrough, provider denial/visible failure/explicit recovery, changed identity and in-flight revocation refusal; `tests/beam/regression-course-locale-browser.mjs` — courseLocaleBrowser: consent, updated/refused/revoked mapping at 1440/390; `src/beam/connect/gusto-language.ts`.
+**Evidence.** `tests/beam/regression-hris-language.mjs`, `tests/beam/regression-course-locale-browser.mjs`, `src/beam/connect/gusto-language.ts`
 **Gap.** Only manual, human-owner-consented language ingestion exists; company roster/lifecycle reconciliation and enrollment remain absent. Live language qualification requires company-specific OAuth authorization and a configured language custom field; held client credentials mint a system token, which cannot read existing company employees.  No provider writes or automatic reads.
 
 #### CONNECT-005 — Synchronize ADP RUN workforce records
@@ -1481,7 +1481,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Configure an SFTP feed with a saved mapping, drop a Paylocity-style roster export and see it apply through AUTO-002 with joiner, mover and leaver changes; drop a file with a renamed column and one with mass terminations and see both held for review; skip a scheduled drop and see the stale-feed warning.
 
-**Evidence.** `src/beam/connect/roster-feeds.ts`, `tests/beam/regression-roster.mjs` — rosterFeedCheck: saved mapping, CSV and XLSX previews, explicit ordinary roster application for joiners, movers and leavers; duplicate receipts; schema, ambiguity and mass-termination holds; stale-feed reporting, restricted reads, unreviewed files applying nothing, non-owner review refusal and refusal to enable invitations on a feed preview.
+**Evidence.** `src/beam/connect/roster-feeds.ts`, `tests/beam/regression-roster.mjs`
 **Gap.** ct approved as adopted, 24 October: owner-only manually uploaded feed preparation, explicit owner review for every file, no invitations, no unattended provider calls and no automatic application. Non-owner application and preview are refused; reopening a feed preview cannot enable invitations. Scheduled SFTP or cloud-folder transport, automatic clean-file application under AUTO-008, AUTO-002 enrollment, stale-warning delivery and a configuration screen remain absent.
 
 #### CONNECT-020 — Connect no-code automation through Zapier
@@ -1517,7 +1517,7 @@ Core · target · **partial** · Cites BASE-ROLE-001, BASE-SIGNIN-001 · Registe
 **Acceptance.**
 1. Connect a test Entra tenant, provision and sign in a learner, change a group and deactivate the user; attempt a foreign tenant and owner-role injection through SCIM.
 
-**Evidence.** `tests/beam/entra-lifecycle.mjs` — entraCheck: signed tenant-bound OIDC, new SCIM learner, explicit group grant and subject review, foreign issuer and audience refusal, ignored owner claims, forbidden owner provisioning, membership change, deactivation, session revocation and non-revival; `tests/beam/microsoft-browser.mjs` — microsoftBrowserCheck: owner configuration, group review, subject association and disable screens at 1440 and 390; `tests/beam/live-microsoft.mjs` — app-only token, directory, real OIDC discovery and authorization start, consent and local-disable refusals.
+**Evidence.** `tests/beam/entra-lifecycle.mjs`, `tests/beam/microsoft-browser.mjs`, `tests/beam/live-microsoft.mjs`
 **Gap.** PARTIAL: real tenant-driven SCIM provisioning and interactive employee sign-in, changed membership and deactivation remain unqualified. Held app-only credentials prove token and directory reads; a tenant administrator must configure provisioning and provide an authorized employee sign-in and authoritative application-specific subject.  Broader SCIM profiles, existing-account migration and provider erasure propagation remain unqualified.
 
 #### CONNECT-009 — Support Okta and enterprise identity lifecycle
@@ -1553,7 +1553,7 @@ Core · target · **partial** · Rules D-2 · Register R-4
 **Acceptance.**
 1. Connect a real OneDrive / SharePoint sandbox, select a procedure, import and review it, change the source and remove its permission; inspect the affected-course queue and refusal of unauthorized retrieval.
 
-**Evidence.** `tests/beam/regression-microsoft.mjs` — microsoftSourceCheck: selected site and library, exact preview and no pre-review import, immutable origin and permission snapshot, human course review, changed-source maintenance queue, permission-change and denied-read withdrawal, stale and cross-library refusal, blocked retrieval and non-revival; `tests/beam/microsoft-browser.mjs` — microsoftBrowserCheck: source selection, snapshot review, affected courses and revoked-rights screens at 1440 and 390; `tests/beam/live-microsoft.mjs` — real app-only token, directory and site-availability check plus consent, authority and local connection-revocation refusals.
+**Evidence.** `tests/beam/regression-microsoft.mjs`, `tests/beam/microsoft-browser.mjs`, `tests/beam/live-microsoft.mjs`
 **Gap.** PARTIAL: a real licensed OneDrive for Business or SharePoint document lifecycle is still required. The held tenant has one unlicensed user and no subscribed SKUs; site queries return HTTP 400 and document access is unqualified. A tenant administrator must provision a licensed site and document library, grant the application site access, and authorize a procedure to import, change and revoke.  Broad Office and page-export format qualification, per-author provider authorization, complete derived-content and archive redistribution parity, and erasure propagation remain owed here.
 
 #### CONNECT-012 — Connect Notion procedure sources
@@ -1589,7 +1589,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 **Acceptance.**
 1. Issue separate read-report and enrollment credentials through Access, page through reports, replay enrollment, rotate/revoke a credential and refuse publication, foreign audience and cross-scope reads.
 
-**Evidence.** `src/beam/app-credentials.ts`, `src/beam/app-api.ts`, `src/beam/ui/app-access.ts`, `migrations/core/0063_beam_app_credentials.sql`, `tests/beam/agent-flows.mjs` (CONNECT-014)
+**Evidence.** `src/beam/app-credentials.ts`, `src/beam/app-api.ts`, `src/beam/ui/app-access.ts`, `migrations/core/0063_beam_app_credentials.sql`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Issue separate read-report. enrollment credentials through Access. page through reports. replay enrollment. rotate. revoke a credential. refuse publication. foreign audience. cross-scope reads.
 
 #### CONNECT-015 — Deliver signed lifecycle webhooks
@@ -1602,7 +1602,7 @@ Core · target · **partial** · Cites BASE-OPS-003, BASE-OPS-004, BASE-ROLE-001
 1. Subscribe a sandbox endpoint, complete and renew learning, reject its signature once and inspect bounded redelivery/dead-letter then replay; revoke the subscription and verify no more sends.
 2. Recheck every subscribed course unit and selected team at configuration and immediately before send; a team/location-only grant never authorizes another unit's course (RL-105).
 
-**Evidence.** `tests/beam/regression-agent.mjs` — webhookCheck: all five transactional lifecycle events, consent/scope/admitted destinations, minimal signed data, key rotation, bounded failure/backoff/dead-letter/stable-id replay and AUTO-008 controls; `tests/beam/regression-integration-scope.mjs` — webhookScopeCheck: unit administrator/custom integration authority, outside scope and ended grant refusal; `tests/beam/regression-webhook-recovery.mjs` — webhookRecoveryCheck: active/stale send leases, visible uncertainty, no automatic resend, confirmed current-policy replay and concurrent sender exclusion; `tests/beam/regression-archive.mjs` — integrationArchiveCheck: restored deliveries wait for explicit replay; `tests/beam/live-webhook.mjs` — live HTTPS receiver qualification at candidate 80dee06b0137cd24f1c1f278c1fd22ecb7040277 (22 Oct 2026), receiver beam-live-4b3c46bdfb5f: all five signed events, authenticated refusal, actual 1/5-minute backoffs and three-attempt dead letter, confirmed stable-id replay, key-version 2 delivery, revocation and receiver deletion.
+**Evidence.** `tests/beam/regression-agent.mjs`, `tests/beam/regression-integration-scope.mjs`, `tests/beam/regression-webhook-recovery.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/live-webhook.mjs`
 **Gap.** Partial: unit-scoped administrator/custom integration authority and interrupted-send recovery are built. Owed: resolved-address egress qualification (needs a runtime capability that validates and pins the connected public peer; URL admission alone is not that capability).  Not DONE.
 
 #### CONNECT-016 — Offer permission-scoped MCP learning tools
@@ -1614,7 +1614,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 **Acceptance.**
 1. Authorize an MCP client, search permitted material and prepare a course proposal, then request a private team report, publication and privilege change outside its grants; revoke and verify tools stop.
 
-**Evidence.** `src/beam/mcp.ts`, `src/beam/app-credentials.ts`, `src/beam/ui/app-access.ts`, `migrations/core/0065_beam_mcp_grants.sql`, `tests/beam/agent-flows.mjs` (CONNECT-016)
+**Evidence.** `src/beam/mcp.ts`, `src/beam/app-credentials.ts`, `src/beam/ui/app-access.ts`, `migrations/core/0065_beam_mcp_grants.sql`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Authorize an MCP client. search permitted material. prepare a course proposal. request a private team report. publication. privilege change outside its grants. revoke. verify tools stop. Company-policy computation for the classes declared on agent calls.
 
 ### Migration from the comparison products
@@ -1745,7 +1745,7 @@ Core · target · **partial** · Cites BASE-AGENT-009, BASE-AUDIT-001
 **Acceptance.**
 1. Perform a course publication, access revocation, automation and agent approval through public doors, find each in Audit and export it; attempt editing/removing events and inspect preserved decision lineage.
 
-**Evidence.** `src/beam/audit.ts`, `src/beam/ui/audit.ts`, `src/beam/core.ts`, `migrations/core/0028_beam_audit_via.sql`, `tests/beam/regression-audit.mjs` (OPS-001), `tests/beam/agent-flows.mjs` (BEAM-20, OPS-001)
+**Evidence.** `src/beam/audit.ts`, `src/beam/ui/audit.ts`, `src/beam/core.ts`, `migrations/core/0028_beam_audit_via.sql`, `tests/beam/regression-audit.mjs`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Perform a course publication. access revocation. automation. agent approval through public doors. find each in Audit. export it. attempt editing. removing events. inspect preserved decision lineage. Company-policy computation for the classes declared on agent calls.
 
 #### OPS-002 — Export portable learning content and records
@@ -1757,7 +1757,7 @@ Core · target · **partial** · Cites BASE-DATA-001, BASE-SECRET-001
 **Acceptance.**
 1. Export a mixed native/package estate through Data export, inspect the manifest and counts, read open-format records independently and scan for planted secrets and disclosed licensed exclusions.
 
-**Evidence.** `src/beam/data-export.ts`, `src/beam/data-export-inventory.ts`, `docs/data-export.md`, `tests/beam/regression-data-export.mjs` (OPS-002)
+**Evidence.** `src/beam/data-export.ts`, `src/beam/data-export-inventory.ts`, `docs/data-export.md`, `tests/beam/regression-data-export.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Export a mixed native. package estate through Data export. inspect the manifest. counts. read open-format records independently. scan for planted secrets. disclosed licensed exclusions. Company-policy computation for the classes declared on agent calls.
 
 #### OPS-003 — Erase personal data with retention and legal holds
@@ -1769,7 +1769,7 @@ Core · target · **partial** · Cites BASE-ACCESS-002, BASE-DATA-003, BASE-DATA
 **Acceptance.**
 1. Under the held company policy, preview and execute a person erasure with an imported history row and held record, interrupt/resume it, restore an older archive and reconnect a source; verify the hold, deletion report and resurrection refusal.
 
-**Evidence.** `tests/beam/regression-erasure.mjs` — erasureCheck: owner-only policy and stale-preview refusal; real TalentLMS history, unfinished upload and chunks, reviewed plans, approvals, scope and failed apply; person and source hold and release; explicit resumable erasure, immediate access revocation, practice deletion with assessed evidence retained, explicit fresh-digest shared dry-run withdrawal with paused rules and mandatory new preview, physical withdrawal of waiting and declined independent agent preparations with preserved decision state and old-decision refusal, source-derived unpublished lesson withdrawal with stale, hold, frozen and package refusal and atomic no-readmission guards, file deletion and report, preserved audit decision identity and time, unchanged permanent settings and revoked keys, later-journal old-archive refusal and person, import and source reconnect refusal; a connected LRS retains its original statement with a visible unresolved deletion outcome. `tests/beam/erasure-browser.mjs` — owner settings, retention and hold, custody preview, start, reload and resume and held deletion report with practice removal at 1440/390; `tests/beam/erasure-source-browser.mjs` — sourceErasureBrowserCheck: source-derived draft withdrawal, preserved unrelated lesson, refreshed source erasure and deletion report at 1440/390. `tests/beam/erasure-source-drafts.mjs` — sourceDraftWithdrawalCheck: physical draft payload removal and frozen, held and package custody refusals; `tests/beam/regression-erasure.mjs` — erasureCheck: later post-erasure archive restores retain source tombstones without resurrecting draft content.  `tests/beam/regression-erasure.mjs` — erasureCheck with `tests/beam/tutor-custody.mjs` populateAnsweredTutor: a populated answered tutor cache and citations are erased while assessed evidence is held; the model provider deletion outcome remains explicitly unresolved. `tests/beam/erasure-source-drafts.mjs` — sourceUploadCustodyCheck: an object-edge barrier proves active uploads and held uploads refuse erasure, completed uploads require a fresh preview, admitted erasure refuses late writes before storage, shared live originals survive and interrupted uploads remain unresolved. `tests/beam/erasure-source-browser.mjs` — sourceErasureBrowserCheck: blocked upload custody and absent execution control at 1440 and 390.
+**Evidence.** `tests/beam/regression-erasure.mjs`, `tests/beam/erasure-browser.mjs`, `tests/beam/erasure-source-browser.mjs`, `tests/beam/erasure-source-drafts.mjs`, `tests/beam/tutor-custody.mjs`
 **Gap.** Conservative default CT approved with riders (batch5-linen-locket-beam.md): justified human-owner retention and holds and fresh-preview consent; practice deleted even while assessed evidence is held; personal audit payload and routes redacted while event, actor and subject ids, action and time survive; anonymous company-authored attribution retained; shared raw import originals explicitly withdrawn; unmapped personal references and shared machine snapshots refused. Explicit owner-approved withdrawal now clears entire affected follow-on dry runs and pauses their rules; every new activation requires a new dry run. Explicit owner-approved withdrawal also clears waiting and declined agent preparations without linked outcome measurements, preserves their original decision state, ids and times, disables decisions and advances the trusted privacy checkpoint. Explicit owner-approved withdrawal also removes complete source-derived lessons from editable drafts while preserving unrelated lessons; frozen, assessed and shared dependent content remains refused, and new preparation writes cannot race source-erasure admission. CT approved this conservative default with riders (batch5-linen-locket-beam.md); the full deletion gaps below remain required. Complete erasure of approved and dependent preparations, the other refused snapshots and source content already frozen into revisions remains unbuilt. Source-version uploads now reserve durable custody before object writes, and erasure admission serializes against those reservations even under a hold. Completed uploads enter a fresh preview before erasure; interrupted or failed uploads remain visibly unresolved and never expire into a deletion claim. Recovery of interrupted uploads, uncommitted new-source originals and other object-store writers remains unproved. Old-archive refusal requires the later trusted privacy journal; loss of that journal and cross-installation recovery is unproved. Real connected LRS, mail and OCR provider deletion is an external API and custody dependency and stays visibly unresolved. Downloaded copies require the employer device process; native and offline cache doors remain owed under LEARN-004 and LEARN-005; populated answered tutor-cache erasure while assessed evidence is held is asserted by `tests/beam/regression-erasure.mjs`; actual model-provider deletion remains unresolved. Not DONE.
 
 #### OPS-004 — Operate backups and tested recovery
@@ -1805,7 +1805,7 @@ Core · target · **partial** · Cites BASE-DATA-005, BASE-INSTALL-001, BASE-SEC
 **Acceptance.**
 1. Under the held company policy, in a fresh checkout run setup/dev, publish and complete native learning, build and dry-run deployment, then export/restore; connect a real provider for its feature and inspect actionable missing-credential diagnostics.
 
-**Evidence.** `tests/beam/journey.mjs` — fresh-clone journey at 1440 and 390 (rer install, setup and dev with dev identity; owner publishes a reviewed course and a learner completes it through the confirmed lesson save, quiz and certificate; rer build and preview; a refused rer deploy --dry-run naming the missing mail credential, then the passing dry run; Cloudflare reads fixtured only), run locally on candidate c601533a7f05c9d4f9d0676b5d6ff2830e068121 tests (26 Oct 2026); `tests/beam/restore.mjs` — restoreJourney: public-path export refusal, corrupt and nonempty import refused, restore into a second fresh clone with identical rows and file bytes, records and certificates readable after a new sign-in; `tests/beam/live-install-provider.mjs` — held-account provider connect in a fresh local install at candidate c601533a7f05c9d4f9d0676b5d6ff2830e068121 (26 Oct 2026, OpenAI Responses endpoint, provider response id resp_096a25f9022c2822016adf31fd5b0c87d0ad4a378ea8317348): offline hosted diagnostics name MAIL_API_KEY with an action, generation refused 409 model_disabled with the Settings guidance page and no draft before connecting, real model draft with cited passages and USD estimate, nothing published, key revoked; `OPERATIONS.md`, `README.md`.
+**Evidence.** `tests/beam/journey.mjs`, `tests/beam/restore.mjs`, `tests/beam/live-install-provider.mjs`, `OPERATIONS.md`, `README.md`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: in a fresh checkout run setup. dev. publish. complete native learning. build. dry-run deployment. export. restore. connect a real provider for its feature. inspect actionable missing-credential diagnostics. Company-policy computation for the classes declared on agent calls.
 
 #### OPS-007 — Retain Base security and replacement guarantees
@@ -1817,7 +1817,7 @@ Core · target · **partial** · Cites BASE-ACCESS-002, BASE-DATA-005, BASE-OPS-
 **Acceptance.**
 1. Run the installation’s Base-copy/source-lock and first-party checks, exercise sign-in/revocation, mail failure and import/export through their public doors, then repeat those outcomes before accepting a component replacement.
 
-**Evidence.** `base-copies.json`, `scripts/edition-authoring/base-copies.mjs`, `tests/email-link.mjs` (OPS-007), `scripts/installer/portability-policy.mjs`, `migrations/core/0070_beam_restored_grants.sql`, `tests/beam/regression-archive.mjs` (OPS-007), `scripts/diagnose-configuration.mjs`, `tests/beam/legacy-restore.mjs` (OPS-007)  `tests/beam/regression-archive.mjs` — archiveCheck with `tests/beam/tutor-custody.mjs` populateAnsweredTutor: installation archives exclude populated answered tutor caches; current and legacy restores expose no cached question or citation and restore the exact tutor source grant disabled until a fresh owner grant.
+**Evidence.** `base-copies.json`, `scripts/edition-authoring/base-copies.mjs`, `tests/email-link.mjs`, `scripts/installer/portability-policy.mjs`, `migrations/core/0070_beam_restored_grants.sql`, `tests/beam/regression-archive.mjs`, `scripts/diagnose-configuration.mjs`, `tests/beam/legacy-restore.mjs`, `tests/beam/tutor-custody.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Run the installation’s Base-copy. source-lock. first-party checks. exercise sign-in. revocation. mail failure. import. export through their public doors. repeat those outcomes before accepting a component replacement.
 
 #### OPS-008 — Publish capacity and integration health honestly
@@ -1829,7 +1829,7 @@ Core · target · **partial** · Cites BASE-OPS-001, BASE-OPS-004 · Register R-
 **Acceptance.**
 1. Populate a 200-person employer with representative courses and retained history, enroll a cohort, inspect job/provider dashboards and exercise an exhausted file or provider limit with a clear recoverable failure and no truncation.
 
-**Evidence.** `tests/beam/regression-operations.mjs` — operationsCheck: owner diagnostics, denied manager and learning-administrator reads, denied preparation and signed-out reads, exact stale-feed boundary, held receipt versus applied synchronization, failed webhook backlog and successful explicit recovery, secret-safe aggregate projection, whole-file admission refusal and intact smaller-file recovery; operationsBrowser: Settings and health screens at 1440 and 390, invoked by push Verify. `tests/beam/capacity.mjs` — committed local-runtime journey for 200 active employee rows, retained revision-bound history, a 20-person cohort, ten concurrent learners, original mixed-media bytes and package resume; this is not hosted qualification.
+**Evidence.** `tests/beam/regression-operations.mjs`, `tests/beam/capacity.mjs`
 **Gap.** PARTIAL. Owner-only installation-wide diagnostics are the  Local emitted-Worker capacity proof covers a synthetic bounded workload only. Production-sized mixed media, sustained concurrent learning and retained-history growth in the employer hosted installation, live service and provider readiness, hosted storage and provider quota exhaustion, and complete add-on prices and actual provider charges before purchase or use remain unqualified. Source-file admission limits and USD reservations are not capacity guarantees or provider invoices. Not DONE.
 
 #### OPS-009 — Use US employer defaults without payroll decisions
@@ -1841,7 +1841,7 @@ Core · target · **partial**
 **Acceptance.**
 1. Set up a US multi-state employer, select reviewed employee/contractor audiences and daylight-saving deadlines, inspect USD provider costs and verify no learning action writes employment/payroll decisions.
 
-**Evidence.** `src/beam/costs.ts`, `src/beam/ui/managing.ts`, `src/beam/audiences.ts`, `src/beam/time.ts`, `tests/beam/regression-us.mjs` (OPS-009) `tests/beam/regression-model-budget.mjs` — modelBudgetCheck: shared daily model ceiling, reservations and visibly unknown billing in Settings and JSON.
+**Evidence.** `src/beam/costs.ts`, `src/beam/ui/managing.ts`, `src/beam/audiences.ts`, `src/beam/time.ts`, `tests/beam/regression-us.mjs`, `tests/beam/regression-model-budget.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Set up a US multi-state employer. select reviewed employee. contractor audiences. daylight-saving deadlines. inspect USD provider costs. verify no learning action writes employment. payroll decisions.
 
 ### Agent work beyond course generation
@@ -1855,7 +1855,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 **Acceptance.**
 1. Authorize a scoped support or error feed, select a training cohort and request diagnosis; inspect source ids and redactions, reject an out-of-scope record and revoke the connection without retaining unauthorized searchable text.
 
-**Evidence.** Explicit human feed authorization, team and role boundaries, minimized CSV and API ingestion, exact operational record and procedure citations, missing and conflicting signals, and scope-shrink or connection revocation are proved by `tests/beam/regression-diagnosis.mjs` (diagnosisCheck); the same file’s browserProof proves feed authorization, import and revocation at 1440 and 390.
+**Evidence.** `tests/beam/regression-diagnosis.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: Authorize a scoped support or error feed. select a training cohort. request diagnosis. inspect source ids. redactions. reject an out-of-scope record. revoke the connection without retaining unauthorized searchable text. Company-policy computation for the classes declared on agent calls.
 
 #### AGENT-002 — Distinguish training gaps from broken processes
@@ -1867,7 +1867,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 **Acceptance.**
 1. Under the held company policy, give the agent one genuine knowledge gap and one unusable process with trained staff, review its cited alternatives, approve a voluntary question plan and reject an unsupported training recommendation.
 
-**Evidence.** `src/beam/diagnosis-evidence.ts`, `src/beam/diagnosis-comparison.ts`, `src/beam/ui/diagnoses.ts`, `migrations/core/0067_beam_diagnosis_evidence.sql`, `tests/beam/regression-diagnosis.mjs` (AGENT-002)
+**Evidence.** `src/beam/diagnosis-evidence.ts`, `src/beam/diagnosis-comparison.ts`, `src/beam/ui/diagnoses.ts`, `migrations/core/0067_beam_diagnosis_evidence.sql`, `tests/beam/regression-diagnosis.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: give the agent one genuine knowledge gap. one unusable process with trained staff. review its cited alternatives. approve a voluntary question plan. reject an unsupported training recommendation. Company-policy computation for the classes declared on agent calls.
 
 #### AGENT-003 — Propose the smallest useful intervention
@@ -1879,7 +1879,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 **Acceptance.**
 1. Under the held company policy, review an error diagnosis affecting one role, inspect a minimal intervention against a broad-course alternative and approve only the selected people/actions; reject a changed payload and inspect decision lineage.
 
-**Evidence.** `src/beam/interventions.ts`, `src/beam/agent-work.ts`, `src/beam/ui/agent.ts`, `migrations/core/0061_beam_interventions.sql`, `tests/beam/agent-flows.mjs` (AGENT-003)
+**Evidence.** `src/beam/interventions.ts`, `src/beam/agent-work.ts`, `src/beam/ui/agent.ts`, `migrations/core/0061_beam_interventions.sql`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: review an error diagnosis affecting one role. inspect a minimal intervention against a broad-course alternative. approve only the selected people. actions. reject a changed payload. inspect decision lineage. Company-policy computation for the classes declared on agent calls.
 
 #### AGENT-004 — Maintain only learning affected by a procedure change
@@ -1891,7 +1891,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 **Acceptance.**
 1. Under the held company policy, change one procedure step, request an impact proposal and inspect affected passages/questions/roles versus untouched content; decline retraining, then approve a revised exact proposal and compare old completions.
 
-**Evidence.** `src/beam/impact.ts`, `src/beam/ui/impact.ts`, `src/beam/maintenance.ts`, `migrations/core/0064_beam_impact.sql`, `tests/beam/agent-flows.mjs` (AGENT-004)
+**Evidence.** `src/beam/impact.ts`, `src/beam/ui/impact.ts`, `src/beam/maintenance.ts`, `migrations/core/0064_beam_impact.sql`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: change one procedure step. request an impact proposal. inspect affected passages. questions. roles versus untouched content. decline retraining. approve a revised exact proposal. compare old completions. Company-policy computation for the classes declared on agent calls.
 
 #### AGENT-005 — Measure whether learning transfers into work
@@ -1903,7 +1903,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 **Acceptance.**
 1. Under the held company policy, approve a metric and baseline through the intervention page, import scoped pre/post outcomes with missing rows and a process change, then inspect the comparison and refusal to assert causation or rank employees.
 
-**Evidence.** `src/beam/outcomes.ts`, `src/beam/ui/outcomes.ts`, `src/beam/ui/agent.ts`, `migrations/core/0062_beam_outcomes.sql`, `tests/beam/agent-flows.mjs` (AGENT-005)
+**Evidence.** `src/beam/outcomes.ts`, `src/beam/ui/outcomes.ts`, `src/beam/ui/agent.ts`, `migrations/core/0062_beam_outcomes.sql`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: approve a metric. baseline through the intervention page. import scoped pre. post outcomes with missing rows. a process change. inspect the comparison. refusal to assert causation or rank employees. Company-policy computation for the classes declared on agent calls.
 
 #### AGENT-006 — Recover overdue learning through the real manager
@@ -1915,7 +1915,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 **Acceptance.**
 1. Under the held company policy, present an overdue learner on leave with bounced mail and a full assessor calendar, review the agent’s blocked-work plan and approve a substitute slot or manager; inspect delivery and retained original dates.
 
-**Evidence.** Current leave, human-reported bounced delivery and full assessor capacity, exact-payload human approval of temporary manager coverage, policy-controlled mail, unchanged dates and assessment, and refusal of agent decisions, backdating, unpaid work and removed-manager reads are proved by `tests/beam/regression-notices.mjs` (escalationCheck); recoveryBrowser proves waiting and approved recovery at 1440 and 390.
+**Evidence.** `tests/beam/regression-notices.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: present an overdue learner on leave with bounced mail. a full assessor calendar. review the agent’s blocked-work plan. approve a substitute slot or manager. inspect delivery. retained original dates. Company-policy computation for the classes declared on agent calls.
 
 #### AGENT-007 — Prepare a verified migration and maintenance plan
@@ -1939,7 +1939,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 **Acceptance.**
 1. Under the held company policy, close a measured intervention with no observed improvement, review the agent’s uncertainty and alternatives, retire only future redundant assignments by manager approval and verify unchanged historical outcomes and evidence.
 
-**Evidence.** `src/beam/evaluations.ts`, `src/beam/ui/outcomes.ts`, `migrations/core/0066_beam_outcome_reviews.sql`, `tests/beam/agent-flows.mjs` (AGENT-008)
+**Evidence.** `src/beam/evaluations.ts`, `src/beam/ui/outcomes.ts`, `migrations/core/0066_beam_outcome_reviews.sql`, `tests/beam/agent-flows.mjs`
 **Gap.** Carried evidence establishes only the individually asserted outcomes in the done audit. Unasserted outcomes: close a measured intervention with no observed improvement. review the agent’s uncertainty. alternatives. retire only future redundant assignments by manager approval. verify unchanged historical outcomes. evidence. Company-policy computation for the classes declared on agent calls.
 
 ## Agent surface
