@@ -1,10 +1,13 @@
 import { type Bindings } from '../../auth.server.ts'
-import { ToolRefusal, type ToolContext, type ToolDefinition, type JsonSchemaObject } from '../../modules/agent-door/index.ts'
+import { ToolRefusal, type ToolContext, type ToolDefinition, type JsonSchemaObject, type ClassAndFacts } from '../../modules/agent-door/index.ts'
 import { actions } from '../actions.ts'
 import { requireAgentScope } from '../agent-credentials.ts'
 import { requireCourseRole } from '../units.ts'
 import { Input } from '../input.ts'
 import { one } from '../core.ts'
+import { loadCourse } from '../courses.ts'
+import { noticeImpact } from '../impact.ts'
+import { diagnosisImport } from '../diagnosis-evidence.ts'
 import { callActor, native } from './people.ts'
 import definitions from './actions.json'
 
@@ -19,14 +22,25 @@ export function preparationTools(env: Bindings): ToolDefinition[] {
       if (actor.app) throw new ToolRefusal('application_scope_forbidden')
       const course = await courseId(args)
       if (course) await requireCourseRole(env, actor, course, 'author')
+      if (action === 'course.block.reuse') await requireCourseRole(env, actor, String((args.from as { course: string }).course), 'author')
       return actor
     }
     return { ...declaration, classes: declaration.classes as ToolDefinition['classes'], inputSchema: declaration.inputSchema as unknown as JsonSchemaObject, untrusted: true,
       outputSchema: action === 'course.lesson' ? { type: 'object', properties: { id: { type: 'string' }, conflict: { type: 'string' }, draftVersion: { type: 'integer' } }, anyOf: [{ required: ['id'] }, { required: ['conflict'] }] } : declaration.outputSchema,
       title: action, description: `Run Beam's native ${action} preparation. Current role and course grants apply. Publication, decisions and administration retain their native person doors.`,
       classify: (args, ctx) => native(async () => {
-        await prepare(args, ctx)
-        return [{ class: action === 'course.block.change' ? args.operation === 'remove' ? 'destructive' : 'standard' : declaration.classes[0] as 'standard' | 'destructive', facts: { measure: 1 } }]
+        const actor = await prepare(args, ctx)
+        const effects: ClassAndFacts[] = [{ class: action === 'course.block.change' ? args.operation === 'remove' ? 'destructive' : 'standard' : declaration.classes[0] as 'standard' | 'destructive', facts: { measure: 1 } }]
+        if (declaration.classes.includes('sensitive')) {
+          // These native outcomes return existing private draft/comparison
+          // contents. A mutation must never bypass the policy for their reads.
+          if (action === 'diagnosis.prepare') await diagnosisImport(env,actor,String(args.import))
+          else if (action === 'impact.propose') await noticeImpact(env,actor,String(args.notice))
+          else await loadCourse(env,await courseId(args) ?? '')
+          const source = action === 'course.block.reuse' ? (args.from as { course: string }).course : null
+          effects.push({ class: 'sensitive', facts: { measure: source && source !== await courseId(args) ? 2 : 1, kind: 'private_learning' } })
+        }
+        return effects
       }),
       revision: 'draftVersion' in declaration.inputSchema.properties ? (args, ctx) => native(async () => {
         await prepare(args, ctx)
@@ -39,7 +53,8 @@ export function preparationTools(env: Bindings): ToolDefinition[] {
         const draft = target ? JSON.parse(target.draft_json) : null
         const lesson = draft?.lessons.find((item: { id: unknown }) => item.id === args.lesson)
         const question = draft?.questions.find((item: { id: unknown }) => item.id === args.question)
-        return { target: target ? { id: target.id, name: target.name } : { id: String(args.notice ?? args.intervention ?? args.import ?? ctx.person.id), name: String(args.title ?? action) }, items: [String(lesson?.title ?? question?.prompt ?? args.summary ?? args.kind ?? action)] }
+        const source = action === 'course.block.reuse' ? await loadCourse(env, String((args.from as { course: string }).course)) : null
+        return { target: target ? { id: target.id, name: target.name } : { id: String(args.notice ?? args.intervention ?? args.import ?? ctx.person.id), name: String(args.title ?? action) }, items: [String(lesson?.title ?? question?.prompt ?? args.summary ?? args.kind ?? action), ...(source ? [`Copy from ${source.title}, native draft revision ${source.draft_version}`] : [])] }
       }),
       run: (args, ctx) => native(async () => {
         const actor = await prepare(args, ctx)
@@ -49,7 +64,7 @@ export function preparationTools(env: Bindings): ToolDefinition[] {
         const saved = result as { id?: string; conflict?: string }
         const id = saved.id ?? saved.conflict!
         ctx.emit(action === 'course.submit' ? 'revision.prepared' : 'preparation.changed', `beam://preparations/${encodeURIComponent(id)}`, { action })
-        return { result, ...(!actor.app && args.course ? { resources: [{ uri: `beam://courses/${encodeURIComponent(String(args.course))}`, name: 'Course draft' }] } : action === 'agent.propose' ? { resources: [{ uri: `beam://proposals/${encodeURIComponent(id)}`, name: 'Prepared native work' }] } : {}) }
+        return { result, ...(!actor.app && (args.course || action === 'course.create') ? { resources: [{ uri: `beam://courses/${encodeURIComponent(String(args.course ?? id))}`, name: 'Course draft' }] } : action === 'agent.propose' ? { resources: [{ uri: `beam://proposals/${encodeURIComponent(id)}`, name: 'Prepared native work' }] } : {}) }
       }),
     }
   })

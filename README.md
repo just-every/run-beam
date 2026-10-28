@@ -96,6 +96,16 @@ names; practice scenarios are never scored. Optional course preparation and the
 source-grounded tutor call the employer’s connected model account only after the
 owner approves the exact disclosed request and its estimated USD reservation.
 
+Company agents use the shared door at `/mcp`, under the company's signed policy;
+existing preparation JSON requests enter that same policy pipeline. Open
+`/agents` for policy, named-person approvals, reviews and retained audit. Native
+roles and grants still govern each call. Private draft contents returned by a
+mutation receive the same sensitive-data policy as a read. Publication,
+assessment decisions and people administration retain their native person
+controls, and this registry exposes no paid provider execution. See
+[agent work](docs/agent-work.md) for the supported jobs, MCP grant names,
+resources and refusals.
+
 Every completion records the exact course and assessment revision and its
 evidence. Beam's certificates are the business's own record of completion, not
 an accreditation or a statement of competence.

@@ -404,7 +404,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "5907f6091916302fcb5bb264d84bdfa2a1899ec2beb70a0d12b6412d35818c79",
+      "sha256": "3e3fcc8dfe6d44869d7ad7dc28a6089a3b4b99e3c1da1f550ca6136626cf21c3",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -444,7 +444,7 @@
       "executable": false
     },
     "docs/agent-work.md": {
-      "sha256": "abe48da1e1bcf6bbf369742c7b27f5c93b936422285f4dabe8908e15eb7dcaf7",
+      "sha256": "05d3cf1686fe13bacd3fe85a8eb6896826b907a6b68ea7e6e13ce23776310ed2",
       "executable": false
     },
     "docs/assign.md": {
@@ -1304,7 +1304,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "b3ac916e23e69c344fc153a15cddf11bed0271072e98f5e241897325e0690b98",
+      "sha256": "997f77713676c39833575be05f0c1ea77e54d03d0c07f2ab9c616b3e23660854",
       "executable": false
     },
     "release-history/0.1.0.json": {
@@ -1820,15 +1820,15 @@
       "executable": false
     },
     "src/beam/door/actions.json": {
-      "sha256": "5d306c55ff00c19cc83332732db9648e70e5c041322f724f6e5500f0938afa18",
+      "sha256": "dd1f24acf7d5aa9da7fab55904f859e4548eefd16d712d481153d649f4c73307",
       "executable": false
     },
     "src/beam/door/business.ts": {
-      "sha256": "9a198529a67441a22d4ca54f5af7575bd26f005f18c513456f654d13a263cf0f",
+      "sha256": "da58a85d2825a5fa850523147af51ee85baef1922cea2fdd4e84d469aaf504b4",
       "executable": false
     },
     "src/beam/door/index.ts": {
-      "sha256": "6b6c8e14de0bf1c4bba9544ee1a97da898a4b8049fc19daa679488ef0c8ee1ae",
+      "sha256": "5d3759366a1bc8a58ace3c08d37ca8373832ebcfacb4a5e9a6b1b2f064ca78a8",
       "executable": false
     },
     "src/beam/door/legacy.ts": {
@@ -1836,7 +1836,7 @@
       "executable": false
     },
     "src/beam/door/native-tools.ts": {
-      "sha256": "c8d0823ea79aea050ae0e4e4443cc9d02cb26462ff04221ffed0c79042454466",
+      "sha256": "e82c34083816783cf9cb7ca65addadf744b456665bba7736e1dac60ced324ee7",
       "executable": false
     },
     "src/beam/door/people.ts": {
@@ -1848,7 +1848,7 @@
       "executable": false
     },
     "src/beam/door/resources.ts": {
-      "sha256": "9449b70942360118867e3de661019a3fa8f7f6f2101e3021bc0342e7d34df0bf",
+      "sha256": "8a43f224b1ff45a90c9cf238b551a0a959647f297fd4219a9620862e3df94866",
       "executable": false
     },
     "src/beam/door/scoped-tools.ts": {
@@ -1857,6 +1857,10 @@
     },
     "src/beam/door/source.ts": {
       "sha256": "17436ba8255be7de4b25d17bdac535450175ff4a1710e51b987ecc081bf9d84a",
+      "executable": false
+    },
+    "src/beam/door/trust.ts": {
+      "sha256": "a20be38abe9592f2db6accde43bdf1370949c33cb6c672dbb296c94645b61fde",
       "executable": false
     },
     "src/beam/due-rules.ts": {

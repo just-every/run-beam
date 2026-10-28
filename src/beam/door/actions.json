@@ -52,7 +52,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "BEAM-03"
@@ -101,7 +102,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "BEAM-03",
@@ -164,7 +166,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "destructive"
+      "destructive",
+      "sensitive"
     ],
     "clauses": [
       "BEAM-03"
@@ -208,7 +211,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "AUTHOR-001"
@@ -260,7 +264,8 @@
     "readOnly": false,
     "classes": [
       "standard",
-      "destructive"
+      "destructive",
+      "sensitive"
     ],
     "clauses": [
       "AUTHOR-001"
@@ -317,7 +322,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "AUTHOR-001"
@@ -382,7 +388,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "BEAM-03"
@@ -433,7 +440,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "LEARN-001"
@@ -510,7 +518,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "destructive"
+      "destructive",
+      "sensitive"
     ],
     "clauses": [
       "LEARN-001"
@@ -554,7 +563,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "LEARN-001",
@@ -625,7 +635,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "LEARN-001"
@@ -776,7 +787,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "AGENT-004",
@@ -951,7 +963,8 @@
     "scope": "beam:prepare",
     "readOnly": false,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "AGENT-001",

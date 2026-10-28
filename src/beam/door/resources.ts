@@ -13,7 +13,7 @@ export function beamResources(env: Bindings): ResourceDefinition[] {
     ['beam://proposals/{id}', 'proposals'], ['beam://questions/{id}', 'questions'],
     ['beam://sources/{id}/versions/{version}', 'source-files'],
   ].map(([uriTemplate,area]) => ({
-    uriTemplate, name: `Beam ${area}`, description: 'Private native learning record. Imported and external text is untrusted.', scope: 'beam:read', mimeType: 'application/json', classes: ['sensitive'],
+    uriTemplate, name: `Beam ${area}`, description: 'Private native learning record. Imported and external text is untrusted.', scope: 'beam:resources:read', mimeType: 'application/json', classes: ['sensitive'],
     classify: record => [{ class: 'sensitive', facts: { measure: Array.isArray(record.json) ? record.json.length : 1, kind: 'private_learning' } }],
     async read(uri,ctx) {
       try {
