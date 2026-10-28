@@ -513,7 +513,7 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 1. Under the held company policy, connect a model account, select a procedure and request a course draft through the editor; inspect citations and missing facts, edit a question, refuse injected instructions and publish only by human review.
 
 **Evidence.** `tests/beam/regression-model-course.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/regression-course-locale-browser.mjs`, `tests/beam/live-model-preparation.mjs`
-**Gap.** Embedded source-grounded proposals, outline and objectives, editable cited lessons and quiz, missing facts, refused source instructions, sealed account consent and USD controls are built.
+**Gap.** Embedded cited course proposals, editable lessons and quizzes, missing facts, source-instruction refusals and estimated-USD controls are delivered. Company-policy execution of external, money and commitment calls, broader role qualification and independent source-quality proof remain unproved; RL-102 resolves the custody decision only.
 
 #### AUTHOR-008 — Translate learning with human language review
 
@@ -527,7 +527,7 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 3. Under the held company policy, the owner or a specifically authorized language reviewer within course scope reviews the locale independently of preparation and publication; old assignments retain their immutable revision (RL-103).
 
 **Evidence.** `tests/beam/regression-course-locales.mjs`, `tests/beam/regression-course-locale-browser.mjs`, `tests/beam/regression-archive.mjs`, `tests/beam/live-model-preparation.mjs`
-**Gap.** Embedded AI translation and timed subtitle translation are built through the existing correction and human language-review door. Provider retention and erasure propagation belong to OPS-003 and OPS-005.
+**Gap.** Embedded translation, timed subtitle translation, correction and owner language review are delivered. Specifically authorized language-reviewer delegation, independent language-quality qualification and company-policy execution of paid preparation and locale sign-off remain unproved; RL-103 resolves reviewer authority without promoting status.
 
 #### AUTHOR-009 — Compose conversational microlearning sequences
 
