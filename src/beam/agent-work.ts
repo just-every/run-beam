@@ -56,7 +56,8 @@ function texts(value: unknown, name: string, { max = 300, limit = 20 } = {}): st
 }
 
 export async function propose(env: Bindings, actor: Actor, input: Input) {
-  const kind = KINDS[input.text('kind', { max: 40 })]
+  const name = input.text('kind', { max: 40 })
+  const kind = Object.hasOwn(KINDS, name) ? KINDS[name] : undefined
   insist(kind, 'invalid_kind')
   requireRole(actor, ...kind.prepare)
   const title = input.text('title', { max: 160 })
@@ -73,7 +74,7 @@ export async function propose(env: Bindings, actor: Actor, input: Input) {
   insist(Array.isArray(inputsValue) && inputsValue.length <= 30, 'invalid_inputs')
   const inputs = []
   for (const item of inputsValue) {
-    const rule = INPUTS[item?.type]
+    const rule = Object.hasOwn(INPUTS, item?.type) ? INPUTS[item?.type] : undefined
     insist(rule && typeof item.id === 'string', 'invalid_inputs')
     const row = await one(env, rule.sql, item.id)
     insist(row, 'input_not_found', 404, { type: item.type, id: item.id })

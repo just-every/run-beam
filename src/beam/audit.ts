@@ -54,7 +54,7 @@ export async function auditLog(env: Bindings, actor: Actor, filters: AuditFilter
   if (!actor.owner) { const scope = readerScope(actor); where.push(scope.sql); binds.push(...scope.binds) }
   if (filters.q) { where.push("(a.action LIKE ? ESCAPE '\\' OR a.subject LIKE ? ESCAPE '\\' OR a.detail LIKE ? ESCAPE '\\' OR m.name LIKE ? ESCAPE '\\' OR m.email LIKE ? ESCAPE '\\' OR s.name LIKE ? ESCAPE '\\' OR s.email LIKE ? ESCAPE '\\')"); binds.push(...Array(7).fill(like(filters.q))) }
   if (filters.category) {
-    const category = CATEGORIES[filters.category]
+    const category = Object.hasOwn(CATEGORIES, filters.category) ? CATEGORIES[filters.category] : undefined
     insist(category, 'invalid_category')
     where.push(`(${category.prefixes.map(() => 'a.action LIKE ?').join(' OR ')})`); binds.push(...category.prefixes.map(prefix => `${prefix}%`))
   }

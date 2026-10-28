@@ -188,10 +188,10 @@ export function parseCsv(text: string): string[][] {
 }
 
 /** Roster columns (header names, any case and spacing); custom fields are columns named by their label. */
-export const COLUMNS: Record<string, keyof Values | 'managerEmployeeId' | 'team' | 'username'> = {
+export const COLUMNS: Record<string, keyof Values | 'managerEmployeeId' | 'team' | 'username'> = Object.assign(Object.create(null), {
   employeeid: 'employeeId', name: 'name', preferredname: 'preferredName', email: 'email', workemail: 'email', mobile: 'mobile', mobilenumber: 'mobile', language: 'language', preferredlanguage: 'language',
   employment: 'employment', employmentstate: 'employment', status: 'employment', manageremployeeid: 'managerEmployeeId', role: 'jobRole', jobrole: 'jobRole', department: 'department', location: 'location', hiredate: 'hireDate', transferdate: 'transferDate', timezone: 'timeZone', team: 'team', username: 'username', login: 'username',
-}
+})
 export const key = (header: string) => header.toLowerCase().replace(/[^a-z]/g, '')
 
 /** People › Import a roster: a CSV with an employee id on every row. Rows are matched by employee id; a new id with no

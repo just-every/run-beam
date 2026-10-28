@@ -56,7 +56,7 @@ export function parseXml(bytes: Uint8Array): Element {
   try { source = new TextDecoder('utf-8', { fatal: true }).decode(bytes) } catch { valid(false, 'manifest must be UTF-8'); throw new Error('unreachable') }
   valid(!/[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]/.test(source), 'XML character')
   const root: Element = { name: '', ns: '', attrs: {}, children: [], base: '' }
-  const stack = [{ node: root, qualified: '', ns: { xml: XML } as Record<string, string> }]
+  const stack = [{ node: root, qualified: '', ns: Object.assign(Object.create(null), { xml: XML }) as Record<string, string> }]
   const token = /<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<!\[CDATA\[[\s\S]*?\]\]>|<\/?[A-Za-z_][\w.-]*(?::[A-Za-z_][\w.-]*)?(?:\s+[A-Za-z_][\w.-]*(?::[A-Za-z_][\w.-]*)?\s*=\s*(?:"[^"<]*"|'[^'<]*'))*\s*\/?>|[^<]+/gy
   let at = 0, count = 0
   while (at < source.length) {
@@ -74,7 +74,7 @@ export function parseXml(bytes: Uint8Array): Element {
       valid(/^<\/[^\s/>]+\s*>$/.test(value) && stack.length > 1 && current.qualified === qualified, 'XML closing tag')
       stack.pop(); continue
     }
-    const raw = Object.create(null) as Record<string, string>, ns = { ...current.ns }
+    const raw = Object.create(null) as Record<string, string>, ns = Object.assign(Object.create(null), current.ns) as Record<string, string>
     for (const item of value.matchAll(/([^\s=<>/]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
       valid(!(item[1] in raw), 'duplicate XML attribute')
       raw[item[1]] = decode(item[2] ?? item[3])
@@ -199,7 +199,7 @@ export function parsePackage(bytes: Uint8Array): { files: PackageFile[]; manifes
   declare(attr(root, 'identifier'), 'manifest identifier')
   const meta = child(root, 'metadata'), version = meta && scalar(child(meta, 'schemaversion'))
   const standards: Record<string, PackageStandard> = { '1.2': '1.2', '2004 2nd Edition': '2004-2', '2004 3rd Edition': '2004-3', '2004 4th Edition': '2004-4', 'CAM 1.3': '2004-2' }
-  supported(version && standards[version], `SCORM edition ${version || 'missing'}`)
+  supported(version && Object.hasOwn(standards, version), `SCORM edition ${version || 'missing'}`)
   const standard = standards[version!], adl = standard === '1.2' ? ADL12 : ADL04
   valid(meta && /^(?:ADL SCORM|SCORM)$/i.test(scalar(child(meta, 'schema'))), 'SCORM metadata schema')
   const organizations = child(root, 'organizations'), resources = child(root, 'resources')

@@ -878,8 +878,11 @@ const spanish: Record<string, string> = {
 }
 export const MESSAGE_CATALOG: Record<Language, Record<string, string>> = { 'en-US': {}, 'es-US': spanish }
 export function message(language: Language | undefined, key: string, values: Record<string, string | number> = {}) {
-  const catalog = MESSAGE_CATALOG[language ?? 'en-US'], text = catalog[key] ?? key
-  return text.replace(/\{(\w+)\}/g, (placeholder, name) => typeof values[name] === 'number' ? new Intl.NumberFormat(language ?? 'en-US').format(values[name] as number) : String(values[name] ?? placeholder))
+  const catalog = MESSAGE_CATALOG[language ?? 'en-US'], text = Object.hasOwn(catalog, key) ? catalog[key] : key
+  return text.replace(/\{(\w+)\}/g, (placeholder, name) => {
+    const value = Object.hasOwn(values, name) ? values[name] : undefined
+    return typeof value === 'number' ? new Intl.NumberFormat(language ?? 'en-US').format(value) : String(value ?? placeholder)
+  })
 }
 export const t = (actor: Pick<Actor, 'locale'> | null, key: string, values: Record<string, string | number> = {}) => message(actor?.locale, key, values)
 export const localeNumber = (actor: Pick<Actor, 'locale'>, value: number) => new Intl.NumberFormat(actor.locale ?? 'en-US').format(value)

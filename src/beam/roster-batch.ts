@@ -35,7 +35,7 @@ interface Planned { action: string; member: string | null; name: string; changes
 const requireAdministrator = (actor: Actor) => insist(!actor.agent && !actor.viewAs && (actor.owner || actor.adminUnits.length > 0), 'owner_required', 403)
 /** The normalized address, or null when it is not one (Base's normalizer throws). */
 const address = (value: string) => { try { return normalizeEmail(value) || null } catch { return null } }
-const STATUS: Record<string, string> = { active: 'active', leave: 'leave', 'on leave': 'leave', terminated: 'terminated', inactive: 'terminated', deactivated: 'terminated', left: 'terminated' }
+const STATUS: Record<string, string> = Object.assign(Object.create(null), { active: 'active', leave: 'leave', 'on leave': 'leave', terminated: 'terminated', inactive: 'terminated', deactivated: 'terminated', left: 'terminated' })
 
 /** The row's values under the mapping; a blank cell keeps what is stored, as in ORG-001's import. */
 function read(context: Context, cells: string[]) {

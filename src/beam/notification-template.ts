@@ -20,7 +20,8 @@ export function renderNotice(text: string, values: NoticeValues) {
 
 export function noticeVariant(variants: Record<string, { subject: string; body: string }>, language: string) {
   const tag = language.toLowerCase()
-  return variants[tag] ?? variants[tag.split('-')[0]] ?? variants.default
+  const base = tag.split('-')[0]
+  return (Object.hasOwn(variants, tag) ? variants[tag] : undefined) ?? (Object.hasOwn(variants, base) ? variants[base] : undefined) ?? variants.default
 }
 
 export function validateNoticeVariants(value: unknown) {
