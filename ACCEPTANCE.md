@@ -21,7 +21,7 @@ Judged from the code and tests at commit `40dbe6808dad0076a932fb33b69c9dcb3861b4
 
 #### BEAM-01 — Configure the employer and staff access
 
-Core · published · **partial** · Cites BASE-ACCESS-002, BASE-ACCESS-004, BASE-ROLE-001 · Rules D-1
+Core · published · **partial** · Cites BASE-ACCESS-001, BASE-ACCESS-002, BASE-ACCESS-004, BASE-ROLE-001 · Rules D-1
 
 **Requirement.** The employer has a name and IANA time zone. Staff hold Beam author, reviewer, learner, manager and assessor roles and belong to teams; their learning directory follows ORG-001.
 
@@ -45,7 +45,7 @@ Core · published · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-R
 
 #### BEAM-03 — Publish reviewed immutable course revisions
 
-Core · published · **partial** · Cites BASE-ACCESS-002, BASE-INPUT-001, BASE-ROLE-001 · Rules D-1
+Core · published · **partial** · Cites BASE-ACCESS-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-001, BASE-ROLE-001 · Rules D-1
 
 **Requirement.** Courses have one editable draft; stale saves are refused rather than merged. Submission freezes a revision for its named reviewer or owner to publish or return. Publication supersedes the prior revision without changing it. For an agent, publication carries commitment and external when it exposes content outside the employer; the company's policy decides the call.
 
@@ -177,7 +177,7 @@ Core · published · **partial** · Cites BASE-ACCESS-002, BASE-ACCESS-004, BASE
 
 #### BEAM-14 — Maintain procedures with scoped preparation
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** A source change flags every course citing its earlier version for a materiality decision. Preparation proposals retain the exact draft and source versions, quoted passages and missing information, and apply only while that draft is unchanged. Publication or a binding materiality decision by an agent carries commitment, decided by the company's policy.
 
@@ -230,7 +230,7 @@ Core · published · **partial** · Rules D-1
 
 #### BEAM-18 — Approve prepared assignments and reminders
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** Prepared assignment and reminder plans retain the agent, sponsor, exact inputs, reasons, reasoned exclusions and immutable payload digest. Assignment plans bind the selected course revision; a superseding publication refuses stale application. Only still-open assignments receive reminders. Company policy decides agent calls: standard for reversible internal plans and assignments, external for outside contact, and commitment for a binding sign-off. Under the held policy the manager decides the exact saved payload; the decision retains person, time, note and result.
 
@@ -242,7 +242,7 @@ Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-A
 
 #### BEAM-19 — Ask voluntary anonymous diagnostic questions
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** Voluntary diagnostic question plans retain purpose, questions, participants and closing date; answers are once-only and an invitee may decline. Answers contain neither person nor time and are released only after closure with at least three answers, in no identifying order. Process recommendations remain separate decisions and no answer becomes a staff rating. Agent question delivery and process decisions carry standard, adding external for outside recipients and commitment for binding sign-off; the company's policy decides their execution.
 
@@ -254,7 +254,7 @@ Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-A
 
 #### BEAM-20 — Practice reviewed branching scenarios
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** Practice scenarios bind a published revision and only its cited sources, with situations, choices, feedback and rubric. Dangling, unreachable or endless graphs are refused. Assigned learners receive feedback and can restart; practice creates no score, assessment attempt, completion or certificate and other people cannot open private runs. An agent's deployment carries commitment, adding external for an outside cohort, under company policy.
 
@@ -398,7 +398,7 @@ Core · target · **partial** · Cites BASE-ACCESS-004, BASE-ROLE-001
 
 #### ORG-011 — Sign in without a work email
 
-Core · target · **partial** · Cites BASE-ACCESS-001, BASE-SIGNIN-002
+Core · target · **partial** · Cites BASE-ACCESS-001, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-SIGNIN-002
 
 **Requirement.** Frontline staff with no company mailbox are full Beam learners. A person can exist with no email address, identified by their employee id (ORG-001), whether added by hand, by roster upload (ORG-006), by a file feed (CONNECT-019) or by the HRIS (AUTO-002). The owner switches each sign-in method on or off: an admin-issued username with a password or a numeric PIN of at least six digits, which the person sets on first use from a one-time initial secret; and a one-time code sent by SMS to a verified mobile number from the roster, through the employer’s SMS provider such as Twilio. Both methods work on the web and in the native apps (LEARN-004), and open assignment links from SMS and in-app notices (NOTICE-001, NOTICE-005, LEARN-012). An admin, or a manager for their own team (ORG-004), resets a forgotten password or PIN by issuing a new one-time initial secret; each reset ends the person’s sessions and records who reset whom and when (OPS-001). Failed attempts are rate limited per person and per device; repeated failures lock the account until a cool-down passes or an admin or manager unlocks it. SMS codes expire after 10 minutes by default, which the owner can set between 2 and 15 minutes, and work once. Deactivation, removed access and AUTO-002 leavers end every web and app session, as BEAM-01 does for emailed sign-in. Passwords and PINs are stored only as salted slow hashes, are never shown after issue, and never appear in exports (BEAM-16, OPS-002) or agent reads. Each new hire gets a printable first-sign-in sheet in their LEARN-017 language with the portal address, username, a QR code that opens sign-in with the username filled in, and the initial secret, which expires after a set number of days. A tablet the owner registers as a shared device, such as a break-room tablet, offers quick switching by username and PIN, signs the person out after inactivity or when they leave a course, remembers nobody and keeps no offline downloads (LEARN-005). A person without email never gets email: notices go in-app and by SMS where they have a verified number and have not opted out (LEARN-012); with neither route, the manager’s queue shows “no contact route” for that person (NOTICE-004), never a silent drop. The owner and learning administrators (ORG-002) keep emailed or workplace sign-in for owner recovery; learners, managers, assessors and instructors may use either method.
 
@@ -445,7 +445,7 @@ Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE
 
 #### AUTHOR-002 — Turn existing SOP documents into editable learning
 
-Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · Register R-6
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · Register R-6
 
 **Requirement.** Import DOCX, PDF, PPTX, HTML and plain-text procedures with headings, tables, accessible images, provenance and extraction warnings; OCR marks uncertainty for correction before draft conversion. Preparation uses a sealed employer key, exact immutable-source disclosure and short-lived, single-use source-bound consent, a conservative USD reservation, no redirect or automatic retry, retained unknown-billing reservation and uncertainty correction (RL-101). Agent requests carry external and money, adding sensitive for regulated personal content; company policy decides request approval. [Preparation custody](docs/preparation-custody.md) specifies the request binding. Extraction never publishes learning.
 
@@ -505,7 +505,7 @@ Core · target · **partial**
 
 #### AUTHOR-007 — Generate source-grounded course drafts with AI
 
-Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Register R-6
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Register R-6
 
 **Requirement.** Using the employer's authorized model account, authors prepare editable outlines, objectives, lessons and quizzes only from the selected immutable documents and current draft. Passage citations, unsupported-fact warnings, missing facts, model and cost travel with the draft. AUTHOR-002 supplies request custody (RL-102). Publication uses the authorized course publication door; an agent's publication carries commitment under company policy.
 
@@ -517,7 +517,7 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 
 #### AUTHOR-008 — Translate learning with human language review
 
-Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Register R-6
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Register R-6
 
 **Requirement.** Translation preserves course structure, caption timing, glossary, question correctness and source links. The owner or a specifically authorized language reviewer within course scope reviews each locale; source or original-revision changes withhold selection and enter maintenance. Locale publication creates a separate immutable revision; existing assignments and evidence retain theirs (RL-103). AUTHOR-002 supplies provider custody. Agent preparation carries external and money and locale sign-off carries commitment, whose execution company policy decides.
 
@@ -559,7 +559,7 @@ Core · target · **partial**
 
 #### PACK-001 — Import and play SCORM 1.2 courses
 
-Core · target · **partial** · Cites BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
 
 **Requirement.** Admins upload SCORM 1.2 ZIP packages with imsmanifest.xml and assets, validate the manifest and launch path, preview, then assign an immutable package revision. Playback records lesson status, score, time, suspend data and bookmark correctly; completion follows the package’s declared completion rules and remains distinct from competence. Before packages ship, their metadata (manifest titles, objectives and launch text) joins the AGENT-004 procedure-change impact like lessons and questions; PACK-002 to PACK-005 inherit the same obligation. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#pack-001).
 
@@ -810,7 +810,7 @@ Core · target · **partial** · Rules D-1
 
 #### LEARN-008 — Answer learning questions from permitted company sources
 
-Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2 · Register R-6
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2 · Register R-6
 
 **Requirement.** A learning tutor answers from published learning and permitted company sources with exact citations, uncertainty and an expert route. A missing, withdrawn or unsupported source yields an explicit unanswered result. Source permissions are checked at retrieval; no answer makes a completion, competence or employee-rating decision.
 
@@ -826,7 +826,7 @@ Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGEN
 
 #### LEARN-020 — Bind tutor requests to exact consent
 
-Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
+Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
 
 **Requirement.** Tutor requests use AUTHOR-002 custody and the exact learner-consented question, assigned revision, permitted passages and configuration. Agent calls carry external and money, adding sensitive for regulated personal question text; company policy decides their execution.
 
@@ -842,7 +842,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 
 #### LEARN-021 — Return only supported tutor answers
 
-Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
+Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
 
 **Requirement.** Only permitted original passages support a tutor answer; missing, partial or conflicting support produces an explicit unanswered result with uncertainty and a working expert route.
 
@@ -856,7 +856,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 
 #### LEARN-022 — Reconcile tutor request cost
 
-Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
+Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
 
 **Requirement.** Tutor provider calls reserve their disclosed estimate atomically under AUTO-008 and report cost under OPS-009. Unknown billing remains unknown; estimates are not invoices or guaranteed provider caps.
 
@@ -870,7 +870,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 
 #### LEARN-023 — Keep value-free tutor decision lineage
 
-Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
+Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1, D-2
 
 **Requirement.** Tutor decisions retain question and request identities, consent, source and revision identities, configuration and policy references, estimate, reservation and outcome without private payloads. OPS-001 carries the decision audit and OPS-003/005/007 retain erasure, custody and restore duties.
 
@@ -883,7 +883,7 @@ Core · target · **partial** · From LEARN-008 · Cites BASE-AGENT-006, BASE-AG
 
 #### LEARN-009 — Coach through reviewed text and voice roleplay
 
-Core · target · **partial** · Cites BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · Rules D-1
 
 **Requirement.** Authors build AI-assisted text and voice roleplays tied to published sources, objectives and a reviewed rubric, including optional employer-authorized voice providers. Learners receive grounded formative feedback and can restart; practice stays private, consented and separate from assessed attempts or employee rankings. Paid provider preparation carries external and money, adding sensitive for regulated personal data, under company policy.
 
@@ -1498,7 +1498,7 @@ Core · target · **missing**
 
 #### CONNECT-007 — Sign in with Google Workspace
 
-Core · target · **partial** · Cites BASE-ROLE-001, BASE-SIGNIN-001 · Register R-9
+Core · target · **partial** · Cites BASE-ACCESS-002, BASE-ROLE-001, BASE-SIGNIN-001 · Register R-9
 
 **Requirement.** Google Workspace organization, domain and allowed-group mapping binds learning identities without creating an elevated learning role. The owner retains a protected recovery path.
 
@@ -1582,7 +1582,7 @@ Core · target · **missing** · Rules D-2
 
 #### CONNECT-014 — Expose scoped management and reporting APIs
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-ROLE-001
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-ROLE-001
 
 **Requirement.** Owners issue expiring application credentials for roster, catalog, enrollments, reports and approved external result exchange with documented schemas, pagination, idempotency and rate limits. Each credential has an explicit audience and permissions; preparation credentials retain their tighter BEAM-14 restrictions. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#connect-014).
 
@@ -1607,7 +1607,7 @@ Core · target · **partial** · Cites BASE-OPS-003, BASE-OPS-004, BASE-ROLE-001
 
 #### CONNECT-016 — Offer permission-scoped MCP learning tools
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-ROLE-001 · Register R-10
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-ROLE-001 · Register R-10
 
 **Requirement.** An employer exposes catalog/search, authorized learning reports and preparation tools through MCP using explicit application grants and per-tool scopes. Preparation is standard; binding publication and assessment decisions carry commitment, with company policy deciding the call. Source text never changes authority. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#connect-016).
 
@@ -1738,7 +1738,7 @@ Core · target · **partial**
 
 #### OPS-001 — Keep a searchable decision and automation audit
 
-Core · target · **partial** · Cites BASE-AGENT-009, BASE-AUDIT-001
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-009, BASE-AUDIT-001
 
 **Requirement.** The decision audit identifies learning access changes, publications, enrollment, due dates, assessments, integration policy, agent inputs, approvals and automated rules. Corrections append explanations; anonymous answer content and private practice are excluded. [Audit mechanics](docs/learning-mechanics.md#ops-001) retains Beam's reader matrix, query fields and value-free erasure lineage.
 
@@ -1750,7 +1750,7 @@ Core · target · **partial** · Cites BASE-AGENT-009, BASE-AUDIT-001
 
 #### OPS-002 — Export portable learning content and records
 
-Core · target · **partial** · Cites BASE-DATA-001, BASE-SECRET-001
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-DATA-001, BASE-SECRET-001
 
 **Requirement.** Alongside whole-installation BEAM-16 archives, owners download documented open-format rosters, course/source versions, original packages/assets, paths, all attempts, signatures, completions and certificates with stable ids and digests. License-restricted files are enumerated with a retrieval path rather than silently omitted; no session, provider secret or model credential is exported. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#ops-002).
 
@@ -1786,7 +1786,7 @@ Core · target · **partial** · Cites BASE-BACKUP-001, BASE-OPS-002
 
 #### OPS-005 — Control provider credentials and model spending
 
-Core · target · **partial** · Cites BASE-AGENT-011, BASE-SECRET-001 · Register R-6
+Core · target · **partial** · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-011, BASE-SECRET-001 · Register R-6
 
 **Requirement.** Owners connect and revoke HR, identity, content, mail, messaging, video and model accounts with least scopes, explicit production/sandbox mode and clear required provider agreements. USD budgets and per-job estimates bound model, content and media spend with visible refusal when exhausted. Agent provider configuration carries security, adding accounts or gated for provider account or personal consent steps and money for charges; company policy decides those calls.
 
@@ -1810,7 +1810,7 @@ Core · target · **partial** · Cites BASE-DATA-005, BASE-INSTALL-001, BASE-SEC
 
 #### OPS-007 — Retain Base security and replacement guarantees
 
-Core · target · **partial** · Cites BASE-ACCESS-002, BASE-DATA-005, BASE-OPS-002, BASE-SECRET-001
+Core · target · **partial** · Cites BASE-ACCESS-002, BASE-DATA-001, BASE-DATA-005, BASE-OPS-002, BASE-SECRET-001, BASE-SECRET-002
 
 **Requirement.** Replacing a Base component preserves Beam's sign-in, mail, import custody and portability behavior through public doors. Pinned-copy and source-lock verification remain enabled; restoration keeps tutor grants disabled and excludes answer caches.
 
@@ -1848,7 +1848,7 @@ Core · target · **partial**
 
 #### AGENT-001 — Connect work errors to reviewed learning sources
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** Within the current authorized data scope, the agent joins procedure versions, learning and attempt evidence and operational error patterns from authorized Zendesk, Jira, Salesforce Service Cloud or owner-supplied CSV or API records. It minimizes and redacts customer and employee detail, cites exact inputs and surfaces missing or conflicting signals before proposing a diagnosis. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-001). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1860,7 +1860,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-002 — Distinguish training gaps from broken processes
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** The agent compares observed error patterns, procedure clarity, prior completions and staff questions to propose training, clearer instructions, a system/process fix or no intervention, with reasons and uncertainty. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-002). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1872,7 +1872,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-003 — Propose the smallest useful intervention
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** From a reviewed diagnosis the agent proposes a short clarification, targeted practice, an assessor session, a limited cohort assignment or a process change, with expected benefit, affected roles, paid-time effort and exclusions. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-003). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1884,7 +1884,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-004 — Maintain only learning affected by a procedure change
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** The agent compares immutable procedure versions to cited lesson passages, quiz answers, practice rubrics and package metadata, identifies invalidated teaching and affected roles/renewal dates, and drafts only necessary changes. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-004). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1896,7 +1896,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-005 — Measure whether learning transfers into work
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** Before an intervention, the manager chooses operational outcome, comparison period, cohort exposure, baseline and privacy bounds. The agent compares before/after outcomes and a suitable comparison group when available, showing missing data, sample limits, confounders and uncertainty; completion proves neither competence nor causation. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-005). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1908,7 +1908,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-006 — Recover overdue learning through the real manager
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001 · Rules D-1
 
 **Requirement.** The agent uses current HR manager and leave data, assignment deadlines, message delivery and assessor availability to identify blockers and propose a new slot, temporary owner or reasoned deadline exception. Agent policy exceptions and binding escalation carry commitment; temporary management delegation carries access, under company policy. No call invents an assessment result, backdates evidence or instructs unpaid work. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-006). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1920,7 +1920,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-007 — Prepare a verified migration and maintenance plan
 
-Core · push-further · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** An agent reads an owner-authorized incumbent export, proposes identity/course mappings and identifies missing assets, package incompatibility, stale content and review owners before cutover. It cites every source object, estimates human work and provider cost, and applies migration through its fingerprinted door. An agent's publication carries commitment and irreversible evidence disposal carries destructive, each decided by company policy. The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1932,7 +1932,7 @@ Core · push-further · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-008 — Evaluate and retire ineffective interventions
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
 
 **Requirement.** After an approved measurement window the agent compares intended and observed outcomes, identifies non-improving training or changed process conditions and proposes revised practice, a process fix or retirement of redundant future requirements. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-008). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1948,7 +1948,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### SURFACE-001 — Expose the learning action registry
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AGENT-013 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-013 · Rules D-1
 
 **Requirement.** The learning tools and record resources match the table above and use the native learning actions.
 
@@ -1962,7 +1962,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-002, BASE
 
 #### SURFACE-002 — Classify learning calls from learning facts
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007 · Rules D-1
 
 **Requirement.** The server computes Beam risk classes from current learning and employer records, including exposure through external portals and provider preparation.
 
@@ -1981,7 +1981,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Ru
 
 #### SURFACE-003 — Run a specialist learning week through MCP
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-007, BASE-AGENT-013 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-013 · Rules D-1
 
 **Requirement.** A stranger learning coordinator completes a seeded employer week through MCP under two company policies.
 

@@ -31,16 +31,16 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 | Base duty | Duty | Delta clauses | Base journey |
 | --- | --- | --- | --- |
-| BASE-ACCESS-001 | Sign-in | ORG-011 | not run |
-| BASE-ACCESS-002 | Sessions | BEAM-01, BEAM-03, BEAM-08, BEAM-13, OPS-003, OPS-007 | not run |
+| BASE-ACCESS-001 | Sign-in | BEAM-01, ORG-011 | not run |
+| BASE-ACCESS-002 | Sessions | BEAM-01, BEAM-03, BEAM-08, BEAM-13, CONNECT-007, OPS-003, OPS-007 | not run |
 | BASE-ACCESS-003 | Public endpoints | none | not run |
 | BASE-ACCESS-004 | Server-side authorisation | BEAM-01, BEAM-13, ORG-001, ORG-002, ORG-003, ORG-004, ORG-005, ORG-006, ORG-007, ORG-010, ORG-012 | not run |
 | BASE-INPUT-001 | Validation | BEAM-03, BEAM-08, BEAM-13 | not run |
 | BASE-INPUT-002 | HTML | BEAM-02, AUTHOR-001, AUTHOR-002, PACK-001, PACK-002, PACK-003, PACK-004, PACK-006 | not run |
 | BASE-INPUT-003 | Uploads | BEAM-02, AUTHOR-001, AUTHOR-002, PACK-001, PACK-002, PACK-003, PACK-004, PACK-006, LEARN-002 | not run |
 | BASE-SECRET-001 | No leakage | BEAM-16, OPS-002, OPS-005, OPS-007 | not run |
-| BASE-SECRET-002 | Startup | OPS-006 | not run |
-| BASE-DATA-001 | Export and import | BEAM-16, OPS-002 | not run |
+| BASE-SECRET-002 | Startup | OPS-006, OPS-007 | not run |
+| BASE-DATA-001 | Export and import | BEAM-16, OPS-002, OPS-007 | not run |
 | BASE-DATA-002 | Retention | none | not run |
 | BASE-DATA-003 | Erasure | OPS-003 | not run |
 | BASE-DATA-004 | Outbound flows | none | not run |
@@ -64,24 +64,24 @@ The primary journey: Maintain the workforce directory, author and review revisio
 | BASE-ACCESSIBILITY-001 | One accessibility bar | ORG-009, LEARN-003, LEARN-011, LEARN-015, LEARN-018, LEARN-024 | not run |
 | BASE-DOCS-001 | On-site docs from one contract | none | not run |
 | BASE-AGENT-001 | One MCP door per seed | none | not run |
-| BASE-AGENT-002 | The seed's jobs are tools, through the UI's own actions | BEAM-14, BEAM-18, BEAM-19, BEAM-20, CONNECT-014, CONNECT-016, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008, SURFACE-001 | not run |
+| BASE-AGENT-002 | The seed's jobs are tools, through the UI's own actions | BEAM-14, BEAM-18, BEAM-19, BEAM-20, CONNECT-014, CONNECT-016, SURFACE-001, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008 | not run |
 | BASE-AGENT-003 | Records are resources | none | not run |
 | BASE-AGENT-004 | Business identity and short-lived, audience-bound tokens | none | not run |
-| BASE-AGENT-005 | An agent acts as a person in a role, never more | BEAM-14, BEAM-18, BEAM-19, BEAM-20, CONNECT-014, CONNECT-016, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008 | not run |
-| BASE-AGENT-006 | Every action declares its risk class | AUTHOR-007, AUTHOR-008, LEARN-008, LEARN-009, LEARN-020, LEARN-021, LEARN-022, LEARN-023, SURFACE-001, SURFACE-002 | not run |
-| BASE-AGENT-007 | The company's policy decides, at one chokepoint | BEAM-14, BEAM-18, BEAM-19, BEAM-20, AUTHOR-007, AUTHOR-008, LEARN-008, LEARN-009, CONNECT-014, CONNECT-016, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008, LEARN-020, LEARN-021, LEARN-022, LEARN-023, SURFACE-003 | not run |
-| BASE-AGENT-008 | Truthful attribution | BEAM-14, BEAM-18, BEAM-19, BEAM-20, AUTHOR-007, AUTHOR-008, LEARN-008, LEARN-009, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008, LEARN-020, LEARN-021, LEARN-022, LEARN-023 | not run |
+| BASE-AGENT-005 | An agent acts as a person in a role, never more | BEAM-03, BEAM-14, BEAM-18, BEAM-19, BEAM-20, ORG-011, AUTHOR-002, AUTHOR-007, AUTHOR-008, PACK-001, LEARN-008, LEARN-020, LEARN-021, LEARN-022, LEARN-023, LEARN-009, CONNECT-014, CONNECT-016, OPS-001, OPS-002, OPS-005, SURFACE-001, SURFACE-002, SURFACE-003, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008 | not run |
+| BASE-AGENT-006 | Every action declares its risk class | BEAM-03, BEAM-14, BEAM-18, BEAM-19, BEAM-20, ORG-011, AUTHOR-002, AUTHOR-007, AUTHOR-008, PACK-001, LEARN-008, LEARN-020, LEARN-021, LEARN-022, LEARN-023, LEARN-009, CONNECT-014, CONNECT-016, OPS-001, OPS-002, OPS-005, SURFACE-001, SURFACE-002, SURFACE-003, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008 | not run |
+| BASE-AGENT-007 | The company's policy decides, at one chokepoint | BEAM-03, BEAM-14, BEAM-18, BEAM-19, BEAM-20, ORG-011, AUTHOR-002, AUTHOR-007, AUTHOR-008, PACK-001, LEARN-008, LEARN-020, LEARN-021, LEARN-022, LEARN-023, LEARN-009, CONNECT-014, CONNECT-016, OPS-001, OPS-002, OPS-005, SURFACE-001, SURFACE-002, SURFACE-003, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008 | not run |
+| BASE-AGENT-008 | Truthful attribution | BEAM-03, BEAM-14, BEAM-18, BEAM-19, BEAM-20, AUTHOR-007, AUTHOR-008, LEARN-008, LEARN-020, LEARN-021, LEARN-022, LEARN-023, LEARN-009, AGENT-001, AGENT-002, AGENT-003, AGENT-004, AGENT-005, AGENT-006, AGENT-007, AGENT-008 | not run |
 | BASE-AGENT-009 | Every agent action is audited with its class and decision | OPS-001 | not run |
 | BASE-AGENT-010 | Agents can follow changes | none | not run |
-| BASE-AGENT-011 | Limits are policy, and Pause stops everything | AUTHOR-007, AUTHOR-008, LEARN-008, LEARN-009, OPS-005, LEARN-020, LEARN-021, LEARN-022, LEARN-023 | not run |
+| BASE-AGENT-011 | Limits are policy, and Pause stops everything | AUTHOR-007, AUTHOR-008, LEARN-008, LEARN-020, LEARN-021, LEARN-022, LEARN-023, LEARN-009, OPS-005 | not run |
 | BASE-AGENT-012 | Writes are idempotent and conflict-safe | none | not run |
 | BASE-AGENT-013 | Manifest, docs and the conformance journey | SURFACE-001, SURFACE-003 | not run |
 
 ## Published clauses
 
-- `BEAM-01`: *Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-ACCESS-004, BASE-ROLE-001 · *Rules:* D-1
+- `BEAM-01`: *Tier:* Core · *Cites:* BASE-ACCESS-001, BASE-ACCESS-002, BASE-ACCESS-004, BASE-ROLE-001 · *Rules:* D-1
 - `BEAM-02`: *Tier:* Core · *Cites:* BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · *Rules:* D-1
-- `BEAM-03`: *Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-INPUT-001, BASE-ROLE-001 · *Rules:* D-1
+- `BEAM-03`: *Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-001, BASE-ROLE-001 · *Rules:* D-1
 - `BEAM-04`: *Tier:* Core · *Rules:* D-1
 - `BEAM-05`: *Tier:* Core · *Rules:* D-1
 - `BEAM-06`: *Tier:* Core · *Rules:* D-1
@@ -92,13 +92,13 @@ The primary journey: Maintain the workforce directory, author and review revisio
 - `BEAM-11`: *Tier:* Core · *Rules:* D-1
 - `BEAM-12`: *Tier:* Core · *Rules:* D-1
 - `BEAM-13`: *Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-ACCESS-004, BASE-INPUT-001, BASE-ROLE-001 · *Rules:* D-1
-- `BEAM-14`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+- `BEAM-14`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 - `BEAM-15`: *Tier:* Core · *Cites:* BASE-OPS-003, BASE-ROLE-001 · *Rules:* D-1
 - `BEAM-16`: *Tier:* Core · *Cites:* BASE-DATA-001, BASE-SECRET-001 · *Rules:* D-1
 - `BEAM-17`: *Tier:* Core · *Rules:* D-1
-- `BEAM-18`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
-- `BEAM-19`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
-- `BEAM-20`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+- `BEAM-18`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+- `BEAM-19`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+- `BEAM-20`: *Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 ### Published native learning guarantees
 
@@ -353,7 +353,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### ORG-011 — Sign in without a work email
 
-*Tier:* Core · *Cites:* BASE-ACCESS-001, BASE-SIGNIN-002
+*Tier:* Core · *Cites:* BASE-ACCESS-001, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-SIGNIN-002
 
 **Requirement.** Frontline staff with no company mailbox are full Beam learners. A person can exist with no email address, identified by their employee id (ORG-001), whether added by hand, by roster upload (ORG-006), by a file feed (CONNECT-019) or by the HRIS (AUTO-002). The owner switches each sign-in method on or off: an admin-issued username with a password or a numeric PIN of at least six digits, which the person sets on first use from a one-time initial secret; and a one-time code sent by SMS to a verified mobile number from the roster, through the employer’s SMS provider such as Twilio. Both methods work on the web and in the native apps (LEARN-004), and open assignment links from SMS and in-app notices (NOTICE-001, NOTICE-005, LEARN-012). An admin, or a manager for their own team (ORG-004), resets a forgotten password or PIN by issuing a new one-time initial secret; each reset ends the person’s sessions and records who reset whom and when (OPS-001). Failed attempts are rate limited per person and per device; repeated failures lock the account until a cool-down passes or an admin or manager unlocks it. SMS codes expire after 10 minutes by default, which the owner can set between 2 and 15 minutes, and work once. Deactivation, removed access and AUTO-002 leavers end every web and app session, as BEAM-01 does for emailed sign-in. Passwords and PINs are stored only as salted slow hashes, are never shown after issue, and never appear in exports (BEAM-16, OPS-002) or agent reads. Each new hire gets a printable first-sign-in sheet in their LEARN-017 language with the portal address, username, a QR code that opens sign-in with the username filled in, and the initial secret, which expires after a set number of days. A tablet the owner registers as a shared device, such as a break-room tablet, offers quick switching by username and PIN, signs the person out after inactivity or when they leave a course, remembers nobody and keeps no offline downloads (LEARN-005). A person without email never gets email: notices go in-app and by SMS where they have a verified number and have not opted out (LEARN-012); with neither route, the manager’s queue shows “no contact route” for that person (NOTICE-004), never a silent drop. The owner and learning administrators (ORG-002) keep emailed or workplace sign-in for owner recovery; learners, managers, assessors and instructors may use either method.
 
@@ -391,7 +391,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### AUTHOR-002 — Turn existing SOP documents into editable learning
 
-*Tier:* Core · *Cites:* BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · *Register:* R-6
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · *Register:* R-6
 
 **Requirement.** Import DOCX, PDF, PPTX, HTML and plain-text procedures with headings, tables, accessible images, provenance and extraction warnings; OCR marks uncertainty for correction before draft conversion. Preparation uses a sealed employer key, exact immutable-source disclosure and short-lived, single-use source-bound consent, a conservative USD reservation, no redirect or automatic retry, retained unknown-billing reservation and uncertainty correction (RL-101). Agent requests carry external and money, adding sensitive for regulated personal content; company policy decides request approval. [Preparation custody](docs/preparation-custody.md) specifies the request binding. Extraction never publishes learning.
 
@@ -436,7 +436,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### AUTHOR-007 — Generate source-grounded course drafts with AI
 
-*Tier:* Core · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Register:* R-6
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Register:* R-6
 
 **Requirement.** Using the employer's authorized model account, authors prepare editable outlines, objectives, lessons and quizzes only from the selected immutable documents and current draft. Passage citations, unsupported-fact warnings, missing facts, model and cost travel with the draft. AUTHOR-002 supplies request custody (RL-102). Publication uses the authorized course publication door; an agent's publication carries commitment under company policy.
 
@@ -445,7 +445,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### AUTHOR-008 — Translate learning with human language review
 
-*Tier:* Core · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Register:* R-6
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Register:* R-6
 
 **Requirement.** Translation preserves course structure, caption timing, glossary, question correctness and source links. The owner or a specifically authorized language reviewer within course scope reviews each locale; source or original-revision changes withhold selection and enter maintenance. Locale publication creates a separate immutable revision; existing assignments and evidence retain theirs (RL-103). AUTHOR-002 supplies provider custody. Agent preparation carries external and money and locale sign-off carries commitment, whose execution company policy decides.
 
@@ -478,7 +478,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### PACK-001 — Import and play SCORM 1.2 courses
 
-*Tier:* Core · *Cites:* BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-INPUT-002, BASE-INPUT-003, BASE-ROLE-001 · *Rules:* D-1
 
 **Requirement.** Admins upload SCORM 1.2 ZIP packages with imsmanifest.xml and assets, validate the manifest and launch path, preview, then assign an immutable package revision. Playback records lesson status, score, time, suspend data and bookmark correctly; completion follows the package’s declared completion rules and remains distinct from competence. Before packages ship, their metadata (manifest titles, objectives and launch text) joins the AGENT-004 procedure-change impact like lessons and questions; PACK-002 to PACK-005 inherit the same obligation. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#pack-001).
 
@@ -669,7 +669,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### LEARN-008 — Answer learning questions from permitted company sources
 
-*Tier:* Core · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2 · *Register:* R-6
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2 · *Register:* R-6
 
 **Requirement.** A learning tutor answers from published learning and permitted company sources with exact citations, uncertainty and an expert route. A missing, withdrawn or unsupported source yields an explicit unanswered result. Source permissions are checked at retrieval; no answer makes a completion, competence or employee-rating decision.
 
@@ -682,7 +682,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### LEARN-020 — Bind tutor requests to exact consent
 
-*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
+*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
 
 **Requirement.** Tutor requests use AUTHOR-002 custody and the exact learner-consented question, assigned revision, permitted passages and configuration. Agent calls carry external and money, adding sensitive for regulated personal question text; company policy decides their execution.
 
@@ -695,7 +695,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### LEARN-021 — Return only supported tutor answers
 
-*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
+*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
 
 **Requirement.** Only permitted original passages support a tutor answer; missing, partial or conflicting support produces an explicit unanswered result with uncertainty and a working expert route.
 
@@ -706,7 +706,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### LEARN-022 — Reconcile tutor request cost
 
-*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
+*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
 
 **Requirement.** Tutor provider calls reserve their disclosed estimate atomically under AUTO-008 and report cost under OPS-009. Unknown billing remains unknown; estimates are not invoices or guaranteed provider caps.
 
@@ -717,7 +717,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### LEARN-023 — Keep value-free tutor decision lineage
 
-*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
+*Tier:* Core · *From:* LEARN-008 · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1, D-2
 
 **Requirement.** Tutor decisions retain question and request identities, consent, source and revision identities, configuration and policy references, estimate, reservation and outcome without private payloads. OPS-001 carries the decision audit and OPS-003/005/007 retain erasure, custody and restore duties.
 
@@ -727,7 +727,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### LEARN-009 — Coach through reviewed text and voice roleplay
 
-*Tier:* Core · *Cites:* BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-011 · *Rules:* D-1
 
 **Requirement.** Authors build AI-assisted text and voice roleplays tied to published sources, objectives and a reviewed rubric, including optional employer-authorized voice providers. Learners receive grounded formative feedback and can restart; practice stays private, consented and separate from assessed attempts or employee rankings. Paid provider preparation carries external and money, adding sensitive for regulated personal data, under company policy.
 
@@ -1198,7 +1198,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### CONNECT-007 — Sign in with Google Workspace
 
-*Tier:* Core · *Cites:* BASE-ROLE-001, BASE-SIGNIN-001 · *Register:* R-9
+*Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-ROLE-001, BASE-SIGNIN-001 · *Register:* R-9
 
 **Requirement.** Google Workspace organization, domain and allowed-group mapping binds learning identities without creating an elevated learning role. The owner retains a protected recovery path.
 
@@ -1261,7 +1261,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### CONNECT-014 — Expose scoped management and reporting APIs
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-ROLE-001
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-ROLE-001
 
 **Requirement.** Owners issue expiring application credentials for roster, catalog, enrollments, reports and approved external result exchange with documented schemas, pagination, idempotency and rate limits. Each credential has an explicit audience and permissions; preparation credentials retain their tighter BEAM-14 restrictions. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#connect-014).
 
@@ -1280,7 +1280,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### CONNECT-016 — Offer permission-scoped MCP learning tools
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-ROLE-001 · *Register:* R-10
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-ROLE-001 · *Register:* R-10
 
 **Requirement.** An employer exposes catalog/search, authorized learning reports and preparation tools through MCP using explicit application grants and per-tool scopes. Preparation is standard; binding publication and assessment decisions carry commitment, with company policy deciding the call. Source text never changes authority. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#connect-016).
 
@@ -1381,7 +1381,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### OPS-001 — Keep a searchable decision and automation audit
 
-*Tier:* Core · *Cites:* BASE-AGENT-009, BASE-AUDIT-001
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-009, BASE-AUDIT-001
 
 **Requirement.** The decision audit identifies learning access changes, publications, enrollment, due dates, assessments, integration policy, agent inputs, approvals and automated rules. Corrections append explanations; anonymous answer content and private practice are excluded. [Audit mechanics](docs/learning-mechanics.md#ops-001) retains Beam's reader matrix, query fields and value-free erasure lineage.
 
@@ -1390,7 +1390,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### OPS-002 — Export portable learning content and records
 
-*Tier:* Core · *Cites:* BASE-DATA-001, BASE-SECRET-001
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-DATA-001, BASE-SECRET-001
 
 **Requirement.** Alongside whole-installation BEAM-16 archives, owners download documented open-format rosters, course/source versions, original packages/assets, paths, all attempts, signatures, completions and certificates with stable ids and digests. License-restricted files are enumerated with a retrieval path rather than silently omitted; no session, provider secret or model credential is exported. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#ops-002).
 
@@ -1417,7 +1417,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### OPS-005 — Control provider credentials and model spending
 
-*Tier:* Core · *Cites:* BASE-AGENT-011, BASE-SECRET-001 · *Register:* R-6
+*Tier:* Core · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-011, BASE-SECRET-001 · *Register:* R-6
 
 **Requirement.** Owners connect and revoke HR, identity, content, mail, messaging, video and model accounts with least scopes, explicit production/sandbox mode and clear required provider agreements. USD budgets and per-job estimates bound model, content and media spend with visible refusal when exhausted. Agent provider configuration carries security, adding accounts or gated for provider account or personal consent steps and money for charges; company policy decides those calls.
 
@@ -1435,7 +1435,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 #### OPS-007 — Retain Base security and replacement guarantees
 
-*Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-DATA-005, BASE-OPS-002, BASE-SECRET-001
+*Tier:* Core · *Cites:* BASE-ACCESS-002, BASE-DATA-001, BASE-DATA-005, BASE-OPS-002, BASE-SECRET-001, BASE-SECRET-002
 
 **Requirement.** Replacing a Base component preserves Beam's sign-in, mail, import custody and portability behavior through public doors. Pinned-copy and source-lock verification remain enabled; restoration keeps tutor grants disabled and excludes answer caches.
 
@@ -1632,7 +1632,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### SURFACE-001 — Expose the learning action registry
 
-*Tier:* Agent surface · *From:* new · *Cites:* BASE-AGENT-002, BASE-AGENT-006, BASE-AGENT-013 · *Rules:* D-1
+*Tier:* Agent surface · *From:* new · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-013 · *Rules:* D-1
 
 **Requirement.** The learning tools and record resources match the table above and use the native learning actions.
 
@@ -1643,7 +1643,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### SURFACE-002 — Classify learning calls from learning facts
 
-*Tier:* Agent surface · *From:* new · *Cites:* BASE-AGENT-006 · *Rules:* D-1
+*Tier:* Agent surface · *From:* new · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007 · *Rules:* D-1
 
 **Requirement.** The server computes Beam risk classes from current learning and employer records, including exposure through external portals and provider preparation.
 
@@ -1659,7 +1659,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### SURFACE-003 — Run a specialist learning week through MCP
 
-*Tier:* Agent surface · *From:* new · *Cites:* BASE-AGENT-007, BASE-AGENT-013 · *Rules:* D-1
+*Tier:* Agent surface · *From:* new · *Cites:* BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-013 · *Rules:* D-1
 
 **Requirement.** A stranger learning coordinator completes a seeded employer week through MCP under two company policies.
 
@@ -1676,7 +1676,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-001 — Connect work errors to reviewed learning sources
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 **Requirement.** Within the current authorized data scope, the agent joins procedure versions, learning and attempt evidence and operational error patterns from authorized Zendesk, Jira, Salesforce Service Cloud or owner-supplied CSV or API records. It minimizes and redacts customer and employee detail, cites exact inputs and surfaces missing or conflicting signals before proposing a diagnosis. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-001). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1685,7 +1685,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-002 — Distinguish training gaps from broken processes
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 **Requirement.** The agent compares observed error patterns, procedure clarity, prior completions and staff questions to propose training, clearer instructions, a system/process fix or no intervention, with reasons and uncertainty. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-002). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1694,7 +1694,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-003 — Propose the smallest useful intervention
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 **Requirement.** From a reviewed diagnosis the agent proposes a short clarification, targeted practice, an assessor session, a limited cohort assignment or a process change, with expected benefit, affected roles, paid-time effort and exclusions. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-003). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1703,7 +1703,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-004 — Maintain only learning affected by a procedure change
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 **Requirement.** The agent compares immutable procedure versions to cited lesson passages, quiz answers, practice rubrics and package metadata, identifies invalidated teaching and affected roles/renewal dates, and drafts only necessary changes. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-004). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1712,7 +1712,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-005 — Measure whether learning transfers into work
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 **Requirement.** Before an intervention, the manager chooses operational outcome, comparison period, cohort exposure, baseline and privacy bounds. The agent compares before/after outcomes and a suitable comparison group when available, showing missing data, sample limits, confounders and uncertainty; completion proves neither competence nor causation. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-005). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1721,7 +1721,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-006 — Recover overdue learning through the real manager
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001 · *Rules:* D-1
 
 **Requirement.** The agent uses current HR manager and leave data, assignment deadlines, message delivery and assessor availability to identify blockers and propose a new slot, temporary owner or reasoned deadline exception. Agent policy exceptions and binding escalation carry commitment; temporary management delegation carries access, under company policy. No call invents an assessment result, backdates evidence or instructs unpaid work. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-006). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1730,7 +1730,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-007 — Prepare a verified migration and maintenance plan
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 **Requirement.** An agent reads an owner-authorized incumbent export, proposes identity/course mappings and identifies missing assets, package incompatibility, stale content and review owners before cutover. It cites every source object, estimates human work and provider cost, and applies migration through its fingerprinted door. An agent's publication carries commitment and irreversible evidence disposal carries destructive, each decided by company policy. The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
@@ -1739,7 +1739,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 
 #### AGENT-008 — Evaluate and retire ineffective interventions
 
-*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
+*Tier:* Core · *Cites:* BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · *Rules:* D-1
 
 **Requirement.** After an approved measurement window the agent compares intended and observed outcomes, identifies non-improving training or changed process conditions and proposes revised practice, a process fix or retirement of redundant future requirements. An agent's binding decision carries commitment and its access change carries access; the company's policy decides those calls. Detailed formats and operating rules are in [Learning mechanics](docs/learning-mechanics.md#agent-008). The company's policy decides the standard preparation call and any external, commitment or access effect; the acceptance journey exercises the held policy.
 
