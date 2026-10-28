@@ -175,56 +175,56 @@
       "line": 34,
       "text": "**Products keep their separation.** Beam owns employee learning and its optional",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
       "line": 35,
       "text": "customer/partner learning portals. [Slate](https://github.com/just-every/run-slate)",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
       "line": 36,
       "text": "owns the company knowledge library; Beam connects to source procedures and",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
       "line": 37,
       "text": "learning citations rather than replacing it. [Willow](https://github.com/just-every/run-willow)",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
       "line": 38,
       "text": "and connected HRIS products own worker records, leave and employment",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
       "line": 39,
       "text": "decisions. [Envelope](https://github.com/just-every/run-envelope) is the payroll sibling seed. Beam consumes authorized fields and writes learning outcomes only:",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
       "line": 40,
       "text": "revision-bound completions go back to the HRIS training record (CONNECT-017).",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",
       "line": 41,
       "text": "It does not absorb unowned category gaps or turn into a course-selling platform.",
       "to": "section",
-      "section": "Product target"
+      "section": "Boundaries"
     },
     {
       "file": "CONTRACT.md",

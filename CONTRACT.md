@@ -17,7 +17,7 @@ The primary journey: Maintain the workforce directory, author and review revisio
 
 - This follows the RER contract standard.
 - Core, Agent surface and Later are counted separately, with full-target progress alongside Core.
-- DONE requires every acceptance outcome to have recorded proof.
+- DONE requires every acceptance outcome to have recorded public-door proof. Only the paid or network edge may be replaced in a test; application delivery, AI and learning results are never simulated.
 - Real-world proof is dated in the Field proof register and never substitutes for seed-producible proof.
 - ACCEPTANCE.md, docs/CLAIMS.md and status counts are generated from this file.
 
@@ -1762,6 +1762,8 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 | R-10 | Claude, ChatGPT, Codex and Copilot client interoperability receipts | CONNECT-016 | not run | | |
 
 ## Boundaries
+
+Beam owns employee learning and its optional customer and partner portals. Slate owns the company knowledge library; Beam connects to procedures and source citations. Willow and connected HRIS products own worker records, leave and employment decisions; Envelope owns payroll. Beam consumes only authorized fields and writes revision-bound learning outcomes through CONNECT-017.
 
 Beam is US-first adult workforce learning, not an accrediting body, HRIS,
 payroll engine, school SIS, course marketplace, videoconferencing service or
