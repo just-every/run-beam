@@ -1,3 +1,4 @@
+import { accommodationRequests } from './accommodation-requests'
 import { cutoverPreview } from './movein/cutover'
 import { microsoftAccount } from './microsoft/account'
 import { microsoftSourceStatus } from './microsoft/sources'
@@ -87,6 +88,7 @@ import { courseDiscussions, discussionNotices } from './discussions'
 type View = (env: Bindings, actor: Actor, request: Request, id: string) => Promise<unknown>
 
 export const views: Record<string, View> = {
+  'accommodation-requests': accommodationRequests,
   operations,
   portals: listPortals,
   theme: themeSettings,
@@ -198,7 +200,7 @@ const ROUTES: [RegExp, string][] = [
   [/^tutor$/, 'tutor-list'], [/^tutor\/([\w-]+)$/, 'tutor-question'], [/^tutor\/([\w-]+)\/preview$/, 'tutor-preview'], [/^tutor\/([\w-]+)\/citation$/, 'tutor-citation'],
   [/^microsoft$/, 'microsoft'], [/^microsoft-sources$/, 'microsoft-sources'],
   [/^model-account$/, 'model-account'], [/^course-locales\/([\w-]+)\/model-preview$/, 'locale-model-preview'],
-  [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
+  [/^accommodation-requests$/, 'accommodation-requests'], [/^source-ocr$/, 'source-ocr'], [/^sources\/([\w-]+)\/ocr-preview$/, 'source-ocr-preview'],
   [/^erasure-settings$/, 'erasure-settings'], [/^erasure\/([\w-]+)$/, 'erasure'],
   [/^webhooks$/, 'webhooks'], [/^language$/, 'language'], [/^lti$/, 'lti'], [/^xapi$/, 'xapi'],
   [/^sources\/([\w-]+)\/extraction$/, 'source-extraction'],

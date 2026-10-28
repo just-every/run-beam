@@ -111,6 +111,7 @@ export const LEARNING_INVENTORY = {
   beam_exception_policy: 'id, max_deferral_days, max_exemption_days, manager_exemptions, updated_by, updated_at',
   beam_blockers: 'id, assignment_id, learner_id, kind, note, reported_at, state, decided_by, decided_at, decision_reason',
   beam_exceptions: 'id, assignment_id, kind, ends_on, ends_at, reason, blocker_id, granted_by, granted_at',
+  beam_accommodation_requests: 'id, learner_id, assignment_id, course_id, kind, amount, state, requested_at, decided_by, decided_at, decision_id, grant_id',
   beam_accommodations: 'id, learner_id, course_id, kind, amount, note, granted_by, granted_at',
   beam_session_changes: 'id, session_id, at, kind, detail',
   beam_session_waitlist: 'id, session_id, course_id, learner_id, assignment_id, state, joined_at, offered_at, offer_expires_at, ended_at',
