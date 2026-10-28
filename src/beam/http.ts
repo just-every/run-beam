@@ -228,7 +228,7 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
     if (path === 'agent.issue') return json(await issueAgentCredential(env, actor, await Input.from(request)))
     const input = await Input.from(request)
     if (path === 'locale.approve' || path === 'revision.decide' && input.text('decision') === 'publish') throw new BeamError('human_publication_form_required', 403)
-    const action = actions[path]
+    const action = Object.hasOwn(actions, path) ? actions[path] : undefined
     if (!action) throw new BeamError('not_found', 404)
     return json(await action(env, actor, input, request))
   }
@@ -269,7 +269,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
     const bank = path.match(/^\/app\/courses\/([\w-]+)\/bank\/preview$/)?.[1]
     if (bank) { const input = await Input.from(request); insist(input.text('course') === bank, 'invalid_course'); return await bankPreviewPage(env, actor, bank, input, url) }
     const name = path.match(/^\/app\/do\/([\w.-]+)$/)?.[1]
-    const action = name ? actions[name] : undefined
+    const action = name && Object.hasOwn(actions, name) ? actions[name] : undefined
     if (!action) throw new BeamError('not_found', 404)
     const input = await Input.from(request)
     if (name === 'revision.decide' && input.text('decision') === 'publish' && !(request.headers.get('content-type') ?? '').match(/^(multipart\/form-data|application\/x-www-form-urlencoded)(;|$)/i)) throw new BeamError('human_publication_form_required', 403)
