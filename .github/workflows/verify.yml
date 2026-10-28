@@ -275,6 +275,7 @@ jobs:
         with:
           node-version: '22.20.0'
       - run: corepack enable && pnpm install --frozen-lockfile
+      - run: node src/base/contract-docs.mjs check
       - run: pnpm exec rer check --profile first-party
 
   verify:

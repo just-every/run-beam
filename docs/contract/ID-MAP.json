@@ -375,9 +375,13 @@
       ]
     },
     "LEARN-008": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "LEARN-008"
+        "LEARN-008",
+        "LEARN-020",
+        "LEARN-021",
+        "LEARN-022",
+        "LEARN-023"
       ]
     },
     "LEARN-009": {
@@ -435,9 +439,10 @@
       ]
     },
     "LEARN-018": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "LEARN-018"
+        "LEARN-018",
+        "LEARN-024"
       ]
     },
     "LEARN-019": {

@@ -1,4 +1,4 @@
-// LEARN-018: time-limited assessments. A timed quiz attempt starts on the
+// LEARN-018 and LEARN-024: time-limited assessments. A timed quiz attempt starts on the
 // server and its clock keeps running whether or not the learner is on the page.
 // Answers are saved into the attempt until its deadline; at expiry the server
 // closes it and scores only what was saved, and any later answer is refused

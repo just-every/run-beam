@@ -463,3 +463,10 @@ termination percentages above the limit have distinct hold reasons. This is
 manual preparation, without an SFTP service, cloud watcher, scheduled apply,
 AUTO-002 lifecycle enrollment or a configuration screen. ct approved owner-only explicit
 review for every file as adopted, 24 October; no invitations, unattended provider calls or automatic application. A feed preview cannot be changed to enable invitations.
+
+## Contract regeneration
+
+Lander-Regenerate: node src/base/contract-docs.mjs write
+Lander-Regenerate: node scripts/edition-authoring/cli.mjs lock
+
+CONTRACT.md is the sole acceptance and status source. Run the generator before locking; Verify checks generated documents.

@@ -3,26 +3,105 @@
     {
       "title": "Start here",
       "pages": [
-        { "slug": "getting-started", "title": "Getting started", "file": "getting-started.md", "summary": "Run Beam on your own computer, finish setup, name your business and try each role." },
-        { "slug": "people", "title": "People, roles and teams", "file": "people.md", "summary": "Invite staff, give them roles, group them in teams, and remove or restore access." }
+        {
+          "slug": "getting-started",
+          "title": "Getting started",
+          "file": "getting-started.md",
+          "summary": "Run Beam on your own computer, finish setup, name your business and try each role."
+        },
+        {
+          "slug": "people",
+          "title": "People, roles and teams",
+          "file": "people.md",
+          "summary": "Invite staff, give them roles, group them in teams, and remove or restore access."
+        }
       ]
     },
     {
       "title": "Run your training",
       "pages": [
-        { "slug": "courses", "title": "Sources and courses", "file": "courses.md", "summary": "Upload your procedures, build a course from them, and send each revision for review." },
-        { "slug": "review", "title": "Review and publish", "file": "review.md", "summary": "Publish or return a revision, choose who moves to it, and decide when a source changes." },
-        { "slug": "assign", "title": "Assign and follow up", "file": "assign.md", "summary": "Assign courses and role paths, work the overdue, retry and renewal queues, and record offline training." },
-        { "slug": "learning", "title": "Learning in Beam", "file": "learning.md", "summary": "What staff see: lessons that resume anywhere, quizzes, practical evidence, practice and certificates." },
-        { "slug": "reports", "title": "Reports and records", "file": "reports.md", "summary": "See who completed which revision, filter the training report and download it as CSV." },
-        { "slug": "agent-work", "title": "Agent work", "file": "agent-work.md", "summary": "Let your own agent prepare drafts, plans and reminders that you approve or decline." }
+        {
+          "slug": "courses",
+          "title": "Sources and courses",
+          "file": "courses.md",
+          "summary": "Upload your procedures, build a course from them, and send each revision for review."
+        },
+        {
+          "slug": "review",
+          "title": "Review and publish",
+          "file": "review.md",
+          "summary": "Publish or return a revision, choose who moves to it, and decide when a source changes."
+        },
+        {
+          "slug": "assign",
+          "title": "Assign and follow up",
+          "file": "assign.md",
+          "summary": "Assign courses and role paths, work the overdue, retry and renewal queues, and record offline training."
+        },
+        {
+          "slug": "learning",
+          "title": "Learning in Beam",
+          "file": "learning.md",
+          "summary": "What staff see: lessons that resume anywhere, quizzes, practical evidence, practice and certificates."
+        },
+        {
+          "slug": "reports",
+          "title": "Reports and records",
+          "file": "reports.md",
+          "summary": "See who completed which revision, filter the training report and download it as CSV."
+        },
+        {
+          "slug": "agent-work",
+          "title": "Agent work",
+          "file": "agent-work.md",
+          "summary": "Let your own agent prepare drafts, plans and reminders that you approve or decline."
+        }
       ]
     },
     {
       "title": "Your data",
       "pages": [
-        { "slug": "move-in", "title": "Move in from TalentLMS", "file": "move-in.md", "summary": "Bring your TalentLMS course list and course reports across as labeled history, with a preview and undo." },
-        { "slug": "backup", "title": "Backup and restore", "file": "backup.md", "summary": "Export everything to one archive, restore it into a fresh copy, and let your staff back in." }
+        {
+          "slug": "move-in",
+          "title": "Move in from TalentLMS",
+          "file": "move-in.md",
+          "summary": "Bring your TalentLMS course list and course reports across as labeled history, with a preview and undo."
+        },
+        {
+          "slug": "backup",
+          "title": "Backup and restore",
+          "file": "backup.md",
+          "summary": "Export everything to one archive, restore it into a fresh copy, and let your staff back in."
+        }
+      ]
+    },
+    {
+      "title": "Contract records",
+      "pages": [
+        {
+          "slug": "learning-mechanics",
+          "title": "Learning formats and operating rules",
+          "file": "learning-mechanics.md",
+          "summary": "Detailed learning data formats, scope rules and recorded operating behavior."
+        },
+        {
+          "slug": "preparation-custody",
+          "title": "Preparation custody",
+          "file": "preparation-custody.md",
+          "summary": "Exact source consent, request binding and estimated provider costs."
+        },
+        {
+          "slug": "done-audit",
+          "title": "Carried done audit",
+          "file": "contract/DONE-AUDIT.md",
+          "summary": "Outcome-by-outcome assertions behind carried learning guarantees."
+        },
+        {
+          "slug": "rulings",
+          "title": "Product rulings",
+          "file": "../RULINGS.md",
+          "summary": "The ct decisions that govern Beam learning boundaries."
+        }
       ]
     }
   ]

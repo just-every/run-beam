@@ -309,7 +309,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "9159e559533fdf368306b4512add3d8d6667b30afb5a4dfca941f498af40af27",
+      "sha256": "7c02c4ec0a62476f96320b8dee4a709e9ec35dd31a205cc9b014ae22faf60ef0",
       "executable": false
     },
     ".gitignore": {
@@ -321,7 +321,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b7046fe63be2bdd1bf3b8dc0e70d2b62a734b6a8df966ed3d91feffd6c99aa18",
+      "sha256": "e34ce80695803bfbb68db3fce4304cff3bccce9352931c1fa36cda4949b657d8",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -329,11 +329,15 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "9da0c2a549e8503832aeebfdb296a6909dc87ec4c002323103ee1e45d2a2e7d4",
+      "sha256": "f05e36e1dacc7ee2dbc0b64130d5d2d055e2bf8115ed4b3c1fdc26ec654449b1",
       "executable": false
     },
     "base-copies.json": {
       "sha256": "fc3de3b838e43c7390edebe4f6444391dc541de6a25ba2d0322e7c8f311d15e7",
+      "executable": false
+    },
+    "CHANGELOG.md": {
+      "sha256": "1af99d89e91d41644229161179f4c78a4585a678c8e3baad41861c1888f32346",
       "executable": false
     },
     "CLAUDE.md": {
@@ -341,7 +345,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3eef2b3f888f2d9040cfa5a6136b8a0aca482559d57330675cb628026e746369",
+      "sha256": "5899b2879a9e4268e2a1fa175410f71d21786598513839f4c36bd88267d3cc26",
       "executable": false
     },
     "DEMO.md": {
@@ -372,6 +376,22 @@
       "sha256": "b8b713e0bcde2f42d808e1275f7a31cc70ce77977270553ce3c4db9d79cd4063",
       "executable": false
     },
+    "docs/CLAIMS.md": {
+      "sha256": "5ba788daa46a96d2d0804a8565050341db06b35c5c869822f57bddb37540b668",
+      "executable": false
+    },
+    "docs/contract/COVERAGE.json": {
+      "sha256": "d6452c535f56af501ab001ec71eb8bece1c9c5375ae9abca509959952d80472d",
+      "executable": false
+    },
+    "docs/contract/DONE-AUDIT.md": {
+      "sha256": "a9565e3d8a8fdc6723eeaf3fc689b8eb4dcce77e2fd998d7e9bbb86c0a2595ca",
+      "executable": false
+    },
+    "docs/contract/ID-MAP.json": {
+      "sha256": "2228d59881a5ac21fe34e7b943e1d49f976969d8595581fb07335af41b3f2b48",
+      "executable": false
+    },
     "docs/courses.md": {
       "sha256": "7084143b67aa5e911b0d2968e2df074f6664f264e4024d3ddd45229485e66442",
       "executable": false
@@ -386,6 +406,10 @@
     },
     "docs/getting-started.md": {
       "sha256": "ac1530b91470aa44bb7fe4e2aa6f802129cfe58ac7508dd40fd155aed5218097",
+      "executable": false
+    },
+    "docs/learning-mechanics.md": {
+      "sha256": "5bd9da6b956ee60ffedf64ee6efa3e5b1d33c3148fe51135a51be79ae6fdcdbc",
       "executable": false
     },
     "docs/learning.md": {
@@ -408,6 +432,10 @@
       "sha256": "7dc8d81517a0ec3ba38447e42ff8db3d60eca8a0a0bb599e1d273c9c3861ac43",
       "executable": false
     },
+    "docs/preparation-custody.md": {
+      "sha256": "b709cbac9adbdcbf86cb770eb1a51f2b73d68dfa1cc2144f9e07f6a4efe22139",
+      "executable": false
+    },
     "docs/reports.md": {
       "sha256": "d4d7f5c0341bd024502d522217c2860b80e12e4f27ed319684d7a39e0fbe5689",
       "executable": false
@@ -417,7 +445,7 @@
       "executable": false
     },
     "docs/site.json": {
-      "sha256": "47111a51d310836046b7541137a6d579a96fd7c76f6a93487d0f4fb3932d1119",
+      "sha256": "aac846ed3745170f7bc1cb1e8aa06c08c32ddd2d0251c0b3dfd7478cb51459a8",
       "executable": false
     },
     "docs/webhooks.md": {
@@ -1228,6 +1256,10 @@
       "sha256": "c2d368e3abef0e342c610a60a763dd235fec29828f0d7c05244405e1cfb688f5",
       "executable": false
     },
+    "RULINGS.md": {
+      "sha256": "a8d385ff1b7fcd12c0a9469c0cd6b3bff55c36eb29a297e5df31cea8b91562a1",
+      "executable": false
+    },
     "RUN-LOCALLY.md": {
       "sha256": "d6a16b0b428d79742bf01c34795028cc795cdc101bbdf0675a21cc0ad549989d",
       "executable": false
@@ -1430,6 +1462,10 @@
     },
     "src/auth.server.ts": {
       "sha256": "465198938a4763baa80ecbc6b8e8c6100c844512a836b66c40e132d01ad7e8cc",
+      "executable": false
+    },
+    "src/base/contract-docs.mjs": {
+      "sha256": "d98e14f489c57f60446c2cc68310db09f298f7974d77026dbaa2c62868cc4838",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -2329,7 +2365,7 @@
       "executable": false
     },
     "src/beam/timing.ts": {
-      "sha256": "98e3b0a702a7aa5a22978be43d00c0ee7a1ca0eaeede3bd71291f6dca5af452b",
+      "sha256": "1a2c98f70a0427edf07fd82aa7115a366dd20a06f08bcb67da142c5d99354f72",
       "executable": false
     },
     "src/beam/transcript.ts": {
