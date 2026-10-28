@@ -95,7 +95,7 @@ Rules that hold everywhere:
 
 ## Agents operating Beam
 
-Agents use a scoped preparation credential, never a human session cookie. A
+Agents use the shared door under company policy, with a company token or an existing scoped preparation credential, never a human session cookie. The legacy preparation JSON API enters the same policy pipeline. A
 human signed in by ordinary email link or OIDC issues it with
 `POST /api/beam/agent.issue` and `{ "expiresInSeconds": 3600 }`. The response
 contains `token` and `expiresAt`; keep it private and send it as
@@ -187,7 +187,14 @@ credential's name. Reads are cursor-paged: `?limit=1..200` (default 50) and `?cu
 - `catalog.read` · `GET /api/beam/v1/courses` → `data: [{ id, title, publishedRevision }]` (published, not retired or archived).
 - `reports.read` · `GET /api/beam/v1/report` (filters `course`, `team`, `status` as in `/api/beam/report`) → `{ summary, data: [report row], next }`, rows ordered by `assignment`. The BI feed (REPORT-004) on the same credential and filters, unpaged: `GET /api/beam/v1/report/feed.json` → `{ schema: 'beam.report-feed.v1', watermark, timeZone, filters, fields: [{ name, type, label }], deleted, restricted, summary, rows }` and `GET /api/beam/v1/report/feed.csv` (header row = field names; `X-Beam-Schema`, `X-Beam-Watermark`). Each refresh is a whole snapshot as of `watermark`.
 - `results.write` · `POST /api/beam/v1/results` `{ learner, requirement, issuer, number, issuedOn, expiresOn?, file: { filename, base64, type } }` (JPEG, PNG, WebP, GIF or PDF) → `{ id, state: 'pending' }`: an external certificate waiting for its requirement's reviewer, never approved automatically.
-- `mcp` · `POST /api/beam/mcp` (CONNECT-016): MCP Streamable HTTP with single JSON responses (JSON-RPC 2.0 `initialize`, `tools/list`, `tools/call`). The owner also ticks the grant's tools: `search_material` `{ query }` (published courses with their lessons and cited source versions; the text is untrusted data), `read_report` `{ team?, course?, status? }` (inside the grant's teams) and `propose_course_change` `{ course, draftVersion, summary, draft, inputs?, passages?, missing? }` (a proposal a person decides; never publishes). Other tool names are a JSON-RPC error `tool_not_granted`; a request carrying a session cookie is 403.
+- `mcp` · `/mcp` (alias `/api/beam/mcp`) uses Base's shared door and company policy.
+  The native grant labels `search_material`, `read_report` and `propose_course_change`
+  map to `beam.material.search`, `beam.report.scoped` and `beam.proposal.scoped`.
+  Existing tool/team grants remain narrow. Protocol eras are `2025-11-25` and
+  `2026-07-28`; new company tokens bind through signed Business IDs. See
+  `docs/agent-work.md` and `agent-surface.json` for the complete registry,
+  policy/approval controls, source resources and retained native limits.
+
 - `enrollments.write` · `POST /api/beam/v1/enrollments` `{ idempotencyKey, learner, course, dueDate, dueTime?, timezone? }` → `{ idempotencyKey, learner, course, dueDate, dueTime, timezone, created: [assignmentId], kept: [assignmentId], replayed }`. Replaying a key returns the first answer with `replayed: true`; the same key with a different enrollment is 409 `idempotency_key_reused`.
 
 ## Tests
@@ -463,3 +470,14 @@ termination percentages above the limit have distinct hold reasons. This is
 manual preparation, without an SFTP service, cloud watcher, scheduled apply,
 AUTO-002 lifecycle enrollment or a configuration screen. ct approved owner-only explicit
 review for every file as adopted, 24 October; no invitations, unattended provider calls or automatic application. A feed preview cannot be changed to enable invitations.
+
+
+## Shared agent verification
+
+`rer verify` includes `scripts/beam/verify-agent-door.mjs` after all existing
+native targets. It uses the public immutable Base archive recorded by the runtime;
+no CLI copies are edited. `gh` and `tar` are needed until these hooks ship in rer.
+For a trusted existing source export, `BEAM_AGENT_BASE_ARCHIVE` selects its root.
+The only new verification is the conformance journey and its production-lifecycle
+fixture. Preserve first-run confirmation, native password/member admission and
+person review in that fixture. No direct SQL or verification-only Worker route.

@@ -22,11 +22,11 @@ export async function auditPage(env: Bindings, actor: Actor, url: URL) {
 <div class="filter-actions"><button type="submit">Search</button><a href="/app/audit.csv${query ? `?${query}` : ''}" download>Download CSV</a></div>
 </form>
 <p class="summary"><strong>${count(log.events.length)} ${log.events.length === 1 ? 'event' : 'events'}</strong>${log.events.length === 1000 ? ' · the newest 1,000; narrow the search for older ones' : ''}</p>
-<section class="card table-card"><div class="table-wrap"><table class="stacked">
+<section class="card table-card audit-table"><div class="table-wrap"><table class="stacked">
 <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">What</th><th scope="col">Inputs</th></tr></thead>
 <tbody>${log.events.length ? log.events.map(event => h`<tr>
 <td class="nowrap">${cellLabel('When')}${when(event.at, log.zone)}<br><span class="muted">event ${event.id}</span></td>
-<td>${cellLabel('Who')}${event.actorName}${event.via ? h`<br><span class="muted">${event.via.kind === 'application_credential' ? `through application credential “${event.via.credential}” issued by ${event.via.delegatedBy}` : `through an agent’s preparation credential delegated by ${event.via.delegatedBy}`}</span>` : ''}</td>
+<td>${cellLabel('Who')}${event.actorName}${event.via ? h`<br><span class="muted">${event.via.kind === 'agent_door' ? `through the company agent door${event.via.approvers?.length ? ` · approved by ${event.via.approvers.map(person => person.name).join(', ')}` : ''}` : event.via.kind === 'application_credential' ? `through application credential “${event.via.credential}” issued by ${event.via.delegatedBy}` : `through an agent’s preparation credential delegated by ${event.via.delegatedBy}`}</span>` : ''}</td>
 <td>${cellLabel('What')}<code>${event.action}</code><br><span class="muted">${event.subjectName ? `${event.subjectName} · ` : ''}${event.subject}</span>${event.automatic ? h`<br><span class="muted">Automatic: ${event.automatic}</span>` : ''}
 ${event.corrections.map(correction => h`<p class="flash" role="note">Correction ${when(correction.at, log.zone)} by ${correction.by}: ${correction.explanation}</p>`)}
 ${actor.owner ? h`<details><summary>Add a correction</summary>${form('audit.correct', returnTo, [hidden('event', event.id), area('Explanation', 'explanation')], 'Add correction', { secondary: true })}</details>` : ''}</td>

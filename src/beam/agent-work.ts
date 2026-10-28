@@ -60,7 +60,7 @@ export async function propose(env: Bindings, actor: Actor, input: Input) {
   insist(kind, 'invalid_kind')
   requireRole(actor, ...kind.prepare)
   const title = input.text('title', { max: 160 })
-  const agent = input.text('agent', { max: 120, optional: true }) || null
+  const agent = actor.preparedBy?.label ?? (input.text('agent', { max: 120, optional: true }) || null)
   const reasons = texts(input.json('reasons'), 'reasons')
   insist(reasons.length > 0, 'reasons_required')
   const excludedValue = input.json('excluded') ?? []

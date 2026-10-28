@@ -51,6 +51,15 @@ door enforces the current role and data scope. Agents prepare within explicit
 grants, never approve their own work or administer people. Uploaded documents,
 packages and operational text are untrusted data, not model instructions.
 
+The shared agent door inherits BASE-AGENT-001, BASE-AGENT-002,
+BASE-AGENT-003, BASE-AGENT-004, BASE-AGENT-005, BASE-AGENT-006,
+BASE-AGENT-007, BASE-AGENT-008, BASE-AGENT-009, BASE-AGENT-010,
+BASE-AGENT-011, BASE-AGENT-012 and BASE-AGENT-013. Its native preparation
+registry and conformance journey are declared in `agent-surface.json`.
+Company policy never overrides the native person, course or credential scope.
+Publication, assessment decisions and people administration retain their native
+person doors. This adoption does not promote the broader target clauses.
+
 ## Published clauses
 
 The original BEAM-01 through BEAM-20 promises remain intact as the implemented

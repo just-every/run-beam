@@ -42,7 +42,8 @@ export async function createProposal(env: Bindings, actor: Actor, fields: Propos
   const draft = await normaliseDraft(env, fields.draft, course.id)
   keepsTools(course.draft, draft)
   const id = newId()
-  const { agent, summary, passages, missing } = fields
+  const { summary, passages, missing } = fields
+  const agent = actor.preparedBy?.label ?? fields.agent
   await commit(env, [stmt(env, "INSERT INTO beam_proposals (id, course_id, base_draft_version, input_version_ids, prepared_by, agent, summary, draft_json, state, created_at, passages_json, missing_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)", id, course.id, base, JSON.stringify(inputs), actor.id, agent, summary, JSON.stringify(draft), now(), JSON.stringify(passages), JSON.stringify(missing))], { actor, action: 'proposal.create', subject: id, detail: { course: course.id, base, inputs, agent, viaAgent: actor.agent, ...link } })
   return { id }
 }

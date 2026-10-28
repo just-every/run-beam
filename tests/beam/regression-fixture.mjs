@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { harness } from './harness.mjs'
+import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypto.mjs'
 export async function fixture(options) {
   const h = await harness(options), cookies = {}, ids = {}
   try {
@@ -8,6 +9,9 @@ export async function fixture(options) {
     cookies.owner = await h.signIn('owner@example.test')
     ids.owner = (await api('owner', 'me')).id
     await h.raw('/setup', { cookie: cookies.owner, form: new URLSearchParams({ confirm: 'yes' }) })
+    const policy = await h.fetch('/agents/api/policy', { method: 'PUT', headers: { Cookie: cookies.owner, Origin: h.origin, 'Content-Type': 'application/json' }, body: JSON.stringify({ document: autonomousPolicy() }) })
+    assert.equal(policy.status,200)
+    await policy.body?.cancel()
     await api('owner', 'business.configure', { name: options?.businessName ?? 'Regression training', timezone: 'UTC' })
     for (const [name, roles] of Object.entries({ author: ['author'], reviewer: ['reviewer', 'author'], learner: ['learner'], assessor: ['assessor', 'learner'], other: ['assessor'], manager: ['manager'] })) {
       ids[name] = (await api('owner', 'person.invite', { email: `${name}@example.test`, name: options?.names?.[name] ?? name, roles })).id

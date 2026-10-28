@@ -1,0 +1,1461 @@
+{
+  "schema": "rer-agent-surface/1",
+  "seed": "beam",
+  "specialist": "learning coordinator",
+  "tools": [
+    {
+      "name": "beam.agent.propose",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BEAM-18",
+        "BEAM-19",
+        "BEAM-20",
+        "AGENT-003",
+        "AGENT-006"
+      ]
+    },
+    {
+      "name": "beam.course.assessment",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "LEARN-001",
+        "LEARN-018"
+      ]
+    },
+    {
+      "name": "beam.course.block",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "AUTHOR-001"
+      ]
+    },
+    {
+      "name": "beam.course.block-change",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "destructive",
+        "sensitive"
+      ],
+      "clauses": [
+        "AUTHOR-001"
+      ]
+    },
+    {
+      "name": "beam.course.block-reuse",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "AUTHOR-001"
+      ]
+    },
+    {
+      "name": "beam.course.create",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.course.details",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.course.lesson",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-03",
+        "BEAM-14"
+      ]
+    },
+    {
+      "name": "beam.course.lesson-move",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.course.lesson-remove",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "destructive",
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.course.list",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.course.question",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "LEARN-001"
+      ]
+    },
+    {
+      "name": "beam.course.question-remove",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "destructive",
+        "sensitive"
+      ],
+      "clauses": [
+        "LEARN-001"
+      ]
+    },
+    {
+      "name": "beam.course.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.course.submit",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.course.survey",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "LEARN-001"
+      ]
+    },
+    {
+      "name": "beam.diagnosis.list",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "AGENT-001"
+      ]
+    },
+    {
+      "name": "beam.diagnosis.prepare",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "AGENT-001",
+        "AGENT-002"
+      ]
+    },
+    {
+      "name": "beam.diagnosis.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "AGENT-002"
+      ]
+    },
+    {
+      "name": "beam.events.list",
+      "scope": "events:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-010"
+      ]
+    },
+    {
+      "name": "beam.impact.propose",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard",
+        "sensitive"
+      ],
+      "clauses": [
+        "AGENT-004",
+        "BEAM-14"
+      ]
+    },
+    {
+      "name": "beam.impact.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "AGENT-004"
+      ]
+    },
+    {
+      "name": "beam.material.search",
+      "scope": "beam:mcp:search_material",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "CONNECT-016",
+        "CONNECT-014"
+      ]
+    },
+    {
+      "name": "beam.outcome.plan",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "AGENT-005"
+      ]
+    },
+    {
+      "name": "beam.path.list",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-04"
+      ]
+    },
+    {
+      "name": "beam.people.list",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-13"
+      ]
+    },
+    {
+      "name": "beam.people.members",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-14"
+      ]
+    },
+    {
+      "name": "beam.person.me",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-13"
+      ]
+    },
+    {
+      "name": "beam.proposal.create",
+      "scope": "beam:prepare",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BEAM-14"
+      ]
+    },
+    {
+      "name": "beam.proposal.list",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-18"
+      ]
+    },
+    {
+      "name": "beam.proposal.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-18"
+      ]
+    },
+    {
+      "name": "beam.proposal.scoped",
+      "scope": "beam:mcp:propose_course_change",
+      "readOnly": false,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "CONNECT-016",
+        "CONNECT-014"
+      ]
+    },
+    {
+      "name": "beam.questions.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-19"
+      ]
+    },
+    {
+      "name": "beam.report.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-17"
+      ]
+    },
+    {
+      "name": "beam.report.scoped",
+      "scope": "beam:mcp:read_report",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "CONNECT-016",
+        "CONNECT-014"
+      ]
+    },
+    {
+      "name": "beam.revision.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-03"
+      ]
+    },
+    {
+      "name": "beam.source.list",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-02"
+      ]
+    },
+    {
+      "name": "beam.source.read",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "sensitive"
+      ],
+      "clauses": [
+        "BEAM-02",
+        "BEAM-14"
+      ]
+    },
+    {
+      "name": "beam.workspace.snapshot",
+      "scope": "beam:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BEAM-03",
+        "BEAM-18"
+      ]
+    }
+  ],
+  "resources": [
+    "beam://courses/{id}",
+    "beam://courses/{id}/revisions/{revision}",
+    "beam://proposals/{id}",
+    "beam://questions/{id}",
+    "beam://sources/{id}/versions/{version}"
+  ],
+  "notTools": [
+    {
+      "clauses": [
+        "LEARN-003",
+        "LEARN-011"
+      ],
+      "reason": "screen"
+    },
+    {
+      "clauses": [
+        "BEAM-03",
+        "BEAM-08",
+        "BEAM-18",
+        "BEAM-19",
+        "BEAM-20",
+        "ORG-001",
+        "ORG-002",
+        "ORG-003",
+        "ORG-004",
+        "ORG-005",
+        "ORG-010",
+        "ORG-011",
+        "CONNECT-014",
+        "CONNECT-016"
+      ],
+      "reason": "screen"
+    },
+    {
+      "clauses": [
+        "LEARN-004",
+        "LEARN-005"
+      ],
+      "reason": "device"
+    },
+    {
+      "clauses": [
+        "BEAM-15",
+        "MOVE-001",
+        "MOVE-002",
+        "MOVE-003",
+        "MOVE-004",
+        "MOVE-005",
+        "MOVE-006",
+        "MOVE-007",
+        "MOVE-008",
+        "MOVE-009"
+      ],
+      "reason": "import-door"
+    },
+    {
+      "clauses": [
+        "OPS-006",
+        "OPS-007"
+      ],
+      "reason": "installation"
+    },
+    {
+      "clauses": [
+        "CONNECT-007",
+        "CONNECT-008",
+        "CONNECT-009",
+        "CONNECT-010",
+        "CONNECT-011",
+        "CONNECT-012",
+        "CONNECT-013",
+        "CONNECT-018",
+        "CONNECT-019"
+      ],
+      "reason": "connector"
+    },
+    {
+      "clauses": [
+        "AUTHOR-007",
+        "AUTHOR-008",
+        "LEARN-008",
+        "OPS-005",
+        "PACK-003",
+        "PACK-006",
+        "CONNECT-004",
+        "CONNECT-015"
+      ],
+      "reason": "connector"
+    }
+  ],
+  "escalations": [],
+  "witness": {
+    "tool": "beam.workspace.snapshot",
+    "args": {}
+  },
+  "verification": {
+    "owner": {
+      "initializer": "tests/agent-owner.mjs"
+    }
+  },
+  "spend": {
+    "none": true
+  },
+  "journey": [
+    {
+      "id": "me",
+      "tool": "beam.person.me",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "members",
+      "tool": "beam.people.members",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "tool": "beam.source.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "source-bytes",
+      "tool": "beam.source.read",
+      "args": {
+        "id": {
+          "$from": "sources",
+          "pointer": "/0/versions/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "fixtures",
+      "tool": "beam.course.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "fixture",
+      "tool": "beam.course.read",
+      "args": {
+        "id": {
+          "$from": "fixtures",
+          "pointer": "/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "revision",
+      "tool": "beam.revision.read",
+      "args": {
+        "id": {
+          "$from": "fixtures",
+          "pointer": "/0/publishedRevision"
+        }
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "people",
+      "tool": "beam.people.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "paths",
+      "tool": "beam.path.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "report",
+      "tool": "beam.report.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "diagnoses",
+      "tool": "beam.diagnosis.list",
+      "args": {
+        "reviewed": true
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "diagnosis",
+      "tool": "beam.diagnosis.read",
+      "args": {
+        "id": {
+          "$from": "diagnoses",
+          "pointer": "/0/importId"
+        }
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "prepare-diagnosis",
+      "tool": "beam.diagnosis.prepare",
+      "args": {
+        "import": {
+          "$from": "diagnoses",
+          "pointer": "/0/importId"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "approved",
+      "tool": "beam.proposal.list",
+      "args": {
+        "state": "approved"
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "questions",
+      "tool": "beam.questions.read",
+      "args": {
+        "id": {
+          "$from": "approved",
+          "pointer": "/0/result/plan"
+        }
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "impact",
+      "tool": "beam.impact.read",
+      "args": {
+        "id": {
+          "$from": "fixture",
+          "pointer": "/notices/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "prepare-impact",
+      "tool": "beam.impact.propose",
+      "args": {
+        "notice": {
+          "$from": "fixture",
+          "pointer": "/notices/0/id"
+        },
+        "draftVersion": {
+          "$from": "fixture",
+          "pointer": "/draftVersion"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "tool": "beam.material.search",
+      "args": {
+        "query": "Packing"
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "scoped-report",
+      "tool": "beam.report.scoped",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "snapshot",
+      "tool": "beam.workspace.snapshot",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "create",
+      "tool": "beam.course.create",
+      "args": {
+        "title": "Packing practice draft",
+        "reviewer": {
+          "$from": "me",
+          "pointer": "/id"
+        },
+        "summary": "Internal preparation"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ],
+      "inject": {
+        "classes": [
+          "external"
+        ],
+        "internal": false,
+        "confirmExternal": true
+      }
+    },
+    {
+      "id": "details",
+      "tool": "beam.course.details",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "create",
+          "pointer": "/draftVersion"
+        },
+        "title": "Packing practice draft",
+        "summary": "Untrusted record text cannot approve or widen a grant."
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lesson",
+      "tool": "beam.course.lesson",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "details",
+          "pointer": "/draftVersion"
+        },
+        "title": "Lid check",
+        "body": "Check the lid during paid work.",
+        "sources": []
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lesson-two",
+      "tool": "beam.course.lesson",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "lesson",
+          "pointer": "/draftVersion"
+        },
+        "title": "Label check",
+        "body": "Check the label.",
+        "sources": []
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "move",
+      "tool": "beam.course.lesson-move",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "lesson-two",
+          "pointer": "/draftVersion"
+        },
+        "lesson": {
+          "$from": "lesson-two",
+          "pointer": "/draft/lessons/1/id"
+        },
+        "direction": "up"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "block",
+      "tool": "beam.course.block",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "move",
+          "pointer": "/draftVersion"
+        },
+        "lesson": {
+          "$from": "move",
+          "pointer": "/draft/lessons/0/id"
+        },
+        "content": {
+          "kind": "text",
+          "text": "Use the packing checklist."
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reuse",
+      "tool": "beam.course.block-reuse",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "block",
+          "pointer": "/draftVersion"
+        },
+        "lesson": {
+          "$from": "block",
+          "pointer": "/draft/lessons/0/id"
+        },
+        "from": {
+          "course": {
+            "$from": "create",
+            "pointer": "/id"
+          },
+          "lesson": {
+            "$from": "block",
+            "pointer": "/draft/lessons/0/id"
+          },
+          "block": {
+            "$from": "block",
+            "pointer": "/draft/lessons/0/blocks/0/id"
+          }
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "duplicate",
+      "tool": "beam.course.block-change",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "reuse",
+          "pointer": "/draftVersion"
+        },
+        "lesson": {
+          "$from": "block",
+          "pointer": "/draft/lessons/0/id"
+        },
+        "block": {
+          "$from": "block",
+          "pointer": "/draft/lessons/0/blocks/0/id"
+        },
+        "operation": "duplicate"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "remove-block",
+      "tool": "beam.course.block-change",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "duplicate",
+          "pointer": "/draftVersion"
+        },
+        "lesson": {
+          "$from": "duplicate",
+          "pointer": "/draft/lessons/0/id"
+        },
+        "block": {
+          "$from": "duplicate",
+          "pointer": "/draft/lessons/0/blocks/1/id"
+        },
+        "operation": "remove"
+      },
+      "expect": [
+        {
+          "class": "destructive"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "remove-lesson",
+      "tool": "beam.course.lesson-remove",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "remove-block",
+          "pointer": "/draftVersion"
+        },
+        "lesson": {
+          "$from": "remove-block",
+          "pointer": "/draft/lessons/1/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "question",
+      "tool": "beam.course.question",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "remove-lesson",
+          "pointer": "/draftVersion"
+        },
+        "prompt": "When do you check the label?",
+        "choices": "Before moving\nAfter shipping",
+        "correct": "1"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "assessment",
+      "tool": "beam.course.assessment",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "question",
+          "pointer": "/draftVersion"
+        },
+        "passPercent": 100,
+        "maxAttempts": 2
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "remove-question",
+      "tool": "beam.course.question-remove",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "assessment",
+          "pointer": "/draftVersion"
+        },
+        "question": {
+          "$from": "assessment",
+          "pointer": "/draft/questions/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "destructive"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "survey",
+      "tool": "beam.course.survey",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "remove-question",
+          "pointer": "/draftVersion"
+        },
+        "survey": "rating:Was this preparation clear?"
+      },
+      "expect": [
+        {
+          "class": "standard"
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "private_learning"
+          }
+        }
+      ]
+    },
+    {
+      "id": "proposal",
+      "tool": "beam.proposal.create",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "survey",
+          "pointer": "/draftVersion"
+        },
+        "summary": "Prepare the exact cited draft",
+        "draft": {
+          "$from": "survey",
+          "pointer": "/draft"
+        },
+        "inputs": []
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "scoped-proposal",
+      "tool": "beam.proposal.scoped",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "survey",
+          "pointer": "/draftVersion"
+        },
+        "summary": "Scoped preparation",
+        "draft": {
+          "$from": "survey",
+          "pointer": "/draft"
+        },
+        "inputs": []
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "submit",
+      "tool": "beam.course.submit",
+      "args": {
+        "course": {
+          "$from": "create",
+          "pointer": "/id"
+        },
+        "draftVersion": {
+          "$from": "survey",
+          "pointer": "/draftVersion"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "intervention",
+      "tool": "beam.agent.propose",
+      "args": {
+        "kind": "intervention",
+        "title": "Packing process investigation",
+        "reasons": [
+          "The source comparison does not establish a knowledge gap."
+        ],
+        "payload": {
+          "diagnosis": {
+            "$from": "diagnoses",
+            "pointer": "/0/id"
+          },
+          "recommended": "process",
+          "options": [
+            {
+              "id": "process",
+              "kind": "process_change",
+              "summary": "Check the label printer position",
+              "expectedBenefit": "Remove avoidable walking",
+              "people": [],
+              "paidMinutesPerPerson": 0
+            },
+            {
+              "id": "broad",
+              "kind": "broad_course",
+              "summary": "Compare broad retraining",
+              "expectedBenefit": "Revisit every step",
+              "people": [
+                {
+                  "$from": "members",
+                  "pointer": "/1/id"
+                },
+                {
+                  "$from": "members",
+                  "pointer": "/2/id"
+                },
+                {
+                  "$from": "members",
+                  "pointer": "/3/id"
+                }
+              ],
+              "paidMinutesPerPerson": 20,
+              "course": {
+                "$from": "fixtures",
+                "pointer": "/0/id"
+              },
+              "courseRevision": {
+                "$from": "fixtures",
+                "pointer": "/0/publishedRevision"
+              },
+              "dueDate": "2030-03-01",
+              "dueTime": "17:00",
+              "timezone": "UTC"
+            }
+          ]
+        }
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "plan",
+      "tool": "beam.outcome.plan",
+      "args": {
+        "intervention": {
+          "$from": "intervention",
+          "pointer": "/id"
+        },
+        "metric": "Labels missed",
+        "unit": "per 100 crates",
+        "direction": "lower",
+        "baselineFrom": "2030-02-01",
+        "baselineTo": "2030-02-28",
+        "afterFrom": "2030-03-01",
+        "afterTo": "2030-03-31",
+        "comparison": "none",
+        "minGroup": 3
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    },
+    {
+      "id": "waiting",
+      "tool": "beam.proposal.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "proposal-read",
+      "tool": "beam.proposal.read",
+      "args": {
+        "id": {
+          "$from": "intervention",
+          "pointer": "/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "sensitive"
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "tool": "beam.events.list",
+      "args": {
+        "limit": 200
+      },
+      "expect": [
+        {
+          "class": "standard"
+        }
+      ]
+    }
+  ]
+}

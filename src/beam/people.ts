@@ -145,7 +145,11 @@ export async function people(env: Bindings, request: Request, actor: Actor, ...p
   const scope = learnerScope(actor, ...reach), teams = teamScope(actor, ...reach)
   const members = await all(env, `SELECT m.id, m.email, m.name, m.employee_id AS employeeId, m.employment, m.erased_at AS erasedAt, m.erasure_pending AS erasurePending, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
     WHERE ${IN_SCOPE('m.id')} ORDER BY m.name`, scope, scope)
-  const statuses = actor.owner ? new Map((await operatorAuth(env).listOperators(request)).map(operator => [operator.id, operator])) : new Map()
+  // The shared door has already resolved the current native owner by id. It
+  // does not manufacture a browser session to read these non-secret statuses.
+  const statuses = actor.owner ? new Map((actor.preparedBy
+    ? await all<{ id: string; role: string; status: string }>(env, "SELECT id,role,status FROM oa_operators WHERE EXISTS(SELECT 1 FROM beam_members m JOIN oa_operators sponsor ON sponsor.id=m.operator_id WHERE m.id=? AND sponsor.role='owner' AND sponsor.status='active')", actor.id)
+    : await operatorAuth(env).listOperators(request)).map(operator => [operator.id, operator])) : new Map()
   const links = new Map((await all<{ id: string; operator_id: string | null }>(env, 'SELECT id, operator_id FROM beam_members')).map(row => [row.id, row.operator_id]))
   const account = (member: Row) => statuses.get(links.get(member.id))
   // ORG-001: People lists the employee id and employment state beside the name for the owner, managers and learning

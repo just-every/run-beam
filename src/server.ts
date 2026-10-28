@@ -12,13 +12,15 @@ import { staticAssetResponse } from './base/static-assets'
 import { deploymentHealth } from './base/deployment-health'
 import { lobbyResponse } from './base/lobby'
 import { setupStateResponse } from './base/setup-state'
-import { authResponse, operatorAuth, runtimeBindings, type Bindings } from './auth.server'
+import { authResponse, identityOperatorAuth, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { beamResponse } from './beam/http'
 import { seedDemo } from './demo'
 import { scheduledInactivity } from './beam/inactivity-scheduled'
 import { runUpkeep } from './beam/upkeep'
 import { beamImportDoor } from './beam/movein/door'
+import { beamAgentDoor } from './beam/door/index.ts'
+import { beamBusiness } from './beam/door/business.ts'
 
 const api = new Hono<{ Bindings: Bindings }>()
 api.get('/health', (context) => context.json({ status: 'ok', ...deploymentHealth(context.env) }))
@@ -38,9 +40,15 @@ export default withDemo({
     for (const result of await Promise.allSettled([scheduledInactivity(bindings), runUpkeep(bindings), runEscalations(bindings), runRenewals(bindings), runWebhooks(bindings)])) if (result.status === 'rejected') throw result.reason
   },
   async fetch(request, env, execution) {
+    const bindings = runtimeBindings(env)
+    if (['/mcp','/api/beam/mcp'].includes(new URL(request.url).pathname) && request.headers.has('cookie')) return Response.json({ code: 'mcp_session_refused' }, { status: 403 })
+    const settings = await beamBusiness(bindings).handle(request)
+    if (settings) return settings
+    const agent = await beamAgentDoor(bindings).handle(request)
+    if (agent) return agent
     const entraPath = new URL(request.url).pathname
     if (entraPath === '/scim/v2' || entraPath.startsWith('/scim/v2/') || entraPath.startsWith('/auth/oidc/beam-entra/') || entraPath === '/api/beam/entra' || entraPath.startsWith('/api/beam/entra/')) {
-      const response = await entraResponse(runtimeBindings(env), request, operatorAuth(runtimeBindings(env)))
+      const response = await entraResponse(runtimeBindings(env), request, await identityOperatorAuth(runtimeBindings(env)))
       if (response) return response
     }
     const imported = await beamImportDoor(request, runtimeBindings(env))

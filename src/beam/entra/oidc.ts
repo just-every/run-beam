@@ -3,6 +3,12 @@ import { createOidcProviders } from '../../modules/operator-auth/identity/oidc/i
 import { insist, one, sha256Hex } from '../core'
 import { connection, issuerOf, providerId, ready, type EntraBindings } from './common'
 
+/** The same owner-approved native provider that serves the Entra callback. */
+export async function entraIssuers(env: EntraBindings): Promise<string[]> {
+ const c = await connection(env)
+ return c && ready(env,c) ? [issuerOf(c.tenant_id)] : []
+}
+
 export async function entraAuth(env: EntraBindings, baseAuth: OperatorAuth): Promise<OperatorAuth> {
  const c = await connection(env)
  if (!c || !ready(env, c)) return baseAuth

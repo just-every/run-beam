@@ -1,4 +1,4 @@
-import { entraAuth, entraSessionAllowed } from './beam/entra'
+import { entraAuth, entraIssuers, entraSessionAllowed } from './beam/entra'
 import { frontlineResponse } from './beam/frontline-auth'
 import { createDependencies } from './modules/dependencies/index.mjs'
 import { createIdpOwnerClaimHandler, createOwnerClaimHandler } from './modules/owner-claim/index.mjs'
@@ -13,6 +13,7 @@ import type { ScheduledPolicy } from './modules/operator-auth/scheduled/index.mj
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ RER_BUSINESS_TRUST?: string
  /** Server-held Microsoft credentials; never persisted in learning records or archives. */
  ENTRA_TENANT_ID?: string
  ENTRA_CLIENT_ID?: string
@@ -40,6 +41,7 @@ export interface Bindings {
  IDENTITY_PROVIDER?: string
  AUTH_ORIGIN: string
  AUTH_LOCAL?: string
+ AUTH_ALLOW_LIST?: string
  RER_DEV_ORIGIN?: string
  /** Local runtimes only: the checkout's key gate and dev identity switch. Deploy refuses both. */
  RER_MODELS_SERVICE?: string
@@ -70,7 +72,7 @@ export interface Bindings {
 }
 
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env
-export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
+export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', allowList: env.AUTH_ALLOW_LIST === undefined ? undefined : env.AUTH_ALLOW_LIST.split(',').map(email => email.trim().toLowerCase()).filter(Boolean), OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
 // ORG-002: a learning administrator under an active grant may invite members, as Base's admin role may. Their only door
 // for it is Beam's People form (src/beam/people.ts), which places each invitee in their units' teams; an invitation
 // they sent stops admitting once their grant ends, because Base checks the issuer again when it is used.
@@ -78,9 +80,13 @@ const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePoli
  || (input.action === 'operators:invite' && input.role === 'member' && isActiveOperator(input.actor)
   && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.operator_id = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.id, Date.now()).first())
 
-export function operatorAuth(env: Bindings, scheduledPolicies?: () => ScheduledPolicy[], scheduledGuard?: RolePolicy) {
- const auth = createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+export function operatorAuth(env: Bindings, scheduledPolicies?: () => ScheduledPolicy[], scheduledGuard?: RolePolicy, externalIssuers?: string[]) {
+ const auth = createOperatorAuth({ db: env.DB, config: { ...authConfig(env), externalIssuers }, mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
  return { ...auth, getSession: async (request: Request) => { const session = await auth.getSession(request); return session && await entraSessionAllowed(env, session.operator.id) ? session : null } }
+}
+
+export async function identityOperatorAuth(env: Bindings) {
+ return operatorAuth(env, undefined, undefined, await entraIssuers(env))
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
@@ -111,7 +117,7 @@ async function configuredAuthResponse(request: Request, original: Bindings): Pro
  }
  // The shared server-rendered sign-in page: plain forms that work before any script.
  if (url.pathname === '/signin') {
-  const page = await createSignInHandler(await entraAuth(env, operatorAuth(env)), { defaultReturnTo: '/setup' })(request)
+  const page = await createSignInHandler(await entraAuth(env, await identityOperatorAuth(env)), { defaultReturnTo: '/setup' })(request)
   if (page) return fontDocumentResponse(page)
  }
  // Base's own invitation door stays the owner's: everyone else invites through Beam's People form.
@@ -123,6 +129,7 @@ async function configuredAuthResponse(request: Request, original: Bindings): Pro
   const { inactivityAuth } = await import('./beam/inactivity-scheduled')
   return createAuthHandler(await inactivityAuth(env))(request)
  }
+ if (url.pathname === '/auth/settings/identity') return createAuthHandler(await identityOperatorAuth(env))(request)
  if (url.pathname.startsWith('/auth/')) return fontDocumentResponse(await createAuthHandler(operatorAuth(env))(request))
  if (url.pathname === '/setup' || url.pathname === '/app' || url.pathname.startsWith('/app/')) {
   const setup = await firstRunResponse(request, env, operatorAuth(env), { theme })
