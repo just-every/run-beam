@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "e79c938ebf9937414f7835395b1bbdb533dde45317c88ed6d869188cc1ce003a",
+  "manifest": "4ae9b5dabcbc8e289bfbfaa993b5fa99798dcf84ea16a593df806e0074daa09f",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -105,7 +105,12 @@
           "migrations/core/0119_beam_portal_quiz_review.sql",
           "migrations/core/0120_beam_entra.sql",
           "migrations/core/0121_beam_microsoft_sources.sql",
-          "migrations/core/0118_beam_portal_practical.sql"
+          "migrations/core/0118_beam_portal_practical.sql",
+          "agent-surface.json",
+          "tests/agent-owner.mjs",
+          "migrations/core/0122_agent_door.sql",
+          "migrations/core/0123_business_settings.sql",
+          "migrations/core/0124_business_people.sql"
         ]
       },
       "baseline": null
@@ -116,16 +121,12 @@
         "kind": "local",
         "paths": [
           "src/base",
-          "src/modules/operator-auth",
           "src/modules/mail",
           "scripts/edition-authoring",
           "src/modules/dependencies",
           "src/modules/owner-claim",
           "src/modules/demo",
-          "src/modules/d1-transport",
-          "src/modules/agent-door",
-          "src/modules/business-settings",
-          "src/foundation/runtime"
+          "src/modules/d1-transport"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -133,7 +134,6 @@
           "path": ".",
           "paths": [
             "foundation/runtime",
-            "modules/operator-auth",
             "modules/mail",
             "modules/dependencies",
             "modules/owner-claim",
@@ -143,9 +143,9 @@
         }
       },
       "baseline": {
-        "key": "3d3cdc7b3f106f4f8d23f57f8d649bfff515cd5635adb4e4c576922aaaa8e2a8",
-        "digest": "2e7f1b8ef62b91e50ec1b0fb554d7c4f34e7a74c80a08fd0275f57df1a52b65d",
-        "sha256": "74a2e987f3185930a68a81c494b711f60edcde3a11f52aa3db56e78e3dd15615"
+        "key": "4cdbbe0bd6e17d7342bb059b31ad3b70a9fadfc68fc8c6fabc7391ff921abdac",
+        "digest": "f954f26809d33176f7fc0632c67432972bc6caad099026e4a103ec3ab4e44391",
+        "sha256": "f85c5906e11f74576ccc3a0aae1885094646fbad280fcef8ce175bc3c92a71af"
       }
     },
     {
@@ -292,6 +292,82 @@
         "digest": "5dd60d3dc15a74a8efb9effd08be49458f63e7e455ae86565f34f11e1cc5ab67",
         "sha256": "821451a685dcc1608474625aa25f22a023704ae2e1d720a5a4c871dc1e08a469"
       }
+    },
+    {
+      "id": "runeditrun/agent-door",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/agent-door"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "modules/agent-door"
+        }
+      },
+      "baseline": {
+        "key": "1c47842b93f8db52bf1e3c2923157c60850c792aa85b58c3967612609f2b9515",
+        "digest": "6a851f2f76d7d4469a672e5cf21d5370d3f93cc7844252c93c1abc83106374e3",
+        "sha256": "9815da682d49cc41c5d77eaed409a179c6917b2e45bd6949d03a7b27bf679e8e"
+      }
+    },
+    {
+      "id": "runeditrun/business-settings",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/business-settings"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "modules/business-settings"
+        }
+      },
+      "baseline": {
+        "key": "4415c2331502fbdfdd06b91cd0c7ea0c88fb31f61c8b39b7922f3268684db979",
+        "digest": "36d2602f30c22fdc1110325beeb377ea9c6e67d264f560edef65893d0638b856",
+        "sha256": "69e23da08670909b0ab34704152d6f229fd4f3c013593bc5dc491326e36c9721"
+      }
+    },
+    {
+      "id": "runeditrun/operator-auth",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/operator-auth"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "modules/operator-auth"
+        }
+      },
+      "baseline": {
+        "key": "e7e9217f6cbeca6c3d159da41af8440dd161867060fcac2eb58524e9f24a29e2",
+        "digest": "43c6167378cbb04c7a5863031fafc0c194a4ec673b146ef9639298e0a81600dc",
+        "sha256": "1b9bff9b2f153871f5f1be3aa43e8540d9b8595ee5991b17ba933ce3d491d67a"
+      }
+    },
+    {
+      "id": "runeditrun/beam-business-theme",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/foundation/runtime"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "foundation/runtime"
+        }
+      },
+      "baseline": {
+        "key": "c091e3f9d0b73496bf2aa3f72c873fef1dfab5faca2496be3b05034c4876fc08",
+        "digest": "4efcfe520e3410de39e885cd1defa7688ef79bbd47a2cec1d6dd67538ffb9ba9",
+        "sha256": "d743d878feb7d491bffe6e70df0deeb03dd69a93a156dd066eb3b34672239a57"
+      }
     }
   ],
   "files": {
@@ -312,7 +388,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "9159e559533fdf368306b4512add3d8d6667b30afb5a4dfca941f498af40af27",
+      "sha256": "a7a5748e5270dbe82b940fea652008610bc631bb81e2a992241bc42a6533debc",
       "executable": false
     },
     ".gitignore": {
@@ -327,12 +403,16 @@
       "sha256": "a1447397854a5859e68b482dfbca1b1ca0b600759dfba95e08d5e8c02a2b5966",
       "executable": false
     },
+    "agent-surface.json": {
+      "sha256": "634f4b1301c345c8efa4a8d3f620cb1e7188f38d5b139526bcec82a0a835807f",
+      "executable": false
+    },
     "AGENTS.consumer.md": {
       "sha256": "cd7521938f4a374779495f7dd3542a202da893bef89b71f44c7b6dd6c81d28f1",
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "9da0c2a549e8503832aeebfdb296a6909dc87ec4c002323103ee1e45d2a2e7d4",
+      "sha256": "c8c59344b883b7bf74c8405d4e3c86c8072a6ce3d4d07668d2497be0d0ae0a24",
       "executable": false
     },
     "base-copies.json": {
@@ -344,7 +424,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "dca52d0d16cbea673ed3efd4c267ae89a3fbdfaa89f78879db81f866486c92ff",
+      "sha256": "b2f2b50f0f5306bceda9251a97991025ff7ee7d9c14b8dfcec8071b3809f38c3",
       "executable": false
     },
     "DEMO.md": {
@@ -364,7 +444,7 @@
       "executable": false
     },
     "docs/agent-work.md": {
-      "sha256": "52a32787c8dd2f9d8306b5fada8132b228e850917f496fbc089b144399309efd",
+      "sha256": "abe48da1e1bcf6bbf369742c7b27f5c93b936422285f4dabe8908e15eb7dcaf7",
       "executable": false
     },
     "docs/assign.md": {
@@ -432,7 +512,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "e79c938ebf9937414f7835395b1bbdb533dde45317c88ed6d869188cc1ce003a",
+      "sha256": "4ae9b5dabcbc8e289bfbfaa993b5fa99798dcf84ea16a593df806e0074daa09f",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
@@ -444,7 +524,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "76ddb890de1a907660efc9aeec29540c42b92a18685b7e0163fb654643e2ff6d",
+      "sha256": "bcd3979c3dd4166b26e409f471ca1a6f0ae7a5b988f4a8a9bee59cc31d9e89f0",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -956,7 +1036,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "0b1898df6b03ff5abf6a017003bb1cf9187e8478629d15fd57a37251c0497e58",
+      "sha256": "05410d9b54c2b98403fd22b1b8fde508a1851a6107fe772b152756478f2695a3",
       "executable": false
     },
     "packaging.json": {
@@ -1236,11 +1316,11 @@
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "b1a26397e74bd2e421d4a6fbe907ebb9e6e8e18b55f0e2faf316fee5245c9dd2",
+      "sha256": "2d9f25db7af34b0bad08d65697b6ff11d1fb960b71a4d011080db5788e99290a",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "c2d368e3abef0e342c610a60a763dd235fec29828f0d7c05244405e1cfb688f5",
+      "sha256": "24615b7235c48ebe17cd588e41e9a4ee7c54cbdc1997940d11034a0d6db4d032",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -1249,6 +1329,10 @@
     },
     "scripts/beam/import-kit-migration.mjs": {
       "sha256": "25ead40e68c79bbba98428e57043a3ceea1e4b0491c415b6964788484880c7c2",
+      "executable": false
+    },
+    "scripts/beam/verify-agent-door.mjs": {
+      "sha256": "613221b35ee48ca03bdcb7fc8e8b7317fa6a95d62d80057d3280cbb44d375d64",
       "executable": false
     },
     "scripts/build-deployment-spec.mjs": {
@@ -1444,7 +1528,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "465198938a4763baa80ecbc6b8e8c6100c844512a836b66c40e132d01ad7e8cc",
+      "sha256": "8ac3d6c4dede150c5706d4668d00bae7cede268bb063cc15d4bcb5a9fb363fa4",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -1556,15 +1640,15 @@
       "executable": false
     },
     "src/beam/actor.ts": {
-      "sha256": "750656ad3003e5bff5e80d70bba518f6d377608f77e7bfbb125ac86cfeaf798f",
+      "sha256": "5130b9e13b25b63f160adf3d180aa2c630d7eee4ed49bfc210cc1dc0a62f4623",
       "executable": false
     },
     "src/beam/agent-credentials.ts": {
-      "sha256": "c84a2e3b393ed8676ed8c94c069b1e1bc55313a74fadaeb8fff58ba7671ecd90",
+      "sha256": "5cb7bf5bdf13cbbcced8045531ab507735beb023bb975cc07336327b587a8afb",
       "executable": false
     },
     "src/beam/agent-work.ts": {
-      "sha256": "913d1d735ca42a1234902b5f3adc956af69877ca960513d45bfc72b79f38f580",
+      "sha256": "f8905e5e543ccc1a978a5d48d47406816f4601596a481036a1a31b272ddbcc47",
       "executable": false
     },
     "src/beam/announcement-authority.ts": {
@@ -1580,7 +1664,7 @@
       "executable": false
     },
     "src/beam/app-credentials.ts": {
-      "sha256": "62e6e9a57ce750b9980a9da546518a9a1b6b4128f178c94fa21ef5b697e33b82",
+      "sha256": "656ad9572f2d0965e74d437e08f1ba444892316cea407a181ba89b1cdc7c1d5e",
       "executable": false
     },
     "src/beam/assignments.ts": {
@@ -1596,7 +1680,7 @@
       "executable": false
     },
     "src/beam/audit.ts": {
-      "sha256": "c280fb608f0a7749dec802a1bf8c6eb8d1fc5002d95f157ad92c810c8fe1fb1b",
+      "sha256": "ba89fceef86b26f474b3db6fa1d0a33aeb0eaf28e7ac1c7988225f896376f02c",
       "executable": false
     },
     "src/beam/auditors.ts": {
@@ -1664,7 +1748,7 @@
       "executable": false
     },
     "src/beam/core.ts": {
-      "sha256": "87d1515dd1f210ab53cc395eb299347283e1318b3d82c54520a464c2f12ba163",
+      "sha256": "990af208b31a4a3519ee40de195613245db6d08654ad6dd22ce6a3e834a6fef8",
       "executable": false
     },
     "src/beam/costs.ts": {
@@ -1733,6 +1817,46 @@
     },
     "src/beam/discussions.ts": {
       "sha256": "1646e20911859c17728d6d411a3feb022b10623b5648e67f2a143db67135c2b4",
+      "executable": false
+    },
+    "src/beam/door/actions.json": {
+      "sha256": "5d306c55ff00c19cc83332732db9648e70e5c041322f724f6e5500f0938afa18",
+      "executable": false
+    },
+    "src/beam/door/business.ts": {
+      "sha256": "6a5de65f1089de12610d11f13a6ae4f2e05a6651b812d1d20899d601e9652ca7",
+      "executable": false
+    },
+    "src/beam/door/index.ts": {
+      "sha256": "2189fb1a3d28dd775cada97fe4fc63724a260b7fd1a5420ee72ee6cc273cb688",
+      "executable": false
+    },
+    "src/beam/door/legacy.ts": {
+      "sha256": "39def964621803b4cba8b8288b758344f4f2062e1fed22d92c932bf541df662e",
+      "executable": false
+    },
+    "src/beam/door/native-tools.ts": {
+      "sha256": "d33e91e3617a0324fcff710569f12af8df687821dfbf00ba05d82d01e8c41acb",
+      "executable": false
+    },
+    "src/beam/door/people.ts": {
+      "sha256": "aa7b3e49e7bec3a375245c9731807383de436fae82ace003347942783b128978",
+      "executable": false
+    },
+    "src/beam/door/reads.ts": {
+      "sha256": "d7a9e75164a94f9e22d00efae439225b47d79df94f4605924986719c655d1a36",
+      "executable": false
+    },
+    "src/beam/door/resources.ts": {
+      "sha256": "9449b70942360118867e3de661019a3fa8f7f6f2101e3021bc0342e7d34df0bf",
+      "executable": false
+    },
+    "src/beam/door/scoped-tools.ts": {
+      "sha256": "39d9a56f54c40289aa986023e09b2256dd81ef809be0a763011294c1fc861137",
+      "executable": false
+    },
+    "src/beam/door/source.ts": {
+      "sha256": "17436ba8255be7de4b25d17bdac535450175ff4a1710e51b987ecc081bf9d84a",
       "executable": false
     },
     "src/beam/due-rules.ts": {
@@ -1852,7 +1976,7 @@
       "executable": false
     },
     "src/beam/http.ts": {
-      "sha256": "a9ee536ea0dd7fb834c3f536f656ac652b621590d2a538069ec49435f81893f0",
+      "sha256": "369c864437fe7bf870616c17fb78ec76c4b5ae5f6da1e404fa678b007df2463e",
       "executable": false
     },
     "src/beam/ics.ts": {
@@ -1924,7 +2048,7 @@
       "executable": false
     },
     "src/beam/maintenance.ts": {
-      "sha256": "21e8fd2428c34be79e47b525d31493aff0242de2666a6d5c9930c7112a5c730c",
+      "sha256": "2682f3b5284f1070afe7a7b3b42f6537496179e515c60ffd62bcae769d73511c",
       "executable": false
     },
     "src/beam/managers.ts": {
@@ -1932,7 +2056,7 @@
       "executable": false
     },
     "src/beam/mcp.ts": {
-      "sha256": "a51c0b9c125f3520c4d2df3a9f6c0ee33442e29fe8eb2099beecd12703824ac4",
+      "sha256": "f617bb73769c4283023c5571f07ead9fad38b98170b6d836436b717049174a9f",
       "executable": false
     },
     "src/beam/media.ts": {
@@ -2136,7 +2260,7 @@
       "executable": false
     },
     "src/beam/people.ts": {
-      "sha256": "86d6a15e11fbe662ee3e50878991df77e33d19c8500e105d96c2bc6de91eab1a",
+      "sha256": "a6884338b1b658b6b475f3afd5855ac4870d9463be1f1e693a5b3e035af5bb81",
       "executable": false
     },
     "src/beam/plans.ts": {
@@ -2388,7 +2512,7 @@
       "executable": false
     },
     "src/beam/ui/audit.ts": {
-      "sha256": "8a4d81c9b8d8927f2469f21fbe1f26f10ca15926b67c5a85e91392d7d746e85f",
+      "sha256": "45966cb5036521c24b2eca9034fd8587bde3f23d8eaef84270a21615ff824a4b",
       "executable": false
     },
     "src/beam/ui/authoring.ts": {
@@ -4676,7 +4800,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "9f73760b71951ef193a0dade98a3993d1d67ed644e5d2c82d2685f72a07ee60f",
+      "sha256": "8d2331d2a0a2acb9108f8aaf7d3720b4babc8f59814fd92d277ec0fc609067fe",
       "executable": false
     },
     "src/site/docs/build.ts": {
@@ -4791,12 +4915,16 @@
       "sha256": "96f4ee2db056e6673fdd85619864fa6774bbb94376d6862b25495da8bf217f56",
       "executable": false
     },
+    "tests/agent-owner.mjs": {
+      "sha256": "ec666e5daac30484ec13ee246f80e4ecb510c0cfad2ff18307021278cec3c923",
+      "executable": false
+    },
     "tests/beam/access-browser.mjs": {
       "sha256": "53ef64543bd8c22b53753673bf951b9fc6ca6b3db79786b893d9ec2e76b2476f",
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
-      "sha256": "618af0bd888fad5234c45b0a0664a76c7bde64455a8d1c5024046384454f8198",
+      "sha256": "9ab104e62a2e9447e1f31464daf5602a2781f917ac3440ae932470bb20cad79c",
       "executable": false
     },
     "tests/beam/capacity.mjs": {
@@ -5028,7 +5156,7 @@
       "executable": false
     },
     "tests/beam/regression-agent.mjs": {
-      "sha256": "85832ef5f6c257d89a027b4adbeec6d9abd3da03e31f6df54992a020d8871057",
+      "sha256": "85ecac8dc0c384af4d657787e6efe801bcb5dcbcd3a9e4409ae0171ce02f1abd",
       "executable": false
     },
     "tests/beam/regression-announcement-sessions.mjs": {
@@ -5048,7 +5176,7 @@
       "executable": false
     },
     "tests/beam/regression-audit.mjs": {
-      "sha256": "bc3da1a8328da9c77a7c93aeb340d36e1d00dd85660c5ad24ddb42fe6c607feb",
+      "sha256": "e51a3a60e5ca62634663249cf9a97c4e632f841d48b4283bc47f6bfd20426776",
       "executable": false
     },
     "tests/beam/regression-automation.mjs": {
@@ -5124,7 +5252,7 @@
       "executable": false
     },
     "tests/beam/regression-fixture.mjs": {
-      "sha256": "c580770d4f291179b8d8155e62a1756f797e2c244568648a83bce8bd22a44b9e",
+      "sha256": "8c8b1cf2598187f7ae98a904e8fe3d07e950702de4a9c49e91c505ed4c9ca5eb",
       "executable": false
     },
     "tests/beam/regression-hris-language.mjs": {

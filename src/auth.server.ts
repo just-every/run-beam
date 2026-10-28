@@ -13,6 +13,7 @@ import type { ScheduledPolicy } from './modules/operator-auth/scheduled/index.mj
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ RER_BUSINESS_TRUST?: string
  /** Server-held Microsoft credentials; never persisted in learning records or archives. */
  ENTRA_TENANT_ID?: string
  ENTRA_CLIENT_ID?: string

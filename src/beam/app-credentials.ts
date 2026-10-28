@@ -96,6 +96,17 @@ export async function applicationCredential(env: Bindings, request: Request) {
 /** The issuing owner's authority narrowed to one audience and the credential's teams; it ends if they stop being owner. */
 export async function applicationActor(env: Bindings, request: Request): Promise<Actor> {
   const credential = await applicationCredential(env, request)
+  return scopedApplicationActor(env, credential)
+}
+
+/** Re-read the saved grant when an approved shared-door call executes later. */
+export async function agentApplicationActor(env: Bindings, id: string, sponsor: string): Promise<Actor> {
+  const row = await one(env, 'SELECT * FROM beam_app_credentials WHERE id=? AND issued_by=? AND revoked_at IS NULL AND restored_at IS NULL AND expires_at>?', id, sponsor, now())
+  insist(row && row.audience === 'mcp', 'invalid_application_credential', 401)
+  return scopedApplicationActor(env, { id: row.id, name: row.name, audience: row.audience, teams: JSON.parse(row.teams_json), tools: JSON.parse(row.tools_json), issuedBy: row.issued_by })
+}
+
+async function scopedApplicationActor(env: Bindings, credential: Awaited<ReturnType<typeof applicationCredential>>): Promise<Actor> {
   const owner = await one<{ id: string; name: string; email: string | null; business: string | null }>(env, "SELECT m.id, m.name, m.email, (SELECT name FROM beam_business WHERE singleton = 1) AS business FROM beam_members m JOIN oa_operators o ON o.id = m.operator_id WHERE m.id = ? AND o.role = 'owner' AND o.status = 'active'", credential.issuedBy)
   insist(owner, 'invalid_application_credential', 401)
   const teams = credential.teams.length ? credential.teams : null

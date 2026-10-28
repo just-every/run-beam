@@ -126,6 +126,8 @@ jobs:
             node scripts/ci/chromium-probe.mjs
           }
       - run: pnpm exec rer verify
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

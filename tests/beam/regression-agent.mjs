@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { autonomousPolicy } from '../../src/modules/agent-door/conformance/crypto.mjs'
 import { file } from './harness.mjs'
 export async function agentCheck(f) {
   const { api, h, cookies, ids, course, nextRevision, request, publish } = f
@@ -20,6 +21,9 @@ export async function agentCheck(f) {
     assert.ok(response.data.expiresAt <= parent.data.expiresAt)
     return response.data.token
   }
+  const policy=await h.fetch('/agents/api/policy',{method:'PUT',headers:{cookie:cookies.owner,origin:h.origin,'content-type':'application/json'},body:JSON.stringify({document:autonomousPolicy()})})
+  assert.equal(policy.status,200)
+  await policy.body?.cancel()
   const token = await issue('reviewer')
   const agent = (path, body) => request('/api/beam/' + path, { token, body })
   assert.equal((await agent('me')).data.id, ids.reviewer)

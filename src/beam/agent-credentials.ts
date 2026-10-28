@@ -16,13 +16,13 @@ const PREPARATION_ACTIONS = new Set([
 ])
 // Each handler still checks the specific role its action or view needs.
 const PREPARERS = ['author', 'reviewer', 'manager'] as const
-const PREPARATION_READ = /^(me|members|sources|courses|courses\/[\w-]+|revisions\/[\w-]+|source-files\/[\w-]+|people|paths|report|proposals|proposals\/[\w-]+|impact\/[\w-]+|questions\/[\w-]+|diagnosis-imports\/[\w-]+)$/
+const PREPARATION_READ = /^(me|members|sources|courses|courses\/[\w-]+|revisions\/[\w-]+|source-files\/[\w-]+|people|paths|report|proposals|proposals\/[\w-]+|impact\/[\w-]+|questions\/[\w-]+|diagnoses|diagnosis-imports\/[\w-]+)$/
 
 async function signingKey(env: Bindings) {
   return crypto.subtle.importKey('raw', encoder.encode(env.SESSION_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
 }
 
-async function liveSession(env: Bindings, id: string) {
+export async function liveSession(env: Bindings, id: string) {
   // Dev/review sessions depend on request-local admission. They cannot mint or
   // back delegations: use an ordinary email-link or OIDC sign-in instead.
   return one<{ id: string; expiresAt: number; operatorId: string; email: string; name: string; role: string }>(env, `SELECT s.id, s.expires_at AS expiresAt, o.id AS operatorId, o.email, o.display_name AS name, o.role

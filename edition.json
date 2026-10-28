@@ -105,7 +105,12 @@
           "migrations/core/0119_beam_portal_quiz_review.sql",
           "migrations/core/0120_beam_entra.sql",
           "migrations/core/0121_beam_microsoft_sources.sql",
-          "migrations/core/0118_beam_portal_practical.sql"
+          "migrations/core/0118_beam_portal_practical.sql",
+          "agent-surface.json",
+          "tests/agent-owner.mjs",
+          "migrations/core/0122_agent_door.sql",
+          "migrations/core/0123_business_settings.sql",
+          "migrations/core/0124_business_people.sql"
         ]
       }
     },
@@ -116,16 +121,12 @@
         "kind": "local",
         "paths": [
           "src/base",
-          "src/modules/operator-auth",
           "src/modules/mail",
           "scripts/edition-authoring",
           "src/modules/dependencies",
           "src/modules/owner-claim",
           "src/modules/demo",
-          "src/modules/d1-transport",
-          "src/modules/agent-door",
-          "src/modules/business-settings",
-          "src/foundation/runtime"
+          "src/modules/d1-transport"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
@@ -133,7 +134,6 @@
           "path": ".",
           "paths": [
             "foundation/runtime",
-            "modules/operator-auth",
             "modules/mail",
             "modules/dependencies",
             "modules/owner-claim",
@@ -270,6 +270,66 @@
             "originPath": "mail.server.mjs"
           }
         ]
+      }
+    },
+    {
+      "id": "runeditrun/agent-door",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/agent-door"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "modules/agent-door"
+        }
+      }
+    },
+    {
+      "id": "runeditrun/business-settings",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/business-settings"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "modules/business-settings"
+        }
+      }
+    },
+    {
+      "id": "runeditrun/operator-auth",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/modules/operator-auth"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "modules/operator-auth"
+        }
+      }
+    },
+    {
+      "id": "runeditrun/beam-business-theme",
+      "role": "module",
+      "source": {
+        "kind": "local",
+        "paths": [
+          "src/foundation/runtime"
+        ],
+        "origin": {
+          "repository": "https://github.com/runeditrun/base.git",
+          "revision": "d555e789cffb744a9f83d76ebe42a2e3bdd7a055",
+          "path": "foundation/runtime"
+        }
       }
     }
   ]

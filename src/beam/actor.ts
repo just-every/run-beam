@@ -29,6 +29,8 @@ export interface Actor {
   business: string | null
   owner: boolean
   agent: boolean
+  /** Shared-door attribution; authorization still uses this native member. */
+  preparedBy?: { agent: { id: string; name: string }; for: { id: string; name: string }; label: string; approvers: Array<{ id: string; name: string }> }
   roles: Set<Role>
   /** ORG-002: the business units this person administers under an active grant, read on every request. */
   adminUnits: string[]
@@ -81,7 +83,7 @@ export async function dashboardAuthority(env: Bindings, memberId: string): Promi
   return resolveAuthority(env, member, { sessionId: '', sessionKind: 'dashboard-authority', email: member.email.toLowerCase(), owner: member.role === 'owner', agent: false })
 }
 
-async function resolveAuthority(env: Bindings, member: { id: string; name: string; business?: string | null },
+export async function resolveAuthority(env: Bindings, member: { id: string; name: string; business?: string | null },
   { sessionId, sessionKind, email, owner, agent }: { sessionId: string; sessionKind: string; email: string; owner: boolean; agent: boolean }): Promise<Actor> {
   const roles = new Set((await all<{ role: Role }>(env, 'SELECT role FROM beam_member_roles WHERE member_id = ?', member.id)).map(row => row.role))
   if (owner) ROLES.forEach(role => roles.add(role))

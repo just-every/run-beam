@@ -1,0 +1,984 @@
+[
+  {
+    "name": "beam.course.create",
+    "action": "course.create",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "BEAM-03"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "reviewer"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.details",
+    "action": "course.details",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "BEAM-03"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "title"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.lesson",
+    "action": "course.lesson",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "BEAM-03",
+      "BEAM-14"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lesson": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 50000
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "base": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "title",
+        "body"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.lesson-remove",
+    "action": "course.lesson.remove",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "destructive"
+    ],
+    "clauses": [
+      "BEAM-03"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lesson": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "lesson"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.block",
+    "action": "course.block",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "AUTHOR-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lesson": {
+          "type": "string"
+        },
+        "block": {
+          "type": "string"
+        },
+        "content": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "lesson",
+        "content"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.block-change",
+    "action": "course.block.change",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard",
+      "destructive"
+    ],
+    "clauses": [
+      "AUTHOR-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lesson": {
+          "type": "string"
+        },
+        "block": {
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "remove",
+            "duplicate",
+            "up",
+            "down"
+          ]
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "lesson",
+        "block",
+        "operation"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.block-reuse",
+    "action": "course.block.reuse",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "AUTHOR-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lesson": {
+          "type": "string"
+        },
+        "from": {
+          "type": "object",
+          "properties": {
+            "course": {
+              "type": "string"
+            },
+            "lesson": {
+              "type": "string"
+            },
+            "block": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "course",
+            "lesson",
+            "block"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "lesson",
+        "from"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.lesson-move",
+    "action": "course.lesson.move",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "BEAM-03"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lesson": {
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "up",
+            "down"
+          ]
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "lesson",
+        "direction"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.question",
+    "action": "course.question",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "LEARN-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "question": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "kind": {
+          "type": "string"
+        },
+        "choices": {
+          "type": "string"
+        },
+        "correct": {
+          "type": "string"
+        },
+        "answer": {
+          "type": "string"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "always": {},
+        "pairs": {},
+        "items": {},
+        "feedback": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "prompt"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.question-remove",
+    "action": "course.question.remove",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "destructive"
+    ],
+    "clauses": [
+      "LEARN-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "question": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "question"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.assessment",
+    "action": "course.assessment",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "LEARN-001",
+      "LEARN-018"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "passPercent": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeLimitMinutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "drawCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "assessor": {
+          "type": "string"
+        },
+        "practicalInstructions": {
+          "type": "string"
+        },
+        "shuffle": {},
+        "feedback": {
+          "enum": [
+            "attempt",
+            "final",
+            "score"
+          ]
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.survey",
+    "action": "course.survey",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "LEARN-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "survey": {
+          "type": "string",
+          "maxLength": 6000
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.course.submit",
+    "action": "course.submit",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "BEAM-03"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.proposal.create",
+    "action": "proposal.create",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "BEAM-14"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "course": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "agent": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "passages": {
+          "type": "array"
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "draft": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "course",
+        "draftVersion",
+        "summary",
+        "draft"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.impact.propose",
+    "action": "impact.propose",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "AGENT-004",
+      "BEAM-14"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "notice": {
+          "type": "string"
+        },
+        "draftVersion": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notice",
+        "draftVersion"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.agent.propose",
+    "action": "agent.propose",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "BEAM-18",
+      "BEAM-19",
+      "BEAM-20",
+      "AGENT-003",
+      "AGENT-006"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "title": {
+          "type": "string"
+        },
+        "reasons": {
+          "type": "array"
+        },
+        "inputs": {
+          "type": "array"
+        },
+        "excluded": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "payload",
+        "title",
+        "reasons"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.outcome.plan",
+    "action": "outcome.plan",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "AGENT-005"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "intervention": {
+          "type": "string"
+        },
+        "metric": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "higher",
+            "lower"
+          ]
+        },
+        "baselineFrom": {
+          "type": "string"
+        },
+        "baselineTo": {
+          "type": "string"
+        },
+        "afterFrom": {
+          "type": "string"
+        },
+        "afterTo": {
+          "type": "string"
+        },
+        "comparison": {
+          "enum": [
+            "rest_of_role",
+            "none"
+          ]
+        },
+        "minGroup": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "intervention",
+        "metric",
+        "unit",
+        "direction",
+        "baselineFrom",
+        "baselineTo",
+        "afterFrom",
+        "afterTo",
+        "comparison",
+        "minGroup"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "beam.diagnosis.prepare",
+    "action": "diagnosis.prepare",
+    "scope": "beam:prepare",
+    "readOnly": false,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "AGENT-001",
+      "AGENT-002"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "import": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "import"
+      ],
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  }
+]

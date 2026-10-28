@@ -43,7 +43,7 @@ export async function auditCheck(f) {
   const proposed = await proposedResponse.json()
   assert.equal((await h.submit('agent.decide', cookies.manager, { proposal: proposed.id, decision: 'approve', sha256: proposed.sha256, note: 'Agreed.' }, '/app/agent')).searchParams.get('error'), null)
   const proposal = (await api('owner', 'audit?category=agent')).events.find(event => event.action === 'agent.propose' && event.subject === proposed.id)
-  assert.deepEqual([proposal.actor, proposal.via?.kind, proposal.via?.delegatedBy], [ids.manager, 'agent_credential', 'manager'])
+  assert.deepEqual([proposal.actor, proposal.via?.kind, proposal.via?.delegatedBy], [ids.manager, 'agent_door', 'manager'])
   const approval = await find(`q=${proposed.id}`, 'agent.approve')
   assert.deepEqual([approval.actor, approval.via], [ids.manager, null])
 
