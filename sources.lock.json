@@ -325,7 +325,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "5a5d46302408ca0f074229e5e2a08e26027429711ee8a9c47e51cfcb6b23afd7",
+      "sha256": "185e6b7d0cc93620ec631649190394590530f94e81dbf001fa272abf90575fdd",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -345,7 +345,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "fbe488322a62ce4e643632c41f3284d701953f9cdbb36e59a04e4cc447179466",
+      "sha256": "85de4e35c2c6235c3d54a5527f3c138ede2aecb3c5bebe946d93eafedea802db",
       "executable": false
     },
     "DEMO.md": {
@@ -1261,7 +1261,7 @@
       "executable": false
     },
     "scripts/beam/contract-docs.mjs": {
-      "sha256": "aab96470808b2178fe56294b8d629bc139124be12f79454173a36b464d162ce0",
+      "sha256": "4bf0c8bb48d68d4e21e5608b2de5473cfd149f637b4d89e052c3378516d28fa0",
       "executable": false
     },
     "scripts/beam/import-kit-migration.mjs": {

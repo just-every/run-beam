@@ -5,6 +5,7 @@ if (!['write', 'check'].includes(mode)) throw Error('Usage: contract-docs.mjs wr
 const read = path => readFileSync(path, 'utf8')
 const source = read('CONTRACT.md')
 const rows = source.split('\n').filter(line => /^\| `[^`]+` \|/.test(line)).map(line => line.split(' | '))
+for (const row of rows) if (row.length !== 6) throw Error(`Status row must have six cells: ${row[0]}`)
 const ids = new Set(selected)
 for (const id of ids) if (!rows.some(row => row[0] === `| \`${id}\``)) throw Error(`Unknown clause ${id}`)
 const byId = new Map(rows.map(row => [row[0].slice(3, -1), row]))
