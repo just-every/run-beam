@@ -18,7 +18,7 @@
         "pnpm exec rer build",
         "pnpm run typecheck",
         "pnpm run test:email-link",
-        "BEAM_REGRESSION_EXCLUDE=OPS-003,OPS-007,AUTO-004,PACK-003-custody,AUTHOR-001,AUTHOR-002,LEARN-008,AUTHOR-007 pnpm run test:flows",
+        "BEAM_REGRESSION_EXCLUDE=OPS-003,OPS-007,AUTO-004,PACK-003-custody,AUTHOR-001,AUTHOR-002,LEARN-008,AUTHOR-007,PACK-,ORG-008,ORG-009,CONNECT-019,ORG-011,LIB-006 pnpm run test:flows",
         "pnpm run test:site"
       ]
     },
@@ -79,7 +79,9 @@
       "browser": false,
       "hosted": false,
       "commands": [
-        "pnpm exec rer check --profile first-party"
+        "pnpm exec rer check --profile first-party",
+        "pnpm exec rer build",
+        "BEAM_REGRESSION_EXCLUDE=PACK-003-custody node tests/beam/regressions.mjs --only=PACK-,ORG-008,ORG-009,CONNECT-019,ORG-011,LIB-006"
       ]
     }
   ],
