@@ -41,10 +41,21 @@ export async function harness(options) {
     return confirmed.headers.getSetCookie().map(line => line.split(';')[0]).join('; ')
   }
 
-  async function configureAgentPolicy(cookie) {
-    const response = await fetch('/agents/api/policy', { method: 'PUT', headers: { cookie, origin, 'content-type': 'application/json' },
-      body: JSON.stringify({ document: { schema: 'rer-agent-policy/1', catalogue: 'rer-agent-classes/1', rules: [{ id: 'prepared-work', class: '*', do: 'autonomous' }], spend: { none: true } } }) })
-    assert.equal(response.status, 200, 'owner chooses preparation policy through the native person door')
+  async function configureAgentPolicy(cookie, trust) {
+    const document = { schema: 'rer-agent-policy/1', catalogue: 'rer-agent-classes/1', rules: [{ id: 'prepared-work', class: '*', do: 'autonomous' }], spend: { none: true } }
+    if (trust) {
+      const { webcrypto } = await import('node:crypto')
+      const { policyEnvelope } = await import('../../src/modules/agent-door/conformance/crypto.mjs')
+      const kid = 'business-a'
+      const privateKey = await webcrypto.subtle.importKey('jwk', trust.keys[kid].privateKey.export({ format: 'jwk' }), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign'])
+      const { policy } = await policyEnvelope({ origin, business: 'beam-http-tests', revision: 0, seq: 0,
+        signer: { privateKey, kid, issuer: vars.RER_OWNER_CLAIM_ISSUER, installationId: vars.RER_OWNER_CLAIM_INSTALLATION_ID } }, document)
+      const response = await fetch('/api/rer/agent-policy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ policy }) })
+      assert.equal(response.status, 200, 'paired company adopts its signed preparation policy')
+    } else {
+      const response = await fetch('/agents/api/policy', { method: 'PUT', headers: { cookie, origin, 'content-type': 'application/json' }, body: JSON.stringify({ document }) })
+      assert.equal(response.status, 200, 'owner chooses preparation policy through the native person door')
+    }
   }
 
   return { configureAgentPolicy, origin, vars, mails, edge, fetch, raw, api, submit, signIn, close, get db() { return runtime.db }, get files() { return runtime.files }, scheduled, setClock }

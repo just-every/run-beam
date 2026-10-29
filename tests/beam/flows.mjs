@@ -488,7 +488,7 @@ try {
     assert.ok((await (await h.raw(`/app/acknowledgments/${samAck}/evidence`, { cookie: people.sam })).text()).includes(`Document SHA-256: ${sha(policyV1)}`))
   })
 
-  await agentFlows({ h, check, people, ids, publish })
+  await agentFlows({ h, check, people, ids, publish, trust })
 } finally {
   await h.close()
 }

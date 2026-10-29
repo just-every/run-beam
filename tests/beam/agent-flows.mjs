@@ -7,8 +7,8 @@ import { file } from './harness.mjs'
 import { pdf } from './fixtures.mjs'
 import { formResult } from './form-result.mjs'
 
-export async function agentFlows({ h, check, people, ids, publish }) {
-  await h.configureAgentPolicy(people.owner)
+export async function agentFlows({ h, check, people, ids, publish, trust }) {
+  await h.configureAgentPolicy(people.owner, trust)
   const agentOf = async cookie => {
     const { token } = await h.api('agent.issue', cookie, { expiresInSeconds: 900 })
     return async (path, body, status = 200) => {

@@ -5627,7 +5627,7 @@
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
-      "sha256": "0fc9e67d5bd48ef130d66d4d2c566f4ba9dd23a5348f2737508587ac5fd89441",
+      "sha256": "912dfccda00542832567814f0c19b8386b99bc62c070e7c717641463eaf924e9",
       "executable": false
     },
     "tests/beam/capacity.mjs": {
@@ -5715,7 +5715,7 @@
       "executable": false
     },
     "tests/beam/flows.mjs": {
-      "sha256": "332729fd7015120645b3e5391da12a4838b3a20773ed7863fae515d12af2efa1",
+      "sha256": "887e146e501cd3d8c1c6544e062f00a415cf47b9ab0d31883b0c75a561d8eea9",
       "executable": false
     },
     "tests/beam/form-result.mjs": {
@@ -5723,7 +5723,7 @@
       "executable": false
     },
     "tests/beam/harness.mjs": {
-      "sha256": "0cb9c35bef59f056219fc318f2090acb92adc6f7cd30edf1310b2f4d37f6741f",
+      "sha256": "5f5d200188803acb77a439f5c3aa74f1881d1f3214acbf08cd09a70e179eab8d",
       "executable": false
     },
     "tests/beam/import-flows.mjs": {
