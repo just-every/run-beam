@@ -2159,7 +2159,7 @@
       "executable": false
     },
     "src/beam/agent-door/legacy.ts": {
-      "sha256": "0a5618b7af29cd1f58c6ede0977e160337a6f6ead479f8a8989df53b94a38c32",
+      "sha256": "495916bf768e45f7d31041f9781b87f22dbc3839dad6f0ed45356b354cd0a47e",
       "executable": false
     },
     "src/beam/agent-door/people.ts": {
@@ -2199,7 +2199,7 @@
       "executable": false
     },
     "src/beam/agent-door/tools.ts": {
-      "sha256": "fd691b53f1cb0e2aa3b84ddb862731c3be4389b21147ad669e08589c8fd858f9",
+      "sha256": "fbf114539df8499cdea0dd1b4e493662fa62211743bf678172927f55e5197fd7",
       "executable": false
     },
     "src/beam/agent-work.ts": {

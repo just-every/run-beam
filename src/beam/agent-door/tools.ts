@@ -14,7 +14,7 @@ async function refusal<T>(operation: () => Promise<T>): Promise<T> {
   catch (error) {
     if (error instanceof BeamError) {
       const details = error.detail && typeof error.detail === 'object' && !Array.isArray(error.detail) ? error.detail as Record<string, unknown> : {}
-      throw new ToolRefusal(error.code, error.code, details)
+      throw new ToolRefusal(error.code, error.code, { ...details, native_status: error.status })
     }
     throw error
   }

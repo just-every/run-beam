@@ -55,9 +55,14 @@ export async function legacyPreparation(env: Bindings, actor: Actor, request: Re
   })
   if (result.outcome !== 'done') {
     const code = result.code ?? 'agent_refused'
-    const status = code === 'unauthenticated' ? 401 : /forbidden|scope|human_|owner_|outside_|not_granted/.test(code) ? 403
-      : /not_found|unavailable/.test(code) && !code.startsWith('policy') ? 404
-      : /conflict|stale|approval|review|policy|paused|in_progress/.test(code) ? 409 : 400
+    const statuses: Record<string, number> = {
+      unauthenticated: 401, insufficient_scope: 403, tool_not_found: 404,
+      invalid_arguments: 400, idempotency_key_required: 400, idempotency_conflict: 409,
+      revision_conflict: 409, call_in_progress: 409, policy_unset: 409,
+      policy_unavailable: 409, policy_blocked: 409, agents_paused: 409,
+      approval_required: 409, review_required: 409, consent_revoked: 401,
+    }
+    const status = typeof result.fields?.native_status === 'number' ? result.fields.native_status : statuses[code] ?? 500
     return Response.json({ error: code, code, ...result.fields, ...(result.approval ? { approval: result.approval } : {}), decision: result.decision }, { status, headers: { 'cache-control': 'no-store' } })
   }
   if (spec.name === 'beam.source.read') {
