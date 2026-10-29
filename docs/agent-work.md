@@ -21,7 +21,7 @@ The owner must explicitly choose the company policy on `/agents` before agent pr
 
 Use **Agents** for the shared policy, invocation audit, pending approvals and review feed. Only a signed-in person can answer policy questions, approve exact saved work, mark it reviewed, or pause and resume agents. **Pause agents** stops agent calls; ordinary human learning and the separate native automation controls retain their own behavior. A mutating tool requires an `idempotency_key`; reuse it for the same work after an interrupted response. Reusing it with changed arguments is a conflict. Where a tool exposes `expected_revision`, stale work must be prepared again against the current revision.
 
-This adoption is partial and has no new passing conformance result recorded here. Record resources, prompts, events and subscriptions are undeclared and return a typed capability refusal. Publication, enrollment, native decisions, automation and provider tools remain outside this preparation registry. The full learning-coordinator week under autonomous and held company policies, complete Core coverage, provider budgets and browser/native parity remain acceptance work in the contract.
+The declared Core journey passed all 3,629 BASE-AGENT points through normal `rer verify` on 29 October 2026. The runtime also passed the focused native sponsor-recovery journey. The broader ct surface remains partial. Record resources, prompts, events and subscriptions are undeclared and return a typed capability refusal. Publication, enrollment, native decisions, automation and provider tools remain outside this preparation registry. The full ct learning-coordinator week, its broader native job catalogue, optional families, provider budgets and stranger-specialist acceptance remain work in the contract. Multi-sponsor Business delivery, mail edges, resource refresh, timed and queued lifecycles, dual host and owner-native administration are unscoped by this subset.
 
 ## MCP tool inventory
 
@@ -77,6 +77,8 @@ The three existing application-grant choices keep their stored names:
 shared scopes permit only the selected jobs and existing team boundary. A
 preparation credential does not inherit those application scopes merely by
 using the MCP endpoint.
+
+Microsoft-backed material that requires a live rights check returns `provider_check_requires_human_door`. The source catalogue refuses while an available Microsoft source would require that check. Use the existing native human door for that material; this registry declares no additional provider edge and registers no provider cost or paid operation.
 
 ## Approve or decline
 
