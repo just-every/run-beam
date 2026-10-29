@@ -76,7 +76,7 @@
     },
     {
       "name": "source",
-      "browser": false,
+      "browser": true,
       "hosted": false,
       "commands": [
         "pnpm exec rer check --profile first-party",
