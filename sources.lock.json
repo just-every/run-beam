@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "learning/beam",
-  "manifest": "532e21222910d388da6cf648d212cd77ce5437d0483ca763e0a2721c7538c226",
+  "manifest": "8b4f5ecc815ecf1bebae91227fb8a08935cd7a244bffed7a57d377936cf41034",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -126,7 +126,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
+          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
           "path": ".",
           "paths": [
             "foundation/runtime",
@@ -140,9 +140,9 @@
         }
       },
       "baseline": {
-        "key": "cd733acd104c971256f3cbfbf13373c771d09d3a9b5651593199c49be5271d5f",
-        "digest": "50a4044ee9bb9231d813bdbf162e9631bfbf687f0d200bce0514ee1d60bd82a7",
-        "sha256": "e8b59a7f660e785296cfc2c12a3fe5270323bfc9de4193a5e6349878d6d80425"
+        "key": "3d3cdc7b3f106f4f8d23f57f8d649bfff515cd5635adb4e4c576922aaaa8e2a8",
+        "digest": "2e7f1b8ef62b91e50ec1b0fb554d7c4f34e7a74c80a08fd0275f57df1a52b65d",
+        "sha256": "74a2e987f3185930a68a81c494b711f60edcde3a11f52aa3db56e78e3dd15615"
       }
     },
     {
@@ -154,7 +154,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
+          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
           "path": "modules/import-kit",
           "paths": [
             "src",
@@ -165,9 +165,9 @@
         }
       },
       "baseline": {
-        "key": "4978a583b34c02959622e84a485a7e4e0f89a71c7355f18e4e70c26b5beb5390",
-        "digest": "91f519f25e1d465f7b0daa03a36eda55ed0d3f754539396e0bfe91c21368ad03",
-        "sha256": "51ddb14d92da7e6bd86090270c460b104dbf33355bdaf4e1eb16f5224e452a6b"
+        "key": "5609bacc637323247d2a544e1112de4a1cf4b6920da4ae2cd2c0ffdcabd32392",
+        "digest": "6bd373aa821bb66c361f15d197cb54af167cde605dbd1d9c3b8856a1b8170ce2",
+        "sha256": "f02623f1d95d4cec79c618481023812e4ee85dbb2b290cb872c856dd0906493b"
       }
     },
     {
@@ -181,7 +181,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
+          "revision": "96c425bd95ac2eb07ce2c7cccc419386d7f085e3",
           "path": "export",
           "paths": [
             "HOMEPAGE-VARIANTS.md",
@@ -205,9 +205,9 @@
         ]
       },
       "baseline": {
-        "key": "22ebf29f1b6d18444114dc536c1df1b0f1fda4aa737dc6c3602cf4cced7c37b0",
-        "digest": "457cc79cb7cfd42bc0873ff8e6b15de0071e4c2706788c0f647f68dabc35e5c3",
-        "sha256": "38865302416f43d4388c35a5f9f91e0f0e58147418ff1d4ad802b689c50980c5"
+        "key": "49f90b2d38b7f35d826cc0075091a8d7547aaba72016385c13142e2471ee8a1b",
+        "digest": "1a3574ee74aaf6fa869b9174bb01879b4508f129b504d8a80b8d653fd29caef9",
+        "sha256": "dea982c267436e96fa952d2f91f34b59d601db613037bf342b62ab62c804ce39"
       }
     },
     {
@@ -223,7 +223,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
+          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
           "path": "modules/delivery-producer",
           "paths": [
             "setup-manifest.mjs",
@@ -257,9 +257,9 @@
         ]
       },
       "baseline": {
-        "key": "6996066874eb9161d1116b9d9e10b25b5b195876ebc0ec272fab0b59a039de3c",
-        "digest": "3be2e643e3155d29fa9e2d3b1d9ae1657987cbaabc5fc4198acc30638235e112",
-        "sha256": "75169544d66d91a6d703534492c1a1a1e83011f08e1a6bc9318fd1210b065cdc"
+        "key": "bc7c31dc955e5beec212cce95e4c0f1589da6b5fed91f9a1f937f5d3a96ef75c",
+        "digest": "f702a2f7349cd8976665456371ce6f50d9716352412ff332901b6d5396e01575",
+        "sha256": "0f86d48c261b5963f8414b18728a42937acbfcc3125ac03db9bec7d540e75ea7"
       }
     },
     {
@@ -271,7 +271,7 @@
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
-          "revision": "631bb343db00777d8db98a91f1964e127d219d62",
+          "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
           "path": "foundation/template/src",
           "paths": [
             "mail.server.mjs"
@@ -285,9 +285,9 @@
         ]
       },
       "baseline": {
-        "key": "24662b164b6c94b927f00792ae224277bc92d0cc0243d02c5d9e1320b1ed7504",
+        "key": "ca607759fcd8b25f805ae0c41b74372a60cbc3448cd931b57184664df3ca5a6f",
         "digest": "5dd60d3dc15a74a8efb9effd08be49458f63e7e455ae86565f34f11e1cc5ab67",
-        "sha256": "c657d32a30fa01c35549173ba7fa1164aca1097de49fb034e1f5279d80311e28"
+        "sha256": "821451a685dcc1608474625aa25f22a023704ae2e1d720a5a4c871dc1e08a469"
       }
     }
   ],
@@ -429,7 +429,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "532e21222910d388da6cf648d212cd77ce5437d0483ca763e0a2721c7538c226",
+      "sha256": "8b4f5ecc815ecf1bebae91227fb8a08935cd7a244bffed7a57d377936cf41034",
       "executable": false
     },
     "HOMEPAGE-VARIANTS.md": {
