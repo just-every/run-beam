@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { nativeHttp } from './native.mjs'
+import { installation, nativeHttp } from './native.mjs'
+import { refreshReviewer } from './reviewer.mjs'
 
 const code = answer => answer.result?._meta?.['com.runeditrun/error']?.code ?? answer.body?.error?.data?.code
 function completed(answer) {
@@ -45,12 +46,28 @@ export default async function nativeJourney(context) {
   assert.equal((await call('tools/list', {})).status, 401)
   assert.equal(completed(await tool('beam.course.read', { id: created.id })).draftVersion, changed.draftVersion)
 
-  // Native employment admission is re-read even for a still-valid Business token.
-  await http.api('person.directory', { member: person.id, employment: 'terminated' })
+  // Terminate a separate real sponsor, then restore them through the owner.
+  // Their old token and session must remain revoked after reactivation.
+  const state = installation(origin)
+  const reviewer = nativeHttp({ ...context, cookie: state.reviewer.cookie })
+  const credential = await reviewer.api('agent.issue', {})
+  const reviewerCall = () => request(new URL('/mcp', origin).href, { method: 'POST', headers: {
+    authorization: `Bearer ${credential.token}`, 'content-type': 'application/json', 'mcp-protocol-version': '2025-11-25',
+  }, body: JSON.stringify({ jsonrpc: '2.0', id: 'reviewer-admission', method: 'tools/call', params: { name: 'beam.identity.read', arguments: {} } }) })
+  const admitted = await reviewerCall()
+  assert.equal(admitted.status, 200)
+  assert.equal((await admitted.json()).result.isError, false)
+  await http.api('person.directory', { member: state.reviewer.id, employment: 'terminated' })
   try {
-    assert.equal((await tool('beam.identity.read', {})).status, 401)
+    const inactive = await reviewerCall()
+    assert.equal(inactive.status, 401)
+    await inactive.body?.cancel()
     assert.equal((await http.api(`courses/${created.id}`)).draftVersion, changed.draftVersion)
   } finally {
-    await http.api('person.directory', { member: person.id, employment: 'active' })
+    await http.api('person.directory', { member: state.reviewer.id, employment: 'active' })
   }
+  const old = await reviewerCall()
+  assert.equal(old.status, 401)
+  await old.body?.cancel()
+  state.reviewer.cookie = await refreshReviewer(origin)
 }

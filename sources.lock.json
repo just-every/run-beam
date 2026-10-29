@@ -5659,7 +5659,7 @@
       "executable": false
     },
     "tests/beam/door/journey.mjs": {
-      "sha256": "138afaa70e58e1abe5bb7d4e2ba693f634d6ffbb0d018211a459d2ee8051bc94",
+      "sha256": "43e1405bd29c3798eb906a0c4cc6ac602da66b08c0cbb6956140ab6200201f1e",
       "executable": false
     },
     "tests/beam/door/learners.mjs": {
@@ -5675,7 +5675,7 @@
       "executable": false
     },
     "tests/beam/door/reviewer.mjs": {
-      "sha256": "267c8ba75673b439edea66d72556b1fd926c30c37e8a119e8db4670a9df2354b",
+      "sha256": "56d9ba471a081eff29c1e1f3a83f78db0195033ce05bf38f97c5382a2ba207a9",
       "executable": false
     },
     "tests/beam/door/work-fixture.mjs": {
