@@ -34,8 +34,9 @@ export async function nativeMember(env: Bindings, memberId: string): Promise<Nat
 }
 
 async function installationOwner(env: Bindings) {
-  return one<{ id: string }>(env, `SELECT o.id FROM oa_operators o LEFT JOIN oa_bootstrap b ON b.claim_id=o.id
-    WHERE o.role='owner' ORDER BY b.claim_id IS NULL,o.created_at,o.id LIMIT 1`)
+  // The native bootstrap claim is the durable owner identity. A later local
+  // role transfer must never move an existing Business subject to another person.
+  return one<{ id: string }>(env, 'SELECT claim_id AS id FROM oa_bootstrap WHERE singleton=1')
 }
 
 async function memberForOperator(env: Bindings, operatorId: string) {

@@ -2163,7 +2163,7 @@
       "executable": false
     },
     "src/beam/agent-door/people.ts": {
-      "sha256": "155acc8187d0651da6a3ce438eaca633743068e810ee01f473238ab2bc5ff484",
+      "sha256": "89d01c143c3b1ebd88ea208a689defe388d682bcefa2df8fc37d5bc6b40a7b61",
       "executable": false
     },
     "src/beam/agent-door/schema-draft.ts": {
