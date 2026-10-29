@@ -1980,6 +1980,10 @@
       "sha256": "4c3a87c809e2b671a555dc36171b60675f87be96362de7d2269d9f5e1c3100b6",
       "executable": false
     },
+    "scripts/verify-beam.mjs": {
+      "sha256": "2d1797cab4f63031da207df047ccd89f2acd12998d035d1d721350faed3ec9f2",
+      "executable": false
+    },
     "scripts/verify-ci.mjs": {
       "sha256": "cf1ceb8773ed276f82245fb8fb4c4bdc95bff40ecc0e8ca8ac9e776978b17340",
       "executable": false
