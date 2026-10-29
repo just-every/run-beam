@@ -1,0 +1,97 @@
+{
+  "push": [
+    {
+      "name": "dev-personas",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "BEAM_TEST_CHECKOUT=1 node tests/beam/dev-personas.mjs"
+      ]
+    },
+    {
+      "name": "rer-verify",
+      "browser": true,
+      "hosted": true,
+      "commands": [
+        "node scripts/edition-authoring/cli.mjs check",
+        "node scripts/edition-authoring/cli.mjs verify-base --offline",
+        "pnpm exec rer build",
+        "pnpm run typecheck",
+        "pnpm run test:email-link",
+        "BEAM_REGRESSION_EXCLUDE=OPS-003,OPS-007,AUTO-004,PACK-003-custody,AUTHOR-001,AUTHOR-002,LEARN-008,AUTHOR-007 pnpm run test:flows",
+        "pnpm run test:site"
+      ]
+    },
+    {
+      "name": "durability",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "pnpm exec rer build",
+        "node tests/beam/regressions.mjs --only=OPS-007,AUTO-004"
+      ]
+    },
+    {
+      "name": "erasure-custody",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "pnpm exec rer build",
+        "node tests/beam/regressions.mjs --only=OPS-003"
+      ]
+    },
+    {
+      "name": "package-custody",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "pnpm exec rer build",
+        "node tests/beam/regressions.mjs --only=PACK-003-custody,LEARN-008,AUTHOR-007"
+      ]
+    },
+    {
+      "name": "tutor-browser",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm exec rer build",
+        "BEAM_TUTOR_BROWSER=1 BEAM_EVIDENCE_DIR=\"$RUNNER_TEMP/beam-tutor-pages\" node tests/beam/regressions.mjs --only=LEARN-008"
+      ]
+    },
+    {
+      "name": "learning-and-source-browser",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm exec rer build",
+        "node tests/beam/regressions.mjs --only=AUTHOR-001,AUTHOR-002 --browser",
+        "node tests/beam/regressions.mjs --only=ORG-008 --browser",
+        "node tests/beam/regressions.mjs --only=ORG-009 --browser",
+        "node tests/beam/microsoft-browser.mjs",
+        "node tests/beam/model-browser.mjs",
+        "node tests/beam/erasure-browser.mjs",
+        "node tests/beam/mobile-learning-browser.mjs",
+        "node tests/beam/regressions.mjs --only=OPS-008 --browser"
+      ]
+    },
+    {
+      "name": "source",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "pnpm exec rer check --profile first-party"
+      ]
+    }
+  ],
+  "nightly": [
+    {
+      "name": "clone-journey",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "pnpm exec rer check --profile first-party",
+        "BEAM_TEST_CHECKOUT=1 pnpm run test:journey"
+      ]
+    }
+  ]
+}

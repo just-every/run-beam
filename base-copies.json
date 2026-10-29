@@ -13,7 +13,39 @@
       },
       "originFiles": [
         "export/run-demo.yml"
-      ]
+      ],
+      "adapted": {
+        ".github/workflows/run-demo.yml": "f96363bf919ea3e7ed1837daba6894810a50e4a6"
+      },
+      "acknowledged": {
+        ".github/workflows/run-demo.yml": {
+          "sha256": "cd478e5acaa5b7ecac7c8d93069a928886b59bc48e72c495700e42aa3c1b5232",
+          "mode": "100644"
+        }
+      }
+    },
+    {
+      "path": ".github/workflows/verify.yml",
+      "originPath": "export/verify.yml",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
+      "files": {
+        ".github/workflows/verify.yml": "09fe6d2a0b274d4925950ef0ddde9c8c7099e15edb5333a601ead2bbcec73a86"
+      },
+      "modes": {
+        ".github/workflows/verify.yml": "100644"
+      },
+      "originFiles": [
+        "export/verify.yml"
+      ],
+      "adapted": {
+        ".github/workflows/verify.yml": "f96363bf919ea3e7ed1837daba6894810a50e4a6"
+      },
+      "acknowledged": {
+        ".github/workflows/verify.yml": {
+          "sha256": "f49bd4cb47fd1b483d55dda6c50139f80217232ad591de0b7ad13d410a208fc6",
+          "mode": "100644"
+        }
+      }
     },
     {
       "path": ".node-version",
@@ -1157,6 +1189,20 @@
       ]
     },
     {
+      "path": "src/base/hosting-page.ts",
+      "originPath": "foundation/runtime/hosting-page.ts",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
+      "files": {
+        "src/base/hosting-page.ts": "280e291c4d74cc27560379876044be55c7b2ba8d827ddb76b58e2a1b90b21569"
+      },
+      "modes": {
+        "src/base/hosting-page.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/hosting-page.ts"
+      ]
+    },
+    {
       "path": "src/base/hydration",
       "originPath": "foundation/runtime/hydration",
       "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
@@ -1247,6 +1293,62 @@
       },
       "originFiles": [
         "foundation/runtime/rejected-response.ts"
+      ]
+    },
+    {
+      "path": "src/base/run-chooser-style.ts",
+      "originPath": "foundation/runtime/run-chooser-style.ts",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
+      "files": {
+        "src/base/run-chooser-style.ts": "62cd0b43762dbe406958d929ee6d27440658ffaead40bb51229eca7c4aea0756"
+      },
+      "modes": {
+        "src/base/run-chooser-style.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-chooser-style.ts"
+      ]
+    },
+    {
+      "path": "src/base/run-data.d.mts",
+      "originPath": "foundation/runtime/run-data.d.mts",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
+      "files": {
+        "src/base/run-data.d.mts": "8b8f8e6b6030abe061027eef4b1b1560fdc77f54b25c82048839887da4fe56c1"
+      },
+      "modes": {
+        "src/base/run-data.d.mts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-data.d.mts"
+      ]
+    },
+    {
+      "path": "src/base/run-data.mjs",
+      "originPath": "foundation/runtime/run-data.mjs",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
+      "files": {
+        "src/base/run-data.mjs": "e27f7c181fe17f54771893a0988098f49395511a8264b4fd3b848ecda1f5c1c9"
+      },
+      "modes": {
+        "src/base/run-data.mjs": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-data.mjs"
+      ]
+    },
+    {
+      "path": "src/base/run-pricing.ts",
+      "originPath": "foundation/runtime/run-pricing.ts",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
+      "files": {
+        "src/base/run-pricing.ts": "f95bdf9b5e62c7d302e97a57ae4dcb580846197fa4cf2222e17a5e1b2c0a02fd"
+      },
+      "modes": {
+        "src/base/run-pricing.ts": "100644"
+      },
+      "originFiles": [
+        "foundation/runtime/run-pricing.ts"
       ]
     },
     {
@@ -3188,73 +3290,87 @@
       ]
     },
     {
-      "path": "src/base/run-pricing.ts",
-      "originPath": "foundation/runtime/run-pricing.ts",
+      "path": "scripts/verify-ci.mjs",
+      "originPath": "export/verify-ci.mjs",
       "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
-        "src/base/run-pricing.ts": "f95bdf9b5e62c7d302e97a57ae4dcb580846197fa4cf2222e17a5e1b2c0a02fd"
+        "scripts/verify-ci.mjs": "cf1ceb8773ed276f82245fb8fb4c4bdc95bff40ecc0e8ca8ac9e776978b17340"
       },
       "modes": {
-        "src/base/run-pricing.ts": "100644"
+        "scripts/verify-ci.mjs": "100644"
       },
       "originFiles": [
-        "foundation/runtime/run-pricing.ts"
+        "export/verify-ci.mjs"
       ]
     },
     {
-      "path": "src/base/hosting-page.ts",
-      "originPath": "foundation/runtime/hosting-page.ts",
+      "path": "scripts/install-chromium-deps.py",
+      "originPath": "export/install-chromium-deps.py",
       "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
-        "src/base/hosting-page.ts": "280e291c4d74cc27560379876044be55c7b2ba8d827ddb76b58e2a1b90b21569"
+        "scripts/install-chromium-deps.py": "d3027108ad8e08ceeddb0ed477d967b1207e40bb6bf5ae941854c534c2cf4004"
       },
       "modes": {
-        "src/base/hosting-page.ts": "100644"
+        "scripts/install-chromium-deps.py": "100644"
       },
       "originFiles": [
-        "foundation/runtime/hosting-page.ts"
+        "export/install-chromium-deps.py"
       ]
     },
     {
-      "path": "src/base/run-chooser-style.ts",
-      "originPath": "foundation/runtime/run-chooser-style.ts",
+      "path": "scripts/verify-app.mjs",
+      "originPath": "export/verify-app.mjs",
       "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
-        "src/base/run-chooser-style.ts": "62cd0b43762dbe406958d929ee6d27440658ffaead40bb51229eca7c4aea0756"
+        "scripts/verify-app.mjs": "4c3a87c809e2b671a555dc36171b60675f87be96362de7d2269d9f5e1c3100b6"
       },
       "modes": {
-        "src/base/run-chooser-style.ts": "100644"
+        "scripts/verify-app.mjs": "100644"
       },
       "originFiles": [
-        "foundation/runtime/run-chooser-style.ts"
+        "export/verify-app.mjs"
       ]
     },
     {
-      "path": "src/base/run-data.mjs",
-      "originPath": "foundation/runtime/run-data.mjs",
+      "path": "scripts/verify-plan.mjs",
+      "originPath": "export/verify-plan.mjs",
       "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
-        "src/base/run-data.mjs": "e27f7c181fe17f54771893a0988098f49395511a8264b4fd3b848ecda1f5c1c9"
+        "scripts/verify-plan.mjs": "45fe2ab9c5cbc72d0186bf77fab32c985605caae6ecee50676dd618612c3e78f"
       },
       "modes": {
-        "src/base/run-data.mjs": "100644"
+        "scripts/verify-plan.mjs": "100644"
       },
       "originFiles": [
-        "foundation/runtime/run-data.mjs"
+        "export/verify-plan.mjs"
       ]
     },
     {
-      "path": "src/base/run-data.d.mts",
-      "originPath": "foundation/runtime/run-data.d.mts",
+      "path": "scripts/verify-light.mjs",
+      "originPath": "export/verify-light.mjs",
       "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
       "files": {
-        "src/base/run-data.d.mts": "8b8f8e6b6030abe061027eef4b1b1560fdc77f54b25c82048839887da4fe56c1"
+        "scripts/verify-light.mjs": "f9b126130837144e43a65d10d370d602b63daad2be7ff66c93178d461a7521d9"
       },
       "modes": {
-        "src/base/run-data.d.mts": "100644"
+        "scripts/verify-light.mjs": "100644"
       },
       "originFiles": [
-        "foundation/runtime/run-data.d.mts"
+        "export/verify-light.mjs"
+      ]
+    },
+    {
+      "path": "scripts/verify-evidence.mjs",
+      "originPath": "export/verify-evidence.mjs",
+      "revision": "f96363bf919ea3e7ed1837daba6894810a50e4a6",
+      "files": {
+        "scripts/verify-evidence.mjs": "9224f772d6a17f043448694eca3c149df83070417b995a2840497e36a9ad0100"
+      },
+      "modes": {
+        "scripts/verify-evidence.mjs": "100644"
+      },
+      "originFiles": [
+        "export/verify-evidence.mjs"
       ]
     }
   ],
