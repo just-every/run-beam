@@ -5659,7 +5659,7 @@
       "executable": false
     },
     "tests/beam/door/journey.mjs": {
-      "sha256": "1134d7a26585813c4f73dba9932da9ef1877556d8ec58a4e50389d0c6d757719",
+      "sha256": "138afaa70e58e1abe5bb7d4e2ba693f634d6ffbb0d018211a459d2ee8051bc94",
       "executable": false
     },
     "tests/beam/door/learners.mjs": {

@@ -44,4 +44,13 @@ export default async function nativeJourney(context) {
   await http.api('app.revoke', { credential: grant.id })
   assert.equal((await call('tools/list', {})).status, 401)
   assert.equal(completed(await tool('beam.course.read', { id: created.id })).draftVersion, changed.draftVersion)
+
+  // Native employment admission is re-read even for a still-valid Business token.
+  await http.api('person.directory', { member: person.id, employment: 'terminated' })
+  try {
+    assert.equal((await tool('beam.identity.read', {})).status, 401)
+    assert.equal((await http.api(`courses/${created.id}`)).draftVersion, changed.draftVersion)
+  } finally {
+    await http.api('person.directory', { member: person.id, employment: 'active' })
+  }
 }
