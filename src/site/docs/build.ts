@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Marked } from 'marked'
+import { startLine, runRequirements } from '../../base/run-site'
+import { run } from '../run'
 
 // The docs, read from docs/site.json and docs/*.md and rendered to HTML when the run site builds; no browser or Worker
 // ever parses Markdown. Raw HTML in the Markdown is shown as text. A link to a missing page or heading, a level-1
@@ -48,12 +50,20 @@ function render(markdown: string) {
   return { html: marked.parse(markdown, { async: false }) as string, toc, ids, links, problems }
 }
 
+// Keep the readable Markdown recipe aligned with the same RunData as /run and hosting.
+function localRecipe(markdown: string): string {
+  return markdown
+    .replace(/^curl -fsSL https:\/\/runeditrun\.com\/install\.sh \| sh -s -- dev [^\n]+$/m, () => startLine(run))
+    .replace(/npx -y @runeditrun\/rer dev [A-Za-z0-9._/-]+/g, () => run.clone)
+    .replace(/git is required; rer brings Node and pnpm\./i, () => runRequirements)
+}
+
 export function buildDocs(root: string): DocsSite {
   const manifest = join(root, 'docs/site.json')
   const sections = (JSON.parse(readFileSync(manifest, 'utf8')) as { sections: DocsSection[] }).sections
   const pages = sections.flatMap(section => section.pages)
   const files = [manifest]
-  const rendered = new Map(pages.map(page => { const file = join(root, 'docs', page.file); files.push(file); return [page.slug, render(readFileSync(file, 'utf8'))] as const }))
+  const rendered = new Map(pages.map(page => { const file = join(root, 'docs', page.file); files.push(file); return [page.slug, render(page.slug === 'getting-started' ? localRecipe(readFileSync(file, 'utf8')) : readFileSync(file, 'utf8'))] as const }))
   const problems: string[] = []
   for (const page of pages) {
     const own = rendered.get(page.slug)!, report = (problem: string) => problems.push(`docs/${page.file}: ${problem}`)
