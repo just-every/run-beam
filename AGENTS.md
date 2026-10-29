@@ -93,6 +93,17 @@ Rules that hold everywhere:
   `journey.mjs` and `restore.mjs` (browser and recovery from a fresh clone),
   `fixtures.mjs` (documented-shape TalentLMS fixtures).
 
+## Agent acceptance view
+
+CONTRACT.md remains authoritative for agent statuses, evidence and gaps.
+Regenerate the final agent adoption section of the legacy ACCEPTANCE.md after
+changing BASE-AGENT or SURFACE rows; the generator preserves all earlier prose
+and never changes a judgment. Pass touched ids as a comma-separated
+`--clauses ID,ID` argument. Check with
+`node scripts/beam/agent-contract-docs.mjs check`.
+
+Lander-Regenerate: node scripts/beam/agent-contract-docs.mjs write
+
 ## Agents operating Beam
 
 The canonical MCP door is `/mcp`; `/api/beam/mcp` is an alias of the same

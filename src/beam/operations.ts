@@ -1,12 +1,13 @@
-// Read-only installation observations. A configured provider is never a live health or billing claim.
+// Installation observations with value-free access lineage. A configured provider is never a live health or billing claim.
 import type { Bindings } from '../auth.server'
 import { requireOwner, type Actor } from './actor'
-import { all, now, one } from './core'
+import { all, commit, insist, now, one } from './core'
 import { providerCosts } from './costs'
 import { SOURCE_BYTES } from './sources'
 
-export async function operations(env: Bindings, actor: Actor) {
+export async function operations(env: Bindings, actor: Actor, door: 'json' | 'page') {
   requireOwner(actor)
+  insist(!actor.agent && !actor.app && !actor.viewAs, 'human_owner_required', 403)
   const at = now()
   const usage = await one(env, `SELECT
     (SELECT count(*) FROM beam_members WHERE employment='active') AS activePeople,
@@ -34,10 +35,11 @@ export async function operations(env: Bindings, actor: Actor) {
     (SELECT count(*) FROM beam_roster_feed_receipts r LEFT JOIN beam_roster_batches b ON b.id=r.batch_id WHERE r.feed_id=f.id AND r.state='held' AND (b.state IS NULL OR b.state!='applied')) AS held,
     (SELECT count(*) FROM beam_roster_feed_receipts r WHERE r.feed_id=f.id AND r.state='failed') AS failed
     FROM beam_roster_feeds f ORDER BY f.created_at,f.id`)
-  const providers = await all(env, `SELECT 'webhook' AS kind,count(CASE WHEN outcome!='accepted' THEN 1 END) AS failures,max(CASE WHEN outcome='accepted' THEN at END) AS lastSuccessAt FROM beam_webhook_attempts
-    UNION ALL SELECT 'model',count(CASE WHEN state='failed' THEN 1 END),max(CASE WHEN state='completed' THEN completed_at END) FROM beam_model_runs
-    UNION ALL SELECT 'ocr',count(CASE WHEN state='failed' THEN 1 END),max(CASE WHEN state='completed' THEN completed_at END) FROM beam_source_ocr_runs`)
+  const providers = await all(env, `SELECT 'webhook' AS kind,count(CASE WHEN outcome!='accepted' AND outcome!='outcome_unknown' THEN 1 END) AS failures,count(CASE WHEN outcome='outcome_unknown' THEN 1 END) AS unknownOutcomes,max(CASE WHEN outcome='accepted' THEN at END) AS lastSuccessAt FROM beam_webhook_attempts
+    UNION ALL SELECT 'model',count(CASE WHEN state='failed' AND coalesce(failure,'')!='model_outcome_unknown' THEN 1 END),count(CASE WHEN failure='model_outcome_unknown' THEN 1 END),max(CASE WHEN state='completed' THEN completed_at END) FROM beam_model_runs
+    UNION ALL SELECT 'ocr',count(CASE WHEN state='failed' AND coalesce(failure,'')!='source_ocr_outcome_unknown' THEN 1 END),count(CASE WHEN failure='source_ocr_outcome_unknown' THEN 1 END),max(CASE WHEN state='completed' THEN completed_at END) FROM beam_source_ocr_runs`)
   const costs = await providerCosts(env, actor)
+  await commit(env, [], { actor, action: 'access.operations', subject: 'installation', detail: { door } })
   return {
     observedAt: at, readiness: { database: 'readable', files: fileReadiness, providers: 'not_probed' },
     usage, jobs, providers,

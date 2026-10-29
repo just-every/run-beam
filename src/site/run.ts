@@ -1,4 +1,5 @@
 import type { RunData } from '../base/run-site'
+import { runPricing } from '../base/run-pricing'
 
 /** Every string and command the run site's Run page (run-beam.com/run) shows. */
 export const run: RunData = {
@@ -8,5 +9,5 @@ export const run: RunData = {
   licence: 'MIT',
   docs: true,
   paths: { product: null },
-  pricing: { assisted: 'US$10/month', managed: 'US$100/month', note: 'early access' },
+  pricing: runPricing,
 }

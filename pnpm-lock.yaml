@@ -40,8 +40,8 @@ importers:
         specifier: 1.56.1
         version: 1.56.1
       '@runeditrun/rer':
-        specifier: 0.2.88
-        version: 0.2.88
+        specifier: 0.2.91
+        version: 0.2.91
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
@@ -57,6 +57,9 @@ importers:
       marked:
         specifier: 18.0.14
         version: 18.0.14
+      miniflare:
+        specifier: 5.20260907.0-alpha
+        version: 5.20260907.0-alpha
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -643,8 +646,8 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@runeditrun/rer@0.2.88':
-    resolution: {integrity: sha512-8mt1zEL5f+8uJDEpoBOujuY7LNxU2RsNLoImYZetX1sOVSzefqIgm8hpn9EJZMZyHT/4lii5SUdcXrFjFLOFig==}
+  '@runeditrun/rer@0.2.91':
+    resolution: {integrity: sha512-1yM0BK4ooUl305uao6zYPC0Ho4VokGuGLcA2wGWCp2McYUTNmiyvvGnOWmQgdsTljmRoQgaAmtuh4yBAYD9ExA==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -1776,7 +1779,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@runeditrun/rer@0.2.88': {}
+  '@runeditrun/rer@0.2.91': {}
 
   '@sindresorhus/is@7.2.0': {}
 
