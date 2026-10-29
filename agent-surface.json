@@ -497,7 +497,11 @@
       "args": {},
       "expect": [
         {
-          "class": "sensitive"
+          "class": "sensitive",
+          "facts": {
+            "kind": "sponsor_identity",
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -516,7 +520,10 @@
       "args": {},
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -535,7 +542,10 @@
       "args": {},
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -554,7 +564,10 @@
       "args": {},
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -578,7 +591,10 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -589,6 +605,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -602,7 +625,10 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -613,6 +639,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.revision",
+        "id": {
+          "$fixture": "revision",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -626,7 +659,10 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -637,6 +673,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.source_version",
+        "id": {
+          "$fixture": "source",
+          "pointer": "/versionId"
+        }
       }
     },
     {
@@ -645,7 +688,10 @@
       "args": {},
       "expect": [
         {
-          "class": "sensitive"
+          "class": "sensitive",
+          "facts": {
+            "kind": "employee_directory"
+          }
         }
       ],
       "inject": {
@@ -664,7 +710,10 @@
       "args": {},
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -688,7 +737,10 @@
       },
       "expect": [
         {
-          "class": "sensitive"
+          "class": "sensitive",
+          "facts": {
+            "kind": "personal_training_records"
+          }
         }
       ],
       "inject": {
@@ -707,7 +759,10 @@
       "args": {},
       "expect": [
         {
-          "class": "sensitive"
+          "class": "sensitive",
+          "facts": {
+            "kind": "personal_preparations"
+          }
         }
       ],
       "inject": {
@@ -731,7 +786,10 @@
       },
       "expect": [
         {
-          "class": "sensitive"
+          "class": "sensitive",
+          "facts": {
+            "kind": "personal_preparations"
+          }
         }
       ],
       "inject": {
@@ -742,6 +800,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.proposal",
+        "id": {
+          "$fixture": "proposal",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -755,7 +820,10 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -766,6 +834,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.notice",
+        "id": {
+          "$fixture": "impact",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -779,7 +854,10 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -790,6 +868,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.question_plan",
+        "id": {
+          "$fixture": "questions",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -803,7 +888,10 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -814,6 +902,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.diagnosis_import",
+        "id": {
+          "$fixture": "diagnosis",
+          "pointer": "/import"
+        }
       }
     },
     {
@@ -824,7 +919,10 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
       ],
       "inject": {
@@ -877,9 +975,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "draft_details",
@@ -912,6 +1020,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -925,9 +1040,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "draft_lesson",
@@ -966,6 +1091,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -979,9 +1111,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "lesson_order",
@@ -1017,6 +1159,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1030,9 +1179,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "draft_block",
@@ -1071,6 +1230,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1084,9 +1250,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "block_change",
@@ -1126,6 +1302,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1139,9 +1322,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "block_reuse",
@@ -1180,6 +1373,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1193,9 +1393,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "draft_question",
@@ -1229,6 +1439,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1242,9 +1459,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "assessment",
@@ -1278,6 +1505,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1291,9 +1525,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "survey",
@@ -1325,6 +1569,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1338,9 +1589,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "draft_proposal",
@@ -1387,6 +1648,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1400,9 +1668,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "impact_proposal",
@@ -1433,6 +1711,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.notice",
+        "id": {
+          "$fixture": "impact",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1778,6 +2063,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.intervention",
+        "id": {
+          "$fixture": "intervention",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1805,6 +2097,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.diagnosis_import",
+        "id": {
+          "$fixture": "diagnosis",
+          "pointer": "/import"
+        }
       }
     },
     {
@@ -1818,9 +2117,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "remove_question",
@@ -1855,6 +2164,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1868,9 +2184,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "remove_lesson",
@@ -1905,6 +2231,13 @@
         ],
         "sponsor": "not-the-person",
         "free": true
+      },
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
       }
     },
     {
@@ -1918,9 +2251,19 @@
       },
       "expect": [
         {
-          "class": "standard"
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "submit_review",
@@ -1942,7 +2285,14 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "beam.course",
+        "id": {
+          "$fixture": "course",
+          "pointer": "/id"
+        }
+      }
     }
   ]
 }
