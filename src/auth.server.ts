@@ -9,6 +9,10 @@ import { createOperatorAuth, createAuthHandler, createSignInHandler, defaultRole
 import { operatorMail } from './mail.server.mjs'
 import branding from './branding.json'
 import type { ScheduledPolicy } from './modules/operator-auth/scheduled/index.mjs'
+import { createBusinessSettings, type BusinessManifest } from './modules/business-settings/index'
+
+export { actorFor } from './beam/agent-door/actor'
+export { people } from './beam/agent-door/people'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
@@ -49,6 +53,8 @@ export interface Bindings {
  RER_DEV_IDENTITY?: string
  RER_INSTALLATION_ID?: string
  RER_IMPORT_DOOR?: string
+ /** Public Business verification configuration, supplied by the linked installation. */
+ RER_BUSINESS_TRUST?: string
  /** A signed owner claim's issuer, installation and public keys (a hosted demo's front sets them). */
  RER_OWNER_CLAIM_APP_ORIGIN?: string
  RER_OWNER_CLAIM_ISSUER?: string
@@ -79,8 +85,22 @@ const rolePolicy = (env: Bindings): RolePolicy => async input => defaultRolePoli
  || (input.action === 'operators:invite' && input.role === 'member' && isActiveOperator(input.actor)
   && !!await env.DB.prepare('SELECT 1 FROM beam_admin_grants g JOIN beam_members m ON m.id = g.member_id WHERE m.operator_id = ? AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)').bind(input.actor.id, Date.now()).first())
 
+const businessManifest: BusinessManifest = {
+ settings: 1,
+ values: ['display_name'],
+ team: { roles: { admin: 'admin', member: 'member' } },
+}
+
+/** The team-side auth uses the same native policy without recursively constructing settings. */
+export function businessSettings(env: Bindings) {
+ const team = createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env),
+  rolePolicy: rolePolicy(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' }).businessTeam
+ return createBusinessSettings({ db: env.DB, trust: env.RER_BUSINESS_TRUST, business: businessManifest, team })
+}
+
 export function operatorAuth(env: Bindings, scheduledPolicies?: () => ScheduledPolicy[], scheduledGuard?: RolePolicy) {
- const createAuth = (config: AuthConfig) => createOperatorAuth({ db: env.DB, config, mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ const settings = businessSettings(env)
+ const createAuth = (config: AuthConfig) => createOperatorAuth({ db: env.DB, config, businessSettings: settings, mailSender: operatorMail(env), scheduledPolicies, hooks: { beforeMagicLink: async ({ operator }) => !await env.DB.prepare('SELECT 1 FROM beam_members m JOIN beam_frontline_credentials c ON c.member_id=m.id WHERE m.operator_id=? AND m.email IS NULL').bind(operator.id).first() && !operator.email.endsWith('@frontline.invalid') }, rolePolicy: async input => await rolePolicy(env)(input) && (!scheduledGuard || await scheduledGuard(input)), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
  const auth = createAuth(authConfig(env))
  // Resolve registration at each settings operation so disconnected or unready
  // Entra cannot enable sign-in. Only the controls use this Base instance:
@@ -101,6 +121,8 @@ export async function authResponse(request: Request, original: Bindings): Promis
 
 async function configuredAuthResponse(request: Request, original: Bindings): Promise<Response | null> {
  const env = runtimeBindings(original), url = new URL(request.url)
+ const settings = await businessSettings(env).handle(request)
+ if (settings) return settings
  if (url.pathname.startsWith('/.well-known/rer-') || url.pathname.startsWith('/auth/dependencies/')) {
   const linked = await createDependencies({ db: env.DB, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, origin: env.AUTH_ORIGIN, name: branding.name, provider: env.IDENTITY_PROVIDER, local: env.AUTH_LOCAL === 'true', auth: operatorAuth(env), claimOwner: token => createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:()=>request.headers.get('CF-Connecting-IP')??''})(new Request(env.AUTH_ORIGIN+'/auth/owner-claim',{method:'POST',headers:{Host:new URL(env.AUTH_ORIGIN).host,Origin:env.AUTH_ORIGIN,'Content-Type':'application/json'},body:JSON.stringify({token})})) }).handle(request)
   if (linked) return linked

@@ -38,7 +38,7 @@ import { acknowledgmentDocument, acknowledgmentEvidence } from './acknowledgment
 import { issueAgentCredential, requireAgentScope } from './agent-credentials'
 import { exemptFromOriginCheck, requireAppScope } from './app-credentials'
 import { applicationCall } from './app-api'
-import { mcpCall } from './mcp'
+import { legacyPreparation } from './agent-door/legacy'
 import { accessPage, issuedPage, issueAndRedirect } from './ui/app-access'
 import { actions } from './actions'
 import { currentActor, isManager, type Actor } from './actor'
@@ -210,12 +210,13 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
   if (path === 'mcp') insist(!request.headers.has('cookie'), 'mcp_session_refused', 403)
   if (actor.app) {
     requireAppScope(actor, path, request.method)
-    if (path === 'mcp') return await mcpCall(env, actor, actor.app.tools, request)
+    if (path === 'mcp') throw new BeamError('shared_mcp_required', 403)
     const answer = await applicationCall(env, actor, request, url, path)
     return answer instanceof Response ? answer : json(answer)
   }
   insist(!path.startsWith('v1/'), 'application_credential_required', 403)
   requireAgentScope(actor, path, request.method)
+  if (actor.agent) return legacyPreparation(env, actor, request, path)
   const sequenceMatch = url.pathname.match(/^\/api\/beam\/sequences\/([^/]+)$/)
   if (sequenceMatch && request.method === 'GET') return json(await sequenceView(env, actor, sequenceMatch[1]))
   const sequencePreviewMatch = url.pathname.match(/^\/api\/beam\/sequence-preview\/([^/]+)$/)

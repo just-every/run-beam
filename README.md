@@ -90,11 +90,23 @@ and pnpm 10.12.4, selected automatically. `RUN-LOCALLY.md` and
 Your own agent can prepare work through a scoped, expiring credential: course
 drafts with the source passages they rely on, targeted assignment plans,
 reminder drafts, question plans, process changes and practice scenarios.
+Connect it to `/mcp` (MCP 2026-07-28 or 2025-11-25); `/api/beam/mcp` is an
+alias of the same shared door. The owner first chooses the company policy on
+`/agents`, with no preset answer. MCP and preparation REST calls share policy,
+Pause, audit and replay checks. Existing application grants keep their selected
+native jobs, exposed as `beam.material.search`, `beam.report.read` and
+`beam.draft.propose`, without adding authority.
 Nothing reaches staff until a person approves it at **Agent work**, and every
 decision is recorded. Staff answer question plans optionally and without their
 names; practice scenarios are never scored. Optional course preparation and the
 source-grounded tutor call the employer’s connected model account only after the
 owner approves the exact disclosed request and its estimated USD reservation.
+
+This MCP adoption covers existing preparation jobs only. Resources, prompts,
+events and subscriptions are undeclared and receive typed refusals. Publication,
+assessment and proposal decisions, enrollment, automation and provider tools,
+complete Core coverage and the full learning-coordinator week remain gaps. See
+[the agent guide](docs/agent-work.md) for the tool inventory and current limits.
 
 Every completion records the exact course and assessment revision and its
 evidence. Beam's certificates are the business's own record of completion, not
@@ -114,6 +126,6 @@ history; undo keeps anything a manager reviewed after import. See
 agent work, moving in, backup and restore), published with the run site. `rer build --site` writes the run site
 (the landing page, the Run page and these docs) to `dist/site`. [CONTRACT.md](CONTRACT.md) — clauses and proofs. [ACCEPTANCE.md](ACCEPTANCE.md) —
 the first-release outcome and what is still owed. [AGENTS.md](AGENTS.md) — how
-to change Beam, including its JSON API for agents. [OPERATIONS.md](OPERATIONS.md)
+to change Beam, including its shared MCP door and JSON preparation API. [OPERATIONS.md](OPERATIONS.md)
 — data custody and deployment. Licence: MIT ([LICENSE](LICENSE)); the fonts are
 under the SIL Open Font License ([public/fonts](public/fonts/README.md)).

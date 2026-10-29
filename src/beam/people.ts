@@ -1,7 +1,7 @@
 import { refuseErasedIdentity } from './erasure-fence'
 // Flow 1: one business, adult staff identities, teams and learning roles.
 import { operatorAuth, type Bindings } from '../auth.server'
-import { normalizeEmail } from '../modules/operator-auth/index.mjs'
+import { normalizeEmail, type Operator } from '../modules/operator-auth/index.mjs'
 import { ROLES, ensureMember, requireOwner, type Actor, type Permission, type Role } from './actor'
 import { all, commit, insist, newId, now, one, stmt, type Row } from './core'
 import type { Input } from './input'
@@ -141,13 +141,19 @@ export async function setTeamMembers(env: Bindings, actor: Actor, input: Input) 
 
 /** Everyone for the owner; a manager sees their teams' people (ORG-004), a learning administrator their units' (ORG-002). */
 export async function people(env: Bindings, request: Request, actor: Actor, ...permissions: Permission[]) {
+  const operators = actor.owner ? await operatorAuth(env).listOperators(request) : []
+  return peopleWithOperators(env, actor, operators, ...permissions)
+}
+
+/** The same native projection for a caller that has already authorized its account read. */
+export async function peopleWithOperators(env: Bindings, actor: Actor, operators: Operator[], ...permissions: Permission[]) {
   const reach: Permission[] = permissions.length ? permissions : ['people']
   const scope = learnerScope(actor, ...reach), teams = teamScope(actor, ...reach)
   const members = await all(env, `SELECT m.id, m.email, m.name, m.employee_id AS employeeId, m.employment, m.erased_at AS erasedAt, m.erasure_pending AS erasurePending, (SELECT json_group_array(role) FROM beam_member_roles r WHERE r.member_id = m.id) AS roles, (SELECT json_group_array(team_id) FROM beam_team_members t WHERE t.member_id = m.id) AS teams FROM beam_members m
     WHERE ${IN_SCOPE('m.id')} ORDER BY m.name`, scope, scope)
-  const statuses = actor.owner ? new Map((await operatorAuth(env).listOperators(request)).map(operator => [operator.id, operator])) : new Map()
+  const statuses = new Map(operators.map(operator => [operator.id, operator]))
   const links = new Map((await all<{ id: string; operator_id: string | null }>(env, 'SELECT id, operator_id FROM beam_members')).map(row => [row.id, row.operator_id]))
-  const account = (member: Row) => statuses.get(links.get(member.id))
+  const account = (member: Row) => { const operatorId = links.get(member.id); return operatorId ? statuses.get(operatorId) : undefined }
   // ORG-001: People lists the employee id and employment state beside the name for the owner, managers and learning
   // administrators; a custom role keeps the name, email, roles and teams only.
   const directory = actor.owner || actor.managedTeams.length > 0 || actor.adminUnits.length > 0

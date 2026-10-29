@@ -17,6 +17,16 @@ export type Permission = typeof PERMISSIONS[number]
 /** Where one permission reaches: its teams (and their members) and its business units. */
 export interface Reach { teams: string[]; units: string[]; locations: string[]; learners: string[] }
 
+export interface DoorAttribution {
+  agent: { id: string; name: string }
+  for: { id: string; name: string }
+  label: string
+  operationId: string
+  door: 'mcp' | 'embedded'
+  clientId?: string
+  approvers: { id: string; name: string }[]
+}
+
 export interface Actor {
   locale?: import('./language').Language
   id: string
@@ -47,6 +57,8 @@ export interface Actor {
   instructor?: boolean
   /** CONNECT-014: set for an application credential's request (app-credentials.ts); agent is also true. */
   app?: { id: string; name: string; audience: string; tools: string[] }
+  /** Shared agent-door attribution accompanies the native member's live preparation authority. */
+  door?: DoorAttribution
   /** ORG-012: set while a viewer sees Beam as this learner, read-only (view-as.ts); the request runs as the learner. */
   viewAs?: { session: string; viewer: { id: string; name: string }; expiresAt: number }
   /** Set for page requests: what the app frame shows around the page (ui/html.ts). */
@@ -81,7 +93,7 @@ export async function dashboardAuthority(env: Bindings, memberId: string): Promi
   return resolveAuthority(env, member, { sessionId: '', sessionKind: 'dashboard-authority', email: member.email.toLowerCase(), owner: member.role === 'owner', agent: false })
 }
 
-async function resolveAuthority(env: Bindings, member: { id: string; name: string; business?: string | null },
+export async function resolveAuthority(env: Bindings, member: { id: string; name: string; business?: string | null },
   { sessionId, sessionKind, email, owner, agent }: { sessionId: string; sessionKind: string; email: string; owner: boolean; agent: boolean }): Promise<Actor> {
   const roles = new Set((await all<{ role: Role }>(env, 'SELECT role FROM beam_member_roles WHERE member_id = ?', member.id)).map(row => row.role))
   if (owner) ROLES.forEach(role => roles.add(role))

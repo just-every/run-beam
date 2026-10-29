@@ -9,6 +9,7 @@ export async function fixture(options) {
     ids.owner = (await api('owner', 'me')).id
     await h.raw('/setup', { cookie: cookies.owner, form: new URLSearchParams({ confirm: 'yes' }) })
     await api('owner', 'business.configure', { name: options?.businessName ?? 'Regression training', timezone: 'UTC' })
+    await h.configureAgentPolicy(cookies.owner)
     for (const [name, roles] of Object.entries({ author: ['author'], reviewer: ['reviewer', 'author'], learner: ['learner'], assessor: ['assessor', 'learner'], other: ['assessor'], manager: ['manager'] })) {
       ids[name] = (await api('owner', 'person.invite', { email: `${name}@example.test`, name: options?.names?.[name] ?? name, roles })).id
       cookies[name] = await h.signIn(`${name}@example.test`, { requested: true })

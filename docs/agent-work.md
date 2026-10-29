@@ -1,4 +1,4 @@
-Your own AI agent can prepare work in Beam. Beam itself calls no model: the agent is yours, and nothing it prepares reaches staff until a person approves it.
+Your own AI agent can prepare work in Beam. Its preparation stays separate from publishing, assigning learning and deciding assessments. People use the existing Beam screens to decide prepared work. Model-assisted features have their own owner-configured provider and consent requirements; this agent door does not authorize provider calls.
 
 ## What an agent can prepare
 
@@ -8,10 +8,75 @@ Your own AI agent can prepare work in Beam. Beam itself calls no model: the agen
 - **Question plans**: optional questions for staff, with answers shown without names.
 - **Process changes** for a manager to decide.
 - **Practice scenarios** for a course.
+- **Draft lessons, blocks, questions and assessment rules**, including submission for a person's review.
+- **Source-impact proposals, diagnoses and measurement plans**, within the existing preparation permissions.
 
 ## Give your agent access
 
-A person signed in with an ordinary email link issues the agent a short-lived credential that carries their own current roles. The credential expires within an hour, and signing out or removing the person's access revokes it. The agent works through Beam's JSON API, described in [AGENTS.md](https://github.com/just-every/run-beam/blob/main/AGENTS.md) in the repository.
+Connect an MCP client to this installation's `/mcp` endpoint, supporting MCP 2026-07-28 and 2025-11-25. `/api/beam/mcp` is an alias of the same shared door. The bounded surface exposes existing preparation jobs and the existing scoped material search, report and course-proposal jobs. Each call still checks the sponsoring person's current Beam roles, content rights and team scope. A credential cannot add authority its sponsor lacks.
+
+On a paired installation, Business supplies the short-lived, audience-bound credential after its person-to-account mapping is in place. Local compatibility credentials remain narrowly scoped: a preparation credential issued from an ordinary email-link or OIDC session lasts no more than an hour or its parent session, and signing out or removing access revokes it. An application credential keeps only its existing named MCP jobs and teams. Neither grants publication, assessment decisions, people administration, provider access or policy control. Dev and review sessions cannot issue preparation credentials. Keep bearer credentials private and separate from browser cookies. The existing JSON preparation API remains described in [AGENTS.md](https://github.com/just-every/run-beam/blob/main/AGENTS.md).
+
+The owner must explicitly choose the company policy on `/agents` before agent preparation can run; no disposition is preset. Preparation REST calls use the same shared invocation policy as MCP calls. An unset policy returns `policy_unset` and a setup link without changing learning state. A policy can allow preparation to run, add it to review, hold it for exact approval or block it. An approval of an MCP preparation call permits that preparation only; it does not approve the resulting native proposal or publish the draft.
+
+Use **Agents** for the shared policy, invocation audit, pending approvals and review feed. Only a signed-in person can answer policy questions, approve exact saved work, mark it reviewed, or pause and resume agents. **Pause agents** stops agent calls; ordinary human learning and the separate native automation controls retain their own behavior. A mutating tool requires an `idempotency_key`; reuse it for the same work after an interrupted response. Reusing it with changed arguments is a conflict. Where a tool exposes `expected_revision`, stale work must be prepared again against the current revision.
+
+This adoption is partial and has no new passing conformance result recorded here. Record resources, prompts, events and subscriptions are undeclared and return a typed capability refusal. Publication, enrollment, native decisions, automation and provider tools remain outside this preparation registry. The full learning-coordinator week under autonomous and held company policies, complete Core coverage, provider budgets and browser/native parity remain acceptance work in the contract.
+
+## MCP tool inventory
+
+The current declarations below come from `src/beam/agent-door/tool-specs.ts`.
+Each scope is exactly the tool name. Classes are possible classes, computed by
+the server for each call; the table is not evidence that every class fixture or
+clause acceptance has passed. A clause mapping identifies the native job that a
+tool supports, not complete coverage of that clause. Write tools require an
+`idempotency_key`; draft editing and proposals also retain their native version
+requirements. Use `tools/list` for the admitted tools and their input/output
+schemas under the current credential and policy.
+
+| Tool and scope | Operation | Possible classes | Clauses |
+| --- | --- | --- | --- |
+| `beam.identity.read` | Read | `standard`, `sensitive` | `BEAM-01` |
+| `beam.members.list` | Read | `standard` | `BEAM-01` |
+| `beam.sources.list` | Read | `standard` | `BEAM-02` |
+| `beam.courses.list` | Read | `standard` | `BEAM-03` |
+| `beam.course.read` | Read | `standard` | `BEAM-03` |
+| `beam.revision.read` | Read | `standard` | `BEAM-03`, `BEAM-07` |
+| `beam.source.read` | Read | `standard` | `BEAM-02` |
+| `beam.people.list` | Read | `standard`, `sensitive` | `BEAM-01`, `ORG-004` |
+| `beam.paths.list` | Read | `standard` | `BEAM-04` |
+| `beam.report.read` | Read | `standard`, `sensitive` | `BEAM-12`, `REPORT-001`, `CONNECT-016` |
+| `beam.proposals.list` | Read | `standard`, `sensitive` | `AGENT-001` |
+| `beam.proposal.read` | Read | `standard`, `sensitive` | `AGENT-001` |
+| `beam.impact.read` | Read | `standard` | `AGENT-004` |
+| `beam.questions.read` | Read | `standard` | `AGENT-007` |
+| `beam.diagnosis.read` | Read | `standard` | `AGENT-002`, `AGENT-003` |
+| `beam.material.search` | Read | `standard` | `BEAM-02`, `CONNECT-016` |
+| `beam.course.create` | Write | `standard` | `BEAM-03` |
+| `beam.course.save_details` | Write | `standard` | `BEAM-03` |
+| `beam.course.save_lesson` | Write | `standard` | `BEAM-03` |
+| `beam.course.remove_lesson` | Write | `standard` | `BEAM-03` |
+| `beam.course.move_lesson` | Write | `standard` | `BEAM-03` |
+| `beam.course.save_block` | Write | `standard` | `BEAM-03`, `AUTHOR-001` |
+| `beam.course.change_block` | Write | `standard` | `BEAM-03`, `AUTHOR-001` |
+| `beam.course.reuse_block` | Write | `standard` | `BEAM-03`, `AUTHOR-001` |
+| `beam.course.save_question` | Write | `standard` | `BEAM-03`, `BEAM-07`, `LEARN-001`, `LEARN-015` |
+| `beam.course.remove_question` | Write | `standard` | `BEAM-03` |
+| `beam.course.save_assessment` | Write | `standard` | `BEAM-03`, `BEAM-07`, `BEAM-08`, `LEARN-001` |
+| `beam.course.save_survey` | Write | `standard` | `BEAM-03`, `LEARN-001` |
+| `beam.course.submit` | Write | `standard` | `BEAM-03` |
+| `beam.draft.propose` | Write | `standard` | `BEAM-03`, `AGENT-001`, `CONNECT-016` |
+| `beam.impact.propose` | Write | `standard` | `AGENT-004` |
+| `beam.preparation.propose` | Write | `standard` | `AGENT-001`, `AGENT-003`, `AGENT-006`, `AGENT-007` |
+| `beam.outcome.plan` | Write | `standard` | `AGENT-005` |
+| `beam.diagnosis.prepare` | Write | `standard` | `AGENT-002`, `AGENT-003` |
+
+The three existing application-grant choices keep their stored names:
+`search_material` maps to `beam.material.search`, `read_report` to
+`beam.report.read`, and `propose_course_change` to `beam.draft.propose`. Their
+shared scopes permit only the selected jobs and existing team boundary. A
+preparation credential does not inherit those application scopes merely by
+using the MCP endpoint.
 
 ## Approve or decline
 

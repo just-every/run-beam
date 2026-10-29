@@ -1,3 +1,4 @@
+import { beamAgentDoor } from './beam/agent-door/index'
 import { entraResponse } from './beam/entra'
 import { themeAsset, themeDocument } from './beam/portal-theme'
 import { runWebhooks } from './beam/webhooks'
@@ -38,6 +39,9 @@ export default withDemo({
     for (const result of await Promise.allSettled([scheduledInactivity(bindings), runUpkeep(bindings), runEscalations(bindings), runRenewals(bindings), runWebhooks(bindings)])) if (result.status === 'rejected') throw result.reason
   },
   async fetch(request, env, execution) {
+    const bindings = runtimeBindings(env)
+    const agent = await beamAgentDoor(bindings).handle(request)
+    if (agent) return agent
     const entraPath = new URL(request.url).pathname
     if (entraPath === '/scim/v2' || entraPath.startsWith('/scim/v2/') || entraPath.startsWith('/auth/oidc/beam-entra/') || entraPath === '/api/beam/entra' || entraPath.startsWith('/api/beam/entra/')) {
       const response = await entraResponse(runtimeBindings(env), request, operatorAuth(runtimeBindings(env)))

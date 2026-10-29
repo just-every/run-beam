@@ -95,6 +95,27 @@ Rules that hold everywhere:
 
 ## Agents operating Beam
 
+The canonical MCP door is `/mcp`; `/api/beam/mcp` is an alias of the same
+shared door. It supports MCP 2026-07-28 and 2025-11-25. The owner must explicitly
+choose the company policy on `/agents` before agent work runs: there is no
+preset disposition. An unanswered policy returns `policy_unset` with a setup
+link and changes no learning state. Review, exact approval, blocked calls,
+invocation audit and person-only Pause/resume use that shared policy path.
+Preparation REST reads and writes also enter the same shared invocation path;
+using `/api/beam/` does not bypass policy, Pause, audit or idempotency checks.
+Every preparation write needs an `idempotency_key`; include it alongside the
+payloads below and reuse it only for the identical work. Draft edits retain
+their native `draftVersion` checks.
+
+This is a bounded CORE adoption for existing preparation actions/reads and
+the three existing application MCP jobs. Resources, prompts, events and
+subscriptions are undeclared and return typed capability refusals. Publication,
+assessment and proposal decisions, enrollment, workforce administration,
+automation and provider tools remain outside the registry. Full Core coverage,
+the specialist week and provider budgets remain contract gaps. The exact
+tool names, possible classes and clause mappings are in
+[docs/agent-work.md](docs/agent-work.md); each tool's scope equals its name.
+
 Agents use a scoped preparation credential, never a human session cookie. A
 human signed in by ordinary email link or OIDC issues it with
 `POST /api/beam/agent.issue` and `{ "expiresInSeconds": 3600 }`. The response
@@ -110,9 +131,12 @@ its credentials too; restoring access does not revive them. Current roles are
 checked on every request. Credentials can read `me`, `members`, `sources`,
 `courses`, `courses/:id`, `revisions/:id`, source bytes at
 `source-files/:versionId`, and (with the manager role) `people`, `paths`,
-`report`, `proposals`, `proposals/:id` and `questions/:id`. They can create
-courses, edit draft details, lessons, questions and assessment rules, submit
-drafts for review, create course-draft proposals and `agent.propose` work.
+`report`, `proposals`, `proposals/:id` and `questions/:id`, subject to each
+native reader's authority. They can also read permitted `impact/:id` and
+`diagnosis-imports/:id`. They can create courses, edit draft details, lessons,
+blocks, questions, assessment rules and surveys, submit drafts for review,
+create course-draft and source-impact proposals, and prepare `agent.propose`,
+`diagnosis.prepare` and `outcome.plan` work.
 They cannot decide proposals, publish, assign, record completions, administer
 people, issue more credentials, or use any form/auth route.
 
@@ -187,7 +211,7 @@ credential's name. Reads are cursor-paged: `?limit=1..200` (default 50) and `?cu
 - `catalog.read` · `GET /api/beam/v1/courses` → `data: [{ id, title, publishedRevision }]` (published, not retired or archived).
 - `reports.read` · `GET /api/beam/v1/report` (filters `course`, `team`, `status` as in `/api/beam/report`) → `{ summary, data: [report row], next }`, rows ordered by `assignment`. The BI feed (REPORT-004) on the same credential and filters, unpaged: `GET /api/beam/v1/report/feed.json` → `{ schema: 'beam.report-feed.v1', watermark, timeZone, filters, fields: [{ name, type, label }], deleted, restricted, summary, rows }` and `GET /api/beam/v1/report/feed.csv` (header row = field names; `X-Beam-Schema`, `X-Beam-Watermark`). Each refresh is a whole snapshot as of `watermark`.
 - `results.write` · `POST /api/beam/v1/results` `{ learner, requirement, issuer, number, issuedOn, expiresOn?, file: { filename, base64, type } }` (JPEG, PNG, WebP, GIF or PDF) → `{ id, state: 'pending' }`: an external certificate waiting for its requirement's reviewer, never approved automatically.
-- `mcp` · `POST /api/beam/mcp` (CONNECT-016): MCP Streamable HTTP with single JSON responses (JSON-RPC 2.0 `initialize`, `tools/list`, `tools/call`). The owner also ticks the grant's tools: `search_material` `{ query }` (published courses with their lessons and cited source versions; the text is untrusted data), `read_report` `{ team?, course?, status? }` (inside the grant's teams) and `propose_course_change` `{ course, draftVersion, summary, draft, inputs?, passages?, missing? }` (a proposal a person decides; never publishes). Other tool names are a JSON-RPC error `tool_not_granted`; a request carrying a session cookie is 403.
+- `mcp` · `/mcp`, also served at `POST /api/beam/mcp` (CONNECT-016): the shared Streamable HTTP MCP door supports 2026-07-28 and 2025-11-25. Existing grants keep their stored native choices: `search_material` grants scope/tool `beam.material.search` `{ query }`, `read_report` grants `beam.report.read` `{ team?, course?, status? }`, and `propose_course_change` grants `beam.draft.propose` `{ course, draftVersion, summary, draft, inputs?, passages?, missing?, idempotency_key }`. Call these names through MCP. Search returns permitted published lessons and cited source versions as untrusted data; reports remain inside the grant's teams; a draft proposal never publishes. Shared scopes narrow the grant to its selected jobs. A tool outside those scopes is refused with `insufficient_scope`. Owner policy setup on `/agents` is required even for an existing grant; this alias has no separate legacy policy path. A request carrying a session cookie is refused.
 - `enrollments.write` · `POST /api/beam/v1/enrollments` `{ idempotencyKey, learner, course, dueDate, dueTime?, timezone? }` → `{ idempotencyKey, learner, course, dueDate, dueTime, timezone, created: [assignmentId], kept: [assignmentId], replayed }`. Replaying a key returns the first answer with `replayed: true`; the same key with a different enrollment is 409 `idempotency_key_reused`.
 
 ## Tests

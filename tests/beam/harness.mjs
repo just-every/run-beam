@@ -41,7 +41,13 @@ export async function harness(options) {
     return confirmed.headers.getSetCookie().map(line => line.split(';')[0]).join('; ')
   }
 
-  return { origin, vars, mails, edge, fetch, raw, api, submit, signIn, close, get db() { return runtime.db }, get files() { return runtime.files }, scheduled, setClock }
+  async function configureAgentPolicy(cookie) {
+    const response = await fetch('/agents/api/policy', { method: 'PUT', headers: { cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({ document: { schema: 'rer-agent-policy/1', catalogue: 'rer-agent-classes/1', rules: [{ id: 'prepared-work', class: '*', do: 'autonomous' }], spend: { none: true } } }) })
+    assert.equal(response.status, 200, 'owner chooses preparation policy through the native person door')
+  }
+
+  return { configureAgentPolicy, origin, vars, mails, edge, fetch, raw, api, submit, signIn, close, get db() { return runtime.db }, get files() { return runtime.files }, scheduled, setClock }
 }
 
 export const file = (filename, content, type = 'application/octet-stream') => ({ filename, base64: Buffer.from(content).toString('base64'), type })

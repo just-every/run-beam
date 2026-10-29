@@ -61,7 +61,7 @@ export async function delegatedSession(env: Bindings, request: Request) {
   insist(claim && typeof claim.session === 'string' && Number.isSafeInteger(claim.expiresAt) && claim.expiresAt! > now() && claim.origin === env.AUTH_ORIGIN, 'invalid_agent_credential', 401)
   const session = await liveSession(env, claim.session)
   insist(session && claim.expiresAt! <= session.expiresAt, 'invalid_agent_credential', 401)
-  return { id: session.id, operator: { id: session.operatorId, email: session.email, displayName: session.name, role: session.role } }
+  return { id: session.id, expiresAt: claim.expiresAt!, operator: { id: session.operatorId, email: session.email, displayName: session.name, role: session.role } }
 }
 
 export function requireAgentScope(actor: Actor, path: string, method: string) {
