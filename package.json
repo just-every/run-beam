@@ -17,7 +17,7 @@
     "test:email-link": "rer queue test:email-link -- sh -c \"node tests/email-link.mjs\"",
     "onboard": "node scripts/install.mjs",
     "build:app": "rer queue build:app -- sh -c \"vite build\"",
-    "verify:app": "node scripts/verify-app.mjs",
+    "verify:app": "rer queue verify:app -- node scripts/verify-beam.mjs",
     "reset": "rer reset",
     "export": "rer export",
     "import": "rer import",
