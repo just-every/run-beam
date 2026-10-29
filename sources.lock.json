@@ -331,7 +331,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "b855902ca69a5274ef29ee9c8d80e917bd69c38e5f9a64013d45a4c0a81deff7",
+      "sha256": "dc1da9295080c1f8b87c66ea7261353030052384356d9fbd033a4bd76caa8599",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -371,7 +371,7 @@
       "executable": false
     },
     "docs/agent-work.md": {
-      "sha256": "6011744b5f238c69e9f8874466d05b017d203a5599d49ae5c74882e95a018bc0",
+      "sha256": "688553e48f9e0eb53ccdd164527b00dede803bea930aba9f6234dcbeaada0200",
       "executable": false
     },
     "docs/assign.md": {
@@ -2159,7 +2159,7 @@
       "executable": false
     },
     "src/beam/agent-door/legacy.ts": {
-      "sha256": "f3e007bce5c7661dadc7245c16dbae93964af506c1538df0af6eb8b74dd270dc",
+      "sha256": "0a5618b7af29cd1f58c6ede0977e160337a6f6ead479f8a8989df53b94a38c32",
       "executable": false
     },
     "src/beam/agent-door/people.ts": {
@@ -2263,7 +2263,7 @@
       "executable": false
     },
     "src/beam/blocks.ts": {
-      "sha256": "a57d3dc0d803701c443345eae84a2ca6b2bc44264273fc00b52a445235278480",
+      "sha256": "8ac3506acf1efef3c6be6d9838eebb89570107b8069ba19f78a83a1fd4decbb3",
       "executable": false
     },
     "src/beam/brand-image.ts": {
@@ -5627,7 +5627,7 @@
       "executable": false
     },
     "tests/beam/agent-flows.mjs": {
-      "sha256": "da8ae0e33f61d43389f2a0a5b295b6713d77b5ce6125fea8440e6d256bfab52d",
+      "sha256": "0fc9e67d5bd48ef130d66d4d2c566f4ba9dd23a5348f2737508587ac5fd89441",
       "executable": false
     },
     "tests/beam/capacity.mjs": {
@@ -5656,6 +5656,10 @@
     },
     "tests/beam/door/fixtures.mjs": {
       "sha256": "5fa9e34ff8682912024b479cfad436bd37e171962eff600414bc30a47db06185",
+      "executable": false
+    },
+    "tests/beam/door/journey.mjs": {
+      "sha256": "1134d7a26585813c4f73dba9932da9ef1877556d8ec58a4e50389d0c6d757719",
       "executable": false
     },
     "tests/beam/door/learners.mjs": {

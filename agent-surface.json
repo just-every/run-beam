@@ -487,7 +487,8 @@
       "prepare": [
         "create_course"
       ]
-    }
+    },
+    "journey": "tests/beam/door/journey.mjs"
   },
   "journey": [
     {
@@ -1438,8 +1439,30 @@
       "id": "prepare_assignment_plan",
       "tool": "beam.preparation.propose",
       "args": {
-        "$fixture": "preparations",
-        "pointer": "/assignment_plan"
+        "kind": {
+          "$fixture": "preparations",
+          "pointer": "/assignment_plan/kind"
+        },
+        "title": {
+          "$fixture": "preparations",
+          "pointer": "/assignment_plan/title"
+        },
+        "inputs": {
+          "$fixture": "preparations",
+          "pointer": "/assignment_plan/inputs"
+        },
+        "reasons": {
+          "$fixture": "preparations",
+          "pointer": "/assignment_plan/reasons"
+        },
+        "excluded": {
+          "$fixture": "preparations",
+          "pointer": "/assignment_plan/excluded"
+        },
+        "payload": {
+          "$fixture": "preparations",
+          "pointer": "/assignment_plan/payload"
+        }
       },
       "expect": [
         {
@@ -1463,8 +1486,30 @@
       "id": "prepare_reminders",
       "tool": "beam.preparation.propose",
       "args": {
-        "$fixture": "preparations",
-        "pointer": "/reminders"
+        "kind": {
+          "$fixture": "preparations",
+          "pointer": "/reminders/kind"
+        },
+        "title": {
+          "$fixture": "preparations",
+          "pointer": "/reminders/title"
+        },
+        "inputs": {
+          "$fixture": "preparations",
+          "pointer": "/reminders/inputs"
+        },
+        "reasons": {
+          "$fixture": "preparations",
+          "pointer": "/reminders/reasons"
+        },
+        "excluded": {
+          "$fixture": "preparations",
+          "pointer": "/reminders/excluded"
+        },
+        "payload": {
+          "$fixture": "preparations",
+          "pointer": "/reminders/payload"
+        }
       },
       "expect": [
         {
@@ -1488,8 +1533,30 @@
       "id": "prepare_question_plan",
       "tool": "beam.preparation.propose",
       "args": {
-        "$fixture": "preparations",
-        "pointer": "/question_plan"
+        "kind": {
+          "$fixture": "preparations",
+          "pointer": "/question_plan/kind"
+        },
+        "title": {
+          "$fixture": "preparations",
+          "pointer": "/question_plan/title"
+        },
+        "inputs": {
+          "$fixture": "preparations",
+          "pointer": "/question_plan/inputs"
+        },
+        "reasons": {
+          "$fixture": "preparations",
+          "pointer": "/question_plan/reasons"
+        },
+        "excluded": {
+          "$fixture": "preparations",
+          "pointer": "/question_plan/excluded"
+        },
+        "payload": {
+          "$fixture": "preparations",
+          "pointer": "/question_plan/payload"
+        }
       },
       "expect": [
         {
@@ -1513,8 +1580,30 @@
       "id": "prepare_process_change",
       "tool": "beam.preparation.propose",
       "args": {
-        "$fixture": "preparations",
-        "pointer": "/process_change"
+        "kind": {
+          "$fixture": "preparations",
+          "pointer": "/process_change/kind"
+        },
+        "title": {
+          "$fixture": "preparations",
+          "pointer": "/process_change/title"
+        },
+        "inputs": {
+          "$fixture": "preparations",
+          "pointer": "/process_change/inputs"
+        },
+        "reasons": {
+          "$fixture": "preparations",
+          "pointer": "/process_change/reasons"
+        },
+        "excluded": {
+          "$fixture": "preparations",
+          "pointer": "/process_change/excluded"
+        },
+        "payload": {
+          "$fixture": "preparations",
+          "pointer": "/process_change/payload"
+        }
       },
       "expect": [
         {
@@ -1538,8 +1627,30 @@
       "id": "prepare_intervention",
       "tool": "beam.preparation.propose",
       "args": {
-        "$fixture": "preparations",
-        "pointer": "/intervention"
+        "kind": {
+          "$fixture": "preparations",
+          "pointer": "/intervention/kind"
+        },
+        "title": {
+          "$fixture": "preparations",
+          "pointer": "/intervention/title"
+        },
+        "inputs": {
+          "$fixture": "preparations",
+          "pointer": "/intervention/inputs"
+        },
+        "reasons": {
+          "$fixture": "preparations",
+          "pointer": "/intervention/reasons"
+        },
+        "excluded": {
+          "$fixture": "preparations",
+          "pointer": "/intervention/excluded"
+        },
+        "payload": {
+          "$fixture": "preparations",
+          "pointer": "/intervention/payload"
+        }
       },
       "expect": [
         {
@@ -1563,8 +1674,30 @@
       "id": "prepare_scenario",
       "tool": "beam.preparation.propose",
       "args": {
-        "$fixture": "preparations",
-        "pointer": "/scenario"
+        "kind": {
+          "$fixture": "preparations",
+          "pointer": "/scenario/kind"
+        },
+        "title": {
+          "$fixture": "preparations",
+          "pointer": "/scenario/title"
+        },
+        "inputs": {
+          "$fixture": "preparations",
+          "pointer": "/scenario/inputs"
+        },
+        "reasons": {
+          "$fixture": "preparations",
+          "pointer": "/scenario/reasons"
+        },
+        "excluded": {
+          "$fixture": "preparations",
+          "pointer": "/scenario/excluded"
+        },
+        "payload": {
+          "$fixture": "preparations",
+          "pointer": "/scenario/payload"
+        }
       },
       "expect": [
         {
@@ -1588,8 +1721,46 @@
       "id": "outcome_plan",
       "tool": "beam.outcome.plan",
       "args": {
-        "$fixture": "outcome",
-        "pointer": ""
+        "intervention": {
+          "$fixture": "outcome",
+          "pointer": "/intervention"
+        },
+        "metric": {
+          "$fixture": "outcome",
+          "pointer": "/metric"
+        },
+        "unit": {
+          "$fixture": "outcome",
+          "pointer": "/unit"
+        },
+        "direction": {
+          "$fixture": "outcome",
+          "pointer": "/direction"
+        },
+        "baselineFrom": {
+          "$fixture": "outcome",
+          "pointer": "/baselineFrom"
+        },
+        "baselineTo": {
+          "$fixture": "outcome",
+          "pointer": "/baselineTo"
+        },
+        "afterFrom": {
+          "$fixture": "outcome",
+          "pointer": "/afterFrom"
+        },
+        "afterTo": {
+          "$fixture": "outcome",
+          "pointer": "/afterTo"
+        },
+        "comparison": {
+          "$fixture": "outcome",
+          "pointer": "/comparison"
+        },
+        "minGroup": {
+          "$fixture": "outcome",
+          "pointer": "/minGroup"
+        }
       },
       "expect": [
         {

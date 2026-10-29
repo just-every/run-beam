@@ -11,14 +11,19 @@ import { fillTableCells } from './table-traversal'
 // same course; these doors never add or copy one. Duplicating, moving and removing within the course stay open.
 const ATTACH_ONLY = 'lti_attach_required'
 
-export async function saveBlock(env: Bindings, actor: Actor, input: Input) {
-  await requireCourseRole(env, actor, input.text('course'), 'author')
+/** The native form/JSON block reader is shared with preparation API compatibility. */
+export function blockInput(input: Input) {
   const table = input.has('tableShape') ? fillTableCells(input.json('tableShape'), input.list('tableCells', { keepEmpty: true })) : undefined
-  const value = input.has('content') ? input.json('content') : {
+  return input.has('content') ? input.json('content') : {
     table, asset: input.text('asset', { optional: true }) || undefined, kind: input.text('kind'), text: input.text('text', { max: 10_000 }), source: input.text('source', { optional: true }), url: input.text('url', { max: 2000, optional: true }),
     captions: input.has('captionSource') ? { source: input.text('captionSource'), language: input.text('captionLanguage', { max: 100 }), label: input.text('captionLabel', { max: 100 }) } : undefined,
     choices: input.text('choices', { max: 4000, optional: true }).split('\n').filter(Boolean), answer: (input.integer('answer', { min: 1, max: 8, optional: true }) ?? 1) - 1, feedback: input.text('feedback', { max: 2000, optional: true }),
   }
+}
+
+export async function saveBlock(env: Bindings, actor: Actor, input: Input) {
+  await requireCourseRole(env, actor, input.text('course'), 'author')
+  const value = blockInput(input)
   insist((value as { kind?: unknown } | null)?.kind !== 'lti', ATTACH_ONLY, 403)
   const [block] = await normaliseBlocks(env, [value], { admit: true })
   return editDraft(env, actor, input, 'course.block', draft => {

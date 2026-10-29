@@ -36,20 +36,20 @@ schemas under the current credential and policy.
 
 | Tool and scope | Operation | Possible classes | Clauses |
 | --- | --- | --- | --- |
-| `beam.identity.read` | Read | `standard`, `sensitive` | `BEAM-01` |
+| `beam.identity.read` | Read | `sensitive` | `BEAM-01` |
 | `beam.members.list` | Read | `standard` | `BEAM-01` |
 | `beam.sources.list` | Read | `standard` | `BEAM-02` |
 | `beam.courses.list` | Read | `standard` | `BEAM-03` |
 | `beam.course.read` | Read | `standard` | `BEAM-03` |
 | `beam.revision.read` | Read | `standard` | `BEAM-03`, `BEAM-07` |
 | `beam.source.read` | Read | `standard` | `BEAM-02` |
-| `beam.people.list` | Read | `standard`, `sensitive` | `BEAM-01`, `ORG-004` |
+| `beam.people.list` | Read | `sensitive` | `BEAM-01`, `ORG-004` |
 | `beam.paths.list` | Read | `standard` | `BEAM-04` |
-| `beam.report.read` | Read | `standard`, `sensitive` | `BEAM-12`, `REPORT-001`, `CONNECT-016` |
-| `beam.proposals.list` | Read | `standard`, `sensitive` | `AGENT-001` |
-| `beam.proposal.read` | Read | `standard`, `sensitive` | `AGENT-001` |
+| `beam.report.read` | Read | `sensitive` | `BEAM-13`, `BEAM-17`, `REPORT-001`, `CONNECT-016` |
+| `beam.proposals.list` | Read | `sensitive` | `AGENT-001` |
+| `beam.proposal.read` | Read | `sensitive` | `AGENT-001` |
 | `beam.impact.read` | Read | `standard` | `AGENT-004` |
-| `beam.questions.read` | Read | `standard` | `AGENT-007` |
+| `beam.questions.read` | Read | `standard` | `BEAM-19` |
 | `beam.diagnosis.read` | Read | `standard` | `AGENT-002`, `AGENT-003` |
 | `beam.material.search` | Read | `standard` | `BEAM-02`, `CONNECT-016` |
 | `beam.course.create` | Write | `standard` | `BEAM-03` |
@@ -65,9 +65,9 @@ schemas under the current credential and policy.
 | `beam.course.save_assessment` | Write | `standard` | `BEAM-03`, `BEAM-07`, `BEAM-08`, `LEARN-001` |
 | `beam.course.save_survey` | Write | `standard` | `BEAM-03`, `LEARN-001` |
 | `beam.course.submit` | Write | `standard` | `BEAM-03` |
-| `beam.draft.propose` | Write | `standard` | `BEAM-03`, `AGENT-001`, `CONNECT-016` |
+| `beam.draft.propose` | Write | `standard` | `BEAM-03`, `BEAM-14`, `AGENT-001`, `CONNECT-016` |
 | `beam.impact.propose` | Write | `standard` | `AGENT-004` |
-| `beam.preparation.propose` | Write | `standard` | `AGENT-001`, `AGENT-003`, `AGENT-006`, `AGENT-007` |
+| `beam.preparation.propose` | Write | `standard` | `BEAM-18`, `BEAM-19`, `BEAM-20`, `AGENT-001`, `AGENT-003`, `AGENT-006` |
 | `beam.outcome.plan` | Write | `standard` | `AGENT-005` |
 | `beam.diagnosis.prepare` | Write | `standard` | `AGENT-002`, `AGENT-003` |
 

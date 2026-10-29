@@ -1,9 +1,12 @@
 import type { Bindings } from '../../auth.server'
 import type { Actor } from '../actor'
 import { delegatedSession } from '../agent-credentials'
+import { blockInput } from '../blocks'
+import { Input } from '../input'
 import { BeamError } from '../core'
 import { beamAgentDoor } from './index'
 import { toolSpecs } from './tool-specs'
+import { blockSchema } from './schema-draft'
 
 /** The existing preparation API is an adapter into the same policy pipeline. */
 export async function legacyPreparation(env: Bindings, actor: Actor, request: Request, path: string): Promise<Response> {
@@ -36,6 +39,13 @@ export async function legacyPreparation(env: Bindings, actor: Actor, request: Re
       }
     }
     if (!args || typeof args !== 'object' || Array.isArray(args)) throw new BeamError('invalid_json')
+    if (spec.action === 'course.block' && !args.content) {
+      const value = blockInput(Input.of(args)) as Record<string, unknown>
+      const variants = (blockSchema as { oneOf: { properties: Record<string, { const?: unknown }> }[] }).oneOf
+      const shape = variants.find(item => item.properties.kind.const === value.kind)
+      if (!shape) throw new BeamError('invalid_block_kind')
+      args.content = Object.fromEntries(Object.entries(value).filter(([key, value]) => value !== undefined && Object.hasOwn(shape.properties, key)))
+    }
     args.idempotency_key ??= request.headers.get('idempotency-key') ?? crypto.randomUUID()
   }
   const delegation = await delegatedSession(env, request)
