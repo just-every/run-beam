@@ -105,7 +105,8 @@
           "migrations/core/0119_beam_portal_quiz_review.sql",
           "migrations/core/0120_beam_entra.sql",
           "migrations/core/0121_beam_microsoft_sources.sql",
-          "migrations/core/0118_beam_portal_practical.sql"
+          "migrations/core/0118_beam_portal_practical.sql",
+          "migrations/core/0122_beam_agent_door.sql"
         ]
       }
     },
@@ -122,7 +123,10 @@
           "src/modules/dependencies",
           "src/modules/owner-claim",
           "src/modules/demo",
-          "src/modules/d1-transport"
+          "src/modules/d1-transport",
+          "src/modules/agent-door",
+          "src/modules/business-settings",
+          "src/foundation/runtime"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base.git",
