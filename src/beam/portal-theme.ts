@@ -51,7 +51,7 @@ export async function themeAsset(env: Bindings, request: Request): Promise<Respo
   if (!['GET', 'HEAD'].includes(request.method)) return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } })
   const theme = await portalTheme(env)
   if (!theme) return new Response(null, { status: 404 })
-  if (path === '/beam-theme.css') return new Response(request.method === 'HEAD' ? null : `html.rer-themed{--navy:${theme.primary};--blue:${theme.accent};--rer-accent:${theme.primary};--rer-accent-text:#ffffff;--rer-focus:${theme.accent}}.rer-themed .brand::before{display:none}.brand img[src="/beam-theme/logo"]{object-fit:contain}.portal-logo{width:32px;height:32px;object-fit:contain}button:not(.secondary),.button:not(.secondary){background:${theme.primary};border-color:${theme.primary};color:#ffffff}progress.progress::-webkit-progress-value{background:${theme.accent}}progress.progress::-moz-progress-bar{background:${theme.accent}}:focus-visible{outline-color:${theme.accent}}`, { headers: { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+  if (path === '/beam-theme.css') return new Response(request.method === 'HEAD' ? null : `html:root{--navy:${theme.primary};--blue:${theme.accent};--rer-accent:${theme.primary};--rer-accent-text:#ffffff;--rer-focus:${theme.accent}}.rer-themed .brand::before{display:none}.brand img[src="/beam-theme/logo"]{object-fit:contain}.portal-logo{width:32px;height:32px;object-fit:contain}button:not(.secondary),.button:not(.secondary){background:${theme.primary};border-color:${theme.primary};color:#ffffff}progress.progress::-webkit-progress-value{background:${theme.accent}}progress.progress::-moz-progress-bar{background:${theme.accent}}:focus-visible{outline-color:${theme.accent}}`, { headers: { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
   const file = path.endsWith('/logo') ? theme.logo : theme.favicon
   if (!file) return new Response(null, { status: 404 })
   const response = await serve(env, file)
@@ -66,7 +66,7 @@ export async function themeDocument(env: Bindings, response: Response, signin = 
   let document = await response.text()
   document = document.replace('</head>', `<link rel="stylesheet" href="/beam-theme.css"></head>`)
   if (theme.favicon) document = document.replace(/<link[^>]+rel="(?:shortcut )?icon"[^>]*>/g, '').replace('</head>', '<link rel="icon" href="/beam-theme/favicon"></head>')
-  if (theme.logo) document = document.replace('src="/brand/mark.svg"', 'src="/beam-theme/logo"')
+  if (theme.logo) document = document.replaceAll('src="/brand/mark.svg"', 'src="/beam-theme/logo"')
   if (theme.logo) document = document.replace('<p class="brand">', '<p class="brand"><img class="portal-logo" src="/beam-theme/logo" alt="">')
   if (signin) document = document.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/, `<h1>${escape(theme.signinHeading)}</h1><p>${escape(theme.signinText)}</p>`)
   const headers = new Headers(response.headers)

@@ -1,3 +1,4 @@
+import { assertMicrosoftRevision } from './microsoft/rights'
 import { localizedRevision } from './course-locales'
 // Flows 4, 5 and renewals: role paths with prerequisites and renewal intervals,
 // assignments to individuals and teams with due dates in an explicit time zone.
@@ -44,6 +45,7 @@ export async function insertAssignments(env: Bindings, actor: Actor, items: NewA
     // AUTHOR-005: a retired course is never newly assigned, by any door (person, team, path or renewal).
     insist(!course.retired_at, 'course_retired', 409, { course: item.course, title: course.title })
     const revision = await localizedRevision(env, course.published_revision_id, item.learner)
+    await assertMicrosoftRevision(env, revision)
     const dueAt = zonedInstant(item.dueDate, item.dueTime, item.timezone)
     const id = item.id ?? newId(), at = now()
     const window = item.access ?? await enrolmentWindow(env, item.course, item.pathRevision, at)

@@ -21,7 +21,7 @@ const refers = (value: unknown, ids: Set<string>): boolean => typeof value === '
 const digest = (row: CourseRow) => sha256Hex(new TextEncoder().encode(JSON.stringify([row.id, row.title, row.draft_version, row.draft_json])))
 const coupled = new Set(['beam_course_revisions', 'beam_proposals', 'beam_course_locales', 'beam_draft_conflicts', 'beam_locale_glossaries', 'beam_course_comments'])
 // Original metadata/OCR are retired by source erasure. Audit and privacy receipts retain justified ids/times.
-const handled = new Set(['beam_sources', 'beam_source_versions', 'beam_source_ocr_runs', 'beam_model_run_sources', 'beam_courses', 'beam_audit'])
+const handled = new Set(['beam_source_uploads', 'beam_tutor_questions', 'beam_tutor_grants', 'beam_sources', 'beam_source_versions', 'beam_source_ocr_runs', 'beam_model_run_sources', 'beam_courses', 'beam_audit'])
 const MAX_SUBJECTS = 20_000
 const subjectLimit = 'Source-derived identity inventory exceeds the bounded withdrawal limit.'
 

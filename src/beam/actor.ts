@@ -1,3 +1,4 @@
+import { entraSessionAllowed } from './entra/session'
 import { refuseErasedIdentity } from './erasure-fence'
 // The signed-in person as Beam sees them: an operator-auth session joined to
 // a Beam member and that member's learning roles. The owner holds every role.
@@ -57,6 +58,7 @@ export async function currentActor(env: Bindings, request: Request): Promise<Act
   const agent = request.headers.has('authorization')
   const session = agent ? await delegatedSession(env, request) : await operatorAuth(env).getSession(request)
   if (!session) return null
+  insist(await entraSessionAllowed(env, session.operator.id), 'authentication_required', 401)
   const email = session.operator.email.toLowerCase()
   const owner = session.operator.role === 'owner'
   let member = await linkedMember(env, session.operator.id, email)

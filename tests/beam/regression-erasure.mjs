@@ -1,3 +1,4 @@
+import { populateAnsweredTutor, tutorCustodyEdge } from './tutor-custody.mjs'
 import { sourceDraftWithdrawalCheck } from './erasure-source-drafts.mjs'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -16,7 +17,7 @@ import { courseListCsv, courseReport } from './fixtures.mjs'
 import { prepareMicrolearning } from './regression-collab.mjs'
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 export async function erasureCheck() {
-  const f = await xapiFixture()
+  const f = await xapiFixture({outboundService:tutorCustodyEdge().outboundService})
   const scratch = await mkdtemp(join(tmpdir(), 'beam-erasure-'))
   const old = join(scratch, 'before.rer'), later = join(scratch, 'after.rer')
   const portability = () => createPortability({ db: f.h.db, buckets: { files: f.h.files }, policy })
@@ -39,6 +40,7 @@ export async function erasureCheck() {
     await api('owner', 'erasure.policy', { assessmentDays: 0, justification: 'Keep only explicitly held learning evidence.', consent: true })
     await api('owner', 'erasure.preview', { kind: 'person', subject: ids.owner }, 409)
     const c = await f.course('Held observed equipment check', true), assigned = await f.assign(c)
+    const tutor = await populateAnsweredTutor(f,assigned)
     await f.lessons(assigned)
     const evidence = await api('learner', 'practical.submit', { assignment: assigned, evidence: 'Observed pressure check.', file: file('synthetic-beam-1.txt', 'Observed equipment evidence') })
     await api('assessor', 'practical.decide', { attempt: evidence.id, decision: 'accepted', note: 'Observed and accepted.' })
@@ -169,6 +171,7 @@ export async function erasureCheck() {
     }
     assert.ok(report.outcomes.native.some(row => row.table === 'beam_sequence_answers' && row.removed > 0))
     assert.ok(report.providers.some(row => row.state === 'failed'), 'provider deletion remains visibly unresolved')
+    assert.ok(report.providers.some(row=>row.connection_id==='model:openai' && row.state==='failed' && row.failure==='model_provider_erasure_api_required'),'Erasing the native answered cache never claims model-provider deletion')
     assert.ok(report.providers.some(row=>row.connection_id===external.connection && row.state==='failed' && row.failure==='connected_lrs_erasure_api_required'))
     assert.ok(f.lrs.records.has(externalStatement.id), 'external statements are not falsely reported erased')
     assert.equal(f.lrs.edge.writes,1,'erasure never fabricates an LRS destructive API or sends a replacement statement')
@@ -193,6 +196,9 @@ export async function erasureCheck() {
 
     } finally { await target.close() }
     const exported = await (await h.raw('/app/data-export.json', { cookie: cookies.owner })).json()
+    assert.equal(exported.records.beam_tutor_questions.rows.filter(row=>row.learner_id===ids.learner).length,0,'Populated answered tutor caches are erased even with an assessment hold')
+    await api('owner',`tutor/${tutor.id}`,undefined,404)
+    assert.equal((await h.raw(`/app/tutor/${tutor.id}/citation?passage=${tutor.citation}`,{cookie:cookies.owner})).status,404,'Erasure removes stored answered citations even while assessment evidence is held')
     assert.equal(exported.records.beam_sequence_answers.rows.filter(row => row.assignment_id === practice).length, 0)
     assert.ok(exported.records.beam_completions.rows.some(row => row.id === completion.id), 'held assessment remains')
     assert.ok(exported.records.beam_attempts.rows.some(row => row.id === evidence.id))

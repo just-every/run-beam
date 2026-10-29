@@ -1,0 +1,106 @@
+import assert from 'node:assert/strict'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { microsoftBindings, microsoftFixture, microsoftSite } from './microsoft-fixture.mjs'
+
+export async function microsoftBrowserCheck() {
+  const f = await microsoftFixture()
+  const { chromium } = await import(process.env.BEAM_PLAYWRIGHT_MODULE || '@playwright/test')
+  const output = process.env.BEAM_EVIDENCE_DIR || 'test-results'
+  await mkdir(output, { recursive: true })
+  const browser = await chromium.launch({ headless: true, ...(process.env.BEAM_BROWSER_EXECUTABLE ? { executablePath: process.env.BEAM_BROWSER_EXECUTABLE } : {}), args: ['--use-mock-keychain', '--password-store=basic'] })
+  try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, ignoreHTTPSErrors: true })
+    try {
+      await context.addCookies(f.cookies.owner.split('; ').map(cookie => { const i = cookie.indexOf('='); return { name: cookie.slice(0, i), value: cookie.slice(i + 1), url: f.h.origin } }))
+      const page = await context.newPage()
+      async function screens(name) {
+        for (const width of [1440, 390]) {
+          await page.setViewportSize({ width, height: 1000 })
+          await page.evaluate(() => window.scrollTo(0, 0))
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${name}: no horizontal overflow at ${width}`)
+          const icons = await page.locator('button,a,summary').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && !node.textContent.trim() && !node.querySelector('img[alt]')).map(node => node.getAttribute('data-tooltip')))
+          assert.ok(icons.every(Boolean), `${name}: icon controls have tooltips`)
+          await page.screenshot({ path: join(output, `${width}-microsoft-${name}.png`), fullPage: true })
+        }
+        await page.setViewportSize({ width: 1440, height: 1000 })
+      }
+      await page.goto(f.h.origin + '/app/business')
+      await screens('settings-links')
+      await page.getByRole('link', { name: 'Microsoft procedure sources', exact: true }).click()
+      await screens('connection')
+      const connect = page.locator('form[action="/app/do/microsoft.configure"]').filter({ has: page.getByRole('button', { name: 'Connect selected library', exact: true }) })
+      await connect.getByLabel('SharePoint site ID', { exact: true }).fill(microsoftSite)
+      await connect.getByLabel('Document library ID', { exact: true }).fill('synthetic-beam-library')
+      await connect.getByLabel('Authority and purpose', { exact: true }).fill('Sierra Lakes operations owns these procedures and authorizes their use for reviewed employee training.')
+      await connect.getByRole('checkbox').check()
+      await connect.getByRole('button', { name: 'Connect selected library', exact: true }).click()
+      assert.equal(new URL(page.url()).searchParams.get('error'), null)
+      await page.getByRole('button', { name: 'Browse procedures', exact: true }).click()
+      await page.getByRole('button', { name: 'Preview Opening procedure.docx', exact: true }).click()
+      assert.match(await page.locator('main').textContent(), /Wash hands & inspect tools\./)
+      assert.equal((await f.api('author', 'sources')).length, 0)
+      await screens('snapshot-review')
+      const importing = page.locator('form[action="/app/do/microsoft.import"]')
+      await importing.getByLabel('License evidence', { exact: true }).fill('Employer-owned opening and closing work procedures, reviewed by Sam Taylor.')
+      await importing.getByLabel('Responsible reviewer', { exact: true }).selectOption(f.ids.reviewer)
+      await importing.getByRole('checkbox').check()
+      await importing.getByRole('button', { name: 'Import reviewed snapshot', exact: true }).click()
+      assert.equal(new URL(page.url()).searchParams.get('error'), null)
+      const source = (await f.api('author', 'sources'))[0]
+      const extraction = await f.api('author', `sources/${source.versions[0].id}/extraction`)
+      const c = await f.api('author', 'course.create', { title: 'Opening the work area', reviewer: f.ids.reviewer })
+      const saved = await f.api('author', 'source.convert', { course: c.id, draftVersion: 1, sourceVersion: source.versions[0].id, reviewed: true, lessons: extraction.lessons, resolvedUncertainties: extraction.uncertainties.map(row => row.id) })
+      const revision = await f.api('author', 'course.submit', { course: c.id, draftVersion: saved.draftVersion })
+      await f.publish(revision.id)
+      f.state.version = 2
+      await page.getByRole('button', { name: 'Check for changes', exact: true }).click()
+      assert.equal(new URL(page.url()).searchParams.get('error'), null)
+      assert.equal((await f.api('author', `courses/${c.id}`)).notices.length, 1)
+      await screens('changed-course')
+      f.state.denied = true
+      await page.getByRole('button', { name: 'Check for changes', exact: true }).click()
+      assert.equal(await page.getByText('Rights revoked; retrieval and new distribution stopped', { exact: true }).count(), 1)
+      await screens('rights-revoked')
+      await page.goto(f.h.origin + '/app/integrations/entra')
+      const config = page.locator('form[action="/app/do/entra.configure"]')
+      await config.getByLabel('Reason for this change', { exact: true }).fill('Authorize the Sierra Lakes tenant for reviewed employee sign-in and learner provisioning.')
+      await config.getByLabel('Enable workplace provisioning and sign-in', { exact: true }).check()
+      await config.getByLabel('I reviewed and authorize this tenant-bound identity change.', { exact: true }).check()
+      await config.getByRole('button', { name: 'Apply tenant authority', exact: true }).click()
+      assert.equal(new URL(page.url()).searchParams.get('error'), null)
+      const scim = async (kind, body) => { const r = await f.h.fetch(`/scim/v2/${kind}`, { method: 'POST', headers: { authorization: 'Bearer ' + microsoftBindings.ENTRA_SCIM_TOKEN, 'content-type': 'application/scim+json' }, body: JSON.stringify(body) }); assert.equal(r.status, 201); return r.json() }
+      const employee = await scim('Users', { schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], externalId: '55555555-5555-5555-5555-555555555555', userName: 'riley.morgan@example.test', displayName: 'Riley Morgan', active: true })
+      const group = await scim('Groups', { schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'], externalId: '66666666-6666-6666-6666-666666666666', displayName: 'Operations learners', members: [{ value: employee.id }] })
+      await page.reload()
+      const mapping = page.locator('form[action="/app/do/entra.map"]')
+      await page.getByText('Review group roles', { exact: true }).click()
+      await mapping.getByLabel('learner', { exact: true }).check()
+      await mapping.getByLabel('Reason for this mapping', { exact: true }).fill('Operations employees receive learner authority only.')
+      await mapping.locator('input[name="consent"]').check()
+      await mapping.getByRole('button', { name: 'Apply reviewed roles', exact: true }).click()
+      assert.equal(new URL(page.url()).searchParams.get('error'), null)
+      assert.deepEqual(JSON.parse((await f.api('owner', 'entra')).groups.find(row => row.id === group.id).roles), ['learner'])
+      await page.getByText('Review group roles', { exact: true }).click()
+      assert.equal(await page.locator('form[action="/app/do/entra.map"]').getByLabel('learner', { exact: true }).isChecked(), true)
+      await screens('identity-grants')
+      await page.getByText('Associate a verified sign-in subject', { exact: true }).click()
+      const association = page.locator('form[action="/app/do/entra.associate"]')
+      await association.getByLabel('Application-specific OIDC subject', { exact: true }).fill('synthetic-beam-10')
+      await association.getByLabel('Authoritative subject evidence', { exact: true }).fill('Tenant administrator verified the application-specific subject for Riley Morgan.')
+      await association.locator('input[name="consent"]').check()
+      await association.getByRole('button', { name: 'Approve subject association', exact: true }).click()
+      assert.equal(new URL(page.url()).searchParams.get('error'), null)
+      assert.equal((await f.api('owner', 'entra')).users[0].subject, 'synthetic-beam-10')
+      await screens('identity-associated')
+      const revoke = page.locator('form[action="/app/do/entra.configure"]')
+      await revoke.getByLabel('Enable workplace provisioning and sign-in', { exact: true }).uncheck()
+      await revoke.getByLabel('Reason for this change', { exact: true }).fill('Withdraw the tenant grant pending administrator confirmation.')
+      await revoke.locator('input[name="consent"]').check()
+      await revoke.getByRole('button', { name: 'Apply tenant authority', exact: true }).click()
+      assert.equal((await f.api('owner', 'entra')).connection.enabled, false)
+      await screens('identity-disabled')
+    } finally { await context.close() }
+  } finally { await browser.close(); await f.h.close() }
+}
+if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1]) await microsoftBrowserCheck()

@@ -1,3 +1,4 @@
+import { assertMicrosoftFile } from './microsoft/rights'
 import { refuseErasedIdentity } from './erasure-fence'
 // Content-addressed file custody in the FILES bucket. Bytes are verified after
 // writing and on every read. Uploaded content is data: it is never rendered as
@@ -39,6 +40,7 @@ export async function store(env: Bindings, file: { filename: string; bytes: Uint
 }
 
 export async function serve(env: Bindings, file: Stored, { download = false } = {}): Promise<Response> {
+  await assertMicrosoftFile(env, file.sha256)
   const object = await env.FILES.get(`sha256/${file.sha256}`)
   insist(object, 'file_missing', 503)
   const bytes = new Uint8Array(await object.arrayBuffer())

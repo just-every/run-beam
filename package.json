@@ -40,16 +40,16 @@
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-start": "1.168.60",
     "hono": "4.13.7",
-    "parse5": "8.0.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "unpdf": "1.9.1"
+    "unpdf": "1.9.1",
+    "parse5": "8.0.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
     "@playwright/test": "1.56.1",
-    "@runeditrun/rer": "0.2.82",
+    "@runeditrun/rer": "0.2.85",
     "@types/node": "22.20.5",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",

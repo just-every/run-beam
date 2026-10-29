@@ -1,3 +1,7 @@
+import { entraPage } from './ui/entra'
+import { microsoftPage } from './ui/microsoft'
+import { tutorPage, tutorDownload } from './ui/tutor'
+import { enterprisePortalPage } from './ui/portal-learning-pages'
 import { enterprisePortalResponse } from './enterprise-portals'
 import { captionFile } from './caption-file'
 import { modelAccountPage } from './ui/model-account'
@@ -49,6 +53,7 @@ import { revisionComparePage, sourceComparePage } from './ui/history'
 import { acknowledgmentPage } from './ui/acknowledgments'
 import { dashboard, learnOverview, lessonPage, notFound, practicalPage, quizPage, recordPage } from './ui/learner'
 import { attemptPage, businessPage, pathsPage, peoplePage } from './ui/managing'
+import { operationsPage } from './ui/operations'
 import { managePage } from './ui/compliance'
 import { importBrowserResponse } from './movein/browser'
 import { importPage, previewPage, importProgressPage } from './ui/movein'
@@ -87,6 +92,7 @@ function failure(error: unknown): { code: string; status: number; detail?: unkno
   if (error instanceof BeamError) return { code: error.code, status: error.status, detail: error.detail }
   if (error instanceof AuthError) return { code: error.code, status: error.status }
   const code = error instanceof Error ? error.message : ''
+  if (code.includes('source_upload_in_progress')) return { code: 'source_upload_in_progress', status: 409 }
   if (code.includes('source_unavailable')) return { code: 'source_unavailable', status: 409 }
   if (/^(IMPORT_|PROVENANCE_|TARGET_|NATIVE_EDIT_CONFLICT|REVERSAL_)/.test(code)) return { code: code.split(/[:\s]/)[0].toLowerCase(), status: 409 }
   console.error('beam_internal_error', error)
@@ -109,6 +115,8 @@ export async function beamResponse(request: Request, original: Bindings): Promis
 async function beamDoorResponse(request: Request, original: Bindings): Promise<Response | null> {
   const env = runtimeBindings(original)
   const url = new URL(request.url)
+  const portalPage = await enterprisePortalPage(env, request)
+  if (portalPage) return portalPage
   const enterprise = await enterprisePortalResponse(env, request)
   if (enterprise) return enterprise
   // These fixed modules contain installed application code only. Opaque PDF
@@ -220,7 +228,7 @@ async function apiResponse(env: Bindings, actor: Actor, request: Request, url: U
     if (path === 'agent.issue') return json(await issueAgentCredential(env, actor, await Input.from(request)))
     const input = await Input.from(request)
     if (path === 'locale.approve' || path === 'revision.decide' && input.text('decision') === 'publish') throw new BeamError('human_publication_form_required', 403)
-    const action = actions[path]
+    const action = Object.hasOwn(actions, path) ? actions[path] : undefined
     if (!action) throw new BeamError('not_found', 404)
     return json(await action(env, actor, input, request))
   }
@@ -245,6 +253,8 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   const xapiAttachmentMatch = url.pathname.match(/^\/app\/xapi\/attachments\/([^/]+)\/([a-f0-9]{64})$/)
   if (xapiAttachmentMatch && request.method === 'GET') return xapiAttachment(env, actor, xapiAttachmentMatch[1], xapiAttachmentMatch[2])
   const path = url.pathname
+  if (path === '/app/integrations/entra' && request.method === 'GET') return entraPage(env, actor, url)
+  if (/^\/app\/integrations\/microsoft(?:\/(?:check|browse|preview|original))?$/.test(path)) return microsoftPage(env, actor, request, url)
   if (request.method !== 'POST' && path === '/app/data-export.json') return dataExport(env, actor)
   const exportFile = path.match(/^\/app\/data-export\/files\/([a-f0-9]{64})$/)
   if (request.method !== 'POST' && exportFile) return dataExportFile(env, actor, exportFile[1])
@@ -259,7 +269,7 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
     const bank = path.match(/^\/app\/courses\/([\w-]+)\/bank\/preview$/)?.[1]
     if (bank) { const input = await Input.from(request); insist(input.text('course') === bank, 'invalid_course'); return await bankPreviewPage(env, actor, bank, input, url) }
     const name = path.match(/^\/app\/do\/([\w.-]+)$/)?.[1]
-    const action = name ? actions[name] : undefined
+    const action = name && Object.hasOwn(actions, name) ? actions[name] : undefined
     if (!action) throw new BeamError('not_found', 404)
     const input = await Input.from(request)
     if (name === 'revision.decide' && input.text('decision') === 'publish' && !(request.headers.get('content-type') ?? '').match(/^(multipart\/form-data|application\/x-www-form-urlencoded)(;|$)/i)) throw new BeamError('human_publication_form_required', 403)
@@ -296,6 +306,10 @@ async function pageResponse(env: Bindings, actor: Actor, request: Request, url: 
   if ((match = path.match(/^\/app\/dashboards\/([\w-]+)\.csv$/))) return dashboardCsvResponse(env, actor, match[1], url)
   if (path === '/app/learning') return dashboard(env, actor, url)
   if (path === '/app/business') return businessPage(env, actor, url)
+  if (path === '/app/business/health') return operationsPage(env, actor, url)
+  if (path === '/app/tutor') return tutorPage(env,actor,url)
+  const tutorMatch = path.match(/^\/app\/tutor\/([\w-]+)(\/citation)?$/)
+  if (tutorMatch) return tutorMatch[2] ? tutorDownload(env,actor,tutorMatch[1],url) : tutorPage(env,actor,url,tutorMatch[1])
   if (path === '/app/model-account') return modelAccountPage(env, actor, url)
   const modelCourse = path.match(/^\/app\/courses\/([^/]+)\/(generate|translate)$/)
   if (modelCourse) return modelCourse[2] === 'generate' ? courseModelPage(env, actor, modelCourse[1], url) : localeModelPage(env, actor, modelCourse[1], url)

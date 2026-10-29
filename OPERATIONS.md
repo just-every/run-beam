@@ -68,6 +68,19 @@ resource ownership, migrations, receipt and health checks are defined there.
 Local validation does not prove hosted acceptance, provider delivery or remote
 health.
 
+## Provider connections on a local install (OPS-006)
+
+A fresh checkout runs the whole native learning journey with no provider account: setup, dev, a published course
+completed by a learner, build, `rer deploy --dry-run`, `rer export` and `rer import` into a second fresh clone
+(`BEAM_TEST_CHECKOUT=1 pnpm run test:journey`, nightly and on release tags). Features that need a provider never
+simulate one. Before the owner connects a model account, a draft request is refused (409, `model_disabled`) and the
+generation page says the owner must enable the AI preparation account in Settings; no draft, answer or cost is created.
+After the owner connects their own key through Settings, one approved request returns a real provider answer with its
+actual model, response id and USD estimate; revoking removes the sealed key. A hosted install without its mail credential
+is reported by `pnpm run diagnose:configuration` with the setting named (`MAIL_API_KEY`) and the action to take, and
+`rer deploy --dry-run` without it refuses with the same setting named. `tests/beam/live-install-provider.mjs` is the
+held-key qualification of this sequence in a fresh clone; it runs outside push Verify.
+
 ## Offline configuration diagnostics (OPS-007)
 
 Before starting a hosted installation, put its authentication/mail settings in a
@@ -149,3 +162,40 @@ MAIL_FROM and MAIL_RELAY_URL and provisions the private MAIL_API_KEY. Relay
 URLs must use HTTPS without credentials, queries or fragments. Local development
 and demo runs send no external mail. Keep the existing installation
 identity so existing archives and import records remain addressable.
+
+## Service health and capacity
+
+The human owner opens Settings, then Service health, at
+`/app/business/health`; the equivalent read is `GET /api/beam/operations`.
+Managers, learning administrators, preparation credentials and signed-out
+callers cannot read these installation-wide observations. This conservative
+authority floor awaits CT approval; broader delegated diagnostic scope remains
+target work. Reads neither contact external providers nor retry jobs.
+
+The page distinguishes retained job states from successful provider attempts,
+and roster receipt freshness from the last applied reviewed batch. A held
+preview is not a successful synchronization. Source-version usage is logical
+bytes, not physical storage or a provider quota. Empty history is unknown
+health. External provider availability is not probed.
+
+Source uploads accept nonempty files up to 25 MB. Package admission accepts a
+25 MB archive with at most 20 MB per expanded file and 100 MB total expanded
+content. Oversize uploads are refused whole; choose a smaller file and upload
+again. These limits do not qualify a hosted employer's capacity.
+
+Beam's provider fee, employer-day USD reservations and the existing provider
+cost boundary appear before the owner connects or uses a provider. Hosting,
+mail, video, models and licensed content can carry separate employer-account
+charges; actual prices, invoices and remaining quotas are unknown here. Confirm
+them with the provider before purchase or use. Reservations are estimates,
+including failed or unknown attempts, and never an invoice.
+
+For bounded native capacity qualification, build a clean committed checkout and
+run `node tests/beam/capacity.mjs` with a hard 20-minute timeout. It uses isolated
+D1 and R2 with ordinary authenticated HTTP doors: 200 active employee rows,
+retained history, a 20-person cohort, ten concurrent learners, synthetic owned
+mixed media and package resume. It prints the exact candidate SHA and workload
+receipt. Run it outside push Verify. It does not establish production media
+sizes, sustained hosted throughput, provider quota exhaustion or actual billing;
+OPS-008 remains partial until those named gaps and diagnostic authority are
+qualified.

@@ -96,7 +96,16 @@
           "packaging.json",
           "migrations/core/0110_beam_model_preparation.sql",
           "migrations/core/0111_beam_enterprise_portals.sql",
-          "migrations/core/0112_beam_portal_claims.sql"
+          "migrations/core/0112_beam_portal_claims.sql",
+          "migrations/core/0113_beam_tutor.sql",
+          "migrations/core/0114_beam_tutor_consent.sql",
+          "migrations/core/0115_beam_portal_learning.sql",
+          "migrations/core/0116_beam_portal_assessments.sql",
+          "migrations/core/0117_beam_portal_timing.sql",
+          "migrations/core/0119_beam_portal_quiz_review.sql",
+          "migrations/core/0120_beam_entra.sql",
+          "migrations/core/0121_beam_microsoft_sources.sql",
+          "migrations/core/0118_beam_portal_practical.sql"
         ]
       }
     },

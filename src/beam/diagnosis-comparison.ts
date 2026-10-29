@@ -1,3 +1,4 @@
+import { assertMicrosoftRevision } from './microsoft/rights'
 // Rule-made evidence comparison. Counts and numeric results are released only for groups of at least three.
 import type { Bindings } from '../auth.server'
 import type { Actor } from './actor'
@@ -34,6 +35,7 @@ export async function compareErrors(env: Bindings, actor: Actor, id: string, url
  const allTrained = !hidden && erring.length >= 3 && erring.every(person => trained.includes(person))
  const gap = !hidden && !allTrained && trainedGroup.interval && untrainedGroup.interval && untrainedGroup.interval[0] > trainedGroup.interval[1]
  const finding = allTrained ? 'process' : gap ? 'knowledge_gap' : 'uncertain'
+ await assertMicrosoftRevision(env, row.revision)
  const lessons = await all(env, 'SELECT id, title, body, source_version_ids FROM beam_lesson_revisions WHERE course_revision_id = ? ORDER BY position', row.revision)
  let questions: any = { plan: row.question_plan, hidden: 'no_question_plan', answered: null, totals: [] }
  if (row.question_plan) {

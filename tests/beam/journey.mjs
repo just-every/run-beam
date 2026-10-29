@@ -121,6 +121,8 @@ async function journey(width, ownerOpen, learnerOpen, learnerName) {
   await learner.getByRole('heading', { name: 'Opening steps' }).waitFor()
   await shot(learner, 'lesson')
   await learner.getByRole('button', { name: 'Mark done' }).click()
+  // The save is confirmed on the page first; the learner then continues to the course.
+  await learner.getByRole('link', { name: 'Continue' }).click()
   await learner.getByRole('link', { name: 'Take the quiz' }).click()
   await learner.getByLabel('Disarm the alarm').check()
   await shot(learner, 'quiz')
@@ -215,6 +217,13 @@ try {
   // rer also reads the target's provider metadata. Fixture only those Cloudflare GETs;
   // the real deploy command still builds, validates production settings and completes its dry run.
   const cloudflareFixture = fileURLToPath(new URL('./cloudflare-dry-run.mjs', import.meta.url))
+  // Without its mail credential the same dry run refuses and names what is missing.
+  const noMail = await command(root, ['deploy', '--dry-run'], { refuse: true, extraEnv: {
+    CLOUDFLARE_ACCOUNT_ID: '11111111111111111111111111111111',
+    CLOUDFLARE_API_TOKEN: 'synthetic-fixture-dry-run-cloudflare-token',
+    NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --import ${JSON.stringify(cloudflareFixture)}`,
+  } })
+  assert.match(noMail, new RegExp('MAIL_API_KEY|mail', 'i'), 'the refusal names the missing mail credential')
   await command(root, ['deploy', '--dry-run'], { extraEnv: {
     MAIL_API_KEY: 'synthetic-fixture-dry-run-mail-key',
     CLOUDFLARE_ACCOUNT_ID: '11111111111111111111111111111111',

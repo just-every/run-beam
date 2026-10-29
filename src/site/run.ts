@@ -8,4 +8,5 @@ export const run: RunData = {
   licence: 'MIT',
   docs: true,
   paths: { product: null },
+  pricing: { assisted: 'US$10/month', managed: 'US$100/month', note: 'early access' },
 }

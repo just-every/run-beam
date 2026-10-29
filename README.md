@@ -92,7 +92,9 @@ drafts with the source passages they rely on, targeted assignment plans,
 reminder drafts, question plans, process changes and practice scenarios.
 Nothing reaches staff until a person approves it at **Agent work**, and every
 decision is recorded. Staff answer question plans optionally and without their
-names; practice scenarios are never scored. Beam itself calls no model.
+names; practice scenarios are never scored. Optional course preparation and the
+source-grounded tutor call the employer’s connected model account only after the
+owner approves the exact disclosed request and its estimated USD reservation.
 
 Every completion records the exact course and assessment revision and its
 evidence. Beam's certificates are the business's own record of completion, not
