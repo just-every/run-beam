@@ -1240,10 +1240,6 @@
       "sha256": "dda480b7a71828779dc6acb42b269fab7b750715fad0cdd84b445f6f96923ece",
       "executable": false
     },
-    "scripts/ci/chromium-probe.mjs": {
-      "sha256": "4992d0cad051c708566587b679fa344488c45f63929a34897bf7f345bcad5de9",
-      "executable": false
-    },
     "scripts/delivery/base/artifact.mjs": {
       "sha256": "129f210f1556e816ba94ffe74359ac553cd26466aaf8c6c299765e9cea29aa07",
       "executable": false
