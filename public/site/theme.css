@@ -90,6 +90,8 @@ header.bar .brand { font-weight: 800; letter-spacing: -.01em; }
 header.bar .brand img { width: 34px; height: 40px; }
 main > .intro h1, main > .hero h1 { font-weight: 800; letter-spacing: -.03em; line-height: 1.02; }
 main > .intro h1 { font-size: 66px; }
+/* Keep the optional Run commands readable in full on phones. */
+body .chooser .self .other-ways pre code { white-space: pre-wrap; overflow-wrap: anywhere; }
 /* The band is the horizon at its own proportions (1536 x 540; the phone crop 800 x 584), its sky fading into the page. */
 body:has(> .art) { --art: calc(100vw * 540 / 1536); }
 body > .art picture { display: block; height: 100%; }
