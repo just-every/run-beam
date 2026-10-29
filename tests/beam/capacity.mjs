@@ -79,5 +79,5 @@ try {
   assert.equal((await h.api(`assignments/${assignment}`, sessions[0])).completion.revision, packageRevision)
   const health = await api('owner', 'operations')
   assert.deepEqual([health.usage.activePeople, health.usage.assignments, health.usage.completions, health.usage.packages], [200, 21, 211, 1])
-  console.log(JSON.stringify({ result: 'PASS', head, run: 'sx-beam-c-f1-capacity', runtime: 'local emitted Worker with isolated D1 and R2', activePeople: 200, retainedHistoricalCompletions: 200, cohort: 20, concurrentLearners: 10, originalFiles: 4, packageResume: true, completions: 211, elapsedMs: Math.round(performance.now() - started), boundary: 'Synthetic small media and local runtime only; hosted quotas, production media sizes and actual provider charges unqualified' }))
+  console.log(JSON.stringify({ result: 'PASS', head, run: 'beam-capacity', runtime: 'local emitted Worker with isolated D1 and R2', activePeople: 200, retainedHistoricalCompletions: 200, cohort: 20, concurrentLearners: 10, originalFiles: 4, packageResume: true, completions: 211, elapsedMs: Math.round(performance.now() - started), boundary: 'Synthetic small media and local runtime only; hosted quotas, production media sizes and actual provider charges unqualified' }))
 } finally { await f.h.close() }

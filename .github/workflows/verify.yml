@@ -1,223 +1,294 @@
 name: Verify
-
 on:
   push:
-    branches: ['**']
   pull_request:
   workflow_dispatch:
-  workflow_call:
-    inputs:
-      tier:
-        type: string
-        default: push
-      timeout:
-        type: number
-        default: 12
-
 permissions:
   contents: read
-
 concurrency:
-  group: seed-verify-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
+  group: verify-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 1
+    timeout-minutes: 30
     permissions:
       contents: read
       actions: read
     outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
-      skip: ${{ steps.plan.outputs.skip }}
-      coverage: ${{ steps.plan.outputs.coverage }}
-      tier: ${{ steps.plan.outputs.tier }}
-      readers: ${{ steps.plan.outputs.readers }}
-      has_shards: ${{ steps.plan.outputs.has_shards }}
+      skip: ${{ steps.reuse.outputs.skip }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@v4
         with:
-          persist-credentials: false
           fetch-depth: 2
-      - name: Check reusable workflow permissions
-        run: node scripts/verify-ci.mjs --check-workflows
-      - name: Look up complete nightly marker
-        id: nightly
-        if: ${{ github.event_name == 'schedule' || inputs.tier == 'nightly' }}
-        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
-        with:
-          path: ${{ runner.temp }}/nightly-green
-          key: nightly-green-${{ github.sha }}
-          lookup-only: true
-      - id: plan
+          persist-credentials: false
+      - id: reuse
         env:
-          TIER: ${{ inputs.tier || 'push' }}
-          GITHUB_TOKEN: ${{ github.token }}
-          NIGHTLY_CACHE_HIT: ${{ steps.nightly.outputs.cache-hit }}
-        run: node scripts/verify-ci.mjs --plan
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          WF_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          wf="${WF_REF%@*}"; wf="${wf##*/}"
+          # Evidence is only a push run of this workflow from this repository, never this run: a pull request
+          # tests its merge ref, a dispatch may run a subset, and a PR run of this workflow may itself be a skip.
+          # Prints "<status> <conclusion>" of the newest such run on SHA $1, or nothing (any API error: nothing).
+          newest_push() {
+            gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?head_sha=$1&event=push&per_page=100" \
+              --jq "[.workflow_runs[] | select(.head_repository.full_name == \"$GITHUB_REPOSITORY\" and .id != $GITHUB_RUN_ID)] | max_by(.id) | select(. != null) | \"\(.status) \(.conclusion)\"" || true
+          }
+          green() { [ "$(newest_push "$1")" = "completed success" ]; }
+          skip=false
+          # C1: main push of a SHA whose newest push run of this workflow (a branch run) is green.
+          if [ "$EVENT" = push ] && [ "$REF" = refs/heads/main ] && green "$GITHUB_SHA"; then skip=true; fi
+          # C3 (exact): same tree as the parent, and the parent's newest push run is green (e.g. an empty commit).
+          if [ "$skip" = false ] && [ "$EVENT" = push ] && parent=$(git rev-parse -q --verify HEAD~1) \
+             && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'HEAD~1^{tree}')" ] && green "$parent"; then skip=true; fi
+          # C2: same-repository PR. The lander takes any green same-repo run on the exact SHA as evidence,
+          # pull_request runs included, so this run may pass without shards only when the push run on the
+          # PR head is green: wait for it (at most 25 minutes).
+          # No push run, any other result, or the wait running out: run in full.
+          if [ "$EVENT" = pull_request ] && [ "$SAME_REPO" = true ]; then
+            for _ in $(seq 1 50); do
+              state=$(newest_push "$PR_HEAD")
+              case "$state" in
+                'completed success') skip=true; break ;;
+                ''|completed\ *) break ;;
+                *) sleep 30 ;;
+              esac
+            done
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
-  shards:
-    name: shards (${{ matrix.name }})
+  dev-personas:
     needs: plan
-    if: ${{ needs.plan.outputs.has_shards == 'true' }}
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.timeout || 12 }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    timeout-minutes: 15
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
-      PLAYWRIGHT_SKIP_BROWSER_GC: '1'
+      BEAM_TEST_CHECKOUT: '1'
     steps:
-      # Job env is evaluated before the runner context is available.
-      - name: Set runner-owned browser cache
-        run: printf 'PLAYWRIGHT_BROWSERS_PATH=%s/ms-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
-          package-manager-cache: false
-      - name: Check edition source lock freshness
-        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
-        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
-      - name: Set runner-owned pnpm store
-        run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
-      - name: Prepare runner-owned browser and apt caches
-        if: matrix.browser
-        run: |
-          set -euo pipefail
-          id
-          printf 'Runner HOME=%s\n' "$HOME"
-          if [ -e "$HOME/.cache" ]; then
-            stat -c 'Home cache: %n uid=%u gid=%g mode=%a' "$HOME/.cache"
-          else
-            printf 'Home cache: absent\n'
-          fi
-          mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
-      # Save completed packages; apt keeps partial downloads private to _apt.
-      - name: Cache frozen dependencies and Chromium
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - run: node tests/beam/dev-personas.mjs
+  rer-verify:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    # The complete wall is split across the focused jobs below to fit the 15-minute job limit.
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      # Focused jobs below run authoring APIs, model preparation and tutor checks.
+      BEAM_REGRESSION_EXCLUDE: 'OPS-003,OPS-007,AUTO-004,PACK-003-custody,AUTHOR-001,AUTHOR-002,LEARN-008,AUTHOR-007'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
         with:
-          path: |
-            ${{ runner.temp }}/pnpm-store
-            ${{ runner.temp }}/ms-playwright
-            ${{ runner.temp }}/rer-apt/archives/*.deb
-          # Old snapshots contain absolute HOME paths; do not restore them here.
-          key: seed-ubuntu24-temp-store-${{ runner.arch }}-browser-${{ matrix.browser }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
-      - name: Install and probe Chromium before system dependencies
-        if: matrix.browser
+          fetch-depth: 0
+          persist-credentials: false
+      # Leave room for the complete wall, reclaiming only as much as it needs.
+      - name: Reclaim unused hosted-runner SDKs
+        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
         run: |
           set -euo pipefail
-          stat -c 'Before browser: %n uid=%u gid=%g mode=%a' "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
-          pnpm exec playwright install chromium
-          probe() { node --input-type=module -e "import { chromium } from '@playwright/test'; try { const browser = await chromium.launch({headless: true}); await browser.close(); } catch (error) { console.error(error); process.exit(/EACCES|permission denied/i.test(String(error)) ? 77 : 1); }"; }
-          if probe; then
-            :
-          else
-            status=$?
-            if [ "$status" -eq 77 ]; then exit "$status"; fi
-            sudo env "PATH=$PATH" "APT_ARCHIVES=$RUNNER_TEMP/rer-apt/archives" python3 scripts/install-chromium-deps.py
-            stat -c 'After apt: %n uid=%u gid=%g mode=%a' "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
-            probe
-          fi
-      - name: Reserve disk for native runtime journeys
-        if: matrix.browser
-        run: |
-          free_kib() { df -Pk "$GITHUB_WORKSPACE" | awk 'END { print $4 }'; }
-          for unused_tools in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do
-            if [ "$(free_kib)" -ge "$((20 * 1024 * 1024))" ]; then break; fi
-            sudo rm -rf -- "$unused_tools"
+          for sdk in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do
+            available=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR == 2 {print $4}')
+            if [ "$available" -ge $((20 * 1024 * 1024)) ]; then break; fi
+            sudo rm -rf -- "$sdk"
           done
-      - name: Run this shard
-        env:
-          SHARD: ${{ matrix.name }}
-        run: node scripts/verify-ci.mjs "$SHARD"
-      - uses: actions/upload-artifact@v4
-        if: ${{ always() && matrix.browser }}
+          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
+      - uses: actions/setup-node@v4
         with:
-          name: beam-pages-${{ matrix.name }}
-          path: |
-            test-results/*.png
-            ${{ runner.temp }}/beam-tutor-pages/*.png
-
-  light:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      # rer verify ends with the hydration check, which needs Chromium.
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
+      - run: pnpm exec rer verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beam-pages
+          path: test-results/*.png
+  durability:
     needs: plan
-    if: ${{ needs.plan.outputs.coverage == 'light' }}
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      - uses: actions/setup-node@v4
         with:
           node-version: '22.20.0'
-          package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
-      - run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run deps
-      - name: Run the changed files' reviewed readers and build the run site
-        env:
-          LIGHT_READERS: ${{ needs.plan.outputs.readers }}
-        run: node scripts/verify-ci.mjs --light
-
-  full-push-proof:
-    needs: [plan, shards]
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') && needs.plan.outputs.tier == 'push' && needs.plan.outputs.coverage == 'full' && needs.shards.result == 'success' }}
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=OPS-007,AUTO-004
+  erasure-custody:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 1
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
     steps:
-      - run: test '${{ needs.shards.result }}' = success
-
-  nightly-proof:
-    needs: [plan, shards]
-    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (needs.plan.outputs.tier == 'nightly' || needs.plan.outputs.tier == 'all') && needs.plan.outputs.coverage == 'full' && needs.shards.result == 'success' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 1
-    steps:
-      - name: Mark successful complete nightly coverage
-        run: mkdir -p "$RUNNER_TEMP/nightly-green" && printf '%s\n' '${{ github.sha }}' > "$RUNNER_TEMP/nightly-green/sha"
-      - uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684
+      - uses: actions/checkout@v4
         with:
-          path: ${{ runner.temp }}/nightly-green
-          key: nightly-green-${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=OPS-003
+  package-custody:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - run: pnpm exec rer build && node tests/beam/regressions.mjs --only=PACK-003-custody,LEARN-008,AUTHOR-007
+  tutor-browser:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
+      - run: pnpm exec rer build
+      - name: Tutor custody and responsive screens
+        run: BEAM_TUTOR_BROWSER=1 BEAM_EVIDENCE_DIR="$RUNNER_TEMP/beam-tutor-pages" node tests/beam/regressions.mjs --only=LEARN-008
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beam-tutor-pages
+          path: ${{ runner.temp }}/beam-tutor-pages/*.png
+  learning-and-source-browser:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile && pnpm exec rer install
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          pnpm exec playwright install --only-shell chromium
+          # Hosted ubuntu-24.04 already carries Chromium's libraries. Use apt only when a real launch fails.
+          node scripts/ci/chromium-probe.mjs || {
+            timeout 420 pnpm exec playwright install-deps chromium
+            node scripts/ci/chromium-probe.mjs
+          }
+      - run: pnpm exec rer build
+      - run: node tests/beam/regressions.mjs --only=AUTHOR-001,AUTHOR-002 --browser
+      - run: node tests/beam/regressions.mjs --only=ORG-008 --browser
+      - run: node tests/beam/regressions.mjs --only=ORG-009 --browser
+      - run: node tests/beam/microsoft-browser.mjs
+      - run: node tests/beam/model-browser.mjs
+      - run: node tests/beam/erasure-browser.mjs
+      - run: node tests/beam/mobile-learning-browser.mjs
+      - run: timeout 1200 node tests/beam/regressions.mjs --only=OPS-008 --browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beam-learning-and-source-pages
+          path: test-results/*.png
+  source:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: pnpm exec rer check --profile first-party
 
   verify:
-    needs: [plan, shards, light, full-push-proof, nightly-proof]
+    needs: [plan, dev-personas, rer-verify, durability, erasure-custody, package-custody, tutor-browser, learning-and-source-browser, source]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
-      - name: Require the selected coverage and its proof
+      - name: Require the plan and every shard
         env:
           PLAN: ${{ needs.plan.result }}
-          SHARDS: ${{ needs.shards.result }}
-          LIGHT: ${{ needs.light.result }}
-          PUSH_PROOF: ${{ needs.full-push-proof.result }}
-          NIGHTLY_PROOF: ${{ needs.nightly-proof.result }}
-          COVERAGE: ${{ needs.plan.outputs.coverage }}
-          HAS_SHARDS: ${{ needs.plan.outputs.has_shards }}
           SKIP: ${{ needs.plan.outputs.skip }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |
-          set -euo pipefail
           test "$PLAN" = success
-          case "$PUSH_PROOF:$NIGHTLY_PROOF" in
-            *failure*|*cancelled*) exit 1 ;;
-          esac
-          case "$COVERAGE" in
-            reuse) test "$SKIP" = true && test "$SHARDS" = skipped && test "$LIGHT" = skipped ;;
-            light) test "$SKIP" = false && test "$LIGHT" = success && test "$SHARDS" = skipped ;;
-            full) test "$LIGHT" = skipped && { test "$SHARDS" = success || { test "$HAS_SHARDS" = false && test "$SHARDS" = skipped; }; } ;;
-            *) exit 1 ;;
-          esac
+          if [ "$SKIP" = true ]; then exit 0; fi
+          for result in $RESULTS; do test "$result" = success; done
