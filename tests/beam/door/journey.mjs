@@ -46,8 +46,8 @@ export default async function nativeJourney(context) {
   assert.equal((await call('tools/list', {})).status, 401)
   assert.equal(completed(await tool('beam.course.read', { id: created.id })).draftVersion, changed.draftVersion)
 
-  // Terminate a separate real sponsor, then restore them through the owner.
-  // Their old token and session must remain revoked after reactivation.
+  // A separate sponsor is natively inadmissible while terminated. Explicit
+  // access removal then revokes their old credential even after reactivation.
   const state = installation(origin)
   const reviewer = nativeHttp({ ...context, cookie: state.reviewer.cookie })
   const credential = await reviewer.api('agent.issue', {})
@@ -66,6 +66,11 @@ export default async function nativeJourney(context) {
   } finally {
     await http.api('person.directory', { member: state.reviewer.id, employment: 'active' })
   }
+  await http.api('person.access', { member: state.reviewer.id, status: 'inactive' })
+  const revoked = await reviewerCall()
+  assert.equal(revoked.status, 401)
+  await revoked.body?.cancel()
+  await http.api('person.access', { member: state.reviewer.id, status: 'active' })
   const old = await reviewerCall()
   assert.equal(old.status, 401)
   await old.body?.cancel()
