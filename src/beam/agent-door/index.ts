@@ -26,7 +26,9 @@ export function beamAgentDoor(env: Bindings) {
     paths: ['/api/beam/mcp'], localCredentials: request => localCredential(env, tools, request),
     currentScopes: principal => currentScopes(env, tools, principal) })
   return { ...door, async handle(request: Request) {
-    if (new URL(request.url).pathname === '/api/beam/mcp' && request.headers.has('cookie')) {
+    const path = new URL(request.url).pathname
+    if (path === '/api/rer/agent-decisions') return door.handle(request)
+    if (path === '/api/beam/mcp' && request.headers.has('cookie')) {
       return Response.json({ code: 'mcp_session_refused' }, { status: 403 })
     }
     return door.handle(request)
