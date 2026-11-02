@@ -25,6 +25,29 @@
       }
     },
     {
+      "path": ".github/workflows/verify.yml",
+      "originPath": "export/verify.yml",
+      "revision": "8b925fa5ffaa577df9f2e4ebab6ede8af5155baa",
+      "files": {
+        ".github/workflows/verify.yml": "09fe6d2a0b274d4925950ef0ddde9c8c7099e15edb5333a601ead2bbcec73a86"
+      },
+      "modes": {
+        ".github/workflows/verify.yml": "100644"
+      },
+      "originFiles": [
+        "export/verify.yml"
+      ],
+      "adapted": {
+        ".github/workflows/verify.yml": "8b925fa5ffaa577df9f2e4ebab6ede8af5155baa"
+      },
+      "acknowledged": {
+        ".github/workflows/verify.yml": {
+          "sha256": "6959c5db4516e6e5adc5d3864d1c00df3be52df98e452f07709cbcfd29f6ac71",
+          "mode": "100644"
+        }
+      }
+    },
+    {
       "path": ".node-version",
       "originPath": "default-seed/.node-version",
       "revision": "8b925fa5ffaa577df9f2e4ebab6ede8af5155baa",
@@ -1123,6 +1146,20 @@
       },
       "originFiles": [
         "default-seed/scripts/verify-app.mjs"
+      ]
+    },
+    {
+      "path": "scripts/verify-ci.mjs",
+      "originPath": "export/verify-ci.mjs",
+      "revision": "8b925fa5ffaa577df9f2e4ebab6ede8af5155baa",
+      "files": {
+        "scripts/verify-ci.mjs": "70c11f74ba4bf98771115dc86c990a273a5fa5b5949ac325dfa8320611921de9"
+      },
+      "modes": {
+        "scripts/verify-ci.mjs": "100644"
+      },
+      "originFiles": [
+        "export/verify-ci.mjs"
       ]
     },
     {
