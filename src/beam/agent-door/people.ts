@@ -45,7 +45,9 @@ async function memberForOperator(env: Bindings, operatorId: string) {
 }
 
 export function people(env: Bindings): PeopleAdapter {
+  const businessStopped = async () => !!await one(env, 'SELECT 1 FROM bs_settings WHERE singleton=1 AND stopped=1')
   return {
+    businessStopped,
     person: id => nativeMember(env, id),
     businessRole: person => person.role === 'owner' ? 'owner' : person.role === 'admin' ? 'editor' : null,
     async sponsor({ sub }) {
@@ -59,6 +61,7 @@ export function people(env: Bindings): PeopleAdapter {
       return row?.operator_id ? memberForOperator(env, row.operator_id) : null
     },
     async businessMember(person) {
+      if (await businessStopped()) return null
       const current = await nativeMember(env, person.id)
       if (!current?.active) return null
       const [settings, owner] = await Promise.all([

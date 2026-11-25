@@ -110,7 +110,9 @@
           "agent-surface.json",
           "migrations/core/0123_import_kit_door_refresh.sql",
           "migrations/core/0124_agent_door_relay.sql",
-          "migrations/core/0125_agent_replay_custody.sql"
+          "migrations/core/0125_agent_replay_custody.sql",
+          "migrations/core/0126_agent_door_relay_privacy.sql",
+          "migrations/core/0127_business_retired.sql"
         ]
       }
     },

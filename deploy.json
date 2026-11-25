@@ -46,7 +46,8 @@
     {
       "binding": "MAIL_FROM",
       "environment": "MAIL_FROM",
-      "optional": true
+      "optional": true,
+      "verifyStandIn": "auth@example.invalid"
     },
     {
       "binding": "MAIL_RELAY_URL",
@@ -61,7 +62,8 @@
     {
       "binding": "MAIL_API_KEY",
       "environment": "MAIL_API_KEY",
-      "optional": true
+      "optional": true,
+      "verifyStandIn": "synthetic-beam-verification"
     }
   ],
   "r2": [
