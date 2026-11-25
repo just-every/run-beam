@@ -7,7 +7,6 @@ import { access, chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { command, serving } from './cli.mjs'
 import { procedureV1 } from './fixtures.mjs'
 import { restoreJourney } from './restore.mjs'
@@ -213,23 +212,14 @@ try {
   assert.equal((await fetch(`${origin}/health`)).status, 200)
   assert.equal((await fetch(`${origin}/signin`)).status, 200)
   await server.stop(); server = null
-  // A production deploy needs its declared mail provider's key (rer refuses production without sign-in mail).
-  // rer also reads the target's provider metadata. Fixture only those Cloudflare GETs;
-  // the real deploy command still builds, validates production settings and completes its dry run.
-  const cloudflareFixture = fileURLToPath(new URL('./cloudflare-dry-run.mjs', import.meta.url))
-  // Without its mail credential the same dry run refuses and names what is missing.
-  const noMail = await command(root, ['deploy', '--dry-run'], { refuse: true, extraEnv: {
-    CLOUDFLARE_ACCOUNT_ID: '11111111111111111111111111111111',
-    CLOUDFLARE_API_TOKEN: 'synthetic-fixture-dry-run-cloudflare-token',
-    NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --import ${JSON.stringify(cloudflareFixture)}`,
+  const dryRun = await command(root, ['deploy', '--dry-run', '--json'], { extraEnv: {
+    MAIL_PROVIDER: 'none', MAIL_FROM: '', MAIL_API_KEY: '', MAIL_ACCOUNT_ID: '', MAIL_RELAY_URL: '',
+    CLOUDFLARE_ACCOUNT_ID: '', CLOUDFLARE_API_TOKEN: '',
   } })
-  assert.match(noMail, new RegExp('MAIL_API_KEY|mail', 'i'), 'the refusal names the missing mail credential')
-  await command(root, ['deploy', '--dry-run'], { extraEnv: {
-    MAIL_API_KEY: 'synthetic-fixture-dry-run-mail-key',
-    CLOUDFLARE_ACCOUNT_ID: '11111111111111111111111111111111',
-    CLOUDFLARE_API_TOKEN: 'synthetic-fixture-dry-run-cloudflare-token',
-    NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --import ${JSON.stringify(cloudflareFixture)}`,
-  } })
+  const plan = dryRun.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line)).find(event => event.dryRun)
+  assert.equal(plan?.deployed, false)
+  assert.equal(plan.providerChecked, false)
+  assert.ok(!(plan.neededForRealDeploy ?? []).some(input => /MAIL_API_KEY|MAIL_FROM/.test(input)))
   await restoreJourney({ root, target: join(scratch, 'target'), port })
 } finally {
   await browser?.close()

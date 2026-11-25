@@ -24,6 +24,7 @@ export const commandAdapter = createCommandAdapter(lifecycle, {
  // OPS-007: the archive policy withholds every verifier hash (scripts/installer/portability-policy.mjs).
  portability: localPortability({ database: 'beam', buckets: { files: 'FILES' }, policyModule: 'scripts/installer/portability-policy.mjs', transient: ['local runtime caches and logs'] }),
  setup: { manifestFile: 'rer-setup.json' }, browserModule: 'scripts/installer/ui/seed.mjs',
+ mailOffSignIn: 'rer signin',
  // The static run site (run-beam.com): the landing, the Run page and the docs, built by `rer build --site`.
  site: { entry: 'src/site/pages.ts', output: 'dist/site', declaration: 'deploy-site.json', config: 'vite.site.config.ts' },
  // Local dev identity: the local-only Worker entry, the build output rer build

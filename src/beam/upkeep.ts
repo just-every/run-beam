@@ -109,6 +109,7 @@ export async function runUpkeep(env: Bindings, manual = false) {
       input: { kind: item.kind, item: item.id, course: item.course_id, recipient: recipient.id, route: target.route, reason: target.reason } }, async artifact => {
       const open = await one(env, `SELECT 1 FROM ${item.kind === 'review' ? 'beam_content_reviews' : 'beam_source_notices'} WHERE id = ? AND state = 'open'`, item.id)
       insist(open, 'item_decided', 409)
+      insist(env.MAIL_PROVIDER !== 'none', 'mail_off', 409)
       const sender = operatorMail(env)
       insist(sender && env.MAIL_FROM, 'mail_not_configured', 409)
       insist(recipient.email, 'no_contact_route', 409)

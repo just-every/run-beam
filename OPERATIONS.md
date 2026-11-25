@@ -58,15 +58,33 @@ a forward migration and verified transition/recovery.
 
 ## Deployment
 
-`rer deploy --dry-run` validates the real owner-account
-deployment declaration and builds locally without provider requests. Real
-deployment requires privately supplied `CLOUDFLARE_ACCOUNT_ID` and
-`CLOUDFLARE_API_TOKEN`, the declared owner/session/setup secrets, and a real
-verified mail sender in `deploy.json`. Follow the owner-account deploy-kit
-instructions under `node_modules/@runeditrun/rer/modules/deploy-kit`; account scope,
-resource ownership, migrations, receipt and health checks are defined there.
-Local validation does not prove hosted acceptance, provider delivery or remote
-health.
+Start with a fresh Beam checkout and run `rer install`. Run `rer setup` and
+enter the real owner's email address when prompted. Then plan the deployment
+with email off.
+
+```sh
+MAIL_PROVIDER=none rer deploy --dry-run
+```
+
+The dry run builds locally and prints the Cloudflare resources it would create.
+For the real deploy, supply `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`
+privately through the Business connection or an owned mode-0600 environment
+file passed as `--env-file` to both commands. The token needs Workers Scripts Edit, D1 Edit and Workers R2 Storage Edit
+for the target account. Supply any inputs named by the dry run. Leave
+`MAIL_FROM` and `MAIL_API_KEY` unset for mail off.
+
+```sh
+MAIL_PROVIDER=none rer deploy
+rer signin
+```
+
+Run `rer signin` from the same checkout with the same Cloudflare credentials
+and environment. Open the one-time owner link it prints and keep it private.
+Mail off disables email sign-in links, invitations, email verification and
+outbound reminders. For a new deployment with mail on, set `MAIL_PROVIDER` to your chosen
+provider, supply its verified `MAIL_FROM` and privately supply its
+`MAIL_API_KEY`. See the offline configuration diagnostics below for
+provider-specific inputs.
 
 ## Provider connections on a local install (OPS-006)
 
@@ -77,8 +95,8 @@ simulate one. Before the owner connects a model account, a draft request is refu
 generation page says the owner must enable the AI preparation account in Settings; no draft, answer or cost is created.
 After the owner connects their own key through Settings, one approved request returns a real provider answer with its
 actual model, response id and USD estimate; revoking removes the sealed key. A hosted install without its mail credential
-is reported by `pnpm run diagnose:configuration` with the setting named (`MAIL_API_KEY`) and the action to take, and
-`rer deploy --dry-run` without it refuses with the same setting named. `tests/beam/live-install-provider.mjs` is the
+is reported by `pnpm run diagnose:configuration` with the setting named (`MAIL_API_KEY`) and the action to take
+when a sending provider is configured. `tests/beam/live-install-provider.mjs` is the
 held-key qualification of this sequence in a fresh clone; it runs outside push Verify.
 
 ## Offline configuration diagnostics (OPS-007)
@@ -96,8 +114,9 @@ missing/invalid setting with its corrective action. Correct those settings in
 the installation secret store and run it again. A successful result checks
 syntax only: verify sender ownership and credentials with the real provider
 and exercise ordinary sign-in before relying on delivery. Hosted installations
-need AUTH_ORIGIN, OWNER_EMAIL, SESSION_SECRET, MAIL_PROVIDER, MAIL_FROM and
-MAIL_API_KEY; Cloudflare mail also needs MAIL_ACCOUNT_ID. SETUP_TOKEN is checked
+need AUTH_ORIGIN, OWNER_EMAIL, SESSION_SECRET and MAIL_PROVIDER. Sending
+providers need MAIL_FROM and MAIL_API_KEY. Cloudflare mail also needs
+MAIL_ACCOUNT_ID, and the RER relay needs MAIL_RELAY_URL. SETUP_TOKEN is checked
 when supplied (Base permits it to be absent after ownership is claimed).
 AUTH_LOCAL=true selects the existing local loopback/development-mail rules;
 local and demo mail do not require hosted provider credentials.

@@ -2,6 +2,9 @@ import { themeMail } from './beam/portal-theme'
 import { createMailSender } from './modules/mail/index.mjs'
 
 export function operatorMail(env) {
+ if (env.MAIL_PROVIDER === 'none') return {
+  async send() { return { status: 'rejected', provider: 'none', providerMessageId: null, code: 'mail_off' } },
+ }
  if (env.RER_DEMO === '1' || env.AUTH_LOCAL === 'true') {
   const sender = createMailSender({ provider: 'development', mode: 'development' })
   return { async send(message) { return sender.send(await themeMail(env, message)) } }

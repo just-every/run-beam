@@ -101,6 +101,7 @@ export async function runEscalations(env: Bindings, manual = false, onlyAssignme
         const liveElapsed = now() - live.dueAt
         const allowed = person.route === 'learner' ? live.employment === 'active' && liveElapsed < current.manager_hours * HOUR : (await targets(env, live, liveElapsed >= current.fallback_hours * HOUR)).some(row => row.id === person.id && row.route === person.route)
         insist(allowed, 'escalation_route_changed', 409)
+        insist(env.MAIL_PROVIDER !== 'none', 'mail_off', 409)
         const sender = operatorMail(env)
         insist(sender && env.MAIL_FROM, 'mail_not_configured', 409)
         const address = (await one(env, 'SELECT email FROM beam_members WHERE id=?', person.id))?.email

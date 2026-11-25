@@ -1,17 +1,16 @@
-import { fileURLToPath as __rerTestEntryPath } from 'node:url';
-const __rerTestEntry = __rerTestEntryPath(import.meta.resolve('@runeditrun/rer/internal/global/rer.mjs'));
-const __rerTestEntryArgs = args => ['dev', 'preview'].includes(args[1]) && !args.some(arg => ['--foreground', '--detach', '--stop', '--help'].includes(arg)) ? [...args, '--foreground'] : args;
-// Drives the public `rer` commands of a checkout (the pinned package entry). Failures show
+// Drives the public `rer` commands using pnpm's bin for the pinned package. Failures show
 // the command's output with dev keys and sign-in tokens redacted.
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
+const rer = fileURLToPath(new URL('../../node_modules/.bin/rer', import.meta.url))
 const env = () => ({ ...process.env, WRANGLER_SEND_METRICS: 'false' })
 const redact = output => output.replace(/(rer-dev=|token=|RER_DEV_KEY=)[^&\s"']+/g, '$1[redacted]').slice(-4000)
 
 export async function command(root, args, { refuse = false, extraEnv = {} } = {}) {
-  const child = spawn(process.execPath, __rerTestEntryArgs([__rerTestEntry, ...args]), { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...env(), ...extraEnv } })
+  const child = spawn(rer, args, { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...env(), ...extraEnv } })
   let output = ''
   for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => { output += chunk })
   const code = await new Promise(resolve => child.once('exit', resolve))
@@ -22,7 +21,7 @@ export async function command(root, args, { refuse = false, extraEnv = {} } = {}
 
 /** Starts a managed dev or preview server and waits for RER_READY. */
 export async function serving(root, verb, port, extra = []) {
-  const child = spawn(process.execPath, __rerTestEntryArgs([__rerTestEntry, verb, '--port', String(port), ...extra]), { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: env() })
+  const child = spawn(rer, [verb, '--foreground', '--port', String(port), ...extra], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: env() })
   let spawnError
   const exited = new Promise(resolve => {
     child.once('exit', resolve)

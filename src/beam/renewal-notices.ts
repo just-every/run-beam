@@ -32,6 +32,7 @@ async function deliverNotice(env: Bindings, id: string, manual: boolean) {
       insist(false, `renewal_notice_${problem}`, 409)
     }
     insist(JSON.stringify(await renewalNoticeContent(env, live)) === JSON.stringify(content), 'renewal_notice_inputs_changed', 409)
+    insist(env.MAIL_PROVIDER !== 'none', 'mail_off', 409)
     const sender = operatorMail(env)
     insist(sender && env.MAIL_FROM, 'mail_not_configured', 409)
     const token = newId(), at = now()

@@ -64,7 +64,9 @@ rer describe                                 # the commands and flags this check
 Reset is destructive: export first if you want the data back. Import needs an
 empty destination and explicit confirmation; after it, run `setup` and sign in
 again (sessions and credentials never travel in an archive). Real `deploy`
-needs your own Cloudflare account and a verified mail sender. Pins: Node 22.20.0
+needs your own Cloudflare account. To deploy with email off and sign in as the
+owner with `rer signin`, follow the [deployment guide](OPERATIONS.md#deployment).
+Pins: Node 22.20.0
 and pnpm 10.12.4, selected automatically. `RUN-LOCALLY.md` and
 `SEED-COMMAND-CONTRACT.md` hold the full command and state contract.
 

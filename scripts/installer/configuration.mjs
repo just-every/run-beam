@@ -17,7 +17,8 @@ export function configurationIssues(env) {
   }
   if (env.AUTH_LOCAL !== undefined && !['true', 'false'].includes(env.AUTH_LOCAL)) issue('AUTH_LOCAL', 'Use true for a local runtime or false for a hosted installation.')
   if (local || env.RER_DEMO === '1') return issues // These runtimes intentionally use Base development mail.
-  if (!['resend', 'sendgrid', 'cloudflare', 'rer'].includes(env.MAIL_PROVIDER)) issue('MAIL_PROVIDER', 'Select resend, sendgrid, cloudflare or rer for hosted sign-in mail.')
+  if (env.MAIL_PROVIDER === 'none') return issues
+  if (!['resend', 'sendgrid', 'cloudflare', 'rer'].includes(env.MAIL_PROVIDER)) issue('MAIL_PROVIDER', 'Select none, resend, sendgrid, cloudflare or rer for hosted mail.')
   if (typeof env.MAIL_FROM !== 'string' || !env.MAIL_FROM.trim()) issue('MAIL_FROM', 'Set a single sender mailbox verified with the selected mail provider.')
   else {
     // Use the same address validation as a real send, without constructing or sending a message.

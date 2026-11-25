@@ -83,6 +83,10 @@
           "label": "Local development (no external mail)"
         },
         {
+          "value": "none",
+          "label": "Off (owner signs in with rer signin)"
+        },
+        {
           "value": "resend",
           "label": "Resend"
         },
@@ -100,7 +104,7 @@
         }
       ],
       "group": "mail",
-      "help": "Use local development on this computer. Hosted installations require Resend, SendGrid, Cloudflare or the assigned RER relay."
+      "help": "Use local development on this computer. Hosted installations can leave mail off or use Resend, SendGrid, Cloudflare or the assigned RER relay."
     },
     {
       "name": "MAIL_FROM",

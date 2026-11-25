@@ -77,3 +77,23 @@ try {
 } finally {
   await worker.close()
 }
+
+if (!process.env.BEAM_WORKER_CHECKOUT) {
+  const mailOff = await emittedWorker({ bindings: { MAIL_PROVIDER: 'none', MAIL_FROM: undefined, MAIL_API_KEY: undefined } })
+  try {
+    const post = (path, body) => mailOff.fetch(path, {
+      method: 'POST', headers: { origin: mailOff.origin, 'content-type': 'application/json' }, body: JSON.stringify(body),
+    })
+    assert.equal((await post('/auth/bootstrap', { token: mailOff.vars.SETUP_TOKEN, displayName: 'Owner' })).status, 303)
+    const refused = await post('/auth/magic-link', { email: mailOff.vars.OWNER_EMAIL })
+    assert.equal(refused.status, 503)
+    assert.deepEqual(await refused.json(), { error: 'mail_off' })
+    assert.equal(mailOff.edge.attempts.length, 0)
+    const signIn = await mailOff.fetch('/signin')
+    assert.equal(signIn.status, 200)
+    assert.doesNotMatch(await signIn.text(), /<form[^>]+action="\/auth\/magic-link"/)
+    console.log('Mail-off sign-in refused without contacting a provider')
+  } finally {
+    await mailOff.close()
+  }
+}

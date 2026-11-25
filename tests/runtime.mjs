@@ -33,6 +33,7 @@ export async function emittedWorker({ bindings = {}, checkout = process.env.BEAM
   const origin = `https://127.0.0.1:${port}`
   const secret = () => randomBytes(32).toString('base64url')
   const vars = { AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: secret(), SETUP_TOKEN: secret(), MAIL_PROVIDER: 'resend', MAIL_FROM: 'Beam <auth@example.test>', MAIL_API_KEY: secret(), ...bindings }
+  for (const name of Object.keys(bindings)) if (bindings[name] === undefined) delete vars[name]
   // `edge.refuse` makes the provider refuse every message, as Resend does a message it will not accept.
   const mails = [], edge = { refuse: false, attempts: [], webhooks: [], webhookStatus: 204 }
   const modules = [config.main, ...(await readdir(join(server, 'assets'))).filter(name => name.endsWith('.js')).map(name => `assets/${name}`)].map(name => ({ type: 'ESModule', path: join(server, name) }))
